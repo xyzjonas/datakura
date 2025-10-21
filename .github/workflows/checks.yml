@@ -9,7 +9,7 @@ jobs:
   backend:
     name: Python Checks
     runs-on: ubuntu-latest
-    container: python:3.12-slim
+    container: python:3.13-slim
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,7 +21,7 @@ jobs:
         run: pip install --no-cache-dir uv
 
       - name: Install backend dependencies
-        run: uv sync
+        run: uv sync --no-venv
 
       - name: Run backend checks (lint, format-check, type-check)
         run: just ci-python
