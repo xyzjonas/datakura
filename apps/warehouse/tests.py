@@ -1,12 +1,13 @@
+import pytest
 from django.contrib.auth.models import User
-from django.test import TestCase
 
 
-# Create your tests here.
-class TestCore(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.user = User.objects.create_user(username="john")
+@pytest.fixture
+def user():
+    user = User.objects.create_user(username="john")
+    return user
 
-    def test_hello(self):
-        self.assertTrue(True)
+
+@pytest.mark.django_db
+def test_hello(user):
+    assert user.username == "john"

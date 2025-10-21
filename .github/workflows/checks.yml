@@ -21,7 +21,7 @@ jobs:
         run: pip install --no-cache-dir uv
 
       - name: Install backend dependencies
-        run: uv sync --no-venv
+        run: uv sync --python $(which python3)
 
       - name: Run backend checks (lint, format-check, type-check)
         run: just ci-python

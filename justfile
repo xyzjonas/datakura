@@ -23,7 +23,7 @@ shell:
 migrate *ARGS:
     uv run manage.py migrate {{ARGS}}
 
-pytest:
+test:
     uv run pytest
 
 [working-directory: "frontend"]
@@ -61,4 +61,4 @@ ci-python:
     just lint
     just format-check
     just type-check
-    just pytest
+    just test
