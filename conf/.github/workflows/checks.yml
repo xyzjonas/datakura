@@ -1,0 +1,47 @@
+name: Checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  backend:
+    name: Python Checks
+    runs-on: ubuntu-latest
+    container: python:3.12-slim
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Install uv
+        run: pip install --no-cache-dir uv
+
+      - name: Install backend dependencies
+        run: just install
+
+      - name: Run backend checks (lint, format-check, type-check)
+        run: just ci-python
+
+  frontend:
+    name: JS Checks
+    runs-on: ubuntu-latest
+    container: node:22-slim
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend checks (lint, type-check, tests)
+        run: just ci-js

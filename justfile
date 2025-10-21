@@ -1,8 +1,7 @@
 
 default:
-    just lint
-    just format-check
-    just type-check
+    just ci-python
+    just ci-js
 
 install:
     uv sync
@@ -24,6 +23,27 @@ shell:
 migrate *ARGS:
     uv run manage.py migrate {{ARGS}}
 
+pytest:
+    uv run pytest
+
+[working-directory: "frontend"]
+test-js:
+    npm run test:unit
+
+[working-directory: "frontend"]
+eslint:
+    npm run lint-check
+
+[working-directory: "frontend"]
+ts-check:
+    npm run type-check
+
+[working-directory: "frontend"]
+ci-js:
+    just eslint
+    just ts-check
+    just test-js
+
 lint *ARGS:
     uv run ruff check
 
@@ -35,3 +55,10 @@ format-check:
 
 type-check:
     uv run mypy
+
+
+ci-python:
+    just lint
+    just format-check
+    just type-check
+    just pytest
