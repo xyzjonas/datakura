@@ -10,6 +10,10 @@ jobs:
     name: Python Checks
     runs-on: ubuntu-latest
     container: python:3.13-slim
+    env:
+      SECRET_KEY: foobarbaz
+      JWT_SECRET_KEY: foobar
+      DJANGO_SETTINGS_MODULE: conf.settings.devel
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
