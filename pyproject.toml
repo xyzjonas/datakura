@@ -1,0 +1,22 @@
+[project]
+name = "datakura"
+version = "0.0.1dev1"
+description = "datakura"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=5.2.6",
+    "django-ninja>=1.4.3",
+    "loguru>=0.7.3",
+    "pyjwt>=2.10.1",
+    "python-decouple>=3.8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest-django>=4.11.1",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "conf.settings.devel"
+python_files = "tests.py test_*.py *_tests.py"
