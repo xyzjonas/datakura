@@ -14,6 +14,10 @@ dev:
 ui:
      npm run dev
 
+[working-directory: "frontend"]
+ui-build:
+    npm run build
+
 manage *ARGS:
     uv run manage.py {{ARGS}}
 

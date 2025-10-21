@@ -58,7 +58,9 @@ ROOT_URLCONF = "conf.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            BASE_DIR / "conf/templates",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -127,3 +129,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 JWT_SECRET_KEY = config("JWT_SECRET_KEY")
+
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'frontend/dist/assets'
+]
+
+STATIC_URL = '/static/'
