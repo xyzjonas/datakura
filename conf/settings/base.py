@@ -131,8 +131,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 JWT_SECRET_KEY = config("JWT_SECRET_KEY")
 
 
-STATICFILES_DIRS = [
-    BASE_DIR / 'frontend/dist/assets'
-]
+STATICFILES_DIRS = [BASE_DIR / "frontend/dist/assets"]
 
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
