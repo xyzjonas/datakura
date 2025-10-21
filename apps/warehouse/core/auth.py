@@ -8,8 +8,8 @@ from loguru import logger
 
 
 # JWT Configuration
-JWT_SECRET = getattr(settings, 'JWT_SECRET_KEY')
-JWT_ALGORITHM = 'HS256'
+JWT_SECRET = getattr(settings, "JWT_SECRET_KEY")
+JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
@@ -21,11 +21,11 @@ class TokenAuth(HttpBearer):
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
 
             # Check if it's an access token
-            if payload.get('token_type') != 'access':
+            if payload.get("token_type") != "access":
                 return None
 
             # Get the user
-            user = User.objects.get(id=payload['user_id'])
+            user = User.objects.get(id=payload["user_id"])
             return user
 
         except jwt.ExpiredSignatureError:
@@ -46,22 +46,22 @@ def generate_access_token(user):
     """Generate JWT access token"""
     delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
-        'user_id': user.id,
-        'username': user.username,
-        'token_type': 'access',
-        'exp': (datetime.now(tz=timezone.utc) + delta).timestamp(),
-        'iat': datetime.now(tz=timezone.utc).timestamp()
+        "user_id": user.id,
+        "username": user.username,
+        "token_type": "access",
+        "exp": (datetime.now(tz=timezone.utc) + delta).timestamp(),
+        "iat": datetime.now(tz=timezone.utc).timestamp(),
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm='HS256')
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 
 def generate_refresh_token(user) -> str:
     """Generate JWT refresh token"""
     delta = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {
-        'user_id': user.id,
-        'token_type': 'refresh',
-        'exp': (datetime.now(tz=timezone.utc) + delta).timestamp(),
-        'iat': datetime.now(tz=timezone.utc).timestamp()
+        "user_id": user.id,
+        "token_type": "refresh",
+        "exp": (datetime.now(tz=timezone.utc) + delta).timestamp(),
+        "iat": datetime.now(tz=timezone.utc).timestamp(),
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm='HS256')
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")

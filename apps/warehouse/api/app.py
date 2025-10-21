@@ -10,7 +10,7 @@ api = NinjaAPI(
     urls_namespace="api/v1",
     version="0.0.1dev1",
     title="DATAKURA",
-    description="Datakura system API"
+    description="Datakura system API",
 )
 
 api.add_router(router=auth_routes, prefix="auth", tags=["auth"])
@@ -20,9 +20,6 @@ api.add_router(router=auth_routes, prefix="auth", tags=["auth"])
 def service_unavailable(request, exc):
     return api.create_response(
         request,
-        {
-            "success": False,
-            "message": "Entity not found"
-        },
+        {"success": False, "message": "Entity not found"},
         status=404,
     )

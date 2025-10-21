@@ -3,9 +3,7 @@ from .default import *  # noqa
 
 DEBUG = True
 
-INSTALLED_APPS.extend(
-    []
-)
+INSTALLED_APPS.extend([])  # noqa: F405
 
 
 INTERNAL_IPS = [
@@ -13,13 +11,13 @@ INTERNAL_IPS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',  # Vite dev server
-    'http://127.0.0.1:5173',
+    "http://localhost:5173",  # Vite dev server
+    "http://127.0.0.1:5173",
 ]
 
 # More permissive CSRF settings for dev
 CSRF_COOKIE_SECURE = False
-CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = "Lax"
 
 # Disable CSRF for API endpoints during development
 CORS_ALLOW_ALL_ORIGINS = True

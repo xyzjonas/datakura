@@ -4,7 +4,6 @@ from django.test import TestCase
 
 # Create your tests here.
 class TestCore(TestCase):
-
     def setUp(self):
         super().setUp()
         self.user = User.objects.create_user(username="john")

@@ -14,9 +14,32 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "django-stubs>=5.2.7",
+    "mypy>=1.18.2",
     "pytest-django>=4.11.1",
+    "ruff>=0.14.1",
 ]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "conf.settings.devel"
 python_files = "tests.py test_*.py *_tests.py"
+
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main"]
+files = "apps/**/*.py"
+exclude = "(^conf/)"
+
+
+[[tool.mypy.overrides]]
+module = ["conf.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["decouple"]
+ignore_missing_imports = true
+
+
+[tool.django-stubs]
+django_settings_module = "conf.settings.devel"

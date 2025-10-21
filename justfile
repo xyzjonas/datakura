@@ -1,4 +1,9 @@
 
+default:
+    just lint
+    just format-check
+    just type-check
+
 install:
     uv sync
     cd frontend && npm i
@@ -18,3 +23,15 @@ shell:
 
 migrate *ARGS:
     uv run manage.py migrate {{ARGS}}
+
+lint *ARGS:
+    uv run ruff check
+
+format:
+    uv run ruff format
+
+format-check:
+    uv run ruff format --check
+
+type-check:
+    uv run mypy
