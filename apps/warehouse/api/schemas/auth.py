@@ -1,12 +1,8 @@
-from typing import Any
+from __future__ import annotations
 
 from pydantic import BaseModel
 
-
-class BaseResponse(BaseModel):
-    success: bool = True
-    message: str | None = None
-    data: Any
+from .base import BaseResponse
 
 
 class LoginFormSchema(BaseModel):

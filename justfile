@@ -10,14 +10,6 @@ install:
 dev:
     uv run manage.py runserver
 
-[working-directory: "frontend"]
-ui:
-     npm run dev
-
-[working-directory: "frontend"]
-ui-build:
-    npm run build
-
 manage *ARGS:
     uv run manage.py {{ARGS}}
 
@@ -27,8 +19,28 @@ shell:
 migrate *ARGS:
     uv run manage.py migrate {{ARGS}}
 
+lint *ARGS:
+    uv run ruff check
+
+format:
+    uv run ruff format
+
+format-check:
+    uv run ruff format --check
+
+type-check:
+    uv run mypy
+
 test:
     uv run pytest
+
+[working-directory: "frontend"]
+ui:
+     npm run dev
+
+[working-directory: "frontend"]
+ui-build:
+    npm run build
 
 [working-directory: "frontend"]
 test-js:
@@ -47,19 +59,6 @@ ci-js:
     just eslint
     just ts-check
     just test-js
-
-lint *ARGS:
-    uv run ruff check
-
-format:
-    uv run ruff format
-
-format-check:
-    uv run ruff format --check
-
-type-check:
-    uv run mypy
-
 
 ci-python:
     just lint
