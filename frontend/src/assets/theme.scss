@@ -1,0 +1,46 @@
+@import '../quasar-variables.scss';
+
+:root {
+  --bg-color: #{$light};
+  // --table-header-bg: #{$grey-2};
+  // --table-header-text-color: #{$dark};
+  // --table-row-hover-bg: #{$grey-1};
+  // --table-nodata-text-color: #{$grey-8};
+  --header-text-color: #{$dark};
+  // --breadcrumbs-toolbar-bg: #{$white};
+  // --breadcrumbs-toolbar-text-color: #{$dark};
+  // --codestream-badge-text: #{$grey-9};
+  // --codestream-badge-border: #{$grey-8};
+  // --codestream-badge-icon: #{$grey-8};
+  // --package-badge-text: #{$accent};
+  // --package-badge-border: #{$accent};
+  // --package-badge-icon: #{$accent};
+  // --user-badge-text: #{$primary};
+  // --user-badge-border: #{$primary};
+  // ... // --breadcrumbs-link-active-color: #{$primary}; // --breadcrumbs-link-hover-color: #{$primary}; // --breadcrumbs-link-color: #{$grey-8}; // --user-badge-icon: #{$primary};
+}
+
+body.body--dark {
+  color-scheme: dark; // let the browser know (scroll bars etc.)
+  --bg-color: #{$dark}; // --table-header-text-color: #{$white};
+  --q-dark-page: #{$dark};
+  --header-text-color: #{$white};
+}
+
+body {
+  background-color: var(--bg-color);
+}
+
+.q-drawer__content {
+  background-color: var(--bg-color);
+}
+
+.q-header {
+  background-color: transparent !important;
+  color: var(--header-text-color) !important;
+
+  .breadcrumbs-toolbar {
+    background-color: var(--breadcrumbs-toolbar-bg);
+    color: var(--breadcrumbs-toolbar-text-color);
+  }
+}

@@ -39,6 +39,10 @@ ui:
      npm run dev
 
 [working-directory: "frontend"]
+openapi-gen:
+    npm run openapi-ts
+
+[working-directory: "frontend"]
 ui-build:
     npm run build
 

@@ -1,0 +1,134 @@
+$primary: #3e608a; // lighter shade of 'Pine'
+$green: #30ba78; // Jungle
+$light-green: #90ebcd; // Mint
+$secondary: #192072; // Midnight
+$blue: #2453ff; // Waterhole
+$accent: #fe7c3f; // Persimmon
+$white: #ffffff;
+$grey: #efefef; // Fog
+$grey-1: #fafafa;
+$grey-2: #f1f1f1; // Cloud
+$grey-8: #6d6d6d;
+
+$positive: $green;
+
+$light: #eff5fc;
+$dark: black;
+
+// default shadow are a bit too much
+$shadow-color: #666;
+$dark-shadow-color: #444;
+
+// Quasar variables for dark mode
+$dark-3: #424242;
+$dark-5: #3a3a3a;
+
+// headings - sensible web sizing
+$h1: (
+  size: 2rem,
+  // 32px
+  line-height: 2.25rem,
+  // 36px
+  letter-spacing: -0.025em,
+  weight: 700,
+);
+
+$h2: (
+  size: 1.5rem,
+  // 24px
+  line-height: 1.75rem,
+  // 28px
+  letter-spacing: -0.015em,
+  weight: 600,
+);
+
+$h3: (
+  size: 1.25rem,
+  // 20px
+  line-height: 1.5rem,
+  // 24px
+  letter-spacing: -0.01em,
+  weight: 600,
+);
+
+$h4: (
+  size: 1.125rem,
+  // 18px
+  line-height: 1.375rem,
+  // 22px
+  letter-spacing: -0.005em,
+  weight: 600,
+);
+
+$h5: (
+  size: 1rem,
+  // 16px
+  line-height: 1.25rem,
+  // 20px
+  letter-spacing: normal,
+  weight: 600,
+);
+
+$h6: (
+  size: 0.875rem,
+  // 14px
+  line-height: 1.125rem,
+  // 18px
+  letter-spacing: 0.01em,
+  weight: 600,
+);
+
+// body text
+$subtitle1: (
+  size: 1rem,
+  // 16px
+  line-height: 1.5rem,
+  // 24px
+  letter-spacing: 0.009em,
+  weight: 500,
+);
+
+$subtitle2: (
+  size: 0.875rem,
+  // 14px
+  line-height: 1.25rem,
+  // 20px
+  letter-spacing: 0.007em,
+  weight: 500,
+);
+
+$body1: (
+  size: 1rem,
+  // 16px
+  line-height: 1.5rem,
+  // 24px
+  letter-spacing: 0.01em,
+  weight: 400,
+);
+
+$body2: (
+  size: 0.875rem,
+  // 14px
+  line-height: 1.25rem,
+  // 20px
+  letter-spacing: 0.01em,
+  weight: 400,
+);
+
+$overline: (
+  size: 0.75rem,
+  // 12px
+  line-height: 1.5rem,
+  // 24px
+  letter-spacing: 0.1em,
+  weight: 500,
+);
+
+$caption: (
+  size: 0.75rem,
+  // 12px
+  line-height: 1.25rem,
+  // 20px
+  letter-spacing: 0.03em,
+  weight: 400,
+);
