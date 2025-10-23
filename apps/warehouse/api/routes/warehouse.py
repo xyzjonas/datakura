@@ -44,7 +44,7 @@ def get_warehouses(request: HttpRequest):
 
 
 @routes.get(
-    "locations/{warehouse_location_id}",
+    "locations/{warehouse_location_code}",
     response={200: GetWarehouseLocationResponse},
     auth=None,
 )

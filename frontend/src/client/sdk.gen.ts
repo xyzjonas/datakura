@@ -74,7 +74,7 @@ export const warehouseApiRoutesWarehouseGetWarehouses = <ThrowOnError extends bo
  */
 export const warehouseApiRoutesWarehouseGetWarehouseLocation = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseGetWarehouseLocationData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, unknown, ThrowOnError>({
-        url: '/api/v1/locations/{warehouse_location_id}',
+        url: '/api/v1/locations/{warehouse_location_code}',
         ...options
     });
 };

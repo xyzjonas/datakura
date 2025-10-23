@@ -1,6 +1,6 @@
 <template>
-  <q-layout view="HHH Lpr fff">
-    <q-header class="h-[86px]">
+  <q-layout view="hhh Lpr fff">
+    <q-header>
       <q-toolbar class="flex gap-5 p-3 items-center">
         <div class="flex items-center gap-3">
           <!-- <q-btn dense flat :icon="isOpened ? 'close' : 'menu'" @click="isOpened = !isOpened" /> -->
@@ -12,7 +12,6 @@
         <q-btn icon="sym_o_settings" round flat class="ml-auto text-gray-6"></q-btn>
         <q-avatar rounded size="36px" class="rounded-full">
           <img src="https://cdn.quasar.dev/img/avatar.png" />
-          <!-- <q-badge floating color="primary">new</q-badge> -->
         </q-avatar>
       </q-toolbar>
     </q-header>
@@ -88,8 +87,6 @@
         <slot></slot>
       </q-page>
     </q-page-container>
-
-    <layout-footer />
   </q-layout>
 </template>
 

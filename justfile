@@ -1,7 +1,6 @@
 
-default:
-    just ci-python
-    just ci-js
+[parallel]
+default: ci-python ci-js
 
 install:
     uv sync
@@ -9,6 +8,10 @@ install:
 
 dev:
     uv run manage.py runserver
+
+preview:
+    cd frontend && npm run build
+    just dev
 
 manage *ARGS:
     uv run manage.py {{ARGS}}
@@ -34,6 +37,9 @@ type-check:
 test:
     uv run pytest
 
+seed:
+    uv run manage.py seed
+
 [working-directory: "frontend"]
 ui:
      npm run dev
@@ -58,14 +64,8 @@ eslint:
 ts-check:
     npm run type-check
 
-[working-directory: "frontend"]
-ci-js:
-    just eslint
-    just ts-check
-    just test-js
+[parallel]
+ci-js: eslint ts-check test-js
 
-ci-python:
-    just lint
-    just format-check
-    just type-check
-    just test
+[parallel]
+ci-python: lint format-check type-check test

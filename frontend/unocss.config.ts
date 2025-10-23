@@ -3,7 +3,7 @@ import { defineConfig, presetUno } from 'unocss'
 export default defineConfig({
   rules: [],
   shortcuts: {
-    link: 'text-current light:text-primary font-600 no-underline hover:underline',
+    link: 'text-current light:text-primary font-600 no-underline hover:underline hover:cursor-pointer',
   },
   presets: [
     // Tailwind-like utility classes, replacement for Bootstrap's utility classes.
@@ -21,7 +21,7 @@ export default defineConfig({
   theme: {
     colors: {
       pine: '#0c322c', // Pine
-      primary: '#2d5a52',
+      primary: '#3e608a',
       green: '#30ba78', // Jungle
       'light-green': '#90ebcd', // Mint
       secondary: '#192072', // Midnight

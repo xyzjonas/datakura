@@ -332,14 +332,14 @@ export type WarehouseApiRoutesWarehouseGetWarehousesResponse = WarehouseApiRoute
 
 export type WarehouseApiRoutesWarehouseGetWarehouseLocationData = {
     body?: never;
-    path?: never;
-    query: {
+    path: {
         /**
          * Warehouse Location Code
          */
         warehouse_location_code: string;
     };
-    url: '/api/v1/locations/{warehouse_location_id}';
+    query?: never;
+    url: '/api/v1/locations/{warehouse_location_code}';
 };
 
 export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponses = {
