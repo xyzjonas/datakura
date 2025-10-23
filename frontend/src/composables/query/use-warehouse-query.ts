@@ -24,7 +24,47 @@ export function useQueryWarehouse() {
     },
   })
 
+  const locationSearch = computed<string>({
+    get() {
+      const raw = route.query.locationSearch
+      if (raw) {
+        return `${raw}`
+      }
+      return ''
+    },
+    set(val: string) {
+      const query = { ...route.query }
+      if (val) {
+        query.locationSearch = val
+      } else {
+        delete query.locationSearch
+      }
+      router.replace({ query })
+    },
+  })
+
+  const itemSearch = computed<string>({
+    get() {
+      const raw = route.query.itemSearch
+      if (raw) {
+        return `${raw}`
+      }
+      return ''
+    },
+    set(val: string) {
+      const query = { ...route.query }
+      if (val) {
+        query.itemSearch = val
+      } else {
+        delete query.itemSearch
+      }
+      router.replace({ query })
+    },
+  })
+
   return {
     location,
+    locationSearch,
+    itemSearch,
   }
 }

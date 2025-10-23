@@ -1,15 +1,22 @@
 <template>
   <MainLayout>
-    <ForegroundPanel class="pr-10 min-w-[256px]">
-      <q-tree
-        :nodes="simple"
-        node-key="label"
-        selected-color="primary"
-        v-model:selected="location"
-        default-expand-all
-      >
+    <ForegroundPanel class="min-w-[256px]">
+      <SearchInput
+        v-model="locationSearch"
+        placeholder="Vyhledat skladové místo"
+        clearable
+        class="mb-4"
+      />
+      <q-tree :nodes="simple" node-key="label" selected-color="primary" ref="tree">
         <template v-slot:default-header="prop">
-          <div class="flex items-center">
+          <div
+            @click="setLocation(prop.node)"
+            :class="
+              prop.node.icon === LOCATION_ICON
+                ? 'flex items-center cursor-pointer light:hover:bg-gray-1 dark:hover:bg-dark px-2 pr-4 rounded'
+                : ''
+            "
+          >
             <q-icon :name="prop.node.icon" class="mr-2" color="gray-5" size="18px" />
             <span :class="{ 'font-bold': location === prop.node.label }">{{
               prop.node.label
@@ -21,19 +28,24 @@
 
     <ForegroundPanel class="flex-[5]" v-if="warehouseLocation">
       <div class="flex justify-between items-center">
-        <h1 class="mb-5">{{ warehouseLocation.code }}</h1>
-        <q-toggle v-model="aggregate">
-          <span class="text-gray"> Sloučit podle typu balení </span>
-        </q-toggle>
+        <h2 class="mb-5">{{ warehouseLocation.code }}</h2>
       </div>
 
       <q-table
         :rows="rows"
         :columns="columns"
         flat
-        :pagination="{ rowsPerPage: -1 }"
-        hide-pagination
+        :pagination="{ rowsPerPage: 20 }"
+        class="bg-transparent"
       >
+        <template #top-right>
+          <SearchInput v-model="itemSearch" placeholder="Vyhledat položku" clearable></SearchInput>
+        </template>
+        <template #top-left>
+          <q-toggle v-model="aggregate">
+            <span class="text-slate"> Sloučit podle typu balení </span>
+          </q-toggle>
+        </template>
         <template #body-cell-name="props">
           <q-td>
             <span class="link">{{ props.row.stock_item.name }}</span>
@@ -75,25 +87,52 @@ import {
 } from '@/client'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import MainLayout from '@/components/layout/MainLayout.vue'
+import SearchInput from '@/components/SearchInput.vue'
 import { useQueryWarehouse } from '@/composables/query/use-warehouse-query'
 import { useLocalStorage } from '@vueuse/core'
-import type { QTable, QTableColumn } from 'quasar'
-import { computed, ref, watch } from 'vue'
+import { QTree, type QTable, type QTableColumn } from 'quasar'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const result = await warehouseApiRoutesWarehouseGetWarehouses()
 const warehouses = ref(result.data?.data ?? [])
+
+const { location, locationSearch, itemSearch } = useQueryWarehouse()
+
+const LOCATION_ICON = 'sym_o_pin_drop'
+
+const tree = ref<QTree | null>(null)
+type TreeElement = {
+  label: string
+  icon: string
+  children?: TreeElement[]
+}
 
 const simple = computed(() =>
   warehouses.value.map((war) => {
     return {
       label: war.name,
       icon: 'sym_o_home_work',
-      children: war.locations.map((loc) => ({ label: loc.code, icon: 'sym_o_pin_drop' })),
+      children: war.locations
+        .filter((loc) => loc.code.toLowerCase().includes(locationSearch.value.toLowerCase()))
+        .map((loc) => ({ label: loc.code, icon: LOCATION_ICON })) as TreeElement[],
     }
   }),
 )
 
-const { location } = useQueryWarehouse()
+const collapseTree = () => {
+  if (!tree.value) {
+    return
+  }
+  if (locationSearch.value) {
+    tree.value.expandAll()
+  } else {
+    tree.value.collapseAll()
+  }
+}
+
+watch(locationSearch, collapseTree, { immediate: true })
+
+onMounted(collapseTree)
 
 const fetchWarehouseLocation = async () => {
   if (!location.value) {
@@ -110,6 +149,12 @@ const fetchWarehouseLocation = async () => {
 const warehouseLocation = ref<WarehouseLocationDetailSchema>()
 if (location.value) {
   await fetchWarehouseLocation()
+}
+
+const setLocation = (element: TreeElement) => {
+  if (element.icon === LOCATION_ICON) {
+    location.value = element.label
+  }
 }
 
 watch(location, fetchWarehouseLocation)
@@ -150,10 +195,19 @@ const columns = ref<QTableColumn[]>([
 ])
 
 const aggregate = useLocalStorage('aggragate-package-types', true)
+
+const locationItems = computed(() =>
+  (warehouseLocation.value?.items ?? []).filter(
+    (item) =>
+      item.stock_item.code.toLowerCase().includes(itemSearch.value.toLowerCase()) ||
+      item.stock_item.name.toLowerCase().includes(itemSearch.value.toLowerCase()),
+  ),
+)
+
 const rows = computed(() => {
   if (aggregate.value) {
     return Object.values(
-      (warehouseLocation.value?.items ?? []).reduce(
+      locationItems.value.reduce(
         (acc, item) => {
           const key = `${item.package_type.name}_${item.remaining}`
 
@@ -173,7 +227,7 @@ const rows = computed(() => {
     )
   }
 
-  return warehouseLocation.value?.items ?? []
+  return locationItems.value
 })
 
 watch(
