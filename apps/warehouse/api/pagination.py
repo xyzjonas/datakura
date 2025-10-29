@@ -19,10 +19,7 @@ class StockProductPagination(PaginationBase):
         page: int = 1
         page_size: int = 20
 
-    class Output(GetProductsResponse):
-        count: int
-        next: int | None
-        previous: int | None
+    class Output(GetProductsResponse): ...
 
     def paginate_queryset(
         self, queryset: QuerySet[StockProduct], pagination: Input, **params

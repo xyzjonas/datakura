@@ -25,3 +25,6 @@ class GetProductResponse(BaseResponse):
 
 class GetProductsResponse(BaseResponse):
     data: list[ProductSchema]
+    count: int
+    next: int | None
+    previous: int | None
