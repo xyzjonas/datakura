@@ -3,12 +3,13 @@
     dense
     outlined
     rounded
-    v-model="modelValue"
+    v-model.trim="modelValue"
     :placeholder="placeholder ?? 'Vyhledat...'"
     :disable="disable"
     :clearable="clearable"
     clear-icon="sym_o_close_small"
     @clear="modelValue = ''"
+    :debounce="debounce"
   >
     <template #prepend>
       <q-icon name="search" />
@@ -21,6 +22,7 @@ defineProps<{
   placeholder?: string
   disable?: boolean
   clearable?: boolean
+  debounce?: number
 }>()
 const modelValue = defineModel<string>({ required: true })
 </script>

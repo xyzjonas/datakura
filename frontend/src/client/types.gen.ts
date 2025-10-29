@@ -158,32 +158,6 @@ export type GetWarehouseLocationResponse = {
 };
 
 /**
- * PackageTypeSchema
- */
-export type PackageTypeSchema = {
-    /**
-     * Created
-     */
-    created: string;
-    /**
-     * Changed
-     */
-    changed: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Description
-     */
-    description: string | null;
-    /**
-     * Count
-     */
-    count: number;
-};
-
-/**
  * StockItemSchema
  */
 export type StockItemSchema = {
@@ -218,8 +192,19 @@ export type WarehouseItemSchema = {
      * Changed
      */
     changed: string;
+    /**
+     * Code
+     */
+    code: string;
     stock_item: StockItemSchema;
-    package_type: PackageTypeSchema;
+    /**
+     * Unit Of Measure
+     */
+    unit_of_measure: string;
+    /**
+     * Factor At Receipt
+     */
+    factor_at_receipt: number;
     /**
      * Remaining
      */
@@ -246,6 +231,161 @@ export type WarehouseLocationDetailSchema = {
      * Items
      */
     items: Array<WarehouseItemSchema>;
+};
+
+/**
+ * Input
+ */
+export type Input = {
+    /**
+     * Page
+     */
+    page?: number;
+    /**
+     * Page Size
+     */
+    page_size?: number;
+};
+
+/**
+ * ConversionFactorSchema
+ */
+export type ConversionFactorSchema = {
+    /**
+     * Unit Of Measure
+     */
+    unit_of_measure: string;
+    /**
+     * Factor
+     */
+    factor: number;
+};
+
+/**
+ * PagedProductSchema
+ */
+export type PagedProductSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Data
+     */
+    data: Array<ProductSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * ProductSchema
+ */
+export type ProductSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Unit
+     */
+    unit: string;
+    /**
+     * Group
+     */
+    group?: string | null;
+    /**
+     * Conversion Factors
+     */
+    conversion_factors: Array<ConversionFactorSchema>;
+};
+
+/**
+ * GetProductResponse
+ */
+export type GetProductResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    data: ProductSchema;
+};
+
+/**
+ * GetProductWarehouseInfoResponse
+ */
+export type GetProductWarehouseInfoResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Data
+     */
+    data: Array<WarehouseExpandedSchema>;
+};
+
+/**
+ * WarehouseExpandedSchema
+ */
+export type WarehouseExpandedSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Locations
+     */
+    locations: Array<WarehouseLocationDetailSchema>;
 };
 
 export type WarehouseApiRoutesAuthLoginUserData = {
@@ -350,3 +490,74 @@ export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponses = {
 };
 
 export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponse = WarehouseApiRoutesWarehouseGetWarehouseLocationResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseLocationResponses];
+
+export type WarehouseApiRoutesProductGetProductsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/products';
+};
+
+export type WarehouseApiRoutesProductGetProductsResponses = {
+    /**
+     * OK
+     */
+    200: PagedProductSchema;
+};
+
+export type WarehouseApiRoutesProductGetProductsResponse = WarehouseApiRoutesProductGetProductsResponses[keyof WarehouseApiRoutesProductGetProductsResponses];
+
+export type WarehouseApiRoutesProductGetProductData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}';
+};
+
+export type WarehouseApiRoutesProductGetProductResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductGetProductResponse = WarehouseApiRoutesProductGetProductResponses[keyof WarehouseApiRoutesProductGetProductResponses];
+
+export type WarehouseApiRoutesProductGetProductWarehouseInfoData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/warehouse-info';
+};
+
+export type WarehouseApiRoutesProductGetProductWarehouseInfoResponses = {
+    /**
+     * OK
+     */
+    200: GetProductWarehouseInfoResponse;
+};
+
+export type WarehouseApiRoutesProductGetProductWarehouseInfoResponse = WarehouseApiRoutesProductGetProductWarehouseInfoResponses[keyof WarehouseApiRoutesProductGetProductWarehouseInfoResponses];

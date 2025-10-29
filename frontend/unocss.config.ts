@@ -20,8 +20,7 @@ export default defineConfig({
   // https://brand.suse.com/brand-system/color-palette
   theme: {
     colors: {
-      pine: '#0c322c', // Pine
-      primary: '#3e608a',
+      primary: '#cc3263',
       green: '#30ba78', // Jungle
       'light-green': '#90ebcd', // Mint
       secondary: '#192072', // Midnight

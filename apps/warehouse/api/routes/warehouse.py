@@ -7,7 +7,6 @@ from apps.warehouse.api.schemas.warehouse import (
     WarehouseLocationSchema,
     WarehouseItemSchema,
     StockItemSchema,
-    PackageTypeSchema,
     GetWarehouseLocationResponse,
     WarehouseLocationDetailSchema,
 )
@@ -53,7 +52,7 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
     #     request, username=credentials.username, password=credentials.password
     # )
     location = WarehouseLocation.objects.prefetch_related(
-        "items", "items__stock_item", "items__package_type"
+        "items", "items__stock_item", "items__uom_at_receipt"
     ).get(code=warehouse_location_code)
     return GetWarehouseLocationResponse(
         data=WarehouseLocationDetailSchema(
@@ -62,22 +61,18 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
             changed=location.changed,
             items=[
                 WarehouseItemSchema(
+                    code=item.code,
                     stock_item=StockItemSchema(
                         code=item.stock_item.code,
                         name=item.stock_item.name,
                         created=item.stock_item.created,
                         changed=item.stock_item.changed,
                     ),
-                    package_type=PackageTypeSchema(
-                        name=item.package_type.name,
-                        description=item.package_type.description,
-                        count=item.package_type.count,
-                        created=item.package_type.created,
-                        changed=item.package_type.changed,
-                    ),
+                    unit_of_measure=item.uom_at_receipt.name,
+                    factor_at_receipt=float(item.conversion_factor_at_receipt),
                     created=item.created,
                     changed=item.changed,
-                    remaining=item.remaining,
+                    remaining=float(item.remaining),
                 )
                 for item in location.items.all()
             ],

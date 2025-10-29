@@ -22,8 +22,14 @@ shell:
 migrate *ARGS:
     uv run manage.py migrate {{ARGS}}
 
+makemigrations:
+    uv run manage.py makemigrations
+
+createsuperuser:
+    uv run manage.py createsuperuser --skip-checks --username admin --email admin@gmail.com
+
 lint *ARGS:
-    uv run ruff check
+    uv run ruff check {{ARGS}}
 
 format:
     uv run ruff format

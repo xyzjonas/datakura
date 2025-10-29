@@ -18,7 +18,7 @@
             "
           >
             <q-icon :name="prop.node.icon" class="mr-2" color="gray-5" size="18px" />
-            <span :class="{ 'font-bold': location === prop.node.label }">{{
+            <span :class="{ 'font-bold text-primary': location === prop.node.label }">{{
               prop.node.label
             }}</span>
           </div>
@@ -48,7 +48,16 @@
         </template>
         <template #body-cell-name="props">
           <q-td>
-            <span class="link">{{ props.row.stock_item.name }}</span>
+            <a
+              @click="
+                $router.push({
+                  name: 'productDetail',
+                  params: { productCode: props.row.stock_item.code },
+                })
+              "
+              class="link"
+              >{{ props.row.stock_item.name }}</a
+            >
           </q-td>
         </template>
         <template #body-cell-totalCount="props" v-if="aggregate">
@@ -56,16 +65,19 @@
         </template>
         <template #body-cell-packaging="props">
           <q-td auto-width>
-            <q-badge color="primary">{{ props.row.package_type.name }}</q-badge>
+            <q-badge color="primary">{{ props.row.unit_of_measure }}</q-badge>
           </q-td>
         </template>
         <template #body-cell-remaining="props">
           <q-td auto-width>
             <q-badge
-              :color="props.row.remaining < props.row.package_type.count ? 'accent' : 'positive'"
-              >{{ props.row.remaining }} / {{ props.row.package_type.count }}</q-badge
+              :color="props.row.remaining < props.row.factor_at_receipt ? 'accent' : 'positive'"
+              >{{ props.row.remaining }} / {{ props.row.factor_at_receipt }}</q-badge
             >
           </q-td>
+        </template>
+        <template #no-data>
+          <EmptyPanel text="Žádné skladové položky" icon="sym_o_search_off" />
         </template>
       </q-table>
     </ForegroundPanel>
@@ -85,11 +97,12 @@ import {
   type WarehouseItemSchema,
   type WarehouseLocationDetailSchema,
 } from '@/client'
+import EmptyPanel from '@/components/EmptyPanel.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryWarehouse } from '@/composables/query/use-warehouse-query'
-import { useLocalStorage } from '@vueuse/core'
+import { useLocalStorage, useWindowScroll } from '@vueuse/core'
 import { QTree, type QTable, type QTableColumn } from 'quasar'
 import { computed, onMounted, ref, watch } from 'vue'
 
@@ -151,9 +164,11 @@ if (location.value) {
   await fetchWarehouseLocation()
 }
 
+const { y } = useWindowScroll({ behavior: 'smooth' })
 const setLocation = (element: TreeElement) => {
   if (element.icon === LOCATION_ICON) {
     location.value = element.label
+    y.value = 0
   }
 }
 
@@ -167,19 +182,26 @@ const columns = ref<QTableColumn[]>([
   {
     field: (item: WarehouseItemSchema) => item.stock_item.name,
     name: 'name',
-    label: 'Název',
+    label: 'Název produktu',
     align: 'left' as const,
     sortable: true,
   },
   {
     field: (item: WarehouseItemSchema) => item.stock_item.code,
     name: 'code',
-    label: 'Kód',
+    label: 'Kód produktu',
     align: 'left' as const,
     sortable: true,
   },
   {
-    field: (item: WarehouseItemSchema) => item.package_type.name,
+    field: (item: WarehouseItemSchema) => item.code,
+    name: 'code',
+    label: 'Kód skladové položky',
+    align: 'left' as const,
+    sortable: true,
+  },
+  {
+    field: (item: WarehouseItemSchema) => item.unit_of_measure,
     name: 'packaging',
     label: 'Balení',
     align: 'left' as const,
@@ -209,7 +231,7 @@ const rows = computed(() => {
     return Object.values(
       locationItems.value.reduce(
         (acc, item) => {
-          const key = `${item.package_type.name}_${item.remaining}`
+          const key = `${item.unit_of_measure}_${item.remaining}`
 
           if (!acc[key]) {
             acc[key] = {

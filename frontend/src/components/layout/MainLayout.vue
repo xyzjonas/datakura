@@ -8,11 +8,20 @@
           <q-separator vertical class="my-3 bg-gray h-[1rem]" />
           <a href="/" class="mr-[96px] light:text-dark-5 dark:text-light"> DATAKURA </a>
         </div>
-        <SearchInput v-model="search" />
-        <q-btn icon="sym_o_settings" round flat class="ml-auto text-gray-6"></q-btn>
-        <q-avatar rounded size="36px" class="rounded-full">
-          <img src="https://cdn.quasar.dev/img/avatar.png" />
-        </q-avatar>
+
+        <SearchInput v-model="search" class="w-[512px]" />
+
+        <div class="ml-auto flex gap-2">
+          <div class="flex flex-col items-end">
+            <span class="light:text-primary font-bold dark:text-light">Jaroslav Novák</span>
+            <span class="text-xs text-gray-5">Administrátor</span>
+          </div>
+          <q-avatar rounded size="36px" class="rounded-full">
+            <img
+              src="https://static.vecteezy.com/system/resources/thumbnails/029/640/896/small_2x/side-view-of-a-handsome-young-man-face-on-white-background-generative-ai-free-photo.jpeg"
+            />
+          </q-avatar>
+        </div>
       </q-toolbar>
     </q-header>
 
@@ -29,7 +38,8 @@
               {
                 label: 'Produkty',
                 icon: 'sym_o_package_2',
-                routeName: 'submissions',
+                routeName: 'products',
+                routeMatch: 'products,productDetail',
               },
               {
                 label: 'Sklad',
@@ -82,6 +92,8 @@
       </div>
     </q-drawer>
 
+    <BackToTopFab />
+
     <q-page-container>
       <q-page padding class="flex gap-2 flex-nowrap">
         <slot></slot>
@@ -95,6 +107,7 @@ import { useDarkmode } from '@/composables/use-dark-mode'
 import { ref } from 'vue'
 import MenuList from '../MenuList.vue'
 import SearchInput from '../SearchInput.vue'
+import BackToTopFab from './BackToTopFab.vue'
 
 const search = ref('')
 const { isDark, toggle } = useDarkmode()

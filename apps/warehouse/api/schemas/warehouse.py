@@ -17,9 +17,11 @@ class PackageTypeSchema(BaseSchema):
 class WarehouseItemSchema(BaseSchema):
     """Atomic unit of the inventory - uniquely identifiable and trackable item in a warehouse"""
 
+    code: str
     stock_item: StockItemSchema
-    package_type: PackageTypeSchema
-    remaining: int
+    unit_of_measure: str
+    factor_at_receipt: float
+    remaining: float
 
 
 class WarehouseLocationSchema(BaseSchema):
@@ -36,9 +38,19 @@ class WarehouseSchema(BaseSchema):
     locations: list[WarehouseLocationSchema]
 
 
+class WarehouseExpandedSchema(BaseSchema):
+    name: str
+    description: str | None
+    locations: list[WarehouseLocationDetailSchema]
+
+
 class GetWarehousesResponse(BaseResponse):
     data: list[WarehouseSchema]
 
 
 class GetWarehouseLocationResponse(BaseResponse):
     data: WarehouseLocationDetailSchema
+
+
+class GetProductWarehouseInfoResponse(BaseResponse):
+    data: list[WarehouseExpandedSchema]

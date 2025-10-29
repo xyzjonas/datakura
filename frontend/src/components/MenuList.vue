@@ -1,13 +1,13 @@
 <template>
-  <q-list>
+  <q-list class="pl-3">
     <q-item
       v-for="item in items"
       :key="item.label"
       clickable
       dense
       v-ripple
-      :active="currentRoute.name === item.routeName"
-      active-class="dark:bg-pine dark:text-white font-semibold"
+      :active="isActive(item)"
+      active-class="light:bg-primary dark:bg-light-9 light:text-white dark:text-dark"
       :to="{ name: item.routeName }"
       class="rounded-md my-2"
     >
@@ -26,11 +26,19 @@ type MenuItem = {
   label: string
   icon: string
   routeName: string
+  routeMatch?: string
 }
 
 const { currentRoute } = useRouter()
 
 defineProps<{ items: MenuItem[] }>()
+
+const isActive = (item: MenuItem) => {
+  if (item.routeMatch) {
+    return item.routeMatch.includes(String(currentRoute.value.name))
+  }
+  return item.routeName.includes(String(currentRoute.value.name))
+}
 </script>
 
 <style lang="scss" scoped></style>
