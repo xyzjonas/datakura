@@ -7,7 +7,7 @@
       dense
       v-ripple
       :active="isActive(item)"
-      active-class="light:bg-primary dark:bg-light-9 light:text-white dark:text-dark"
+      active-class="light:bg-primary dark:bg-primary light:text-white dark:text-white"
       :to="{ name: item.routeName }"
       class="rounded-md my-2"
     >

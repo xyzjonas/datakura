@@ -2,45 +2,48 @@
   <MainLayout>
     <div class="flex-1">
       <q-table
-        :rows="products"
+        :rows="customers"
         :columns="columns"
         :loading="loading"
-        loading-label="Načítám"
         flat
         v-model:pagination="pagination"
         @request="onPaginationChange"
-        no-data-label="Žádné produkty nenalezeny"
-        :rows-per-page-options="[30, 50, 100]"
+        no-data-label="Žádní zákazníci nenalezeni"
+        loading-label="Načítám"
+        :rows-per-page-options="[10, 20, 50, 100]"
         class="bg-transparent"
       >
         <template #top-left>
           <SearchInput
             v-model="search"
-            placeholder="Vyhledat položku"
+            placeholder="Vyhledat zákazníka"
             clearable
             :debounce="300"
           ></SearchInput>
         </template>
         <template #body-cell-name="props">
-          <q-td>
+          <q-td class="flex items-center gap-2">
+            <CustomerTypeIcon
+              :type="props.row.customer_type"
+              class="text-lg light:text-primary dark:text-light"
+            />
             <a
               @click="
                 $router.push({
-                  name: 'productDetail',
-                  params: { productCode: props.row.code },
+                  name: 'customerDetail',
+                  params: { customerCode: props.row.code },
                 })
               "
               class="link"
-              >{{ props.row.name }}</a
+            >
+              {{ props.row.name }}</a
             >
           </q-td>
         </template>
         <template #body-cell-type="props">
           <q-td auto-width>
-            <span class="flex items-center gap-1">
-              <ProductTypeIcon :type="props.row.type" />
-              {{ props.row.type }}
-            </span>
+            <CustomerTypeIcon :type="props.row.customer_type" class="text-lg" />
+            <span class="lowercase ml-2">{{ props.row.customer_type }}</span>
           </q-td>
         </template>
       </q-table>
@@ -49,15 +52,15 @@
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesProductGetProducts, type ProductSchema } from '@/client'
+import { warehouseApiRoutesCustomerGetCustomers, type CustomerSchema } from '@/client'
+import CustomerTypeIcon from '@/components/customer/CustomerTypeIcon.vue'
 import MainLayout from '@/components/layout/MainLayout.vue'
-import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import SearchInput from '@/components/SearchInput.vue'
-import { useQueryProducts } from '@/composables/query/use-products-query'
+import { useQueryCustomers } from '@/composables/query/use-customers-query'
 import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
 
-const { page, pageSize, search } = useQueryProducts()
+const { page, pageSize, search } = useQueryCustomers()
 
 const pagination = ref<NonNullable<QTableProps['pagination']>>({
   rowsPerPage: pageSize.value,
@@ -65,28 +68,29 @@ const pagination = ref<NonNullable<QTableProps['pagination']>>({
   rowsNumber: pageSize.value,
 })
 
-const products = ref<ProductSchema[]>([])
+const customers = ref<CustomerSchema[]>([])
 const loading = ref(false)
-const fetchProducts = async () => {
+const fetchCustomers = async () => {
   loading.value = true
   try {
-    const res = await warehouseApiRoutesProductGetProducts({
+    const res = await warehouseApiRoutesCustomerGetCustomers({
       query: {
         page: page.value,
         page_size: pageSize.value,
         search_term: search.value,
       },
     })
-    if (res.data?.data) {
-      products.value = res.data.data
-      pagination.value.rowsNumber = res.data.count
+    if (res.error) {
+      return
     }
+    pagination.value.rowsNumber = res.data?.count
+    customers.value = res.data?.data ?? []
   } finally {
     setTimeout(() => (loading.value = false), 300)
   }
 }
 
-onMounted(fetchProducts)
+onMounted(fetchCustomers)
 
 const onPaginationChange = async (requestProp: { pagination: QTableProps['pagination'] }) => {
   if (!requestProp.pagination) {
@@ -98,10 +102,12 @@ const onPaginationChange = async (requestProp: { pagination: QTableProps['pagina
   }
   page.value = Number(pagination.value.page)
   setTimeout(() => (pageSize.value = Number(pagination.value.rowsPerPage)), 1)
-  setTimeout(() => fetchProducts(), 2)
+  setTimeout(() => fetchCustomers(), 2)
 }
 
-watch(search, fetchProducts)
+watch(search, () => {
+  fetchCustomers()
+})
 
 const columns: QTableColumn[] = [
   {
@@ -117,23 +123,23 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
   {
-    name: 'group',
-    field: 'group',
-    label: 'Skupina',
+    name: 'id',
+    field: 'identification',
+    label: 'IČO',
     align: 'left',
   },
   {
-    name: 'type',
-    field: 'type',
-    label: 'Typ zboží',
-    align: 'left',
-  },
-  {
-    name: 'unit',
-    field: 'unit',
-    label: 'Jednotka',
+    name: 'taxId',
+    field: (cust: CustomerSchema) => (cust.tax_identification ? cust.tax_identification : '-'),
+    label: 'DIČ',
     align: 'right',
   },
+  // {
+  //   name: 'type',
+  //   field: (cust: CustomerSchema) => cust.customer_type.toLowerCase(),
+  //   label: 'Typ',
+  //   align: 'left',
+  // },
 ]
 </script>
 

@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses } from './types.gen';
+import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -105,6 +105,26 @@ export const warehouseApiRoutesProductGetProduct = <ThrowOnError extends boolean
 export const warehouseApiRoutesProductGetProductWarehouseInfo = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesProductGetProductWarehouseInfoData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesProductGetProductWarehouseInfoResponses, unknown, ThrowOnError>({
         url: '/api/v1/products/{product_code}/warehouse-info',
+        ...options
+    });
+};
+
+/**
+ * Get Customers
+ */
+export const warehouseApiRoutesCustomerGetCustomers = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesCustomerGetCustomersData, ThrowOnError>) => {
+    return (options?.client ?? client).get<WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesCustomerGetCustomersErrors, ThrowOnError>({
+        url: '/api/v1/customers',
+        ...options
+    });
+};
+
+/**
+ * Get Customer
+ */
+export const warehouseApiRoutesCustomerGetCustomer = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesCustomerGetCustomerData, ThrowOnError>) => {
+    return (options.client ?? client).get<WarehouseApiRoutesCustomerGetCustomerResponses, unknown, ThrowOnError>({
+        url: '/api/v1/customers/{customer_code}',
         ...options
     });
 };

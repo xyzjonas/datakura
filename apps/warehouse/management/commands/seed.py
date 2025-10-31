@@ -11,8 +11,10 @@ from apps.warehouse.models.warehouse import (
 )
 from apps.warehouse.models.product import (
     ProductType,
-    StockProduct,
 )
+
+
+from apps.warehouse.tests.factories.customer import CustomerFactoryWithContacts
 
 
 class Command(BaseCommand):
@@ -59,50 +61,52 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Created {len(locations)} locations")
 
-        self.stdout.write("Creating products...")
-        products = [
-            {
-                "model": "warehouse.stockproduct",
-                "pk": 1,
-                "fields": {
-                    "created": "2025-10-25T18:21:02.629Z",
-                    "changed": "2025-10-28T12:52:56.445Z",
-                    "name": "Závlačka ZB 08,0x090",
-                    "code": "94-1801-08-090",
-                    "type": 1,
-                    "group": 1,
-                    "base_uom": 3,
-                },
-            },
-            {
-                "model": "warehouse.stockproduct",
-                "pk": 2,
-                "fields": {
-                    "created": "2025-10-28T19:52:14.479Z",
-                    "changed": "2025-10-28T19:52:14.479Z",
-                    "name": "Šr 6H límec hl. 8,8 ZB M08x012",
-                    "code": "6921-0801-08-012",
-                    "type": 1,
-                    "group": 2,
-                    "base_uom": 3,
-                },
-            },
-            {
-                "model": "warehouse.stockproduct",
-                "pk": 3,
-                "fields": {
-                    "created": "2025-10-28T19:53:51.770Z",
-                    "changed": "2025-10-28T19:53:51.770Z",
-                    "name": 'Objímka dvoušroubová M8/M10 72–78 2 1/2"',
-                    "code": "S312007278",
-                    "type": 1,
-                    "group": 3,
-                    "base_uom": 3,
-                },
-            },
-        ]
-        for product in products:
-            fields = product["fields"]
-            StockProduct.objects.get_or_create(code=fields["code"], defaults=fields)
+        CustomerFactoryWithContacts.create_batch(500)
 
-        self.stdout.write(f"Created {len(products)} products")
+        # self.stdout.write("Creating products...")
+        # products = [
+        #     {
+        #         "model": "warehouse.stockproduct",
+        #         "pk": 1,
+        #         "fields": {
+        #             "created": "2025-10-25T18:21:02.629Z",
+        #             "changed": "2025-10-28T12:52:56.445Z",
+        #             "name": "Závlačka ZB 08,0x090",
+        #             "code": "94-1801-08-090",
+        #             "type": 1,
+        #             "group": 1,
+        #             "base_uom": 3,
+        #         },
+        #     },
+        #     {
+        #         "model": "warehouse.stockproduct",
+        #         "pk": 2,
+        #         "fields": {
+        #             "created": "2025-10-28T19:52:14.479Z",
+        #             "changed": "2025-10-28T19:52:14.479Z",
+        #             "name": "Šr 6H límec hl. 8,8 ZB M08x012",
+        #             "code": "6921-0801-08-012",
+        #             "type": 1,
+        #             "group": 2,
+        #             "base_uom": 3,
+        #         },
+        #     },
+        #     {
+        #         "model": "warehouse.stockproduct",
+        #         "pk": 3,
+        #         "fields": {
+        #             "created": "2025-10-28T19:53:51.770Z",
+        #             "changed": "2025-10-28T19:53:51.770Z",
+        #             "name": 'Objímka dvoušroubová M8/M10 72–78 2 1/2"',
+        #             "code": "S312007278",
+        #             "type": 1,
+        #             "group": 3,
+        #             "base_uom": 3,
+        #         },
+        #     },
+        # ]
+        # for product in products:
+        #     fields = product["fields"]
+        #     StockProduct.objects.get_or_create(code=fields["code"], defaults=fields)
+        #
+        # self.stdout.write(f"Created {len(products)} products")

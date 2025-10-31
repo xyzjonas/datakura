@@ -6,7 +6,9 @@
           <!-- <q-btn dense flat :icon="isOpened ? 'close' : 'menu'" @click="isOpened = !isOpened" /> -->
           <span class="h-[16px] w-[16px] light:bg-dark dark:bg-light ml-2"></span>
           <q-separator vertical class="my-3 bg-gray h-[1rem]" />
-          <a href="/" class="mr-[96px] light:text-dark-5 dark:text-light"> DATAKURA </a>
+          <a href="/" class="mr-[96px] light:text-dark-5 dark:text-light">
+            <span class="font-bold">STOCKOMO</span>
+          </a>
         </div>
 
         <SearchInput v-model="search" class="w-[512px]" />
@@ -69,7 +71,8 @@
               {
                 label: 'Zákazník',
                 icon: 'sym_o_contacts_product',
-                routeName: 'submissions',
+                routeName: 'customers',
+                routeMatch: 'customers,customerDetail',
               },
               {
                 label: 'Kalkulace',

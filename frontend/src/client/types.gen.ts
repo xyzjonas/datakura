@@ -388,6 +388,275 @@ export type WarehouseExpandedSchema = {
     locations: Array<WarehouseLocationDetailSchema>;
 };
 
+/**
+ * ContactPersonSchema
+ * Schema for ContactPerson output
+ */
+export type ContactPersonSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Title Pre
+     */
+    title_pre?: string | null;
+    /**
+     * First Name
+     */
+    first_name: string;
+    /**
+     * Middle Name
+     */
+    middle_name?: string | null;
+    /**
+     * Last Name
+     */
+    last_name: string;
+    /**
+     * Title Post
+     */
+    title_post?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Birth Date
+     */
+    birth_date?: string | null;
+    /**
+     * Street
+     */
+    street?: string | null;
+    /**
+     * City
+     */
+    city?: string | null;
+    /**
+     * Postal Code
+     */
+    postal_code?: string | null;
+    /**
+     * State
+     */
+    state?: string | null;
+    /**
+     * Profile Picture Url
+     */
+    profile_picture_url?: string | null;
+    /**
+     * Is Deleted
+     */
+    is_deleted: boolean;
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
+ * CustomerGroupSchema
+ * Schema for CustomerGroup output
+ */
+export type CustomerGroupSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * CustomerSchema
+ * Schema for Customer output
+ */
+export type CustomerSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Street
+     */
+    street?: string | null;
+    /**
+     * City
+     */
+    city?: string | null;
+    /**
+     * Postal Code
+     */
+    postal_code?: string | null;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Tax Identification
+     */
+    tax_identification?: string | null;
+    /**
+     * Identification
+     */
+    identification?: string | null;
+    /**
+     * Customer Type
+     */
+    customer_type: string;
+    /**
+     * Price Type
+     */
+    price_type: string;
+    /**
+     * Invoice Due Days
+     */
+    invoice_due_days: number;
+    /**
+     * Block After Due Days
+     */
+    block_after_due_days: number;
+    /**
+     * Data Collection Agreement
+     */
+    data_collection_agreement: boolean;
+    /**
+     * Marketing Data Use Agreement
+     */
+    marketing_data_use_agreement: boolean;
+    /**
+     * Is Valid
+     */
+    is_valid: boolean;
+    /**
+     * Is Deleted
+     */
+    is_deleted: boolean;
+    /**
+     * Owner
+     */
+    owner?: string | null;
+    /**
+     * Responsible User
+     */
+    responsible_user?: string | null;
+    group: CustomerGroupSchema;
+    /**
+     * Contacts
+     */
+    contacts?: Array<ContactPersonSchema>;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Register Information
+     */
+    register_information?: string | null;
+};
+
+/**
+ * PagedCustomerSchema
+ */
+export type PagedCustomerSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Data
+     */
+    data: Array<CustomerSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * BaseResponse
+ */
+export type BaseResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Data
+     */
+    data: unknown;
+};
+
+/**
+ * GetCustomerResponse
+ */
+export type GetCustomerResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    data: CustomerSchema;
+};
+
 export type WarehouseApiRoutesAuthLoginUserData = {
     body: LoginFormSchema;
     path?: never;
@@ -561,3 +830,62 @@ export type WarehouseApiRoutesProductGetProductWarehouseInfoResponses = {
 };
 
 export type WarehouseApiRoutesProductGetProductWarehouseInfoResponse = WarehouseApiRoutesProductGetProductWarehouseInfoResponses[keyof WarehouseApiRoutesProductGetProductWarehouseInfoResponses];
+
+export type WarehouseApiRoutesCustomerGetCustomersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/customers';
+};
+
+export type WarehouseApiRoutesCustomerGetCustomersErrors = {
+    /**
+     * Not Found
+     */
+    404: BaseResponse;
+};
+
+export type WarehouseApiRoutesCustomerGetCustomersError = WarehouseApiRoutesCustomerGetCustomersErrors[keyof WarehouseApiRoutesCustomerGetCustomersErrors];
+
+export type WarehouseApiRoutesCustomerGetCustomersResponses = {
+    /**
+     * OK
+     */
+    200: PagedCustomerSchema;
+};
+
+export type WarehouseApiRoutesCustomerGetCustomersResponse = WarehouseApiRoutesCustomerGetCustomersResponses[keyof WarehouseApiRoutesCustomerGetCustomersResponses];
+
+export type WarehouseApiRoutesCustomerGetCustomerData = {
+    body?: never;
+    path: {
+        /**
+         * Customer Code
+         */
+        customer_code: string;
+    };
+    query?: never;
+    url: '/api/v1/customers/{customer_code}';
+};
+
+export type WarehouseApiRoutesCustomerGetCustomerResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerResponse;
+};
+
+export type WarehouseApiRoutesCustomerGetCustomerResponse = WarehouseApiRoutesCustomerGetCustomerResponses[keyof WarehouseApiRoutesCustomerGetCustomerResponses];

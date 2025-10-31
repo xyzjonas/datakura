@@ -56,6 +56,7 @@ class StockProductFactory(DjangoModelFactory):
 class UnitOfMeasureConversionFactorFactory(DjangoModelFactory):
     class Meta:
         model = UnitOfMeasureConversionFactor
+        django_get_or_create = ("stock_product", "uom")
 
     uom = factory.SubFactory(UnitOfMeasureFactory)
     stock_product = factory.SubFactory(StockProductFactory)
