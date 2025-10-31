@@ -77,7 +77,11 @@
           </q-td>
         </template>
         <template #no-data>
-          <EmptyPanel text="Žádné skladové položky" icon="sym_o_search_off" />
+          <EmptyPanel
+            text="Žádné skladové položky"
+            icon="sym_o_search_off"
+            class="w-full h-lg mt-2"
+          />
         </template>
       </q-table>
     </ForegroundPanel>

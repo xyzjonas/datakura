@@ -10,7 +10,7 @@
         v-model:pagination="pagination"
         @request="onPaginationChange"
         no-data-label="Žádné produkty nenalezeny"
-        :rows-per-page-options="[30, 50, 100]"
+        :rows-per-page-options="[10, 30, 50, 100]"
         class="bg-transparent"
       >
         <template #top-left>
@@ -37,7 +37,7 @@
         </template>
         <template #body-cell-type="props">
           <q-td auto-width>
-            <span class="flex items-center gap-1">
+            <span class="flex items-center gap-1 flex-nowrap">
               <ProductTypeIcon :type="props.row.type" />
               {{ props.row.type }}
             </span>
@@ -56,6 +56,7 @@ import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 const { page, pageSize, search } = useQueryProducts()
 
@@ -88,18 +89,29 @@ const fetchProducts = async () => {
 
 onMounted(fetchProducts)
 
+const shouldNotFetch = () => {
+  return pagination.value.rowsPerPage === pageSize.value && pagination.value.page === page.value
+}
+
 const onPaginationChange = async (requestProp: { pagination: QTableProps['pagination'] }) => {
   if (!requestProp.pagination) {
     return
   }
   pagination.value = requestProp.pagination
-  if (pagination.value.rowsPerPage === pageSize.value && pagination.value.page === page.value) {
+  if (shouldNotFetch()) {
     return
   }
   page.value = Number(pagination.value.page)
   setTimeout(() => (pageSize.value = Number(pagination.value.rowsPerPage)), 1)
   setTimeout(() => fetchProducts(), 2)
 }
+
+const { currentRoute } = useRouter()
+watch(currentRoute, () => {
+  if (!shouldNotFetch()) {
+    fetchProducts()
+  }
+})
 
 watch(search, fetchProducts)
 

@@ -15,6 +15,7 @@ from apps.warehouse.models.product import (
 
 
 from apps.warehouse.tests.factories.customer import CustomerFactoryWithContacts
+from apps.warehouse.tests.factories.product import StockProductFactory
 
 
 class Command(BaseCommand):
@@ -62,6 +63,10 @@ class Command(BaseCommand):
         self.stdout.write(f"Created {len(locations)} locations")
 
         CustomerFactoryWithContacts.create_batch(500)
+        self.stdout.write("Created 500 customers")
+
+        StockProductFactory.create_batch(10000)
+        self.stdout.write("Created 10000 products")
 
         # self.stdout.write("Creating products...")
         # products = [

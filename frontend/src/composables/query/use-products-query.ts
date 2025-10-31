@@ -20,7 +20,7 @@ export function useQueryProducts() {
       } else {
         delete query.search
       }
-      router.replace({ query })
+      router.push({ query })
     },
   })
 
@@ -39,7 +39,7 @@ export function useQueryProducts() {
       } else {
         delete query.page
       }
-      router.replace({ query })
+      router.push({ query })
     },
   })
 
@@ -58,7 +58,7 @@ export function useQueryProducts() {
       } else {
         delete query.page_size
       }
-      router.replace({ query })
+      router.push({ query })
     },
   })
 

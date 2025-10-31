@@ -59,6 +59,7 @@ import SearchInput from '@/components/SearchInput.vue'
 import { useQueryCustomers } from '@/composables/query/use-customers-query'
 import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 const { page, pageSize, search } = useQueryCustomers()
 
@@ -92,18 +93,29 @@ const fetchCustomers = async () => {
 
 onMounted(fetchCustomers)
 
+const shouldNotFetch = () => {
+  return pagination.value.rowsPerPage === pageSize.value && pagination.value.page === page.value
+}
+
 const onPaginationChange = async (requestProp: { pagination: QTableProps['pagination'] }) => {
   if (!requestProp.pagination) {
     return
   }
   pagination.value = requestProp.pagination
-  if (pagination.value.rowsPerPage === pageSize.value && pagination.value.page === page.value) {
+  if (shouldNotFetch()) {
     return
   }
   page.value = Number(pagination.value.page)
   setTimeout(() => (pageSize.value = Number(pagination.value.rowsPerPage)), 1)
   setTimeout(() => fetchCustomers(), 2)
 }
+
+const { currentRoute } = useRouter()
+watch(currentRoute, () => {
+  if (!shouldNotFetch()) {
+    fetchCustomers()
+  }
+})
 
 watch(search, () => {
   fetchCustomers()

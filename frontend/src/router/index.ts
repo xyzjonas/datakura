@@ -1,4 +1,5 @@
 import CustomersView from '@/views/CustomersView.vue'
+import CustomerView from '@/views/CustomerView.vue'
 import HomeView from '@/views/HomeView.vue'
 import ProductsView from '@/views/ProductsView.vue'
 import ProductView from '@/views/ProductView.vue'
@@ -33,6 +34,12 @@ const router = createRouter({
       path: '/customers',
       name: 'customers',
       component: CustomersView,
+    },
+    {
+      path: '/customers/:customerCode',
+      name: 'customerDetail',
+      component: CustomerView,
+      props: true,
     },
   ],
 })
