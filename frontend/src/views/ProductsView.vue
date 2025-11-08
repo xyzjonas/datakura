@@ -1,56 +1,53 @@
 <template>
-  <MainLayout>
-    <div class="flex-1">
-      <q-table
-        :rows="products"
-        :columns="columns"
-        :loading="loading"
-        loading-label="Načítám"
-        flat
-        v-model:pagination="pagination"
-        @request="onPaginationChange"
-        no-data-label="Žádné produkty nenalezeny"
-        :rows-per-page-options="[10, 30, 50, 100]"
-        class="bg-transparent"
-      >
-        <template #top-left>
-          <SearchInput
-            v-model="search"
-            placeholder="Vyhledat položku"
-            clearable
-            :debounce="300"
-          ></SearchInput>
-        </template>
-        <template #body-cell-name="props">
-          <q-td>
-            <a
-              @click="
-                $router.push({
-                  name: 'productDetail',
-                  params: { productCode: props.row.code },
-                })
-              "
-              class="link"
-              >{{ props.row.name }}</a
-            >
-          </q-td>
-        </template>
-        <template #body-cell-type="props">
-          <q-td auto-width>
-            <span class="flex items-center gap-1 flex-nowrap">
-              <ProductTypeIcon :type="props.row.type" />
-              {{ props.row.type }}
-            </span>
-          </q-td>
-        </template>
-      </q-table>
-    </div>
-  </MainLayout>
+  <div class="flex-1">
+    <q-table
+      :rows="products"
+      :columns="columns"
+      :loading="loading"
+      loading-label="Načítám"
+      flat
+      v-model:pagination="pagination"
+      @request="onPaginationChange"
+      no-data-label="Žádné produkty nenalezeny"
+      :rows-per-page-options="[10, 30, 50, 100]"
+      class="bg-transparent"
+    >
+      <template #top-left>
+        <SearchInput
+          v-model="search"
+          placeholder="Vyhledat položku"
+          clearable
+          :debounce="300"
+        ></SearchInput>
+      </template>
+      <template #body-cell-name="props">
+        <q-td>
+          <a
+            @click="
+              $router.push({
+                name: 'productDetail',
+                params: { productCode: props.row.code },
+              })
+            "
+            class="link"
+            >{{ props.row.name }}</a
+          >
+        </q-td>
+      </template>
+      <template #body-cell-type="props">
+        <q-td auto-width>
+          <span class="flex items-center gap-1 flex-nowrap">
+            <ProductTypeIcon :type="props.row.type" />
+            {{ props.row.type }}
+          </span>
+        </q-td>
+      </template>
+    </q-table>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { warehouseApiRoutesProductGetProducts, type ProductSchema } from '@/client'
-import MainLayout from '@/components/layout/MainLayout.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'

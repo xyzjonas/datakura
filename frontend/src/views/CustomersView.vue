@@ -1,60 +1,57 @@
 <template>
-  <MainLayout>
-    <div class="flex-1">
-      <q-table
-        :rows="customers"
-        :columns="columns"
-        :loading="loading"
-        flat
-        v-model:pagination="pagination"
-        @request="onPaginationChange"
-        no-data-label="Žádní zákazníci nenalezeni"
-        loading-label="Načítám"
-        :rows-per-page-options="[10, 20, 50, 100]"
-        class="bg-transparent"
-      >
-        <template #top-left>
-          <SearchInput
-            v-model="search"
-            placeholder="Vyhledat zákazníka"
-            clearable
-            :debounce="300"
-          ></SearchInput>
-        </template>
-        <template #body-cell-name="props">
-          <q-td class="flex items-center gap-2">
-            <CustomerTypeIcon
-              :type="props.row.customer_type"
-              class="text-lg light:text-primary dark:text-light"
-            />
-            <a
-              @click="
-                $router.push({
-                  name: 'customerDetail',
-                  params: { customerCode: props.row.code },
-                })
-              "
-              class="link"
-            >
-              {{ props.row.name }}</a
-            >
-          </q-td>
-        </template>
-        <template #body-cell-type="props">
-          <q-td auto-width>
-            <CustomerTypeIcon :type="props.row.customer_type" class="text-lg" />
-            <span class="lowercase ml-2">{{ props.row.customer_type }}</span>
-          </q-td>
-        </template>
-      </q-table>
-    </div>
-  </MainLayout>
+  <div class="flex-1">
+    <q-table
+      :rows="customers"
+      :columns="columns"
+      :loading="loading"
+      flat
+      v-model:pagination="pagination"
+      @request="onPaginationChange"
+      no-data-label="Žádní zákazníci nenalezeni"
+      loading-label="Načítám"
+      :rows-per-page-options="[10, 20, 50, 100]"
+      class="bg-transparent"
+    >
+      <template #top-left>
+        <SearchInput
+          v-model="search"
+          placeholder="Vyhledat zákazníka"
+          clearable
+          :debounce="300"
+        ></SearchInput>
+      </template>
+      <template #body-cell-name="props">
+        <q-td class="flex items-center gap-2">
+          <CustomerTypeIcon
+            :type="props.row.customer_type"
+            class="text-lg light:text-primary dark:text-light"
+          />
+          <a
+            @click="
+              $router.push({
+                name: 'customerDetail',
+                params: { customerCode: props.row.code },
+              })
+            "
+            class="link"
+          >
+            {{ props.row.name }}</a
+          >
+        </q-td>
+      </template>
+      <template #body-cell-type="props">
+        <q-td auto-width>
+          <CustomerTypeIcon :type="props.row.customer_type" class="text-lg" />
+          <span class="lowercase ml-2">{{ props.row.customer_type }}</span>
+        </q-td>
+      </template>
+    </q-table>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { warehouseApiRoutesCustomerGetCustomers, type CustomerSchema } from '@/client'
 import CustomerTypeIcon from '@/components/customer/CustomerTypeIcon.vue'
-import MainLayout from '@/components/layout/MainLayout.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryCustomers } from '@/composables/query/use-customers-query'
 import { type QTableColumn, type QTableProps } from 'quasar'

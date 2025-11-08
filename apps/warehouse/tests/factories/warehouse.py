@@ -2,13 +2,10 @@
 
 import factory
 from factory.django import DjangoModelFactory
-from decimal import Decimal
 
 from apps.warehouse.models.warehouse import (
     Warehouse,
     WarehouseLocation,
-    PackageType,
-    Load,
     WarehouseItem,
     WarehouseMovement,
     WarehouseOrderOut,
@@ -16,7 +13,6 @@ from apps.warehouse.models.warehouse import (
 )
 from .product import (
     StockProductFactory,
-    UnitOfMeasureFactory,
 )
 from .user import UserFactory
 
@@ -38,37 +34,16 @@ class WarehouseLocationFactory(DjangoModelFactory):
     warehouse = factory.SubFactory(WarehouseFactory)
 
 
-class PackageTypeFactory(DjangoModelFactory):
-    class Meta:
-        model = PackageType
-        django_get_or_create = ("name",)
-
-    name = factory.Iterator(["Box", "Pallet", "Crate", "Bundle", "Bag"])
-    description = factory.Faker("text", max_nb_chars=100)
-    count = factory.Faker("random_int", min=1, max=100)
-
-
-class LoadFactory(DjangoModelFactory):
-    class Meta:
-        model = Load
-
-    code = factory.Sequence(lambda n: f"LOAD-{n:06d}")
-    current_location = factory.SubFactory(WarehouseLocationFactory)
-    status = factory.Iterator(["In_Use", "Empty", "Inspection", "Quarantine"])
-
-
 class WarehouseItemFactory(DjangoModelFactory):
     class Meta:
         model = WarehouseItem
 
     code = factory.Sequence(lambda n: f"ITEM-{n:08d}")
-    stock_item = factory.SubFactory(StockProductFactory)
-    uom_at_receipt = factory.SubFactory(UnitOfMeasureFactory)
-    conversion_factor_at_receipt = factory.LazyFunction(lambda: Decimal("12.0000"))
-    warehouse_location = factory.SubFactory(WarehouseLocationFactory)
-    remaining = factory.LazyAttribute(
-        lambda obj: obj.conversion_factor_at_receipt
-    )  # Start with full quantity
+    stock_product = factory.SubFactory(StockProductFactory)
+    package = None
+    location = factory.SubFactory(WarehouseLocationFactory)
+    amount = 0
+    lot = None
 
 
 class WarehouseMovementFactory(DjangoModelFactory):
@@ -79,8 +54,6 @@ class WarehouseMovementFactory(DjangoModelFactory):
     location_to = factory.SubFactory(WarehouseLocationFactory)
     worker = factory.SubFactory(UserFactory)
 
-    # By default, create a Load movement
-    load = factory.SubFactory(LoadFactory)
     item = None
 
     class Params:

@@ -1,22 +1,20 @@
 <template>
-  <q-list class="pl-3">
-    <q-item
-      v-for="item in items"
-      :key="item.label"
-      clickable
-      dense
-      v-ripple
-      :active="isActive(item)"
-      active-class="light:bg-primary dark:bg-primary light:text-white dark:text-white"
-      :to="{ name: item.routeName }"
-      class="rounded-md my-2"
-    >
-      <q-item-section avatar>
-        <q-icon :name="item.icon" />
-      </q-item-section>
-      <q-item-section> {{ item.label }} </q-item-section>
-    </q-item>
-  </q-list>
+  <q-item
+    v-for="item in items"
+    :key="item.label"
+    clickable
+    v-ripple
+    :active="isActive(item)"
+    active-class="light:bg-primary dark:bg-primary light:text-white dark:text-white"
+    :to="{ name: item.routeName }"
+    :class="{ 'rounded-md': true }"
+    dense
+  >
+    <q-item-section avatar>
+      <q-icon :name="item.icon" />
+    </q-item-section>
+    <q-item-section> {{ item.label }} </q-item-section>
+  </q-item>
 </template>
 
 <script setup lang="ts">
@@ -31,7 +29,7 @@ type MenuItem = {
 
 const { currentRoute } = useRouter()
 
-defineProps<{ items: MenuItem[] }>()
+defineProps<{ items: MenuItem[]; inset?: boolean }>()
 
 const isActive = (item: MenuItem) => {
   if (item.routeMatch) {

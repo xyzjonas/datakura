@@ -7,10 +7,7 @@ from apps.warehouse.api.routes.product import routes
 from apps.warehouse.api.schemas.product import ProductSchema, GetProductsResponse
 from apps.warehouse.models.product import StockProduct
 
-from apps.warehouse.tests.factories.product import (
-    StockProductWithConversionsFactory,
-    StockProductFactory,
-)
+from apps.warehouse.tests.factories.product import StockProductFactory
 
 
 @pytest.fixture
@@ -32,7 +29,7 @@ def test_get_all_empty(db, client):
 
 
 def test_get_all_one_product(db, client):
-    product = cast(StockProduct, StockProductWithConversionsFactory())
+    product = cast(StockProduct, StockProductFactory())
     response = client.get("/")
     assert response.status_code == 200
     assert (
@@ -46,17 +43,10 @@ def test_get_all_one_product(db, client):
                             "created": product.created,
                             "changed": product.changed,
                             "code": product.code,
-                            "conversion_factors": [
-                                {
-                                    "factor": factor.conversion_factor,
-                                    "unit_of_measure": factor.uom.name,
-                                }
-                                for factor in product.conversion_factors.all()
-                            ],
                             "group": product.group.name,
                             "name": product.name,
                             "type": product.type.name,
-                            "unit": product.base_uom.name,
+                            "unit": product.unit_of_measure.name,
                         }
                     ).model_dump()
                 ],

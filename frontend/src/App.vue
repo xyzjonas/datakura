@@ -1,17 +1,21 @@
 <template>
-  <RouterView v-slot="{ Component }">
-    <Suspense>
-      <template #default>
-        <component :is="Component" />
-      </template>
-      <template #fallback>
-        <span>...loading</span>
-      </template>
-    </Suspense>
-  </RouterView>
+  <MainLayout>
+    <RouterView v-slot="{ Component }" :key="$route.path">
+      <Suspense>
+        <template #default>
+          <component :is="Component" />
+        </template>
+        <template #fallback>
+          <span>...loading</span>
+        </template>
+      </Suspense>
+    </RouterView>
+  </MainLayout>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import MainLayout from './components/layout/MainLayout.vue'
+</script>
 
 <style lang="scss">
 .fade-enter-active,

@@ -5,11 +5,10 @@ from apps.warehouse.api.schemas.warehouse import (
     GetWarehousesResponse,
     WarehouseSchema,
     WarehouseLocationSchema,
-    WarehouseItemSchema,
-    StockItemSchema,
     GetWarehouseLocationResponse,
     WarehouseLocationDetailSchema,
 )
+from apps.warehouse.core.transformation import warehouse_item_orm_to_schema
 from apps.warehouse.models.warehouse import Warehouse, WarehouseLocation
 
 routes = Router(tags=["warehouse"])
@@ -52,29 +51,19 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
     #     request, username=credentials.username, password=credentials.password
     # )
     location = WarehouseLocation.objects.prefetch_related(
-        "items", "items__stock_item", "items__uom_at_receipt"
+        "items",
+        "items__stock_product",
+        "items__stock_product__unit_of_measure",
+        "items__package",
+        "items__package__type",
+        "items__package__type__unit_of_measure",
+        "items__lot",
     ).get(code=warehouse_location_code)
     return GetWarehouseLocationResponse(
         data=WarehouseLocationDetailSchema(
             code=location.code,
             created=location.created,
             changed=location.changed,
-            items=[
-                WarehouseItemSchema(
-                    code=item.code,
-                    stock_item=StockItemSchema(
-                        code=item.stock_item.code,
-                        name=item.stock_item.name,
-                        created=item.stock_item.created,
-                        changed=item.stock_item.changed,
-                    ),
-                    unit_of_measure=item.uom_at_receipt.name,
-                    factor_at_receipt=float(item.conversion_factor_at_receipt),
-                    created=item.created,
-                    changed=item.changed,
-                    remaining=float(item.remaining),
-                )
-                for item in location.items.all()
-            ],
+            items=[warehouse_item_orm_to_schema(item) for item in location.items.all()],
         )
     )

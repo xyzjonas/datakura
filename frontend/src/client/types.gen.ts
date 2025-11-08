@@ -158,6 +158,40 @@ export type GetWarehouseLocationResponse = {
 };
 
 /**
+ * PackageSchema
+ */
+export type PackageSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Unit
+     */
+    unit: string;
+};
+
+/**
  * StockItemSchema
  */
 export type StockItemSchema = {
@@ -202,13 +236,10 @@ export type WarehouseItemSchema = {
      */
     unit_of_measure: string;
     /**
-     * Factor At Receipt
+     * Amount
      */
-    factor_at_receipt: number;
-    /**
-     * Remaining
-     */
-    remaining: number;
+    amount: number;
+    package: PackageSchema | null;
 };
 
 /**
@@ -245,20 +276,6 @@ export type Input = {
      * Page Size
      */
     page_size?: number;
-};
-
-/**
- * ConversionFactorSchema
- */
-export type ConversionFactorSchema = {
-    /**
-     * Unit Of Measure
-     */
-    unit_of_measure: string;
-    /**
-     * Factor
-     */
-    factor: number;
 };
 
 /**
@@ -323,10 +340,6 @@ export type ProductSchema = {
      * Group
      */
     group?: string | null;
-    /**
-     * Conversion Factors
-     */
-    conversion_factors: Array<ConversionFactorSchema>;
 };
 
 /**
@@ -839,6 +852,14 @@ export type WarehouseApiRoutesCustomerGetCustomersData = {
          * Search Term
          */
         search_term?: string | null;
+        /**
+         * Is Deleted
+         */
+        is_deleted?: boolean;
+        /**
+         * Is Active
+         */
+        is_active?: boolean;
         /**
          * Page
          */

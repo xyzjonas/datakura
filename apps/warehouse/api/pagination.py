@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 from django.db.models import QuerySet
-from ninja.pagination import PaginationBase
 from ninja import Schema
+from ninja.pagination import PaginationBase
 
 from apps.warehouse.api.schemas.customer import (
     GetCustomersResponse,
 )
 from apps.warehouse.api.schemas.product import (
     GetProductsResponse,
-    ConversionFactorSchema,
 )
-from apps.warehouse.api.schemas.product import ProductSchema
-from apps.warehouse.core.transformation import customer_orm_to_schema
+from apps.warehouse.core.transformation import (
+    customer_orm_to_schema,
+    product_orm_to_schema,
+)
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.product import StockProduct
 
@@ -34,25 +35,7 @@ class StockProductPagination(PaginationBase):
         count = queryset.count()
 
         return {
-            "data": [
-                ProductSchema(
-                    name=product.name,
-                    code=product.code,
-                    type=product.type.name,
-                    unit=product.base_uom.name,
-                    group=product.group.name if product.group else None,
-                    conversion_factors=[
-                        ConversionFactorSchema(
-                            factor=float(cf.conversion_factor),
-                            unit_of_measure=cf.uom.name,
-                        )
-                        for cf in product.conversion_factors.all()
-                    ],
-                    created=product.created,
-                    changed=product.changed,
-                )
-                for product in items
-            ],
+            "data": [product_orm_to_schema(product) for product in items],
             "count": count,
             "next": pagination.page + 1
             if offset + pagination.page_size < count

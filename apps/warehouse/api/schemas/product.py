@@ -1,13 +1,7 @@
 from __future__ import annotations
 
-from ninja import Schema
 
 from .base import BaseSchema, BaseResponse
-
-
-class ConversionFactorSchema(Schema):
-    unit_of_measure: str
-    factor: float
 
 
 class ProductSchema(BaseSchema):
@@ -16,7 +10,6 @@ class ProductSchema(BaseSchema):
     type: str
     unit: str
     group: str | None = None
-    conversion_factors: list[ConversionFactorSchema]
 
 
 class GetProductResponse(BaseResponse):

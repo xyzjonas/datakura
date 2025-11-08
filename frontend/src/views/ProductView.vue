@@ -1,85 +1,79 @@
 <template>
-  <MainLayout>
-    <div v-if="product" class="flex flex-col gap-2 flex-1">
-      <div class="flex gap-2">
-        <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
-          <span class="text-gray-5 flex items-center gap-1">
-            <ProductTypeIcon :type="product.type" />
-            {{ product.type }}
-          </span>
-          <h1 class="text-primary mb-1">{{ product.name }}</h1>
-          <span class="flex items-center gap-1 mb-3">
-            <h5>{{ product.code }}</h5>
-            <q-btn flat round size="8px" icon="content_copy"></q-btn>
-          </span>
+  <div v-if="product" class="flex flex-col gap-2 flex-1">
+    <div class="flex gap-2">
+      <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
+        <span class="text-gray-5 flex items-center gap-1 mb-1">
+          <ProductTypeIcon :type="product.type" />
+          {{ product.type }}
+        </span>
+        <h1 class="text-primary mb-1">{{ product.name }}</h1>
+        <span class="flex items-center gap-1 mb-3">
+          <small class="text-gray-5">kód:</small>
+          <h5>{{ product.code }}</h5>
+          <q-btn flat round size="8px" icon="content_copy"></q-btn>
+        </span>
 
-          <div class="mt-2">
-            <q-list bordered separator dense class="rounded">
-              <q-item>
-                <q-item-section>základní jednotka</q-item-section>
-                <q-item-section avatar>{{ product.unit }}</q-item-section>
-              </q-item>
-              <q-item v-for="factor in product.conversion_factors" :key="factor.unit_of_measure">
-                <q-item-section>{{ factor.unit_of_measure }}</q-item-section>
-                <q-item-section avatar>{{ factor.factor }}</q-item-section>
-              </q-item>
-            </q-list>
-          </div>
-
-          <q-list dense class="mt-2">
+        <div class="mt-2">
+          <q-list bordered separator dense class="rounded">
             <q-item>
-              <q-item-section>Skupina zboží</q-item-section>
-              <q-item-section
-                :class="{ 'font-bold': product.group, 'text-gray-5': !product.group }"
-                avatar
-                >{{ product.group ?? 'Nepřiřazeno' }}</q-item-section
-              >
-            </q-item>
-            <q-item>
-              <q-item-section>Nákupní cena</q-item-section>
-              <q-item-section avatar>235.686047</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>Celní nomenklatura</q-item-section>
-              <q-item-section avatar>-</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>DIN_94</q-item-section>
-              <q-item-section avatar>DIN 94</q-item-section>
+              <q-item-section>Měrná jednotka</q-item-section>
+              <q-item-section avatar>{{ product.unit }}</q-item-section>
             </q-item>
           </q-list>
+        </div>
 
-          <div class="mt-5 flex flex-row-reverse">
-            <q-btn outline color="primary" icon="edit" label="upravit" disable></q-btn>
-          </div>
-        </ForegroundPanel>
-        <ForegroundPanel class="flex-[2] flex flex-col">
-          <h2 class="mb-4">Ceník</h2>
-          <q-table
-            :rows="prices"
-            :columns="columns"
-            flat
-            hide-pagination
-            :pagination="{ rowsPerPage: -1 }"
-            class="bg-transparent"
-          ></q-table>
-          <div class="flex flex-row-reverse mt-auto">
-            <q-btn outline color="primary" icon="attach_money" label="přidat cenu" disable></q-btn>
-          </div>
-        </ForegroundPanel>
-      </div>
-      <div class="flex gap-2 flex-1">
-        <WarehouseCard :product-code="product.code" :product-unit="product.unit" />
-      </div>
+        <q-list dense class="mt-2">
+          <q-item>
+            <q-item-section>Skupina zboží</q-item-section>
+            <q-item-section
+              :class="{ 'font-bold': product.group, 'text-gray-5': !product.group }"
+              avatar
+              >{{ product.group ?? '-' }}</q-item-section
+            >
+          </q-item>
+          <q-item>
+            <q-item-section>Nákupní cena</q-item-section>
+            <q-item-section avatar>235.686047</q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>Celní nomenklatura</q-item-section>
+            <q-item-section avatar :class="{ 'text-gray-5': true }">-</q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>DIN_94</q-item-section>
+            <q-item-section avatar>DIN 94</q-item-section>
+          </q-item>
+        </q-list>
+
+        <div class="mt-5 flex flex-row-reverse">
+          <q-btn outline color="primary" icon="edit" label="upravit" disable></q-btn>
+        </div>
+      </ForegroundPanel>
+      <ForegroundPanel class="flex-[2] flex flex-col">
+        <h2 class="mb-4">Ceník</h2>
+        <q-table
+          :rows="prices"
+          :columns="columns"
+          flat
+          hide-pagination
+          :pagination="{ rowsPerPage: -1 }"
+          class="bg-transparent"
+        ></q-table>
+        <div class="flex flex-row-reverse mt-auto">
+          <q-btn outline color="primary" icon="attach_money" label="přidat cenu" disable></q-btn>
+        </div>
+      </ForegroundPanel>
     </div>
-    <ForegroundPanel v-else class="grid justify-center"> PRODUKT NENALEZEN </ForegroundPanel>
-  </MainLayout>
+    <div class="flex gap-2 flex-1">
+      <WarehouseCard :product-code="product.code" :product-unit="product.unit" />
+    </div>
+  </div>
+  <ForegroundPanel v-else class="grid justify-center"> PRODUKT NENALEZEN </ForegroundPanel>
 </template>
 
 <script setup lang="ts">
 import { warehouseApiRoutesProductGetProduct } from '@/client'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import MainLayout from '@/components/layout/MainLayout.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import WarehouseCard from '@/components/product/WarehouseCard.vue'
 import type { QTableColumn } from 'quasar'

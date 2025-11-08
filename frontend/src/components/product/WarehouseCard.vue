@@ -6,7 +6,14 @@
       clearable
       class="mb-4"
     />
-    <q-tree :nodes="simple" node-key="label" selected-color="primary" ref="tree" default-expand-all>
+    <q-tree
+      :nodes="simple"
+      node-key="label"
+      selected-color="primary"
+      ref="tree"
+      default-expand-all
+      no-nodes-label="Žádná skladová místa"
+    >
       <template v-slot:default-header="prop">
         <div
           @click="setLocation(prop.node)"
@@ -21,7 +28,7 @@
             prop.node.label
           }}</span>
           <span class="mx-2 font-thin text-gray-5">|</span>
-          <span class="font-thin">{{ prop.node.count }}</span>
+          <span class="font-thin">{{ prop.node.count.toFixed(2) }}</span>
           <span class="ml-1 font-thin text-[10px] text-gray-5">{{ productUnit }}</span>
         </div>
       </template>
@@ -34,7 +41,7 @@
         <h2>{{ warehouseLocation.code }}</h2>
         <q-separator vertical />
         <span class="flex items-center gap-1">
-          <h2 class="font-thin">{{ warehouseLocationCount }}</h2>
+          <h2 class="font-thin">{{ warehouseLocationCount?.toFixed(2) }}</h2>
           <span class="font-thin text-[10px] text-gray-5">{{ productUnit }}</span>
         </span>
       </div>
@@ -43,7 +50,7 @@
         label="detail skladového místa"
         :to="{
           name: 'warehouse',
-          query: { location: warehouseLocation.code, locationSearch: 'AA-01-01' },
+          query: { location: warehouseLocation.code, locationSearch: warehouseLocation.code },
         }"
         icon-right="sym_o_jump_to_element"
       />
@@ -63,15 +70,12 @@
       </template>
       <template #body-cell-packaging="props">
         <q-td auto-width>
-          <q-badge color="primary">{{ props.row.unit_of_measure }}</q-badge>
+          <q-badge color="primary">{{ props.value }}</q-badge>
         </q-td>
       </template>
       <template #body-cell-remaining="props">
         <q-td auto-width>
-          <q-badge
-            :color="props.row.remaining < props.row.factor_at_receipt ? 'accent' : 'positive'"
-            >{{ props.row.remaining }} / {{ props.row.factor_at_receipt }}</q-badge
-          >
+          <WarehouseItemCountBadge :item="props.row" />
         </q-td>
       </template>
     </q-table>
@@ -93,6 +97,8 @@ import {
   type WarehouseItemSchema,
   type WarehouseLocationDetailSchema,
 } from '@/client'
+import { aggregatePackaging, type WarehouseItemSchemaWithCount } from '@/utils/aggregatePackaging'
+import WarehouseItemCountBadge from './WarehouseItemCountBadge.vue'
 
 const props = defineProps<{ productCode: string; productUnit: string }>()
 
@@ -121,7 +127,7 @@ const simple = computed(() =>
       label: war.name,
       icon: 'sym_o_home_work',
       count: war.locations
-        .map((loc) => loc.items.reduce((a, b) => a + b.remaining, 0))
+        .map((loc) => loc.items.reduce((a, b) => a + b.amount, 0))
         .reduce((a, b) => a + b, 0),
       children: war.locations
         .filter((loc) => loc.code.toLowerCase().includes(locationSearch.value.toLowerCase()))
@@ -129,7 +135,7 @@ const simple = computed(() =>
           label: loc.code,
           icon: LOCATION_ICON,
           parent: war.name,
-          count: loc.items.reduce((a, b) => a + b.remaining, 0),
+          count: loc.items.reduce((a, b) => a + b.amount, 0),
         })) as TreeElement[],
     }
   }),
@@ -138,7 +144,7 @@ const simple = computed(() =>
 const warehouseLocation = ref<WarehouseLocationDetailSchema>()
 const warehouseLocationCount = computed(() => {
   if (warehouseLocation.value) {
-    return warehouseLocation.value.items.reduce((a, b) => a + b.remaining, 0)
+    return warehouseLocation.value.items.reduce((a, b) => a + b.amount, 0)
   }
   return undefined
 })
@@ -160,40 +166,7 @@ const setLocation = (element: TreeElement) => {
   }
 }
 
-interface WarehouseItemSchemaWithCount extends WarehouseItemSchema {
-  itemsCount: number
-}
-
-const columns = ref<QTableColumn[]>([
-  // {
-  //   field: (item: WarehouseItemSchema) => item.stock_item.name,
-  //   name: 'name',
-  //   label: 'Název',
-  //   align: 'left' as const,
-  //   sortable: true,
-  // },
-  // {
-  //   field: (item: WarehouseItemSchema) => item.code,
-  //   name: 'code',
-  //   label: 'Kód',
-  //   align: 'left' as const,
-  //   sortable: true,
-  // },
-  {
-    field: (item: WarehouseItemSchema) => item.unit_of_measure,
-    name: 'packaging',
-    label: 'Balení',
-    align: 'left' as const,
-    sortable: true,
-  },
-  {
-    field: (item: WarehouseItemSchema) => item.remaining,
-    name: 'remaining',
-    label: 'Počet v balení',
-    align: 'left' as const,
-    sortable: true,
-  },
-])
+const columns = ref<QTableColumn[]>([])
 
 const locationItems = computed(() =>
   (warehouseLocation.value?.items ?? []).filter(
@@ -205,27 +178,8 @@ const locationItems = computed(() =>
 
 const rows = computed(() => {
   if (aggregate.value) {
-    return Object.values(
-      locationItems.value.reduce(
-        (acc, item) => {
-          const key = `${item.unit_of_measure}_${item.remaining}`
-
-          if (!acc[key]) {
-            acc[key] = {
-              ...item,
-              itemsCount: 1,
-            }
-          } else {
-            acc[key].itemsCount += 1
-          }
-
-          return acc
-        },
-        {} as Record<string, WarehouseItemSchemaWithCount>,
-      ),
-    )
+    return aggregatePackaging(locationItems.value)
   }
-
   return locationItems.value
 })
 
@@ -235,17 +189,11 @@ watch(
     if (value) {
       columns.value = [
         {
-          field: (item: WarehouseItemSchema) => item.unit_of_measure,
-          name: 'packaging',
-          label: 'Balení',
+          field: (item: WarehouseItemSchema) =>
+            item.package ? `${item.package.amount} × ${item.unit_of_measure}` : '-',
+          name: 'packagingSize',
+          label: 'Velikost balení',
           align: 'left' as const,
-          sortable: true,
-        },
-        {
-          field: (item: WarehouseItemSchema) => item.remaining,
-          name: 'remaining',
-          label: 'Počet v balení',
-          align: 'left',
           sortable: true,
         },
         {
@@ -254,6 +202,20 @@ watch(
           label: 'Kusů balení',
           sortable: true,
           align: 'right' as const,
+        },
+        {
+          field: (item: WarehouseItemSchema) => item.package?.type ?? 'Jednotky',
+          name: 'packaging',
+          label: 'Balení',
+          align: 'left' as const,
+          sortable: true,
+        },
+        {
+          field: (item: WarehouseItemSchema) => item.amount,
+          name: 'remaining',
+          label: 'Počet',
+          align: 'left',
+          sortable: true,
         },
       ] as QTableColumn[]
     } else {
@@ -266,16 +228,16 @@ watch(
           sortable: true,
         },
         {
-          field: (item: WarehouseItemSchema) => item.unit_of_measure,
+          field: (item: WarehouseItemSchema) => item.package?.type ?? 'Jednotky',
           name: 'packaging',
           label: 'Balení',
           align: 'left' as const,
           sortable: true,
         },
         {
-          field: (item: WarehouseItemSchema) => item.remaining,
+          field: (item: WarehouseItemSchema) => item.amount,
           name: 'remaining',
-          label: 'Počet v balení',
+          label: 'Počet MJ',
           align: 'left' as const,
           sortable: true,
         },

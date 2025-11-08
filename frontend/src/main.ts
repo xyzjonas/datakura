@@ -24,4 +24,13 @@ app.use(Quasar, {
   plugins: {}, // import Quasar plugins and add here
 })
 
+app.directive('decimal', {
+  mounted(el, binding) {
+    el.textContent = Number(binding.value).toFixed(2)
+  },
+  updated(el, binding) {
+    el.textContent = Number(binding.value).toFixed(2)
+  },
+})
+
 app.mount('#app')

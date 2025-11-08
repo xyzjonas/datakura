@@ -1,3 +1,5 @@
+from typing import cast
+
 import pytest
 from ninja.testing import TestClient
 
@@ -12,8 +14,8 @@ def client() -> TestClient:
     return TestClient(routes)
 
 
-def test_get_all_customers(db, client):
-    customer_model: Customer = CustomerFactoryWithContacts()
+def test_get_all_customers(db, client) -> None:
+    customer_model = cast(Customer, CustomerFactoryWithContacts())
 
     res = client.get("/")
     assert res.status_code == 200
@@ -30,9 +32,9 @@ def test_get_all_customers(db, client):
 
 
 @pytest.mark.parametrize("flag", ["false", "False", "0"])
-def test_get_all_customers_active(db, client, flag):
-    inactive: Customer = CustomerFactoryWithContacts(is_valid=False)
-    active: Customer = CustomerFactoryWithContacts(is_valid=True)
+def test_get_all_customers_active(db, client, flag) -> None:
+    inactive = cast(Customer, CustomerFactoryWithContacts(is_valid=False))
+    active = cast(Customer, CustomerFactoryWithContacts(is_valid=True))
 
     res = client.get("/")
     assert res.status_code == 200
@@ -62,9 +64,9 @@ def test_get_all_customers_active(db, client, flag):
 
 
 @pytest.mark.parametrize("flag", ["true", "True", "1"])
-def test_get_all_customers_deleted(db, client, flag):
-    active: Customer = CustomerFactoryWithContacts(is_deleted=False)
-    deleted: Customer = CustomerFactoryWithContacts(is_deleted=True)
+def test_get_all_customers_deleted(db, client, flag) -> None:
+    active = cast(Customer, CustomerFactoryWithContacts(is_deleted=False))
+    deleted = cast(Customer, CustomerFactoryWithContacts(is_deleted=True))
 
     res = client.get("/")
     assert res.status_code == 200
@@ -93,9 +95,9 @@ def test_get_all_customers_deleted(db, client, flag):
     assert customer.code == deleted.code
 
 
-def test_get_all_customers_search_by_code(db, client):
+def test_get_all_customers_search_by_code(db, client) -> None:
     CustomerFactoryWithContacts.create_batch(10)
-    customer_model: Customer = CustomerFactoryWithContacts()
+    customer_model = cast(Customer, CustomerFactoryWithContacts())
 
     res = client.get(f"/?search_term={customer_model.code}")
     assert res.status_code == 200
@@ -111,9 +113,11 @@ def test_get_all_customers_search_by_code(db, client):
     assert customer.code == customer_model.code
 
 
-def test_get_all_customers_search_by_name(db, client):
+def test_get_all_customers_search_by_name(db, client) -> None:
     CustomerFactoryWithContacts.create_batch(10)
-    customer_model: Customer = CustomerFactoryWithContacts(name="Test123456Customer")
+    customer_model = cast(
+        Customer, CustomerFactoryWithContacts(name="Test123456Customer")
+    )
 
     res = client.get("/?search_term=123456")
     assert res.status_code == 200

@@ -6,7 +6,10 @@ const isDark = useStorage('theme-dark', false)
 export const useDarkmode = () => {
   // Toggle Quasar dark theme
   const $q = useQuasar()
-  $q.dark.set(isDark.value)
+
+  if ($q?.dark) {
+    $q.dark.set(isDark.value)
+  }
 
   const toggle = () => {
     isDark.value = !isDark.value

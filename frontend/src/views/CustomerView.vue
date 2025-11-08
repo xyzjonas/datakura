@@ -1,62 +1,60 @@
 <template>
-  <MainLayout>
-    <div v-if="customer" class="flex flex-col gap-2 flex-1">
-      <div class="flex gap-2">
-        <ForegroundPanel class="flex flex-col min-w-[312px] flex-[2] min-w-sm">
-          <span class="text-gray-5 flex items-center gap-1 capitalize">
-            <CustomerTypeIcon :type="customer.customer_type" />
-            {{ customer.customer_type.toLowerCase() }}
-          </span>
-          <div class="flex items-center flex-nowrap justify-between">
-            <h1 class="text-primary mb-1">{{ customer.name }}</h1>
-            <div class="flex flex-col items-end flex-nowrap gap-1">
-              <span class="flex items-center gap-1 flex-nowrap whitespace-nowrap">
-                <q-icon name="groups"></q-icon>
-                {{ customer.group.name }}
-              </span>
-              <span class="text-gray-5">
-                <q-btn flat round size="8px" icon="content_copy" />
-                <small>kód: </small>{{ customer.code }}
-              </span>
-            </div>
+  <div v-if="customer" class="flex flex-col gap-2 flex-1">
+    <div class="flex gap-2">
+      <ForegroundPanel class="flex flex-col min-w-[312px] flex-[2] min-w-sm">
+        <span class="text-gray-5 flex items-center gap-1 capitalize">
+          <CustomerTypeIcon :type="customer.customer_type" />
+          {{ customer.customer_type.toLowerCase() }}
+        </span>
+        <div class="flex items-center flex-nowrap justify-between">
+          <h1 class="text-primary mb-1">{{ customer.name }}</h1>
+          <div class="flex flex-col items-end flex-nowrap gap-1">
+            <span class="flex items-center gap-1 flex-nowrap whitespace-nowrap">
+              <q-icon name="groups"></q-icon>
+              {{ customer.group.name }}
+            </span>
+            <span class="text-gray-5">
+              <q-btn flat round size="8px" icon="content_copy" />
+              <small>kód: </small>{{ customer.code }}
+            </span>
           </div>
+        </div>
 
-          <CustomerInformationForm v-model="customerInformation" readonly class="my-2" />
+        <CustomerInformationForm v-model="customerInformation" readonly class="my-2" />
 
-          <div class="mt-auto flex gap-2 flex-row-reverse">
-            <q-btn
-              outline
-              color="primary"
-              icon="sym_o_order_play"
-              label="rychlá objednávka"
-              disable
-            ></q-btn>
-            <q-btn outline color="primary" icon="edit" label="upravit" disable></q-btn>
-          </div>
-        </ForegroundPanel>
-        <ForegroundPanel class="flex-1 min-w-sm">
-          <CustomerContactForm v-model="customerContact" class="h-full" readonly />
-        </ForegroundPanel>
-      </div>
-      <div class="flex flex-col gap-2 flex-nowrap">
-        <ForegroundPanel v-for="(contact, index) in customerContacts" :key="index" class="flex-1">
-          <q-expansion-item
-            icon="perm_identity"
-            :label="`${contact.title_pre} ${contact.first_name} ${contact.last_name} ${contact.title_post}`"
-            :caption="contact.email"
-          >
-            <CustomerContactPersonForm v-model="customerContacts[index]" readonly class="mt-2" />
-          </q-expansion-item>
-        </ForegroundPanel>
-        <EmptyPanel class="flex-1 py-5">
-          <div class="flex flex-col justify-center items-center">
-            <q-btn flat icon="add" label="Přidat nový kontakt" disable />
-          </div>
-        </EmptyPanel>
-      </div>
+        <div class="mt-auto flex gap-2 flex-row-reverse">
+          <q-btn
+            outline
+            color="primary"
+            icon="sym_o_order_play"
+            label="rychlá objednávka"
+            disable
+          ></q-btn>
+          <q-btn outline color="primary" icon="edit" label="upravit" disable></q-btn>
+        </div>
+      </ForegroundPanel>
+      <ForegroundPanel class="flex-1 min-w-sm">
+        <CustomerContactForm v-model="customerContact" class="h-full" readonly />
+      </ForegroundPanel>
     </div>
-    <ForegroundPanel v-else class="grid justify-center"> ZÁKAZNÍK NENALEZEN </ForegroundPanel>
-  </MainLayout>
+    <div class="flex flex-col gap-2 flex-nowrap">
+      <ForegroundPanel v-for="(contact, index) in customerContacts" :key="index" class="flex-1">
+        <q-expansion-item
+          icon="sym_o_contact_phone"
+          :label="`${contact.title_pre} ${contact.first_name} ${contact.last_name} ${contact.title_post}`"
+          :caption="contact.email"
+        >
+          <CustomerContactPersonForm v-model="customerContacts[index]" readonly class="mt-2" />
+        </q-expansion-item>
+      </ForegroundPanel>
+      <EmptyPanel class="flex-1 py-5">
+        <div class="flex flex-col justify-center items-center">
+          <q-btn flat icon="add" label="Přidat nový kontakt" disable />
+        </div>
+      </EmptyPanel>
+    </div>
+  </div>
+  <ForegroundPanel v-else class="grid justify-center"> ZÁKAZNÍK NENALEZEN </ForegroundPanel>
 </template>
 
 <script setup lang="ts">
@@ -67,7 +65,6 @@ import CustomerInformationForm from '@/components/customer/CustomerInformationFo
 import CustomerTypeIcon from '@/components/customer/CustomerTypeIcon.vue'
 import EmptyPanel from '@/components/EmptyPanel.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import MainLayout from '@/components/layout/MainLayout.vue'
 import { ref } from 'vue'
 
 const props = defineProps<{

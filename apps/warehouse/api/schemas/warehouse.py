@@ -8,10 +8,12 @@ class StockItemSchema(BaseSchema):
     code: str
 
 
-class PackageTypeSchema(BaseSchema):
-    name: str
+class PackageSchema(BaseSchema):
+    code: str
+    type: str
     description: str | None
-    count: int
+    amount: float
+    unit: str
 
 
 class WarehouseItemSchema(BaseSchema):
@@ -20,8 +22,8 @@ class WarehouseItemSchema(BaseSchema):
     code: str
     stock_item: StockItemSchema
     unit_of_measure: str
-    factor_at_receipt: float
-    remaining: float
+    amount: float
+    package: PackageSchema | None
 
 
 class WarehouseLocationSchema(BaseSchema):
