@@ -1,4 +1,6 @@
 from django.contrib import admin
+
+from apps.warehouse.models.orders import IncomingOrder, IncomingOrderItem
 from apps.warehouse.models.product import (
     StockProduct,
     UnitOfMeasure,
@@ -28,6 +30,9 @@ admin.site.register(UnitOfMeasure)
 admin.site.register(ContactPerson)
 admin.site.register(CustomerGroup)
 admin.site.register(Customer)
+
+admin.site.register(IncomingOrder)
+admin.site.register(IncomingOrderItem)
 
 
 @admin.register(StockProduct)

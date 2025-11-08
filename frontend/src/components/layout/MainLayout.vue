@@ -30,7 +30,7 @@
     <q-drawer v-model="isOpened" side="left" :width="196" persistent class="text-gray-6 p-1">
       <div class="flex flex-col h-full">
         <q-scroll-area class="flex-1">
-          <q-list class="flex flex-col gap-2">
+          <q-list class="flex flex-col gap-1">
             <MenuList
               :items="[
                 {
@@ -38,46 +38,78 @@
                   icon: 'sym_o_space_dashboard',
                   routeName: 'home',
                 },
+              ]"
+            />
+            <q-item-label header>Produkty</q-item-label>
+            <MenuList
+              :items="[
                 {
                   label: 'Produkty',
                   icon: 'sym_o_package_2',
                   routeName: 'products',
                   routeMatch: 'products,productDetail',
                 },
+                {
+                  label: 'Skupiny',
+                  icon: 'sym_o_flowchart',
+                  routeName: 'productGroups',
+                  routeMatch: 'productGroups,productGroupDetail',
+                },
+              ]"
+            />
+            <q-item-label header>Nákup / Prodej</q-item-label>
+            <MenuList
+              :items="[
+                {
+                  label: 'Objednávky',
+                  icon: 'sym_o_receipt',
+                  routeName: 'submissions',
+                },
+                {
+                  label: 'Faktury',
+                  icon: 'sym_o_receipt_long',
+                  routeName: 'submissions',
+                },
+                {
+                  label: 'Kalkulace',
+                  icon: 'sym_o_calculate',
+                  routeName: 'submissions',
+                },
+              ]"
+            />
+            <q-item-label header>Sklad</q-item-label>
+            <MenuList
+              :items="[
+                {
+                  label: 'Skladová místa',
+                  icon: 'sym_o_location_on',
+                  routeName: 'warehouse',
+                },
+                {
+                  label: 'Příjemky',
+                  icon: 'sym_o_input',
+                  routeName: 'submissions',
+                },
+                {
+                  label: 'Výdejky',
+                  icon: 'sym_o_output',
+                  routeName: 'submissions',
+                },
+              ]"
+            />
+            <q-item-label header>Zákazník</q-item-label>
+            <MenuList
+              :items="[
+                {
+                  label: 'Zákazník',
+                  icon: 'sym_o_contacts_product',
+                  routeName: 'customers',
+                  routeMatch: 'customers,customerDetail',
+                },
               ]"
             />
           </q-list>
-          <q-expansion-item
-            icon="sym_o_finance"
-            label="Prodej"
-            header-class="rounded-md my-2"
-            :content-inset-level="0.3"
-            dense
-          >
-            <q-list class="flex flex-col gap-2">
-              <MenuList
-                inset
-                :items="[
-                  {
-                    label: 'Objednávky',
-                    icon: 'sym_o_receipt',
-                    routeName: 'submissions',
-                  },
-                  {
-                    label: 'Faktury',
-                    icon: 'sym_o_receipt_long',
-                    routeName: 'submissions',
-                  },
-                  {
-                    label: 'Kalkulace',
-                    icon: 'sym_o_calculate',
-                    routeName: 'submissions',
-                  },
-                ]"
-              />
-            </q-list>
-          </q-expansion-item>
-          <q-expansion-item
+          <!-- <q-expansion-item
             icon="sym_o_barcode_scanner"
             label="Sklad"
             header-class="rounded-md my-2"
@@ -106,19 +138,8 @@
                 ]"
               />
             </q-list>
-          </q-expansion-item>
-          <q-list class="flex flex-col gap-2">
-            <MenuList
-              :items="[
-                {
-                  label: 'Zákazník',
-                  icon: 'sym_o_contacts_product',
-                  routeName: 'customers',
-                  routeMatch: 'customers,customerDetail',
-                },
-              ]"
-            />
-          </q-list>
+          </q-expansion-item> -->
+          <q-list class="flex flex-col gap-2"> </q-list>
         </q-scroll-area>
 
         <q-list>
