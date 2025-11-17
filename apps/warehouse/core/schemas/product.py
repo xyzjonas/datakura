@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from .base import BaseSchema, BaseResponse
+from .base import BaseSchema, BaseResponse, PaginatedResponse
 
 
 class ProductSchema(BaseSchema):
@@ -10,14 +10,11 @@ class ProductSchema(BaseSchema):
     type: str
     unit: str
     group: str | None = None
+    unit_weight: float
 
 
 class GetProductResponse(BaseResponse):
     data: ProductSchema
 
 
-class GetProductsResponse(BaseResponse):
-    data: list[ProductSchema]
-    count: int
-    next: int | None
-    previous: int | None
+class GetProductsResponse(PaginatedResponse[ProductSchema]): ...

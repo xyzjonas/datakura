@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ninja import Schema
+
 from .base import BaseResponse, BaseSchema
 
 
@@ -24,6 +26,13 @@ class WarehouseItemSchema(BaseSchema):
     unit_of_measure: str
     amount: float
     package: PackageSchema | None
+
+
+class ProductWarehouseAvailability(Schema):
+    """Summary of item's availability in the warehouse"""
+
+    total_amount: float
+    available_amount: float
 
 
 class WarehouseLocationSchema(BaseSchema):
@@ -52,6 +61,10 @@ class GetWarehousesResponse(BaseResponse):
 
 class GetWarehouseLocationResponse(BaseResponse):
     data: WarehouseLocationDetailSchema
+
+
+class GetProductWarehouseAvailabilityResponse(BaseResponse):
+    data: ProductWarehouseAvailability
 
 
 class GetProductWarehouseInfoResponse(BaseResponse):

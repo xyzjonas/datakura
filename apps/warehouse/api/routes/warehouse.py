@@ -1,7 +1,7 @@
 from django.http import HttpRequest
 from ninja import Router
 
-from apps.warehouse.api.schemas.warehouse import (
+from apps.warehouse.core.schemas.warehouse import (
     GetWarehousesResponse,
     WarehouseSchema,
     WarehouseLocationSchema,

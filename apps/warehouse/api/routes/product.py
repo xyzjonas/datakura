@@ -8,19 +8,21 @@ from ninja import Router
 from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import StockProductPagination
-from apps.warehouse.api.schemas.product import (
+from apps.warehouse.core.schemas.product import (
     GetProductResponse,
     ProductSchema,
 )
-from apps.warehouse.api.schemas.warehouse import (
+from apps.warehouse.core.schemas.warehouse import (
     GetProductWarehouseInfoResponse,
     WarehouseExpandedSchema,
     WarehouseLocationDetailSchema,
+    GetProductWarehouseAvailabilityResponse,
 )
 from apps.warehouse.core.transformation import (
     get_product_by_code,
     warehouse_item_orm_to_schema,
 )
+from apps.warehouse.core.warehouse import get_total_availability
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import WarehouseItem
 
@@ -112,3 +114,14 @@ def get_product_warehouse_info(request: HttpRequest, product_code: str):
         location.items.append(warehouse_item_orm_to_schema(item))
 
     return GetProductWarehouseInfoResponse(data=warehouses)
+
+
+@routes.get(
+    "/{product_code}/warehouse-availablity",
+    response={200: GetProductWarehouseAvailabilityResponse},
+    auth=None,
+)
+def get_product_warehouse_availability(request: HttpRequest, product_code: str):
+    return GetProductWarehouseAvailabilityResponse(
+        data=get_total_availability(product_code)
+    )

@@ -1,17 +1,23 @@
 from __future__ import annotations
 
-from apps.warehouse.api.schemas.customer import (
+from apps.warehouse.core.schemas.customer import (
     CustomerSchema,
     CustomerGroupSchema,
     ContactPersonSchema,
 )
-from apps.warehouse.api.schemas.product import ProductSchema
-from apps.warehouse.api.schemas.warehouse import (
+from apps.warehouse.core.schemas.product import ProductSchema
+from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,
     StockItemSchema,
     PackageSchema,
 )
+
+from apps.warehouse.core.schemas.orders import (
+    IncomingOrderSchema,
+    IncomingOrderItemSchema,
+)
 from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.orders import IncomingOrder
 from apps.warehouse.models.packaging import Package
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import WarehouseItem
@@ -61,6 +67,7 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         group=product.group.name if product.group else None,
         created=product.created,
         changed=product.changed,
+        unit_weight=float(product.unit_weight),
     )
 
 
@@ -106,4 +113,27 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
         created=item.created,
         changed=item.changed,
         amount=float(amount or 0),
+    )
+
+
+def incoming_order_orm_to_schema(order: IncomingOrder) -> IncomingOrderSchema:
+    return IncomingOrderSchema(
+        created=order.created,
+        changed=order.changed,
+        code=order.code,
+        external_code=order.external_code,
+        supplier=customer_orm_to_schema(order.supplier),
+        description=order.description,
+        note=order.note,
+        currency=order.currency,
+        items=[
+            IncomingOrderItemSchema(
+                product=product_orm_to_schema(item.stock_product),
+                amount=float(item.amount),
+                unit_price=float(item.unit_price),
+                changed=item.changed,
+                created=item.created,
+            )
+            for item in order.items.all()
+        ],
     )

@@ -44,6 +44,7 @@ class StockProduct(BaseModel):
         on_delete=models.PROTECT,
         related_name="products",
     )
+    unit_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def __str__(self):
         return self.name

@@ -54,7 +54,10 @@
       </EmptyPanel>
     </div>
   </div>
-  <ForegroundPanel v-else class="grid justify-center"> ZÁKAZNÍK NENALEZEN </ForegroundPanel>
+  <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
+    <span class="text-5xl text-gray-5">404</span>
+    <span class="text-lg text-gray-5"> ZÁKAZNÍK NENALEZEN </span>
+  </ForegroundPanel>
 </template>
 
 <script setup lang="ts">

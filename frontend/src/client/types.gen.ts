@@ -340,6 +340,10 @@ export type ProductSchema = {
      * Group
      */
     group?: string | null;
+    /**
+     * Unit Weight
+     */
+    unit_weight: number;
 };
 
 /**
@@ -399,6 +403,36 @@ export type WarehouseExpandedSchema = {
      * Locations
      */
     locations: Array<WarehouseLocationDetailSchema>;
+};
+
+/**
+ * GetProductWarehouseAvailabilityResponse
+ */
+export type GetProductWarehouseAvailabilityResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    data: ProductWarehouseAvailability;
+};
+
+/**
+ * ProductWarehouseAvailability
+ * Summary of item's availability in the warehouse
+ */
+export type ProductWarehouseAvailability = {
+    /**
+     * Total Amount
+     */
+    total_amount: number;
+    /**
+     * Available Amount
+     */
+    available_amount: number;
 };
 
 /**
@@ -670,6 +704,98 @@ export type GetCustomerResponse = {
     data: CustomerSchema;
 };
 
+/**
+ * IncomingOrderItemSchema
+ */
+export type IncomingOrderItemSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    product: ProductSchema;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Unit Price
+     */
+    unit_price: number;
+};
+
+/**
+ * IncomingOrderSchema
+ */
+export type IncomingOrderSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    supplier: CustomerSchema;
+    /**
+     * Items
+     */
+    items?: Array<IncomingOrderItemSchema>;
+    /**
+     * Currency
+     */
+    currency: string;
+};
+
+/**
+ * PagedIncomingOrderSchema
+ */
+export type PagedIncomingOrderSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Data
+     */
+    data: Array<IncomingOrderSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
 export type WarehouseApiRoutesAuthLoginUserData = {
     body: LoginFormSchema;
     path?: never;
@@ -844,6 +970,27 @@ export type WarehouseApiRoutesProductGetProductWarehouseInfoResponses = {
 
 export type WarehouseApiRoutesProductGetProductWarehouseInfoResponse = WarehouseApiRoutesProductGetProductWarehouseInfoResponses[keyof WarehouseApiRoutesProductGetProductWarehouseInfoResponses];
 
+export type WarehouseApiRoutesProductGetProductWarehouseAvailabilityData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/warehouse-availablity';
+};
+
+export type WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses = {
+    /**
+     * OK
+     */
+    200: GetProductWarehouseAvailabilityResponse;
+};
+
+export type WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponse = WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses[keyof WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses];
+
 export type WarehouseApiRoutesCustomerGetCustomersData = {
     body?: never;
     path?: never;
@@ -910,3 +1057,53 @@ export type WarehouseApiRoutesCustomerGetCustomerResponses = {
 };
 
 export type WarehouseApiRoutesCustomerGetCustomerResponse = WarehouseApiRoutesCustomerGetCustomerResponses[keyof WarehouseApiRoutesCustomerGetCustomerResponses];
+
+export type WarehouseApiRoutesOrdersGetIncomingOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/orders';
+};
+
+export type WarehouseApiRoutesOrdersGetIncomingOrdersResponses = {
+    /**
+     * OK
+     */
+    200: PagedIncomingOrderSchema;
+};
+
+export type WarehouseApiRoutesOrdersGetIncomingOrdersResponse = WarehouseApiRoutesOrdersGetIncomingOrdersResponses[keyof WarehouseApiRoutesOrdersGetIncomingOrdersResponses];
+
+export type WarehouseApiRoutesOrdersGetIncomingOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}';
+};
+
+export type WarehouseApiRoutesOrdersGetIncomingOrderResponses = {
+    /**
+     * OK
+     */
+    200: IncomingOrderSchema;
+};
+
+export type WarehouseApiRoutesOrdersGetIncomingOrderResponse = WarehouseApiRoutesOrdersGetIncomingOrderResponses[keyof WarehouseApiRoutesOrdersGetIncomingOrderResponses];

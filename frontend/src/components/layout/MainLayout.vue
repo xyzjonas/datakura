@@ -2,19 +2,19 @@
   <q-layout view="hhh Lpr fff">
     <q-header>
       <q-toolbar class="flex gap-5 p-3 items-center">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-nowrap">
           <!-- <q-btn dense flat :icon="isOpened ? 'close' : 'menu'" @click="isOpened = !isOpened" /> -->
           <span class="h-[16px] w-[16px] light:bg-primary dark:bg-light ml-2"></span>
           <q-separator vertical class="my-3 bg-gray h-[1rem]" />
           <a href="/" class="mr-[96px] light:text-primary dark:text-light">
-            <span class="font-bold">STOCKOMO</span>
+            <span class="font-bold">SKLAD</span>
           </a>
         </div>
 
         <SearchInput v-model="search" class="w-[512px]" />
 
-        <div class="ml-auto flex gap-2">
-          <div class="flex flex-col items-end">
+        <div class="ml-auto flex gap-2 flex-nowrap">
+          <div class="flex flex-col items-end flex-nowrap">
             <span class="light:text-primary font-bold dark:text-light">Jaroslav Novák</span>
             <span class="text-xs text-gray-5">Administrátor</span>
           </div>
@@ -63,7 +63,7 @@
                 {
                   label: 'Objednávky',
                   icon: 'sym_o_receipt',
-                  routeName: 'submissions',
+                  routeName: 'incomingOrders',
                 },
                 {
                   label: 'Faktury',

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Generic
 
+from mypyc.ir.ops import TypeVar
 from ninja import Schema
 from pydantic import BaseModel, field_serializer
 
@@ -21,3 +22,13 @@ class BaseResponse(BaseModel):
     success: bool = True
     message: str | None = None
     data: Any
+
+
+T = TypeVar("T")
+
+
+class PaginatedResponse(BaseResponse, Generic[T]):
+    data: list[T]
+    count: int
+    next: int | None
+    previous: int | None

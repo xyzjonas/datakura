@@ -5,8 +5,8 @@ from typing import Optional
 
 from pydantic import ConfigDict, Field
 
-from apps.warehouse.api.schemas.base import BaseResponse
-from .base import BaseSchema
+from apps.warehouse.core.schemas.base import BaseResponse
+from .base import BaseSchema, PaginatedResponse
 
 
 class CustomerGroupSchema(BaseSchema):
@@ -100,8 +100,4 @@ class GetCustomerResponse(BaseResponse):
     data: CustomerSchema
 
 
-class GetCustomersResponse(BaseResponse):
-    data: list[CustomerSchema]
-    count: int
-    next: int | None
-    previous: int | None
+class GetCustomersResponse(PaginatedResponse[CustomerSchema]): ...

@@ -68,7 +68,10 @@
       <WarehouseCard :product-code="product.code" :product-unit="product.unit" />
     </div>
   </div>
-  <ForegroundPanel v-else class="grid justify-center"> PRODUKT NENALEZEN </ForegroundPanel>
+  <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
+    <span class="text-5xl text-gray-5">404</span>
+    <span class="text-lg text-gray-5"> PRODUKT NENALEZEN </span>
+  </ForegroundPanel>
 </template>
 
 <script setup lang="ts">

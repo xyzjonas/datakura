@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import HttpRequest
 from ninja import Router
 
-from apps.warehouse.api.schemas.auth import (
+from apps.warehouse.core.schemas.auth import (
     LoginFormSchema,
     SigninResponse,
     SignoutResponse,

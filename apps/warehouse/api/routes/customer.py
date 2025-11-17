@@ -8,8 +8,8 @@ from ninja import Router
 from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import CustomersPagination
-from apps.warehouse.api.schemas.base import BaseResponse
-from apps.warehouse.api.schemas.customer import (
+from apps.warehouse.core.schemas.base import BaseResponse
+from apps.warehouse.core.schemas.customer import (
     GetCustomerResponse,
     CustomerSchema,
 )

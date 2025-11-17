@@ -52,7 +52,13 @@ class WarehouseItem(BaseModel):
     package = models.OneToOneField(
         Package, null=True, blank=True, on_delete=models.CASCADE, related_name="item"
     )
-    amount = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True)
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        help_text="Amount of the stock product in stock product UOM",
+    )
     location = models.ForeignKey(
         WarehouseLocation,
         null=False,

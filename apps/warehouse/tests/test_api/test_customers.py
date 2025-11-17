@@ -3,7 +3,7 @@ from typing import cast
 import pytest
 from ninja.testing import TestClient
 
-from apps.warehouse.api.schemas.customer import GetCustomersResponse
+from apps.warehouse.core.schemas.customer import GetCustomersResponse
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.tests.factories.customer import CustomerFactoryWithContacts
 from apps.warehouse.api.routes.customer import routes

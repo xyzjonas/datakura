@@ -4,7 +4,7 @@ import pytest
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.product import routes
-from apps.warehouse.api.schemas.product import ProductSchema, GetProductsResponse
+from apps.warehouse.core.schemas.product import ProductSchema, GetProductsResponse
 from apps.warehouse.models.product import StockProduct
 
 from apps.warehouse.tests.factories.product import StockProductFactory
@@ -47,6 +47,7 @@ def test_get_all_one_product(db, client):
                             "name": product.name,
                             "type": product.type.name,
                             "unit": product.unit_of_measure.name,
+                            "unit_weight": product.unit_weight,
                         }
                     ).model_dump()
                 ],
