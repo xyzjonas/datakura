@@ -3,8 +3,10 @@
     <div class="flex gap-2">
       <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
         <span class="text-gray-5 flex items-center gap-1 mb-1">
-          <ProductTypeIcon :type="product.type" />
-          {{ product.type }}
+          <span>
+            <ProductTypeIcon :type="product.type" />
+            {{ product.type }}
+          </span>
         </span>
         <h1 class="text-primary mb-1">{{ product.name }}</h1>
         <span class="flex items-center gap-1 mb-3">
@@ -45,7 +47,9 @@
           </q-item>
         </q-list>
 
-        <div class="mt-5 flex flex-row-reverse">
+        <div class="mt-auto flex justify-between">
+          <ProductAvailability :product-code="product.code" />
+
           <q-btn outline color="primary" icon="edit" label="upravit" disable></q-btn>
         </div>
       </ForegroundPanel>
@@ -77,6 +81,7 @@
 <script setup lang="ts">
 import { warehouseApiRoutesProductGetProduct } from '@/client'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import WarehouseCard from '@/components/product/WarehouseCard.vue'
 import type { QTableColumn } from 'quasar'

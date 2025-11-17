@@ -1,6 +1,6 @@
 <template>
   <q-chip square>
-    <transition mode="out-in">
+    <transition :duration="0" name="fade" mode="out-in">
       <q-spinner v-if="loading" class="w-12"></q-spinner>
       <div v-else class="flex items-center justify-center justify-around gap-2 min-w-30">
         <div class="flex flex-col items-end line-height-snug">
@@ -35,7 +35,8 @@ const fetch = async () => {
     totalAmount.value = result.data.data.total_amount
     availableAmount.value = result.data.data.available_amount
   }
-  setTimeout(() => (loading.value = false), Math.random() * 300)
+  loading.value = false
+  // setTimeout(() => (loading.value = false), Math.random() * 300)
 }
 
 onMounted(fetch)
