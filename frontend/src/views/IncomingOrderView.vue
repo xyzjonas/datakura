@@ -38,21 +38,15 @@
         <q-list dense separator>
           <q-item>
             <q-item-section>Požadovaný termín dodání</q-item-section>
-            <q-item-section avatar>{{
-              new Date(order.created).toLocaleDateString()
-            }}</q-item-section>
+            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
           </q-item>
           <q-item>
             <q-item-section>Datum zrušení</q-item-section>
-            <q-item-section avatar>{{
-              new Date(order.created).toLocaleDateString()
-            }}</q-item-section>
+            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
           </q-item>
           <q-item>
             <q-item-section>Zboží přijato</q-item-section>
-            <q-item-section avatar>{{
-              new Date(order.created).toLocaleDateString()
-            }}</q-item-section>
+            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
           </q-item>
         </q-list>
         <q-list dense class="mt-auto">
@@ -68,8 +62,13 @@
         </q-list>
       </ForegroundPanel>
       <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
-        <span class="text-gray-5 flex items-center gap-1">DODAVATEL</span>
-        <h1 class="text-primary mb-1">{{ order.supplier.name }}</h1>
+        <span class="text-gray-5 flex items-center justify-between gap-1">
+          <span>DODAVATEL</span>
+          <q-btn dense flat icon="sym_o_compare_arrows" size="10px" />
+        </span>
+        <h1 @click="goToCustomer(order.supplier.code)" class="text-primary mb-1 link">
+          {{ order.supplier.name }}
+        </h1>
         <span class="flex items-center gap-1 mb-3">
           <small class="text-gray-5">kód:</small>
           <h5>{{ order.supplier.code }}</h5>
@@ -92,8 +91,26 @@
       </ForegroundPanel>
     </div>
     <div class="flex items-center gap-2 mt-5">
+      <CurrencyDropdown v-model="order.currency" />
       <h2>Položky objednávky</h2>
-      <q-btn unelevated color="primary" flat dense icon="sym_o_splitscreen_add"></q-btn>
+      <q-btn
+        unelevated
+        color="primary"
+        icon="sym_o_add"
+        label="přidat položku"
+        class="ml-5"
+      ></q-btn>
+      <!-- <q-icon v-if="synced" name="sym_o_check_circle" size="20px" color="positive" class="ml-5" /> -->
+      <Transition name="fade" mode="out-in">
+        <q-btn
+          v-if="!synced"
+          unelevated
+          flat
+          color="primary"
+          icon="sym_o_backup"
+          label="uložit změny"
+        ></q-btn>
+      </Transition>
       <TotalWeight :order="order" class="ml-auto mr-5" />
       <TotalPrice :order="order" />
     </div>
@@ -110,10 +127,13 @@
 <script setup lang="ts">
 import { warehouseApiRoutesOrdersGetIncomingOrder, type IncomingOrderSchema } from '@/client'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import CurrencyDropdown from '@/components/order/CurrencyDropdown.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
+import { formatDateLong } from '@/utils/date'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps<{ code: string }>()
 const order = ref<IncomingOrderSchema>()
@@ -132,6 +152,14 @@ const contact = computed(() => {
   }
   return order.value.supplier.contacts[0]
 })
+
+const router = useRouter()
+const goToCustomer = (code: string) => {
+  router.push({ name: 'customerDetail', params: { customerCode: code } })
+}
+
+const copyOnInit = JSON.stringify(order.value)
+const synced = computed(() => JSON.stringify(order.value) === copyOnInit)
 </script>
 
 <style lang="scss" scoped></style>

@@ -14,14 +14,22 @@
       <br />
       <span class="text-xs text-gray-5">{{ item.product.code }}</span>
     </div>
-    <div class="flex gap-2 flex-1 justify-end flex-nowrap min-w-[670px]">
-      <ProductAvailability :product-code="item.product.code" />
-      <q-input v-model="item.amount" dense standout class="max-w-28" label="Počet">
+    <div
+      class="flex gap-2 flex-1 items-center justify-start lg:justify-end flex-nowrap min-w-[670px]"
+    >
+      <ProductAvailability :product-code="item.product.code" class="mr-5" />
+      <q-input v-model.number="item.amount" dense standout class="max-w-28" label="Počet">
         <template #append>
           <span class="text-xs">{{ item.product.unit }}</span>
         </template>
       </q-input>
-      <q-input v-model="item.unit_price" dense standout class="max-w-40" label="Nákupní cena">
+      <q-input
+        v-model.number="item.unit_price"
+        dense
+        standout
+        class="max-w-40"
+        label="Nákupní cena"
+      >
         <template #append>
           <span class="text-xs">{{ currency }}</span>
         </template>

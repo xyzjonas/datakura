@@ -2,7 +2,7 @@
   <div class="flex flex-col items-end">
     <span class="text-gray-5"> Celková cena </span>
     <span class="flex items-baseline gap-1">
-      <h2 class="text-bold">{{ totalPrice.toFixed(2) }}</h2>
+      <h2 class="text-bold text-3xl">{{ totalPrice.toFixed(2) }}</h2>
       <span class="text-gray-5">{{ order.currency }}</span>
     </span>
   </div>
