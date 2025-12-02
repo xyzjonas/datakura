@@ -170,10 +170,6 @@ export type PackageSchema = {
      */
     changed: string;
     /**
-     * Code
-     */
-    code: string;
-    /**
      * Type
      */
     type: string;
@@ -344,6 +340,18 @@ export type ProductSchema = {
      * Unit Weight
      */
     unit_weight: number;
+    /**
+     * Base Price
+     */
+    base_price: number;
+    /**
+     * Purchase Price
+     */
+    purchase_price: number;
+    /**
+     * Currency
+     */
+    currency: string;
 };
 
 /**
@@ -764,6 +772,10 @@ export type IncomingOrderSchema = {
      * Currency
      */
     currency: string;
+    /**
+     * Warehouse Order Code
+     */
+    warehouse_order_code?: string | null;
 };
 
 /**
@@ -794,6 +806,61 @@ export type PagedIncomingOrderSchema = {
      * Previous
      */
     previous: number | null;
+};
+
+/**
+ * CreateIncomingOrderItemResponse
+ */
+export type CreateIncomingOrderItemResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    data: IncomingOrderItemSchema;
+};
+
+/**
+ * IncomingOrderItemCreateSchema
+ */
+export type IncomingOrderItemCreateSchema = {
+    /**
+     * Product Code
+     */
+    product_code: string;
+    /**
+     * Product Name
+     */
+    product_name: string;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Unit Price
+     */
+    unit_price: number;
+};
+
+/**
+ * EmptyResponse
+ */
+export type EmptyResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Data
+     */
+    data?: null;
 };
 
 export type WarehouseApiRoutesAuthLoginUserData = {
@@ -898,6 +965,27 @@ export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponses = {
 };
 
 export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponse = WarehouseApiRoutesWarehouseGetWarehouseLocationResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseLocationResponses];
+
+export type WarehouseApiRoutesWarehouseGetWarehouseOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-incoming/{code}';
+};
+
+export type WarehouseApiRoutesWarehouseGetWarehouseOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseLocationResponse;
+};
+
+export type WarehouseApiRoutesWarehouseGetWarehouseOrderResponse = WarehouseApiRoutesWarehouseGetWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseOrderResponses];
 
 export type WarehouseApiRoutesProductGetProductsData = {
     body?: never;
@@ -1107,3 +1195,49 @@ export type WarehouseApiRoutesOrdersGetIncomingOrderResponses = {
 };
 
 export type WarehouseApiRoutesOrdersGetIncomingOrderResponse = WarehouseApiRoutesOrdersGetIncomingOrderResponses[keyof WarehouseApiRoutesOrdersGetIncomingOrderResponses];
+
+export type WarehouseApiRoutesOrdersAddItemToIncomingOrderData = {
+    body: IncomingOrderItemCreateSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/items';
+};
+
+export type WarehouseApiRoutesOrdersAddItemToIncomingOrderResponses = {
+    /**
+     * OK
+     */
+    200: CreateIncomingOrderItemResponse;
+};
+
+export type WarehouseApiRoutesOrdersAddItemToIncomingOrderResponse = WarehouseApiRoutesOrdersAddItemToIncomingOrderResponses[keyof WarehouseApiRoutesOrdersAddItemToIncomingOrderResponses];
+
+export type WarehouseApiRoutesOrdersRemoveItemsFromIncomingOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/items/{product_code}';
+};
+
+export type WarehouseApiRoutesOrdersRemoveItemsFromIncomingOrderResponses = {
+    /**
+     * OK
+     */
+    200: EmptyResponse;
+};
+
+export type WarehouseApiRoutesOrdersRemoveItemsFromIncomingOrderResponse = WarehouseApiRoutesOrdersRemoveItemsFromIncomingOrderResponses[keyof WarehouseApiRoutesOrdersRemoveItemsFromIncomingOrderResponses];

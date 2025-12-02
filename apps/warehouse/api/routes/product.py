@@ -67,7 +67,7 @@ def get_product_warehouse_info(request: HttpRequest, product_code: str):
     items = (
         WarehouseItem.objects.filter(stock_product__code=product_code)
         .prefetch_related(
-            "package",
+            "package_type",
             "stock_product",
             "location",
             "location__warehouse",

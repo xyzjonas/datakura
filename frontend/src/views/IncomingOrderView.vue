@@ -90,15 +90,16 @@
         </q-list>
       </ForegroundPanel>
     </div>
-    <div class="flex items-center gap-2 mt-5">
-      <CurrencyDropdown v-model="order.currency" />
-      <h2>Položky objednávky</h2>
+
+    <OrderTimeline />
+
+    <div class="flex items-center gap-2 my-5">
       <q-btn
         unelevated
         color="primary"
         icon="sym_o_add"
         label="přidat položku"
-        class="ml-5"
+        @click="addItemDialog = true"
       ></q-btn>
       <!-- <q-icon v-if="synced" name="sym_o_check_circle" size="20px" color="positive" class="ml-5" /> -->
       <Transition name="fade" mode="out-in">
@@ -111,12 +112,37 @@
           label="uložit změny"
         ></q-btn>
       </Transition>
+      <q-btn
+        unelevated
+        color="positive"
+        icon="sym_o_order_approve"
+        label="potvrdit"
+        @click="addItemDialog = true"
+        class="ml-auto"
+        :disable="order.items?.length === 0"
+      ></q-btn>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <CurrencyDropdown v-model="order.currency" />
+      <h2>Položky objednávky</h2>
       <TotalWeight :order="order" class="ml-auto mr-5" />
       <TotalPrice :order="order" />
     </div>
     <div>
-      <ProductsList v-model:items="order.items" :currency="order.currency" />
+      <ProductsList
+        v-model:items="order.items"
+        :currency="order.currency"
+        @remove-item="removeItem"
+        @add-item="addItemDialog = true"
+      />
     </div>
+    <NewOrderItemDialog
+      ref="addItemDialogComponent"
+      v-model:show="addItemDialog"
+      @add-item="addItem"
+      :currency="order.currency"
+    />
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
@@ -125,18 +151,29 @@
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesOrdersGetIncomingOrder, type IncomingOrderSchema } from '@/client'
+import {
+  warehouseApiRoutesOrdersAddItemToIncomingOrder,
+  warehouseApiRoutesOrdersGetIncomingOrder,
+  warehouseApiRoutesOrdersRemoveItemsFromIncomingOrder,
+  type IncomingOrderItemCreateSchema,
+  type IncomingOrderSchema,
+} from '@/client'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import CurrencyDropdown from '@/components/order/CurrencyDropdown.vue'
+import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
+import OrderTimeline from '@/components/order/OrderTimeline.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
+import { useApi } from '@/composables/use-api'
 import { formatDateLong } from '@/utils/date'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const props = defineProps<{ code: string }>()
 const order = ref<IncomingOrderSchema>()
+
+const { onResponse } = useApi()
 
 const response = await warehouseApiRoutesOrdersGetIncomingOrder({
   path: { order_code: props.code },
@@ -158,8 +195,42 @@ const goToCustomer = (code: string) => {
   router.push({ name: 'customerDetail', params: { customerCode: code } })
 }
 
-const copyOnInit = JSON.stringify(order.value)
-const synced = computed(() => JSON.stringify(order.value) === copyOnInit)
+const copyOnInit = JSON.parse(JSON.stringify(order.value)) as IncomingOrderSchema
+const synced = computed(() => JSON.stringify(order.value) === JSON.stringify(copyOnInit))
+
+const addItemDialog = ref(false)
+const addItemDialogComponent = ref<InstanceType<typeof NewOrderItemDialog>>()
+const addItem = async (item: IncomingOrderItemCreateSchema) => {
+  if (!order.value) {
+    return
+  }
+  const addResponse = await warehouseApiRoutesOrdersAddItemToIncomingOrder({
+    path: { order_code: order.value.code },
+    body: item,
+  })
+
+  if (!addResponse.error && addResponse.data?.success === true) {
+    order.value.items?.push(addResponse.data.data)
+    copyOnInit.items?.push(addResponse.data.data)
+    if (addItemDialogComponent.value) {
+      addItemDialogComponent.value.reset()
+    }
+  }
+}
+
+const removeItem = async (product_code: string) => {
+  if (!order.value) {
+    return
+  }
+  const result = await warehouseApiRoutesOrdersRemoveItemsFromIncomingOrder({
+    path: { order_code: order.value.code, product_code },
+  })
+  const data = onResponse(result)
+  if (data) {
+    order.value.items = order.value.items?.filter((it) => it.product.code !== product_code)
+    copyOnInit.items = copyOnInit.items?.filter((it) => it.product.code !== product_code)
+  }
+}
 </script>
 
 <style lang="scss" scoped></style>

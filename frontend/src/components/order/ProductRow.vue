@@ -46,7 +46,13 @@
           <span class="text-xs">{{ currency }}</span>
         </template>
       </q-input>
-      <q-btn icon="sym_o_close_small" color="negative" flat dense></q-btn>
+      <q-btn
+        icon="sym_o_close_small"
+        color="negative"
+        flat
+        dense
+        @click="$emit('removeItem')"
+      ></q-btn>
     </div>
   </div>
 </template>
@@ -57,6 +63,7 @@ import { computed } from 'vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 
 defineProps<{ currency: string }>()
+defineEmits(['removeItem'])
 
 const item = defineModel<IncomingOrderItemSchema>('item', { required: true })
 

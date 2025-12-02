@@ -7,9 +7,17 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseLocationSchema,
     GetWarehouseLocationResponse,
     WarehouseLocationDetailSchema,
+    GetWarehouseOrderResponse,
 )
-from apps.warehouse.core.transformation import warehouse_item_orm_to_schema
-from apps.warehouse.models.warehouse import Warehouse, WarehouseLocation
+from apps.warehouse.core.transformation import (
+    warehouse_item_orm_to_schema,
+    warehouse_incoming_order_orm_to_schema,
+)
+from apps.warehouse.models.warehouse import (
+    Warehouse,
+    WarehouseLocation,
+    WarehouseOrderIn,
+)
 
 routes = Router(tags=["warehouse"])
 
@@ -54,10 +62,8 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
         "items",
         "items__stock_product",
         "items__stock_product__unit_of_measure",
-        "items__package",
-        "items__package__type",
-        "items__package__type__unit_of_measure",
-        "items__lot",
+        "items__package_type",
+        "items__package_type__unit_of_measure",
     ).get(code=warehouse_location_code)
     return GetWarehouseLocationResponse(
         data=WarehouseLocationDetailSchema(
@@ -67,3 +73,22 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
             items=[warehouse_item_orm_to_schema(item) for item in location.items.all()],
         )
     )
+
+
+@routes.get(
+    "orders-incoming/{code}",
+    response={200: GetWarehouseLocationResponse},
+    auth=None,
+)
+def get_warehouse_order(request: HttpRequest, code: str):
+    # user = authenticate(
+    #     request, username=credentials.username, password=credentials.password
+    # )
+    order = WarehouseOrderIn.objects.prefetch_related(
+        "items",
+        "items__stock_product",
+        "items__stock_product__unit_of_measure",
+        "items__package_type",
+        "items__package_type__unit_of_measure",
+    ).get(code=code)
+    return GetWarehouseOrderResponse(data=warehouse_incoming_order_orm_to_schema(order))

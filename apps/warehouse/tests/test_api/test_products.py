@@ -48,6 +48,9 @@ def test_get_all_one_product(db, client):
                             "type": product.type.name,
                             "unit": product.unit_of_measure.name,
                             "unit_weight": product.unit_weight,
+                            "base_price": product.base_price,
+                            "purchase_price": product.purchase_price,
+                            "currency": product.currency,
                         }
                     ).model_dump()
                 ],

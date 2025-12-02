@@ -24,6 +24,10 @@ class BaseResponse(BaseModel):
     data: Any
 
 
+class EmptyResponse(BaseResponse):
+    data: None = None
+
+
 T = TypeVar("T")
 
 

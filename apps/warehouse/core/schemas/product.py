@@ -11,6 +11,9 @@ class ProductSchema(BaseSchema):
     unit: str
     group: str | None = None
     unit_weight: float
+    base_price: float
+    purchase_price: float
+    currency: str
 
 
 class GetProductResponse(BaseResponse):

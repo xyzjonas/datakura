@@ -40,10 +40,9 @@ class WarehouseItemFactory(DjangoModelFactory):
 
     code = factory.Sequence(lambda n: f"ITEM-{n:08d}")
     stock_product = factory.SubFactory(StockProductFactory)
-    package = None
+    package_type = None
     location = factory.SubFactory(WarehouseLocationFactory)
     amount = 0
-    lot = None
 
 
 class WarehouseMovementFactory(DjangoModelFactory):

@@ -9,7 +9,7 @@ export const aggregatePackaging = (locationItems: WarehouseItemSchema[]) => {
   return Object.values(
     locationItems.reduce(
       (acc, item) => {
-        const key = `${item.unit_of_measure}_${item.package?.amount}`
+        const key = `${item.stock_item.code}_${item.unit_of_measure}_${item.package?.type}`
 
         if (!acc[key]) {
           acc[key] = {

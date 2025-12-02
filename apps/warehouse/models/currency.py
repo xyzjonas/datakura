@@ -1,4 +1,5 @@
 CURRENCY_CHOICES = [
+    ("CZK", "Czech Koruna"),
     ("AED", "UAE Dirham"),
     ("AFN", "Afghan Afghani"),
     ("ALL", "Albanian Lek"),
@@ -33,7 +34,6 @@ CURRENCY_CHOICES = [
     ("CRC", "Costa Rican Colón"),
     ("CUP", "Cuban Peso"),
     ("CVE", "Cape Verdean Escudo"),
-    ("CZK", "Czech Koruna"),
     ("DJF", "Djiboutian Franc"),
     ("DKK", "Danish Krone"),
     ("DOP", "Dominican Peso"),

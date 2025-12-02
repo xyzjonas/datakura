@@ -36,21 +36,3 @@ class PackageType(BaseModel):
 
     def __str__(self) -> str:
         return self.name
-
-
-class Package(BaseModel):
-    code = models.CharField(max_length=50, unique=True, null=False)
-    type = models.ForeignKey(PackageType, null=False, on_delete=models.PROTECT)
-
-    def __str__(self) -> str:
-        return f"{self.type.name} | {self.code}"
-
-
-class Lot(BaseModel):
-    """Represents a lot/batch of products in a warehouse."""
-
-    # The unique ID
-    name = models.CharField(max_length=50, unique=True, null=False)
-
-    def __str__(self) -> str:
-        return self.name

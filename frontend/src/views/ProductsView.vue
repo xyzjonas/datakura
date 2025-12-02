@@ -143,6 +143,19 @@ const columns: QTableColumn[] = [
     label: 'Jednotka',
     align: 'right',
   },
+  {
+    name: 'purchase_price',
+    field: (item: ProductSchema) =>
+      item.purchase_price ? `${item.purchase_price} ${item.currency}` : '-',
+    label: 'Nákupní cena',
+    align: 'right',
+  },
+  {
+    name: 'base_price',
+    label: 'Cena',
+    align: 'right',
+    field: (item: ProductSchema) => (item.base_price ? `${item.base_price} ${item.currency}` : '-'),
+  },
 ]
 </script>
 

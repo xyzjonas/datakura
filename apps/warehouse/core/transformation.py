@@ -1,26 +1,30 @@
 from __future__ import annotations
 
+
 from apps.warehouse.core.schemas.customer import (
     CustomerSchema,
     CustomerGroupSchema,
     ContactPersonSchema,
+)
+from apps.warehouse.core.schemas.orders import (
+    IncomingOrderSchema,
+    IncomingOrderItemSchema,
 )
 from apps.warehouse.core.schemas.product import ProductSchema
 from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,
     StockItemSchema,
     PackageSchema,
-)
-
-from apps.warehouse.core.schemas.orders import (
-    IncomingOrderSchema,
-    IncomingOrderItemSchema,
+    WarehouseOrderSchema,
 )
 from apps.warehouse.models.customer import Customer
-from apps.warehouse.models.orders import IncomingOrder
-from apps.warehouse.models.packaging import Package
+from apps.warehouse.models.orders import IncomingOrder, IncomingOrderItem
+from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
-from apps.warehouse.models.warehouse import WarehouseItem
+from apps.warehouse.models.warehouse import (
+    WarehouseItem,
+    WarehouseOrderIn,
+)
 
 
 def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
@@ -68,6 +72,9 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         created=product.created,
         changed=product.changed,
         unit_weight=float(product.unit_weight),
+        currency=product.currency,
+        base_price=float(product.base_price),
+        purchase_price=float(product.purchase_price),
     )
 
 
@@ -78,31 +85,30 @@ def get_product_by_code(product_code: str) -> ProductSchema:
     return product_orm_to_schema(product)
 
 
-def package_orm_to_schema(package: Package | None) -> PackageSchema | None:
-    if package is None:
+def package_orm_to_schema(package_type: PackageType | None) -> PackageSchema | None:
+    if package_type is None:
         return None
     return PackageSchema(
-        changed=package.changed,
-        created=package.created,
-        code=package.code,
-        unit=package.type.unit_of_measure.name,
-        type=package.type.name,
-        description=package.type.description,
-        amount=float(package.type.amount),
+        changed=package_type.changed,
+        created=package_type.created,
+        unit=package_type.unit_of_measure.name,
+        type=package_type.name,
+        description=package_type.description,
+        amount=float(package_type.amount),
     )
 
 
 def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
     amount = float(item.amount) if item.amount else None
-    package = package_orm_to_schema(item.package)
-    if package and item.package_amount_in_product_uom:
-        package.amount = item.package_amount_in_product_uom
+    package_type = package_orm_to_schema(item.package_type)
+    if package_type and item.package_amount_in_product_uom:
+        package_type.amount = item.package_amount_in_product_uom
         if amount is None:
-            amount = package.amount
+            amount = package_type.amount
 
     return WarehouseItemSchema(
-        code=package.code if package else item.code,
-        package=package,
+        code=item.code,
+        package=package_type,
         stock_item=StockItemSchema(
             code=item.stock_product.code,
             name=item.stock_product.name,
@@ -116,6 +122,18 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
     )
 
 
+def incoming_order_item_orm_to_schema(
+    item: IncomingOrderItem,
+) -> IncomingOrderItemSchema:
+    return IncomingOrderItemSchema(
+        product=product_orm_to_schema(item.stock_product),
+        amount=float(item.amount),
+        unit_price=float(item.unit_price),
+        changed=item.changed,
+        created=item.created,
+    )
+
+
 def incoming_order_orm_to_schema(order: IncomingOrder) -> IncomingOrderSchema:
     return IncomingOrderSchema(
         created=order.created,
@@ -126,14 +144,18 @@ def incoming_order_orm_to_schema(order: IncomingOrder) -> IncomingOrderSchema:
         description=order.description,
         note=order.note,
         currency=order.currency,
-        items=[
-            IncomingOrderItemSchema(
-                product=product_orm_to_schema(item.stock_product),
-                amount=float(item.amount),
-                unit_price=float(item.unit_price),
-                changed=item.changed,
-                created=item.created,
-            )
-            for item in order.items.all()
-        ],
+        warehouse_order_code=order.warehouse_order_code,
+        items=[incoming_order_item_orm_to_schema(item) for item in order.items.all()],
+    )
+
+
+def warehouse_incoming_order_orm_to_schema(
+    w_order: WarehouseOrderIn,
+) -> WarehouseOrderSchema:
+    return WarehouseOrderSchema(
+        code=w_order.code,
+        created=w_order.created,
+        changed=w_order.changed,
+        items=[warehouse_item_orm_to_schema(item) for item in w_order.items.all()],
+        order_code=w_order.incoming_order_code,
     )

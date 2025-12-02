@@ -8,8 +8,9 @@ from django.db.models import QuerySet
 from django.utils.functional import cached_property
 
 from .base import BaseModel
+from .orders import IncomingOrder
+from .packaging import PackageType
 from .product import StockProduct, UnitOfMeasure
-from .packaging import Package, Lot
 
 
 # Virtual location?
@@ -47,10 +48,18 @@ class WarehouseItem(BaseModel):
 
     code = models.CharField(max_length=50, unique=False, null=False)
     stock_product = models.ForeignKey(
-        StockProduct, null=False, on_delete=models.PROTECT
+        StockProduct,
+        null=False,
+        on_delete=models.PROTECT,
+        help_text="Product information",
     )
-    package = models.OneToOneField(
-        Package, null=True, blank=True, on_delete=models.CASCADE, related_name="item"
+    package_type = models.ForeignKey(
+        PackageType,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="items",
+        help_text="Packaging information - in case the item is packaged in some way (optional)",
     )
     amount = models.DecimalField(
         max_digits=10,
@@ -65,9 +74,15 @@ class WarehouseItem(BaseModel):
         blank=False,
         on_delete=models.PROTECT,
         related_name="items",
+        help_text="Location where the physical item is stored in the warehouse",
     )
-    lot = models.ForeignKey(
-        Lot, null=True, blank=True, on_delete=models.SET_NULL, related_name="items"
+    order_in = models.ForeignKey(
+        "WarehouseOrderIn",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="items",
+        help_text="Order which brought the item into the warehouse",
     )
 
     @cached_property
@@ -76,22 +91,22 @@ class WarehouseItem(BaseModel):
 
     @cached_property
     def package_amount_in_product_uom(self) -> float | None:
-        if not self.package:
+        if not self.package_type:
             return None
 
         product_uom = self.stock_product.unit_of_measure
-        package_uom = self.package.type.unit_of_measure
+        package_uom = self.package_type.unit_of_measure
 
         if product_uom.name == package_uom.name:
-            return float(self.package.type.amount)
+            return float(self.package_type.amount)
 
         if product_uom.base_uom and product_uom.base_uom.name == package_uom.name:
             if product_uom.amount_of_base_uom is not None:
-                return float(self.package.type.amount / product_uom.amount_of_base_uom)
+                return float(self.package_type.amount / product_uom.amount_of_base_uom)
 
         if package_uom.base_uom and package_uom.base_uom.name == product_uom.name:
             if package_uom.amount_of_base_uom is not None:
-                return float(self.package.type.amount * package_uom.amount_of_base_uom)
+                return float(self.package_type.amount * package_uom.amount_of_base_uom)
 
         return None
 
@@ -116,8 +131,8 @@ class WarehouseItem(BaseModel):
         # Example: Product X, Base UoM: Each. Conversion: Box (Factor 12)
         # Remaining: 5.0000.  Initial Quantity: 12.0000
         max_package_amount = ""
-        if self.package:
-            max_package_amount = f"/{self.package.type.amount}"
+        if self.package_type:
+            max_package_amount = f"/{self.package_type.amount}"
         uom_name = self.stock_product.unit_of_measure.name
 
         return (
@@ -156,10 +171,31 @@ class WarehouseMovement(BaseModel):
 class WarehouseOrderOut(BaseModel):
     """Warehouse work item - order - move out of the warehouse"""
 
-    ...
+    code = models.CharField(max_length=50, unique=True, null=False)
+    items: QuerySet["WarehouseItem"]
+
+    def __str__(self) -> str:
+        return self.code
 
 
 class WarehouseOrderIn(BaseModel):
     """Warehouse work item - supply - move in the warehouse"""
 
-    ...
+    code = models.CharField(max_length=50, unique=True, null=False)
+    order = models.OneToOneField(
+        IncomingOrder,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="warehouse_order",
+    )
+    items: QuerySet["WarehouseItem"]
+
+    def __str__(self) -> str:
+        return self.code
+
+    @property
+    def incoming_order_code(self) -> str | None:
+        if hasattr(self, "order") and self.order:
+            return self.order.code
+        return None

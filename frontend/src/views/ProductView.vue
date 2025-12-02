@@ -35,11 +35,21 @@
           </q-item>
           <q-item>
             <q-item-section>Nákupní cena</q-item-section>
-            <q-item-section avatar>235.686047</q-item-section>
+            <q-item-section avatar
+              >{{ product.purchase_price }}&hairsp;{{ product.currency }}</q-item-section
+            >
           </q-item>
           <q-item>
             <q-item-section>Celní nomenklatura</q-item-section>
             <q-item-section avatar :class="{ 'text-gray-5': true }">-</q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>Váha</q-item-section>
+            <q-item-section avatar>
+              <span v-if="product.unit_weight"
+                >{{ product.unit_weight }}&hairsp;g / {{ product.unit }}</span
+              ><span v-else>-</span>
+            </q-item-section>
           </q-item>
           <q-item>
             <q-item-section>DIN_94</q-item-section>
@@ -62,7 +72,14 @@
           hide-pagination
           :pagination="{ rowsPerPage: -1 }"
           class="bg-transparent"
-        ></q-table>
+        >
+          <template #body-cell-price="props">
+            <q-td v-if="props.row.price">
+              {{ props.row.price }}
+              {{ props.row.currency }}
+            </q-td>
+          </template>
+        </q-table>
         <div class="flex flex-row-reverse mt-auto">
           <q-btn outline color="primary" icon="attach_money" label="přidat cenu" disable></q-btn>
         </div>
@@ -85,7 +102,7 @@ import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import WarehouseCard from '@/components/product/WarehouseCard.vue'
 import type { QTableColumn } from 'quasar'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{
   productCode: string
@@ -97,18 +114,36 @@ const result = await warehouseApiRoutesProductGetProduct({
 
 const product = ref(result.data?.data)
 
-const prices = [
-  {
-    type: 'Prodejní',
-    customer: 'AKROS, s.r.o.',
-    minimum: 0,
-    maximum: 100,
-    currency: 'CZK',
-    unit: '100ks',
-    amount: 1,
-    price: 777.77,
-  },
-]
+// const prices = [
+//   {
+//     type: 'Prodejní',
+//     customer: 'AKROS, s.r.o.',
+//     minimum: 0,
+//     maximum: 100,
+//     currency: 'CZK',
+//     unit: '100ks',
+//     amount: 1,
+//     price: 777.77,
+//   },
+// ]
+
+const prices = computed(() => {
+  if (product.value && product.value.base_price) {
+    return [
+      {
+        type: 'základní',
+        customer: undefined,
+        minimum: undefined,
+        maximum: undefined,
+        currency: product.value.currency,
+        unit: product.value.unit,
+        amount: 1,
+        price: product.value.base_price,
+      },
+    ]
+  }
+  return []
+})
 
 const columns: QTableColumn[] = [
   {
@@ -136,12 +171,6 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
   {
-    name: 'currency',
-    label: 'Měna',
-    field: 'currency',
-    align: 'left',
-  },
-  {
     name: 'unit',
     label: 'Jednotka',
     field: 'unit',
@@ -157,6 +186,7 @@ const columns: QTableColumn[] = [
     name: 'price',
     label: 'Cena',
     field: 'price',
+    align: 'left',
     classes: 'text-primary font-bold',
   },
 ]

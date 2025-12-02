@@ -40,7 +40,12 @@ def get_customers(
         pass
 
     search_term = search_term.lower()
-    qs = qs.filter(Q(code__icontains=search_term) | Q(name__icontains=search_term))
+    qs = qs.filter(
+        Q(code__icontains=search_term)
+        | Q(name__icontains=search_term)
+        | Q(tax_identification__icontains=search_term)
+        | Q(identification__icontains=search_term)
+    )
     return qs.all()
 
 

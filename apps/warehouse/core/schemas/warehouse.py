@@ -11,7 +11,6 @@ class StockItemSchema(BaseSchema):
 
 
 class PackageSchema(BaseSchema):
-    code: str
     type: str
     description: str | None
     amount: float
@@ -55,6 +54,12 @@ class WarehouseExpandedSchema(BaseSchema):
     locations: list[WarehouseLocationDetailSchema]
 
 
+class WarehouseOrderSchema(BaseSchema):
+    code: str
+    items: list[WarehouseItemSchema]
+    order_code: str | None
+
+
 class GetWarehousesResponse(BaseResponse):
     data: list[WarehouseSchema]
 
@@ -69,3 +74,7 @@ class GetProductWarehouseAvailabilityResponse(BaseResponse):
 
 class GetProductWarehouseInfoResponse(BaseResponse):
     data: list[WarehouseExpandedSchema]
+
+
+class GetWarehouseOrderResponse(BaseResponse):
+    data: WarehouseOrderSchema

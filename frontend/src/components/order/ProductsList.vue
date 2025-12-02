@@ -1,5 +1,5 @@
 <template>
-  <div class="draggable-container">
+  <div class="draggable-container" v-if="items.length > 0">
     <TransitionGroup>
       <ForegroundPanel
         v-for="(item, index) in items"
@@ -15,10 +15,20 @@
         <div class="drag-handle">
           <q-icon name="sym_o_drag_indicator" size="1rem" />
         </div>
-        <ProductRow v-model:item="items[index]" :currency="currency"></ProductRow>
+        <ProductRow
+          v-model:item="items[index]"
+          :currency="currency"
+          @remove-item="() => $emit('removeItem', item.product.code)"
+        ></ProductRow>
       </ForegroundPanel>
     </TransitionGroup>
   </div>
+  <EmptyPanel v-else icon="sym_o_apps_outage">
+    <div class="flex flex-col gap-2 items-start py-10">
+      <h3 class="uppercase">Žádné položky</h3>
+      <span class="link uppercase" @click="$emit('addItem')">přidat položku</span>
+    </div>
+  </EmptyPanel>
 </template>
 
 <script setup lang="ts">
@@ -26,7 +36,12 @@ import type { IncomingOrderItemSchema } from '@/client'
 import { ref } from 'vue'
 import ProductRow from './ProductRow.vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
+import EmptyPanel from '../EmptyPanel.vue'
 
+defineEmits<{
+  (e: 'removeItem', product_code: string): void
+  (e: 'addItem'): void
+}>()
 defineProps<{ currency: string }>()
 const items = defineModel<Array<IncomingOrderItemSchema>>('items', { default: [] })
 const draggingIndex = ref<number | null>(null)
