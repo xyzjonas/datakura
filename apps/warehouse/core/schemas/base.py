@@ -36,3 +36,7 @@ class PaginatedResponse(BaseResponse, Generic[T]):
     count: int
     next: int | None
     previous: int | None
+
+
+class Response(BaseResponse, Generic[T]):
+    data: T

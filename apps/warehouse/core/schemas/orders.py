@@ -22,6 +22,15 @@ class IncomingOrderItemSchema(BaseSchema):
     unit_price: float
 
 
+class IncomingOrderCreateOrUpdateSchema(Schema):
+    external_code: str | None = None
+    description: str | None = None
+    note: str | None = None
+    currency: str
+    supplier_code: str
+    supplier_name: str
+
+
 class IncomingOrderSchema(BaseSchema):
     code: str
     external_code: str | None = None
@@ -31,6 +40,10 @@ class IncomingOrderSchema(BaseSchema):
     items: list[IncomingOrderItemSchema] = Field(default_factory=list)
     currency: str
     warehouse_order_code: str | None
+
+
+class GetIncomingOrderResponse(BaseResponse):
+    data: IncomingOrderSchema
 
 
 class GetIncomingOrdersResponse(PaginatedResponse[IncomingOrderSchema]): ...

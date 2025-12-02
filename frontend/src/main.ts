@@ -3,7 +3,7 @@ import App from './App.vue'
 import router from './router'
 
 import '@/assets/styles.scss'
-import { Quasar } from 'quasar'
+import { Notify, Loading, Quasar } from 'quasar'
 
 // First reset
 import '@unocss/reset/tailwind.css'
@@ -21,7 +21,13 @@ const app = createApp(App)
 app.use(router)
 
 app.use(Quasar, {
-  plugins: {}, // import Quasar plugins and add here
+  plugins: { Notify, Loading },
+})
+
+Notify.setDefaults({
+  progress: true,
+  position: 'top-right',
+  classes: 'w-full',
 })
 
 app.directive('decimal', {

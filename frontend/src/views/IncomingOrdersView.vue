@@ -21,7 +21,13 @@
         ></SearchInput>
       </template>
       <template #top-right>
-        <q-btn color="primary" outline label="Nová objednávka" icon="sym_o_add" />
+        <q-btn
+          color="primary"
+          outline
+          label="Nová objednávka"
+          icon="sym_o_add"
+          @click="newOrderDialog = true"
+        />
       </template>
       <template #body-cell-code="props">
         <q-td>
@@ -38,13 +44,26 @@
         </q-td>
       </template>
     </q-table>
+    <NewOrderDialog
+      v-model="newOrderDialog"
+      @create-order="createOrder"
+      ref="newOrderDialogComponent"
+    ></NewOrderDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesOrdersGetIncomingOrders, type IncomingOrderSchema } from '@/client'
+import {
+  warehouseApiRoutesOrdersCreateIncomingOrder,
+  warehouseApiRoutesOrdersGetIncomingOrders,
+  type IncomingOrderCreateOrUpdateSchema,
+  type IncomingOrderSchema,
+} from '@/client'
+import NewOrderDialog from '@/components/order/NewOrderDialog.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
+import { useApi } from '@/composables/use-api'
+import router from '@/router'
 import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -116,7 +135,7 @@ const columns: QTableColumn[] = [
   {
     name: 'created',
     field: 'created',
-    label: 'Datum vystavení',
+    label: 'Datum vytvoření',
     format: (val: string) =>
       `${new Date(val).toLocaleDateString()} - ${new Date(val).toLocaleTimeString()}`,
     align: 'left',
@@ -140,6 +159,18 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
 ]
+
+const { onResponse } = useApi()
+const newOrderDialog = ref(false)
+const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
+const createOrder = async (params: IncomingOrderCreateOrUpdateSchema) => {
+  const response = await warehouseApiRoutesOrdersCreateIncomingOrder({ body: params })
+  const data = onResponse(response)
+  if (data && newOrderDialogComponent.value) {
+    newOrderDialogComponent.value.reset()
+    router.push({ name: 'incomingOrderDetail', params: { code: data.data.code } })
+  }
+}
 </script>
 
 <style lang="scss" scoped></style>

@@ -775,7 +775,7 @@ export type IncomingOrderSchema = {
     /**
      * Warehouse Order Code
      */
-    warehouse_order_code?: string | null;
+    warehouse_order_code: string | null;
 };
 
 /**
@@ -806,6 +806,51 @@ export type PagedIncomingOrderSchema = {
      * Previous
      */
     previous: number | null;
+};
+
+/**
+ * GetIncomingOrderResponse
+ */
+export type GetIncomingOrderResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    data: IncomingOrderSchema;
+};
+
+/**
+ * IncomingOrderCreateOrUpdateSchema
+ */
+export type IncomingOrderCreateOrUpdateSchema = {
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Supplier Code
+     */
+    supplier_code: string;
+    /**
+     * Supplier Name
+     */
+    supplier_name: string;
 };
 
 /**
@@ -1175,6 +1220,22 @@ export type WarehouseApiRoutesOrdersGetIncomingOrdersResponses = {
 
 export type WarehouseApiRoutesOrdersGetIncomingOrdersResponse = WarehouseApiRoutesOrdersGetIncomingOrdersResponses[keyof WarehouseApiRoutesOrdersGetIncomingOrdersResponses];
 
+export type WarehouseApiRoutesOrdersCreateIncomingOrderData = {
+    body: IncomingOrderCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/orders';
+};
+
+export type WarehouseApiRoutesOrdersCreateIncomingOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetIncomingOrderResponse;
+};
+
+export type WarehouseApiRoutesOrdersCreateIncomingOrderResponse = WarehouseApiRoutesOrdersCreateIncomingOrderResponses[keyof WarehouseApiRoutesOrdersCreateIncomingOrderResponses];
+
 export type WarehouseApiRoutesOrdersGetIncomingOrderData = {
     body?: never;
     path: {
@@ -1191,10 +1252,31 @@ export type WarehouseApiRoutesOrdersGetIncomingOrderResponses = {
     /**
      * OK
      */
-    200: IncomingOrderSchema;
+    200: GetIncomingOrderResponse;
 };
 
 export type WarehouseApiRoutesOrdersGetIncomingOrderResponse = WarehouseApiRoutesOrdersGetIncomingOrderResponses[keyof WarehouseApiRoutesOrdersGetIncomingOrderResponses];
+
+export type WarehouseApiRoutesOrdersUpdateIncomingOrderData = {
+    body: IncomingOrderCreateOrUpdateSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}';
+};
+
+export type WarehouseApiRoutesOrdersUpdateIncomingOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetIncomingOrderResponse;
+};
+
+export type WarehouseApiRoutesOrdersUpdateIncomingOrderResponse = WarehouseApiRoutesOrdersUpdateIncomingOrderResponses[keyof WarehouseApiRoutesOrdersUpdateIncomingOrderResponses];
 
 export type WarehouseApiRoutesOrdersAddItemToIncomingOrderData = {
     body: IncomingOrderItemCreateSchema;

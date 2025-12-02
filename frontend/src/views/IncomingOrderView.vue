@@ -178,7 +178,10 @@ const { onResponse } = useApi()
 const response = await warehouseApiRoutesOrdersGetIncomingOrder({
   path: { order_code: props.code },
 })
-order.value = response.data
+const data = onResponse(response)
+if (data) {
+  order.value = data.data
+}
 
 const contact = computed(() => {
   if (!order.value?.supplier.contacts) {

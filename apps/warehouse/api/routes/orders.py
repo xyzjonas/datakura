@@ -11,6 +11,8 @@ from apps.warehouse.core.schemas.orders import (
     IncomingOrderSchema,
     IncomingOrderItemCreateSchema,
     CreateIncomingOrderItemResponse,
+    IncomingOrderCreateOrUpdateSchema,
+    GetIncomingOrderResponse,
 )
 from apps.warehouse.core.services.orders import incoming_orders_service
 from apps.warehouse.core.transformation import incoming_order_orm_to_schema
@@ -37,12 +39,38 @@ def get_incoming_orders(request: HttpRequest, search_term: str | None = None):
     return qs.all()
 
 
-@routes.get("/{order_code}", response={200: IncomingOrderSchema}, auth=None)
+@routes.post("", response={200: GetIncomingOrderResponse}, auth=None)
+def create_incoming_order(
+    request: HttpRequest, params: IncomingOrderCreateOrUpdateSchema
+):
+    """
+    Create an order
+    """
+    new_order = incoming_orders_service.update_or_create_incoming(params)
+    return GetIncomingOrderResponse(data=new_order)
+
+
+@routes.get("/{order_code}", response={200: GetIncomingOrderResponse}, auth=None)
 def get_incoming_order(request: HttpRequest, order_code: str):
     """
     Retrieve a single incoming order by code.
     """
-    return incoming_order_orm_to_schema(IncomingOrder.objects.get(code=order_code))
+    return GetIncomingOrderResponse(
+        data=incoming_order_orm_to_schema(IncomingOrder.objects.get(code=order_code))
+    )
+
+
+@routes.put("/{order_code}", response={200: GetIncomingOrderResponse}, auth=None)
+def update_incoming_order(
+    request: HttpRequest, order_code: str, params: IncomingOrderCreateOrUpdateSchema
+):
+    """
+    Update an order
+    """
+    updated_order = incoming_orders_service.update_or_create_incoming(
+        params, code=order_code
+    )
+    return GetIncomingOrderResponse(data=updated_order)
 
 
 @routes.post(
@@ -69,13 +97,3 @@ def remove_items_from_incoming_order(
     """
     result = incoming_orders_service.remove_item(order_code, product_code)
     return EmptyResponse(success=result)
-
-
-#
-# @routes.post("", response={201: IncomingOrderReadSchema}, auth=None)
-# def create_incoming_order(request: HttpRequest, payload: IncomingOrderCreateSchema):
-#     """
-#     Create a new incoming order.
-#     """
-#     order = IncomingOrder.objects.create(**payload.dict())
-#     return IncomingOrderReadSchema.from_orm(order)
