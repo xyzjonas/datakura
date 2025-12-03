@@ -15,15 +15,15 @@ from apps.warehouse.models.orders import (
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.tests.factories.customer import CustomerFactoryMinimal
 from apps.warehouse.tests.factories.order import (
-    IncomingOrderFactory,
-    IncomingOrderItemFactory,
+    InboundOrderFactory,
+    InboundOrderItemFactory,
 )
 from apps.warehouse.tests.factories.product import StockProductFactory
 
 
 def test_incoming_order_add_item(db):
     product = cast(StockProduct, StockProductFactory())
-    order = cast(InboundOrder, IncomingOrderFactory())
+    order = cast(InboundOrder, InboundOrderFactory())
 
     inbound_orders_service.add_item(
         order.code,
@@ -43,8 +43,8 @@ def test_incoming_order_add_item(db):
 
 
 def test_incoming_order_remove_item(db):
-    order = cast(InboundOrder, IncomingOrderFactory())
-    items = IncomingOrderItemFactory.create_batch(10, order=order)
+    order = cast(InboundOrder, InboundOrderFactory())
+    items = InboundOrderItemFactory.create_batch(10, order=order)
 
     item = cast(InboundOrderItem, items[0])
 
@@ -54,9 +54,9 @@ def test_incoming_order_remove_item(db):
 
 
 def test_incoming_order_remove_2_items_same_product(db):
-    order = cast(InboundOrder, IncomingOrderFactory())
+    order = cast(InboundOrder, InboundOrderFactory())
     product = cast(StockProduct, StockProductFactory())
-    IncomingOrderItemFactory.create_batch(2, order=order, stock_product=product)
+    InboundOrderItemFactory.create_batch(2, order=order, stock_product=product)
 
     assert order.items.count() == 2
 
@@ -72,7 +72,7 @@ def test_generate_next_incoming_order_code(db):
 
 
 def test_generate_next_incoming_order_code_100(db):
-    IncomingOrderFactory.create_batch(99)
+    InboundOrderFactory.create_batch(99)
     now = datetime.now()
     code = inbound_orders_service.generate_next_incoming_order_code()
     assert code == f"OV{now.year}{now.month:02d}0100"
@@ -99,8 +99,8 @@ def test_create_empty_incoming(db):
 
 
 def test_edit_incoming(db):
-    order = IncomingOrderFactory(currency="CZK")
-    IncomingOrderItemFactory.create_batch(10, order=order)
+    order = InboundOrderFactory(currency="CZK")
+    InboundOrderItemFactory.create_batch(10, order=order)
 
     new_customer = CustomerFactoryMinimal()
     incoming_order = inbound_orders_service.update_or_create_incoming(
@@ -124,7 +124,7 @@ def test_edit_incoming(db):
 
 
 def test_transition_order(db):
-    order = IncomingOrderFactory(state=InboundOrderState.DRAFT)
+    order = InboundOrderFactory(state=InboundOrderState.DRAFT)
     assert order.state == InboundOrderState.DRAFT
 
     result = inbound_orders_service.transition_order(

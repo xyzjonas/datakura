@@ -140,3 +140,9 @@ class CustomerFactoryWithContacts(CustomerFactory):
     contact2 = factory.RelatedFactory(
         ContactPersonFactory, factory_related_name="customer"
     )
+
+    @classmethod
+    def _after_postgeneration(cls, instance, create, results=None):
+        """Save the instance after postgeneration hooks"""
+        if create:
+            instance.save()

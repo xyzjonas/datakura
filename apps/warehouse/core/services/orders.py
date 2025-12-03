@@ -2,6 +2,7 @@ from calendar import monthrange
 from datetime import datetime
 
 from django.db import transaction
+from django.utils import timezone
 from loguru import logger
 
 from apps.warehouse.core.schemas.orders import (
@@ -36,7 +37,7 @@ def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
 class OrdersService:
     @staticmethod
     def generate_next_incoming_order_code() -> str:
-        now = datetime.now()
+        now = timezone.now()
         dt_range = _get_month_range(now)
         orders_this_month = InboundOrder.objects.filter(created__range=dt_range).count()
         return f"OV{now.year}{now.month:02d}{orders_this_month + 1:04d}"

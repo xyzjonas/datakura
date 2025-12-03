@@ -5,7 +5,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from pydantic import Field, BaseModel, field_validator
+from pydantic import Field, BaseModel, field_validator, ConfigDict
 
 from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.product import StockProduct, ProductType, ProductGroup
@@ -98,8 +98,13 @@ class ProductRow(BaseModel):
 
         return result
 
-    class Config:
-        populate_by_name = True  # Allows using both alias and field name
+    model_config = ConfigDict(
+        populate_by_name=True,  # Allow both alias and field name
+        str_strip_whitespace=True,  # Strip whitespace from strings
+        validate_assignment=True,  # Validate on assignment
+        arbitrary_types_allowed=True,  # Allow arbitrary types
+        frozen=True,  # Make model immutable
+    )
 
 
 class Command(BaseCommand):

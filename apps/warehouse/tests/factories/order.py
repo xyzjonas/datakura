@@ -7,8 +7,8 @@ from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
 
 
-class IncomingOrderItemFactory(DjangoModelFactory):
-    """Factory for IncomingOrder model"""
+class InboundOrderItemFactory(DjangoModelFactory):
+    """Factory for InboundOrderItem model"""
 
     class Meta:
         model = InboundOrderItem
@@ -19,8 +19,8 @@ class IncomingOrderItemFactory(DjangoModelFactory):
     unit_price = factory.Faker("random_int", min=1, max=200, step=1)
 
 
-class IncomingOrderFactory(DjangoModelFactory):
-    """Factory for IncomingOrder model"""
+class InboundOrderFactory(DjangoModelFactory):
+    """Factory for InboundOrder model"""
 
     class Meta:
         model = InboundOrder
