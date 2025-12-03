@@ -17,6 +17,7 @@
         </div>
         <ProductRow
           v-model:item="items[index]"
+          :readonly="readonly"
           :currency="currency"
           @remove-item="() => $emit('removeItem', item.product.code)"
         ></ProductRow>
@@ -32,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import type { IncomingOrderItemSchema } from '@/client'
+import type { InboundOrderItemSchema } from '@/client'
 import { ref } from 'vue'
 import ProductRow from './ProductRow.vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
@@ -42,8 +43,8 @@ defineEmits<{
   (e: 'removeItem', product_code: string): void
   (e: 'addItem'): void
 }>()
-defineProps<{ currency: string }>()
-const items = defineModel<Array<IncomingOrderItemSchema>>('items', { default: [] })
+defineProps<{ currency: string; readonly?: boolean }>()
+const items = defineModel<Array<InboundOrderItemSchema>>('items', { default: [] })
 const draggingIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 

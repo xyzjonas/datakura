@@ -11,7 +11,7 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.core.transformation import (
     warehouse_item_orm_to_schema,
-    warehouse_incoming_order_orm_to_schema,
+    warehouse_inbound_order_orm_to_schema,
 )
 from apps.warehouse.models.warehouse import (
     Warehouse,
@@ -91,4 +91,4 @@ def get_warehouse_order(request: HttpRequest, code: str):
         "items__package_type",
         "items__package_type__unit_of_measure",
     ).get(code=code)
-    return GetWarehouseOrderResponse(data=warehouse_incoming_order_orm_to_schema(order))
+    return GetWarehouseOrderResponse(data=warehouse_inbound_order_orm_to_schema(order))

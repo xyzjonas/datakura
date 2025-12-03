@@ -34,9 +34,11 @@ class ProductGroupFactory(DjangoModelFactory):
 class StockProductFactory(DjangoModelFactory):
     class Meta:
         model = StockProduct
+        django_get_or_create = ("code",)
 
     name = factory.Sequence(lambda n: f"Product {n}")
     code = factory.Sequence(lambda n: f"PRD-{n:05d}")
     type = factory.SubFactory(ProductTypeFactory)
     group = factory.SubFactory(ProductGroupFactory)
     unit_of_measure = factory.SubFactory(UnitOfMeasureFactory)
+    attributes = factory.Dict({"color": factory.Faker("color_name")})

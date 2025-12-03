@@ -8,7 +8,7 @@ from django.db.models import QuerySet
 from django.utils.functional import cached_property
 
 from .base import BaseModel
-from .orders import IncomingOrder
+from .orders import InboundOrder
 from .packaging import PackageType
 from .product import StockProduct, UnitOfMeasure
 
@@ -183,7 +183,7 @@ class WarehouseOrderIn(BaseModel):
 
     code = models.CharField(max_length=50, unique=True, null=False)
     order = models.OneToOneField(
-        IncomingOrder,
+        InboundOrder,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

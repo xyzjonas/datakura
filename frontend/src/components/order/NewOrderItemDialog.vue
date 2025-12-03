@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import type { IncomingOrderItemCreateSchema, ProductSchema } from '@/client'
+import type { InboundOrderItemCreateSchema, ProductSchema } from '@/client'
 import { rules } from '@/utils/rules'
 import { ref, watch } from 'vue'
 import ProductSearchSelect from '../product/ProductSearchSelect.vue'
@@ -60,7 +60,7 @@ defineProps<{
 // just for display purposes
 const productUom = ref('')
 
-const item = ref<IncomingOrderItemCreateSchema>({
+const item = ref<InboundOrderItemCreateSchema>({
   product_code: '',
   product_name: '',
   amount: 0,
@@ -83,7 +83,7 @@ watch(product, (newValue: ProductSchema | undefined) => {
 })
 
 const emit = defineEmits<{
-  (e: 'addItem', item: IncomingOrderItemCreateSchema): void
+  (e: 'addItem', item: InboundOrderItemCreateSchema): void
 }>()
 
 const addItem = () => {

@@ -43,6 +43,11 @@
           >
         </q-td>
       </template>
+      <template #body-cell-state="props">
+        <q-td>
+          <InboundOrderStateBadge :state="props.row.state" />
+        </q-td>
+      </template>
     </q-table>
     <NewOrderDialog
       v-model="newOrderDialog"
@@ -54,12 +59,13 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesOrdersCreateIncomingOrder,
-  warehouseApiRoutesOrdersGetIncomingOrders,
-  type IncomingOrderCreateOrUpdateSchema,
-  type IncomingOrderSchema,
+  warehouseApiRoutesOrdersCreateInboundOrder,
+  warehouseApiRoutesOrdersGetInboundOrders,
+  type InboundOrderCreateOrUpdateSchema,
+  type InboundOrderSchema,
 } from '@/client'
-import NewOrderDialog from '@/components/order/NewOrderDialog.vue'
+import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
+import NewOrderDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'
@@ -76,12 +82,12 @@ const pagination = ref<NonNullable<QTableProps['pagination']>>({
   rowsNumber: pageSize.value,
 })
 
-const orders = ref<IncomingOrderSchema[]>([])
+const orders = ref<InboundOrderSchema[]>([])
 const loading = ref(false)
 const fetchOrders = async () => {
   loading.value = true
   try {
-    const res = await warehouseApiRoutesOrdersGetIncomingOrders({
+    const res = await warehouseApiRoutesOrdersGetInboundOrders({
       query: {
         page: page.value,
         page_size: pageSize.value,
@@ -133,6 +139,12 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
   {
+    name: 'state',
+    field: 'state',
+    label: 'Stav',
+    align: 'left',
+  },
+  {
     name: 'created',
     field: 'created',
     label: 'Datum vytvoření',
@@ -148,13 +160,13 @@ const columns: QTableColumn[] = [
   },
   {
     name: 'itemsCount',
-    field: (order: IncomingOrderSchema) => order.items?.length ?? 0,
+    field: (order: InboundOrderSchema) => order.items?.length ?? 0,
     label: 'Počet položek',
     align: 'left',
   },
   {
     name: 'supplier',
-    field: (order: IncomingOrderSchema) => order.supplier.name,
+    field: (order: InboundOrderSchema) => order.supplier.name,
     label: 'Dodavatel',
     align: 'left',
   },
@@ -163,8 +175,8 @@ const columns: QTableColumn[] = [
 const { onResponse } = useApi()
 const newOrderDialog = ref(false)
 const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
-const createOrder = async (params: IncomingOrderCreateOrUpdateSchema) => {
-  const response = await warehouseApiRoutesOrdersCreateIncomingOrder({ body: params })
+const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
+  const response = await warehouseApiRoutesOrdersCreateInboundOrder({ body: params })
   const data = onResponse(response)
   if (data && newOrderDialogComponent.value) {
     newOrderDialogComponent.value.reset()

@@ -21,11 +21,8 @@ export default defineConfig({
   theme: {
     colors: {
       primary: '#cc3263',
-      green: '#30ba78', // Jungle
-      'light-green': '#90ebcd', // Mint
       secondary: '#192072', // Midnight
-      blue: '#2453ff', // Waterhole
-      accent: '#fe7c3f', // Persimmon
+      accent: '#3f84e5', // blue
       red: '#d92b2b',
       'light-red': '#fee2e2',
       white: '#ffffff',

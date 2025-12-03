@@ -1,10 +1,20 @@
 import pytest
 
-from apps.warehouse.core.transformation import warehouse_item_orm_to_schema
+from apps.warehouse.core.transformation import (
+    warehouse_item_orm_to_schema,
+    product_orm_to_schema,
+)
 from apps.warehouse.tests.factories.packaging import PackageTypeFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
 from apps.warehouse.tests.factories.units import UnitOfMeasureFactory
 from apps.warehouse.tests.factories.warehouse import WarehouseItemFactory
+
+
+@pytest.mark.django_db
+def test_stock_product_transform_with_pkg_same_uom_as_product(db):
+    product = StockProductFactory(attributes={"foo": "bar"})
+    transformed = product_orm_to_schema(product)
+    assert transformed.attributes == {"foo": "bar"}
 
 
 @pytest.mark.django_db

@@ -4,7 +4,7 @@
       <div class="p-4 flex flex-col">
         <div class="w-full flex justify-start items-center mb-3 gap-2">
           <CurrencyDropdown v-model="item.currency" />
-          <span class="text-2xl uppercase">Nová objednávka</span>
+          <span class="text-2xl uppercase">{{ title }}</span>
           <q-btn flat round icon="close" v-close-popup class="ml-auto" />
         </div>
         <q-form class="flex flex-col gap-2" @submit="addItem">
@@ -12,7 +12,7 @@
           <PlaceSelect v-show="manualSearchItem" v-model="newPlace" :rules="[rules.notEmpty]" /> -->
           <CustomerSearchSelect v-model="customer" />
           <q-input
-            v-model="item.external_code"
+            v-model.trim="item.external_code"
             outlined
             label="Externí číslo"
             hint="Externí číslo (volitelné)"
@@ -22,19 +22,27 @@
             </template>
           </q-input>
           <q-input
-            v-model="item.description"
+            v-model.trim="item.description"
             outlined
             label="Popis"
             hint="Popis (volitelné)"
+            autogrow
           ></q-input>
           <q-input
-            v-model="item.note"
+            v-model.trim="item.note"
             outlined
             label="Poznámka"
             hint="Poznámka (volitelné)"
+            type="textarea"
           ></q-input>
 
-          <q-btn type="submit" unelevated color="primary" label="vytvořit" class="h-[3rem] mt-3" />
+          <q-btn
+            type="submit"
+            unelevated
+            color="primary"
+            :label="submitLabel"
+            class="h-[3rem] mt-3"
+          />
         </q-form>
       </div>
     </q-card>
@@ -42,12 +50,22 @@
 </template>
 
 <script setup lang="ts">
-import type { CustomerSchema, IncomingOrderCreateOrUpdateSchema } from '@/client'
+import type { CustomerSchema, InboundOrderCreateOrUpdateSchema, InboundOrderSchema } from '@/client'
 import { ref, watch } from 'vue'
 import CustomerSearchSelect from '../product/CustomerSearchSelect.vue'
 import CurrencyDropdown from './CurrencyDropdown.vue'
 
+type Props = {
+  title?: string
+  submitLabel?: string
+  orderIn?: InboundOrderSchema
+}
+
 const showDialog = defineModel('show', { default: false })
+const props = withDefaults(defineProps<Props>(), {
+  title: 'Nová objednávka',
+  submitLabel: 'vytvořit',
+})
 
 export interface NewOrderDialogExpose {
   reset: () => void
@@ -55,17 +73,35 @@ export interface NewOrderDialogExpose {
 
 // just for display purposes
 const productUom = ref('')
-
-const item = ref<IncomingOrderCreateOrUpdateSchema>({
-  supplier_code: '',
-  supplier_name: '',
-  currency: 'CZK',
-  description: '',
-  external_code: '',
-  note: '',
-})
-
 const customer = ref<CustomerSchema>()
+
+const propToRef = (order?: InboundOrderSchema) => {
+  if (!order) {
+    return
+  }
+
+  customer.value = order.supplier
+  return {
+    currency: order.currency,
+    note: order.note,
+    state: order.state,
+    description: order.description,
+    supplier_code: order.supplier.code,
+    supplier_name: order.supplier.name,
+    external_code: order.external_code,
+  } as InboundOrderCreateOrUpdateSchema
+}
+
+const item = ref<InboundOrderCreateOrUpdateSchema>(
+  propToRef(props.orderIn) ?? {
+    supplier_code: '',
+    supplier_name: '',
+    currency: 'CZK',
+    description: '',
+    external_code: '',
+    note: '',
+  },
+)
 
 watch(customer, (newValue: CustomerSchema | undefined) => {
   if (newValue) {
@@ -78,7 +114,7 @@ watch(customer, (newValue: CustomerSchema | undefined) => {
 })
 
 const emit = defineEmits<{
-  (e: 'createOrder', item: IncomingOrderCreateOrUpdateSchema): void
+  (e: 'createOrder', item: InboundOrderCreateOrUpdateSchema): void
 }>()
 
 const addItem = () => {

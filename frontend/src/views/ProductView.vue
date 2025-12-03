@@ -51,9 +51,12 @@
               ><span v-else>-</span>
             </q-item-section>
           </q-item>
-          <q-item>
-            <q-item-section>DIN_94</q-item-section>
-            <q-item-section avatar>DIN 94</q-item-section>
+          <q-separator></q-separator>
+          <q-item v-for="(value, key) in product.attributes" :key="key">
+            <q-item-section>{{ key }}</q-item-section>
+            <q-item-section avatar
+              ><q-badge color="gray">{{ value }}</q-badge></q-item-section
+            >
           </q-item>
         </q-list>
 
@@ -72,6 +75,7 @@
           hide-pagination
           :pagination="{ rowsPerPage: -1 }"
           class="bg-transparent"
+          no-data-label="Prodejní cena není nastavena!"
         >
           <template #body-cell-price="props">
             <q-td v-if="props.row.price">

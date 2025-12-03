@@ -4,50 +4,57 @@ from pydantic import Field
 from .base import BaseSchema, PaginatedResponse, BaseResponse
 from .customer import CustomerSchema
 from .product import ProductSchema
+from apps.warehouse.models.orders import InboundOrderState
 
 
 # --- IncomingOrderItem Schemas --- #
 
 
-class IncomingOrderItemCreateSchema(Schema):
+class InboundOrderItemCreateSchema(Schema):
     product_code: str
     product_name: str
     amount: float
     unit_price: float
 
 
-class IncomingOrderItemSchema(BaseSchema):
+class InboundOrderItemSchema(BaseSchema):
     product: ProductSchema
     amount: float
     unit_price: float
 
 
-class IncomingOrderCreateOrUpdateSchema(Schema):
+class InboundOrderCreateOrUpdateSchema(Schema):
     external_code: str | None = None
     description: str | None = None
     note: str | None = None
     currency: str
     supplier_code: str
     supplier_name: str
+    state: InboundOrderState | None = None
 
 
-class IncomingOrderSchema(BaseSchema):
+class InboundOrderTransitionSchema(Schema):
+    state: InboundOrderState
+
+
+class InboundOrderSchema(BaseSchema):
     code: str
     external_code: str | None = None
     description: str | None = None
     note: str | None = None
     supplier: CustomerSchema
-    items: list[IncomingOrderItemSchema] = Field(default_factory=list)
+    items: list[InboundOrderItemSchema] = Field(default_factory=list)
     currency: str
     warehouse_order_code: str | None
+    state: InboundOrderState
 
 
-class GetIncomingOrderResponse(BaseResponse):
-    data: IncomingOrderSchema
+class GetInboundOrderResponse(BaseResponse):
+    data: InboundOrderSchema
 
 
-class GetIncomingOrdersResponse(PaginatedResponse[IncomingOrderSchema]): ...
+class GetInboundOrdersResponse(PaginatedResponse[InboundOrderSchema]): ...
 
 
-class CreateIncomingOrderItemResponse(BaseResponse):
-    data: IncomingOrderItemSchema
+class CreateInboundOrderItemResponse(BaseResponse):
+    data: InboundOrderItemSchema

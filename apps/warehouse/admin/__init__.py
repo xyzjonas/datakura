@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from apps.warehouse.models.customer import ContactPerson, Customer, CustomerGroup
-from apps.warehouse.models.orders import IncomingOrder, IncomingOrderItem
+from apps.warehouse.models.orders import InboundOrder, InboundOrderItem
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import (
     StockProduct,
@@ -32,8 +32,8 @@ admin.site.register(ContactPerson)
 admin.site.register(CustomerGroup)
 admin.site.register(Customer)
 
-admin.site.register(IncomingOrder)
-admin.site.register(IncomingOrderItem)
+admin.site.register(InboundOrder)
+admin.site.register(InboundOrderItem)
 
 admin.site.register(WarehouseOrderIn)
 admin.site.register(WarehouseOrderOut)

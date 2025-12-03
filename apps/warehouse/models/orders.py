@@ -13,7 +13,20 @@ if TYPE_CHECKING:
     from .warehouse import WarehouseOrderIn
 
 
-class IncomingOrder(BaseModel):
+class InboundOrderState(models.TextChoices):
+    DRAFT = "draft", "Draft"
+    SUBMITTED = "submitted", "Submitted"
+    # IN_TRANSIT = "in_transit", "In Transit"
+    # ARRIVED = "arrived", "Arrived"
+    # RECEIVING = "receiving", "Receiving"
+    # QUALITY_CHECK = "quality_check", "Quality Check"
+    PUTAWAY = "putaway", "Put Away"
+    COMPLETED = "completed", "Completed"
+    CANCELLED = "cancelled", "Cancelled"
+    # PARTIALLY_RECEIVED = "partially_received", "Partially Received"
+
+
+class InboundOrder(BaseModel):
     """Incoming order, or "purchase" order"""
 
     code = models.CharField(max_length=50, null=False, unique=True)
@@ -24,11 +37,19 @@ class IncomingOrder(BaseModel):
     note = models.TextField(null=True, blank=True)
 
     supplier = models.ForeignKey(Customer, null=False, on_delete=models.PROTECT)
-    items: QuerySet["IncomingOrderItem"]
+    items: QuerySet["InboundOrderItem"]
 
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
+    state = models.CharField(
+        max_length=20,
+        choices=InboundOrderState.choices,
+        default=InboundOrderState.DRAFT,
+    )
 
     warehouse_order: WarehouseOrderIn | None
+
+    class Meta:
+        ordering = ["-created"]
 
     def __str__(self) -> str:
         return f"{self.code} | {self.supplier.name}"
@@ -40,7 +61,7 @@ class IncomingOrder(BaseModel):
         return None
 
 
-class IncomingOrderItem(BaseModel):
+class InboundOrderItem(BaseModel):
     """Incoming order"""
 
     stock_product = models.ForeignKey(
@@ -48,7 +69,7 @@ class IncomingOrderItem(BaseModel):
     )
     amount = models.DecimalField(max_digits=10, decimal_places=4, null=False)
     order = models.ForeignKey(
-        IncomingOrder,
+        InboundOrder,
         null=False,
         blank=False,
         on_delete=models.CASCADE,

@@ -51,6 +51,7 @@ def test_get_all_one_product(db, client):
                             "base_price": product.base_price,
                             "purchase_price": product.purchase_price,
                             "currency": product.currency,
+                            "attributes": product.attributes,
                         }
                     ).model_dump()
                 ],

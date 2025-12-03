@@ -2,19 +2,24 @@ from calendar import monthrange
 from datetime import datetime
 
 from django.db import transaction
+from loguru import logger
 
 from apps.warehouse.core.schemas.orders import (
-    IncomingOrderItemCreateSchema,
-    IncomingOrderItemSchema,
-    IncomingOrderCreateOrUpdateSchema,
-    IncomingOrderSchema,
+    InboundOrderItemCreateSchema,
+    InboundOrderItemSchema,
+    InboundOrderCreateOrUpdateSchema,
+    InboundOrderSchema,
 )
 from apps.warehouse.core.transformation import (
-    incoming_order_item_orm_to_schema,
-    incoming_order_orm_to_schema,
+    inbound_order_item_orm_to_schema,
+    inbound_order_orm_to_schema,
 )
 from apps.warehouse.models.customer import Customer
-from apps.warehouse.models.orders import IncomingOrder, IncomingOrderItem
+from apps.warehouse.models.orders import (
+    InboundOrder,
+    InboundOrderItem,
+    InboundOrderState,
+)
 from apps.warehouse.models.product import StockProduct
 
 
@@ -33,21 +38,19 @@ class OrdersService:
     def generate_next_incoming_order_code() -> str:
         now = datetime.now()
         dt_range = _get_month_range(now)
-        orders_this_month = IncomingOrder.objects.filter(
-            created__range=dt_range
-        ).count()
+        orders_this_month = InboundOrder.objects.filter(created__range=dt_range).count()
         return f"OV{now.year}{now.month:02d}{orders_this_month + 1:04d}"
 
     @staticmethod
     def update_or_create_incoming(
-        params: IncomingOrderCreateOrUpdateSchema, code: str | None = None
-    ) -> IncomingOrderSchema:
+        params: InboundOrderCreateOrUpdateSchema, code: str | None = None
+    ) -> InboundOrderSchema:
         if code is None:
             code = OrdersService.generate_next_incoming_order_code()
 
         supplier = Customer.objects.get(code=params.supplier_code)
         with transaction.atomic():
-            order, created = IncomingOrder.objects.update_or_create(
+            order, created = InboundOrder.objects.update_or_create(
                 code=code,
                 defaults=dict(
                     external_code=params.external_code,
@@ -58,28 +61,28 @@ class OrdersService:
                 ),
             )
 
-        return incoming_order_orm_to_schema(order)
+        return inbound_order_orm_to_schema(order)
 
     @staticmethod
     def add_item(
-        code: str, item: IncomingOrderItemCreateSchema
-    ) -> IncomingOrderItemSchema:
-        order = IncomingOrder.objects.get(code=code)
+        code: str, item: InboundOrderItemCreateSchema
+    ) -> InboundOrderItemSchema:
+        order = InboundOrder.objects.get(code=code)
         stock_product = StockProduct.objects.get(code=item.product_code)
         with transaction.atomic():
-            item_model = IncomingOrderItem.objects.create(
+            item_model = InboundOrderItem.objects.create(
                 stock_product=stock_product,
                 amount=item.amount,
                 order=order,
                 unit_price=item.unit_price,
             )
 
-        return incoming_order_item_orm_to_schema(item_model)
+        return inbound_order_item_orm_to_schema(item_model)
 
     @staticmethod
     def remove_item(code: str, product_code: str) -> bool:
-        order = IncomingOrder.objects.get(code=code)
-        items = IncomingOrderItem.objects.filter(
+        order = InboundOrder.objects.get(code=code)
+        items = InboundOrderItem.objects.filter(
             order=order, stock_product__code=product_code
         )
         with transaction.atomic():
@@ -87,5 +90,20 @@ class OrdersService:
 
         return True
 
+    @staticmethod
+    def transition_order(code: str, new_state: InboundOrderState) -> InboundOrderSchema:
+        # todo: audit log
+        order = InboundOrder.objects.get(code=code)
+        with transaction.atomic():
+            old_state = order.state
+            order.state = new_state
 
-incoming_orders_service = OrdersService()
+            order.save()
+            logger.info(
+                f"Inboud order '{order.code}' transitioned: {old_state} -> {new_state}"
+            )
+
+        return inbound_order_orm_to_schema(order)
+
+
+inbound_orders_service = OrdersService()

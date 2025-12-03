@@ -2,11 +2,16 @@ from datetime import datetime
 from typing import cast
 
 from apps.warehouse.core.schemas.orders import (
-    IncomingOrderItemCreateSchema,
-    IncomingOrderCreateOrUpdateSchema,
+    InboundOrderItemCreateSchema,
+    InboundOrderCreateOrUpdateSchema,
 )
-from apps.warehouse.core.services.orders import incoming_orders_service
-from apps.warehouse.models.orders import IncomingOrder, IncomingOrderItem
+from apps.warehouse.core.services.orders import inbound_orders_service
+from apps.warehouse.core.transformation import inbound_order_orm_to_schema
+from apps.warehouse.models.orders import (
+    InboundOrder,
+    InboundOrderItem,
+    InboundOrderState,
+)
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.tests.factories.customer import CustomerFactoryMinimal
 from apps.warehouse.tests.factories.order import (
@@ -18,11 +23,11 @@ from apps.warehouse.tests.factories.product import StockProductFactory
 
 def test_incoming_order_add_item(db):
     product = cast(StockProduct, StockProductFactory())
-    order = cast(IncomingOrder, IncomingOrderFactory())
+    order = cast(InboundOrder, IncomingOrderFactory())
 
-    incoming_orders_service.add_item(
+    inbound_orders_service.add_item(
         order.code,
-        IncomingOrderItemCreateSchema(
+        InboundOrderItemCreateSchema(
             product_code=product.code,
             product_name=product.name,
             unit_price=999,
@@ -38,45 +43,45 @@ def test_incoming_order_add_item(db):
 
 
 def test_incoming_order_remove_item(db):
-    order = cast(IncomingOrder, IncomingOrderFactory())
+    order = cast(InboundOrder, IncomingOrderFactory())
     items = IncomingOrderItemFactory.create_batch(10, order=order)
 
-    item = cast(IncomingOrderItem, items[0])
+    item = cast(InboundOrderItem, items[0])
 
-    assert incoming_orders_service.remove_item(order.code, item.stock_product.code)
+    assert inbound_orders_service.remove_item(order.code, item.stock_product.code)
 
     assert order.items.count() == 9
 
 
 def test_incoming_order_remove_2_items_same_product(db):
-    order = cast(IncomingOrder, IncomingOrderFactory())
+    order = cast(InboundOrder, IncomingOrderFactory())
     product = cast(StockProduct, StockProductFactory())
     IncomingOrderItemFactory.create_batch(2, order=order, stock_product=product)
 
     assert order.items.count() == 2
 
-    assert incoming_orders_service.remove_item(order.code, product.code)
+    assert inbound_orders_service.remove_item(order.code, product.code)
 
     assert order.items.count() == 0
 
 
 def test_generate_next_incoming_order_code(db):
     now = datetime.now()
-    code = incoming_orders_service.generate_next_incoming_order_code()
+    code = inbound_orders_service.generate_next_incoming_order_code()
     assert code == f"OV{now.year}{now.month:02d}0001"
 
 
 def test_generate_next_incoming_order_code_100(db):
     IncomingOrderFactory.create_batch(99)
     now = datetime.now()
-    code = incoming_orders_service.generate_next_incoming_order_code()
+    code = inbound_orders_service.generate_next_incoming_order_code()
     assert code == f"OV{now.year}{now.month:02d}0100"
 
 
 def test_create_empty_incoming(db):
     customer = CustomerFactoryMinimal()
-    incoming_order = incoming_orders_service.update_or_create_incoming(
-        IncomingOrderCreateOrUpdateSchema(
+    incoming_order = inbound_orders_service.update_or_create_incoming(
+        InboundOrderCreateOrUpdateSchema(
             currency="CZK",
             description="foobar",
             external_code="12345",
@@ -98,8 +103,8 @@ def test_edit_incoming(db):
     IncomingOrderItemFactory.create_batch(10, order=order)
 
     new_customer = CustomerFactoryMinimal()
-    incoming_order = incoming_orders_service.update_or_create_incoming(
-        IncomingOrderCreateOrUpdateSchema(
+    incoming_order = inbound_orders_service.update_or_create_incoming(
+        InboundOrderCreateOrUpdateSchema(
             currency="EUR",
             description="foobar",
             external_code="12345",
@@ -116,3 +121,16 @@ def test_edit_incoming(db):
     assert incoming_order.supplier.name == new_customer.name
     assert incoming_order.supplier.identification == new_customer.identification
     assert len(incoming_order.items) == 10
+
+
+def test_transition_order(db):
+    order = IncomingOrderFactory(state=InboundOrderState.DRAFT)
+    assert order.state == InboundOrderState.DRAFT
+
+    result = inbound_orders_service.transition_order(
+        order.code, InboundOrderState.COMPLETED
+    )
+    order_db = InboundOrder.objects.get(code=order.code)
+    assert order_db.state == InboundOrderState.COMPLETED
+
+    assert result == inbound_order_orm_to_schema(order_db)

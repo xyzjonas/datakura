@@ -2,7 +2,7 @@ import factory
 from factory.django import DjangoModelFactory
 
 from apps.warehouse.models.currency import CURRENCY_CHOICES
-from apps.warehouse.models.orders import IncomingOrder, IncomingOrderItem
+from apps.warehouse.models.orders import InboundOrder, InboundOrderItem
 from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
 
@@ -11,7 +11,7 @@ class IncomingOrderItemFactory(DjangoModelFactory):
     """Factory for IncomingOrder model"""
 
     class Meta:
-        model = IncomingOrderItem
+        model = InboundOrderItem
 
     stock_product = factory.SubFactory(StockProductFactory)
     amount = factory.Faker("random_int", min=1, max=100, step=1)
@@ -23,7 +23,7 @@ class IncomingOrderFactory(DjangoModelFactory):
     """Factory for IncomingOrder model"""
 
     class Meta:
-        model = IncomingOrder
+        model = InboundOrder
         django_get_or_create = ("code",)
 
     code = factory.Sequence(lambda n: f"ORD-{n:04d}")

@@ -1,7 +1,7 @@
 <template>
   <q-stepper
     flat
-    v-model="step"
+    :model-value="step"
     header-nav
     ref="stepper"
     color="primary"
@@ -16,47 +16,64 @@
       caption="čeká na potvrzení"
       icon="sym_o_ink_pen"
       active-icon="sym_o_ink_pen"
+      active-color="accent"
       :done="step > 1"
       :header-nav="step > 1"
+      :error="step >= CANCELLED"
+      error-color="negative"
     >
     </q-step>
 
     <q-step
       :name="2"
-      title="Objednáno"
+      title="Potvrzeno"
       caption="čeká na dodání"
       icon="sym_o_delivery_truck_speed"
       active-icon="sym_o_delivery_truck_speed"
+      active-color="accent"
       :done="step > 2"
       :header-nav="step > 2"
+      :error="step >= CANCELLED"
+      error-color="negative"
     >
     </q-step>
 
     <q-step
       :name="3"
       title="Příjem"
+      caption="zboží je na příjmu"
       icon="sym_o_input"
       active-icon="sym_o_input"
+      active-color="accent"
+      :done="step > 3"
       :header-nav="step > 3"
+      :error="step >= CANCELLED"
+      error-color="negative"
     >
     </q-step>
 
     <q-step
-      :name="4"
+      :name="50"
       title="Přijato"
-      caption="na skladě"
+      caption="naskladněno"
       icon="warehouse"
       active-icon="warehouse"
+      active-color="accent"
+      :done="step >= 4"
       :header-nav="step > 3"
+      :error="step >= CANCELLED"
+      error-color="negative"
     >
     </q-step>
   </q-stepper>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { CANCELLED, INBOUND_ORDER_STATES } from '@/constants/inbound-order'
+import { computed } from 'vue'
 
-const step = ref(1)
+const props = defineProps<{ state: string }>()
+const step = computed(() => INBOUND_ORDER_STATES[props.state]?.step ?? CANCELLED)
 </script>
 
 <style lang="scss" scoped>

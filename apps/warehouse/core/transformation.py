@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import cast
 
 from apps.warehouse.core.schemas.customer import (
     CustomerSchema,
@@ -7,8 +8,8 @@ from apps.warehouse.core.schemas.customer import (
     ContactPersonSchema,
 )
 from apps.warehouse.core.schemas.orders import (
-    IncomingOrderSchema,
-    IncomingOrderItemSchema,
+    InboundOrderSchema,
+    InboundOrderItemSchema,
 )
 from apps.warehouse.core.schemas.product import ProductSchema
 from apps.warehouse.core.schemas.warehouse import (
@@ -18,7 +19,11 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseOrderSchema,
 )
 from apps.warehouse.models.customer import Customer
-from apps.warehouse.models.orders import IncomingOrder, IncomingOrderItem
+from apps.warehouse.models.orders import (
+    InboundOrder,
+    InboundOrderItem,
+    InboundOrderState,
+)
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
@@ -75,6 +80,7 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         currency=product.currency,
         base_price=float(product.base_price),
         purchase_price=float(product.purchase_price),
+        attributes=product.attributes,
     )
 
 
@@ -122,10 +128,10 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
     )
 
 
-def incoming_order_item_orm_to_schema(
-    item: IncomingOrderItem,
-) -> IncomingOrderItemSchema:
-    return IncomingOrderItemSchema(
+def inbound_order_item_orm_to_schema(
+    item: InboundOrderItem,
+) -> InboundOrderItemSchema:
+    return InboundOrderItemSchema(
         product=product_orm_to_schema(item.stock_product),
         amount=float(item.amount),
         unit_price=float(item.unit_price),
@@ -134,8 +140,8 @@ def incoming_order_item_orm_to_schema(
     )
 
 
-def incoming_order_orm_to_schema(order: IncomingOrder) -> IncomingOrderSchema:
-    return IncomingOrderSchema(
+def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
+    return InboundOrderSchema(
         created=order.created,
         changed=order.changed,
         code=order.code,
@@ -145,11 +151,12 @@ def incoming_order_orm_to_schema(order: IncomingOrder) -> IncomingOrderSchema:
         note=order.note,
         currency=order.currency,
         warehouse_order_code=order.warehouse_order_code,
-        items=[incoming_order_item_orm_to_schema(item) for item in order.items.all()],
+        state=cast(InboundOrderState, order.state),
+        items=[inbound_order_item_orm_to_schema(item) for item in order.items.all()],
     )
 
 
-def warehouse_incoming_order_orm_to_schema(
+def warehouse_inbound_order_orm_to_schema(
     w_order: WarehouseOrderIn,
 ) -> WarehouseOrderSchema:
     return WarehouseOrderSchema(

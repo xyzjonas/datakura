@@ -7,17 +7,17 @@ from ninja.pagination import PaginationBase
 from apps.warehouse.core.schemas.customer import (
     GetCustomersResponse,
 )
-from apps.warehouse.core.schemas.orders import GetIncomingOrdersResponse
+from apps.warehouse.core.schemas.orders import GetInboundOrdersResponse
 from apps.warehouse.core.schemas.product import (
     GetProductsResponse,
 )
 from apps.warehouse.core.transformation import (
     customer_orm_to_schema,
     product_orm_to_schema,
-    incoming_order_orm_to_schema,
+    inbound_order_orm_to_schema,
 )
 from apps.warehouse.models.customer import Customer
-from apps.warehouse.models.orders import IncomingOrder
+from apps.warehouse.models.orders import InboundOrder
 from apps.warehouse.models.product import StockProduct
 
 
@@ -80,17 +80,17 @@ class IncomingOrdersPagination(PaginationBase):
         page: int = 1
         page_size: int = 20
 
-    class Output(GetIncomingOrdersResponse): ...
+    class Output(GetInboundOrdersResponse): ...
 
     def paginate_queryset(
-        self, queryset: QuerySet[IncomingOrder], pagination: Input, **params
+        self, queryset: QuerySet[InboundOrder], pagination: Input, **params
     ):
         offset = (pagination.page - 1) * pagination.page_size
         items = queryset[offset : offset + pagination.page_size]
         count = queryset.count()
 
         return {
-            "data": [incoming_order_orm_to_schema(order) for order in items],
+            "data": [inbound_order_orm_to_schema(order) for order in items],
             "count": count,
             "next": pagination.page + 1
             if offset + pagination.page_size < count

@@ -9,10 +9,10 @@
 </template>
 
 <script setup lang="ts">
-import type { IncomingOrderSchema } from '@/client'
+import type { InboundOrderSchema } from '@/client'
 import { computed } from 'vue'
 
-const props = defineProps<{ order: IncomingOrderSchema }>()
+const props = defineProps<{ order: InboundOrderSchema }>()
 const totalPrice = computed(() => {
   if (!props.order) {
     return 0

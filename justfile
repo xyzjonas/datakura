@@ -46,6 +46,9 @@ test:
 seed:
     uv run manage.py seed
 
+import-products:
+    uv run manage.py import_products_csv --file "$HOME/Downloads/products_export.csv"
+
 [working-directory: "frontend"]
 ui:
      npm run dev
