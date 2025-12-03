@@ -6,7 +6,12 @@ export const useAppRouter = () => {
     router.push({ name: 'customerDetail', params: { customerCode: code } })
   }
 
+  const goToWarehouseOrderIn = (code: string) => {
+    router.push({ name: 'warehouseInboundOrderDetail', params: { code } })
+  }
+
   return {
     goToCustomer,
+    goToWarehouseOrderIn,
   }
 }

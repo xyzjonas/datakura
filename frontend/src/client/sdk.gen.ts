@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesOrdersAddItemToInboundOrderData, WarehouseApiRoutesOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesOrdersCreateInboundOrderData, WarehouseApiRoutesOrdersCreateInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrderData, WarehouseApiRoutesOrdersGetInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrdersData, WarehouseApiRoutesOrdersGetInboundOrdersResponses, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesOrdersTransitionInboundOrderData, WarehouseApiRoutesOrdersTransitionInboundOrderResponses, WarehouseApiRoutesOrdersUpdateInboundOrderData, WarehouseApiRoutesOrdersUpdateInboundOrderResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehouseOrderData, WarehouseApiRoutesWarehouseGetWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses } from './types.gen';
+import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesOrdersAddItemToInboundOrderData, WarehouseApiRoutesOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesOrdersCreateInboundOrderData, WarehouseApiRoutesOrdersCreateInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrderData, WarehouseApiRoutesOrdersGetInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrdersData, WarehouseApiRoutesOrdersGetInboundOrdersResponses, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesOrdersTransitionInboundOrderData, WarehouseApiRoutesOrdersTransitionInboundOrderResponses, WarehouseApiRoutesOrdersUpdateInboundOrderData, WarehouseApiRoutesOrdersUpdateInboundOrderResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -80,10 +80,24 @@ export const warehouseApiRoutesWarehouseGetWarehouseLocation = <ThrowOnError ext
 };
 
 /**
- * Get Warehouse Order
+ * Create Inbound Warehouse Order
  */
-export const warehouseApiRoutesWarehouseGetWarehouseOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseGetWarehouseOrderData, ThrowOnError>) => {
-    return (options.client ?? client).get<WarehouseApiRoutesWarehouseGetWarehouseOrderResponses, unknown, ThrowOnError>({
+export const warehouseApiRoutesWarehouseCreateInboundWarehouseOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, ThrowOnError>) => {
+    return (options.client ?? client).post<WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, unknown, ThrowOnError>({
+        url: '/api/v1/orders-incoming',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+};
+
+/**
+ * Get Inbound Warehouse Order
+ */
+export const warehouseApiRoutesWarehouseGetInboundWarehouseOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, ThrowOnError>) => {
+    return (options.client ?? client).get<WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, unknown, ThrowOnError>({
         url: '/api/v1/orders-incoming/{code}',
         ...options
     });

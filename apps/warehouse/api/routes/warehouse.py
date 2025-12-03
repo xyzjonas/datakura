@@ -8,7 +8,9 @@ from apps.warehouse.core.schemas.warehouse import (
     GetWarehouseLocationResponse,
     WarehouseLocationDetailSchema,
     GetWarehouseOrderResponse,
+    WarehouseOrderCreateSchema,
 )
+from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
     warehouse_item_orm_to_schema,
     warehouse_inbound_order_orm_to_schema,
@@ -75,12 +77,27 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
     )
 
 
-@routes.get(
-    "orders-incoming/{code}",
-    response={200: GetWarehouseLocationResponse},
+@routes.post(
+    "orders-incoming",
+    response={200: GetWarehouseOrderResponse},
     auth=None,
 )
-def get_warehouse_order(request: HttpRequest, code: str):
+def create_inbound_warehouse_order(
+    request: HttpRequest, body: WarehouseOrderCreateSchema
+):
+    # user = authenticate(
+    #     request, username=credentials.username, password=credentials.password
+    # )
+    warehouse_order = warehouse_service.create_inbound_order(body)
+    return GetWarehouseOrderResponse(data=warehouse_order)
+
+
+@routes.get(
+    "orders-incoming/{code}",
+    response={200: GetWarehouseOrderResponse},
+    auth=None,
+)
+def get_inbound_warehouse_order(request: HttpRequest, code: str):
     # user = authenticate(
     #     request, username=credentials.username, password=credentials.password
     # )

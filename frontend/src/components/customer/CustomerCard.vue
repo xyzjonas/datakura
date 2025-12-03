@@ -7,9 +7,9 @@
         <span>{{ customer.customer_type }}</span>
       </div>
     </div>
-    <h1 @click="goToCustomer(customer.code)" class="text-primary link mb-2">
+    <h2 @click="goToCustomer(customer.code)" class="text-primary link mb-2">
       {{ customer.name }}
-    </h1>
+    </h2>
     <span class="flex items-center gap-1 mt-3">
       <small class="text-gray-5">kód:</small>
       <h5>{{ customer.code }}</h5>

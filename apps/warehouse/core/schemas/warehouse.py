@@ -60,6 +60,10 @@ class WarehouseOrderSchema(BaseSchema):
     order_code: str | None
 
 
+class WarehouseOrderCreateSchema(Schema):
+    purchase_order_code: str
+
+
 class GetWarehousesResponse(BaseResponse):
     data: list[WarehouseSchema]
 

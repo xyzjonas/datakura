@@ -35,11 +35,11 @@
         :readonly="readonly"
         dense
         standout
-        class="max-w-40"
+        class="max-w-50"
         label="Nákupní cena"
       >
         <template #append>
-          <span class="text-xs">{{ currency }}</span>
+          <span class="text-xs">{{ currency }} / {{ item.product.unit }}</span>
         </template>
       </q-input>
       <q-input

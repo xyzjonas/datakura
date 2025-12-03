@@ -53,5 +53,8 @@ class StockProduct(BaseModel):
 
     attributes = models.JSONField(default=dict, blank=True)
 
+    class Meta:
+        ordering = ["code"]
+
     def __str__(self):
         return self.name

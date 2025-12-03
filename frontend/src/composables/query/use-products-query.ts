@@ -49,7 +49,7 @@ export function useQueryProducts() {
       if (raw) {
         return +raw
       }
-      return 100
+      return 20
     },
     set(val: number) {
       const query = { ...route.query }

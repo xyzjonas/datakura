@@ -70,7 +70,7 @@ import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'
 import router from '@/router'
-import { type QTableColumn, type QTableProps } from 'quasar'
+import { useQuasar, type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -175,11 +175,16 @@ const columns: QTableColumn[] = [
 const { onResponse } = useApi()
 const newOrderDialog = ref(false)
 const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
+const $q = useQuasar()
 const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
   const response = await warehouseApiRoutesOrdersCreateInboundOrder({ body: params })
   const data = onResponse(response)
   if (data && newOrderDialogComponent.value) {
     newOrderDialogComponent.value.reset()
+    $q.notify({
+      type: 'positive',
+      message: `Objednávka úspěšně vytvořena: ${data.data.code}`,
+    })
     router.push({ name: 'incomingOrderDetail', params: { code: data.data.code } })
   }
 }

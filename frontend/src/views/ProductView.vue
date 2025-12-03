@@ -51,7 +51,9 @@
               ><span v-else>-</span>
             </q-item-section>
           </q-item>
-          <q-separator></q-separator>
+          <q-separator
+            v-if="product.attributes && Object.keys(product.attributes).length > 0"
+          ></q-separator>
           <q-item v-for="(value, key) in product.attributes" :key="key">
             <q-item-section>{{ key }}</q-item-section>
             <q-item-section avatar

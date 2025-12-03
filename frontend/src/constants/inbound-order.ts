@@ -12,13 +12,13 @@ export const CANCELLED = 99
 export const INBOUND_ORDER_STATES: Record<string, StateConfig> = {
   draft: {
     label: 'Koncept',
-    icon: 'sym_o_draft',
-    color: 'gray',
+    icon: 'sym_o_ink_pen',
+    color: 'grey-7',
     step: 1,
   },
   submitted: {
     label: 'Potvrzeno',
-    icon: 'sym_o_local_shipping',
+    icon: 'sym_o_delivery_truck_speed',
     color: 'primary',
     step: 2,
   },

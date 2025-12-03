@@ -2,7 +2,6 @@
   <q-stepper
     flat
     :model-value="step"
-    header-nav
     ref="stepper"
     color="primary"
     animated
@@ -12,7 +11,7 @@
   >
     <q-step
       :name="1"
-      title="Rozpracováno"
+      title="Koncept"
       caption="čeká na potvrzení"
       icon="sym_o_ink_pen"
       active-icon="sym_o_ink_pen"
@@ -27,7 +26,7 @@
     <q-step
       :name="2"
       title="Potvrzeno"
-      caption="čeká na dodání"
+      caption="zboží je na cestě"
       icon="sym_o_delivery_truck_speed"
       active-icon="sym_o_delivery_truck_speed"
       active-color="accent"

@@ -261,6 +261,57 @@ export type WarehouseLocationDetailSchema = {
 };
 
 /**
+ * GetWarehouseOrderResponse
+ */
+export type GetWarehouseOrderResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Message
+     */
+    message?: string | null;
+    data: WarehouseOrderSchema;
+};
+
+/**
+ * WarehouseOrderSchema
+ */
+export type WarehouseOrderSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Items
+     */
+    items: Array<WarehouseItemSchema>;
+    /**
+     * Order Code
+     */
+    order_code: string | null;
+};
+
+/**
+ * WarehouseOrderCreateSchema
+ */
+export type WarehouseOrderCreateSchema = {
+    /**
+     * Purchase Order Code
+     */
+    purchase_order_code: string;
+};
+
+/**
  * Input
  */
 export type Input = {
@@ -1031,7 +1082,23 @@ export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponses = {
 
 export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponse = WarehouseApiRoutesWarehouseGetWarehouseLocationResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseLocationResponses];
 
-export type WarehouseApiRoutesWarehouseGetWarehouseOrderData = {
+export type WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData = {
+    body: WarehouseOrderCreateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/orders-incoming';
+};
+
+export type WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses];
+
+export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData = {
     body?: never;
     path: {
         /**
@@ -1043,14 +1110,14 @@ export type WarehouseApiRoutesWarehouseGetWarehouseOrderData = {
     url: '/api/v1/orders-incoming/{code}';
 };
 
-export type WarehouseApiRoutesWarehouseGetWarehouseOrderResponses = {
+export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses = {
     /**
      * OK
      */
-    200: GetWarehouseLocationResponse;
+    200: GetWarehouseOrderResponse;
 };
 
-export type WarehouseApiRoutesWarehouseGetWarehouseOrderResponse = WarehouseApiRoutesWarehouseGetWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseOrderResponses];
+export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses];
 
 export type WarehouseApiRoutesProductGetProductsData = {
     body?: never;

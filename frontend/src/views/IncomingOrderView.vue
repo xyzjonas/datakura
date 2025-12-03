@@ -106,14 +106,15 @@
           color="positive"
           label="naskladnit"
           icon="sym_o_input"
+          @click="createWarehouseOrderDialog = true"
         />
         <q-btn
-          v-if="getInboundOrderStep(order) === 3"
+          v-if="getInboundOrderStep(order) === 3 && order.warehouse_order_code"
           unelevated
           :color="order.warehouse_order_code ? 'positive' : 'gray'"
           :label="`příjemka ${order.warehouse_order_code ?? ''}`"
           icon="sym_o_input"
-          :disable="!order.warehouse_order_code"
+          @click="goToWarehouseOrderIn(order.warehouse_order_code)"
         />
       </div>
     </div>
@@ -152,6 +153,16 @@
         ji dále editovat!</span
       >
     </ConfirmDialog>
+    <ConfirmDialog
+      v-model="createWarehouseOrderDialog"
+      title="Vytovřit příjemku?"
+      @confirm="createWarehouseOrder"
+    >
+      <span>
+        Nová výdejka bude vytvořena a objednávka přejde do stavu
+        <strong class="text-primary">příjem</strong>.
+      </span>
+    </ConfirmDialog>
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
@@ -166,6 +177,7 @@ import {
   warehouseApiRoutesOrdersRemoveItemsFromInboundOrder,
   warehouseApiRoutesOrdersTransitionInboundOrder,
   warehouseApiRoutesOrdersUpdateInboundOrder,
+  warehouseApiRoutesWarehouseCreateInboundWarehouseOrder,
   type InboundOrderCreateOrUpdateSchema,
   type InboundOrderItemCreateSchema,
   type InboundOrderSchema,
@@ -181,8 +193,10 @@ import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
 import { useApi } from '@/composables/use-api'
+import { useAppRouter } from '@/composables/use-app-router'
 import { getInboundOrderStep } from '@/constants/inbound-order'
 import { formatDateLong } from '@/utils/date'
+import { useQuasar } from 'quasar'
 import { ref } from 'vue'
 
 const props = defineProps<{ code: string }>()
@@ -259,6 +273,27 @@ const confirm = async () => {
   if (data) {
     order.value = data.data
     confirmDialog.value = false
+  }
+}
+
+const $q = useQuasar()
+const { goToWarehouseOrderIn } = useAppRouter()
+const createWarehouseOrderDialog = ref(false)
+const createWarehouseOrder = async () => {
+  if (!order.value) {
+    return
+  }
+  const response = await warehouseApiRoutesWarehouseCreateInboundWarehouseOrder({
+    body: { purchase_order_code: order.value.code },
+  })
+  const data = onResponse(response)
+  if (data) {
+    createWarehouseOrderDialog.value = false
+    $q.notify({
+      type: 'positive',
+      message: `Příjemka úspěšně vytvořena: ${data.data.code}`,
+    })
+    goToWarehouseOrderIn(data.data.code)
   }
 }
 </script>
