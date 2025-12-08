@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from ninja import Schema
 
-from .base import BaseResponse, BaseSchema
+from .base import BaseResponse, BaseSchema, PaginatedResponse
+from .base_orders import InboundWarehouseOrderBaseSchema, InboundOrderBaseSchema
+from .product import ProductSchema
+from ...models.warehouse import InboundWarehouseOrderState
+
+if TYPE_CHECKING:
+    pass
 
 
-class StockItemSchema(BaseSchema):
-    name: str
+class WarehouseLocationSchema(BaseSchema):
+    warehouse_name: str
     code: str
+    #: mark a location as temporary for receiving or putaway
+    is_putaway: bool
 
 
 class PackageSchema(BaseSchema):
@@ -20,11 +30,13 @@ class PackageSchema(BaseSchema):
 class WarehouseItemSchema(BaseSchema):
     """Atomic unit of the inventory - uniquely identifiable and trackable item in a warehouse"""
 
+    id: int
     code: str
-    stock_item: StockItemSchema
+    product: ProductSchema
     unit_of_measure: str
     amount: float
     package: PackageSchema | None
+    location: WarehouseLocationSchema
 
 
 class ProductWarehouseAvailability(Schema):
@@ -32,10 +44,6 @@ class ProductWarehouseAvailability(Schema):
 
     total_amount: float
     available_amount: float
-
-
-class WarehouseLocationSchema(BaseSchema):
-    code: str
 
 
 class WarehouseLocationDetailSchema(WarehouseLocationSchema):
@@ -54,14 +62,27 @@ class WarehouseExpandedSchema(BaseSchema):
     locations: list[WarehouseLocationDetailSchema]
 
 
-class WarehouseOrderSchema(BaseSchema):
-    code: str
+class InboundWarehouseOrderSchema(InboundWarehouseOrderBaseSchema):
     items: list[WarehouseItemSchema]
-    order_code: str | None
+    completed_items_count: int
+    order: InboundOrderBaseSchema
+
+
+class InboundWarehouseOrderUpdateSchema(Schema):
+    state: InboundWarehouseOrderState
 
 
 class WarehouseOrderCreateSchema(Schema):
     purchase_order_code: str
+    location_code: str
+
+
+class WarehouseItemGetOrCreateSchema(Schema):
+    code: str
+    amount: float
+    package_name: str | None
+    location_code: str
+    product_code: str
 
 
 class GetWarehousesResponse(BaseResponse):
@@ -81,4 +102,14 @@ class GetProductWarehouseInfoResponse(BaseResponse):
 
 
 class GetWarehouseOrderResponse(BaseResponse):
-    data: WarehouseOrderSchema
+    data: InboundWarehouseOrderSchema
+
+
+class GetWarehouseOrdersResponse(PaginatedResponse[InboundWarehouseOrderSchema]):
+    ...
+    # data: list[WarehouseOrderSchema]
+
+
+class UpdateWarehouseOrderDraftItemsRequest(Schema):
+    to_be_removed: list[WarehouseItemSchema]
+    to_be_added: list[WarehouseItemSchema]

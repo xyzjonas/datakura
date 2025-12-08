@@ -1,0 +1,74 @@
+<template>
+  <div class="flex w-full gap-5">
+    <div class="flex flex-col gap-2">
+      <div class="flex justify-between gap-2">
+        <a
+          @click="
+            $router.push({
+              name: 'productDetail',
+              params: { productCode: item.product.code },
+            })
+          "
+          class="link mr-5"
+          >{{ item.product.name }}</a
+        >
+        <div class="flex items-center gap-2">
+          <q-badge class="py-1" :color="item.location.is_putaway ? 'accent' : 'positive'">{{
+            item.location.is_putaway ? 'Příjem' : 'hotovo'
+          }}</q-badge>
+          <q-badge class="py-1" color="gray">{{ item.location.code }}</q-badge>
+          <PackageTypeBadge :package-type="item.package?.type" class="py-1" />
+        </div>
+      </div>
+      <BarcodeElement :barcode="item.code" :width="1.6" text-align="left" />
+    </div>
+    <span class="flex flex-nowrap items-center ml-auto">
+      <WarehouseItemAmountBadge :item="item" />
+    </span>
+    <q-btn
+      v-if="!trackingType"
+      flat
+      color="primary"
+      label="evidovat"
+      icon-right="sym_o_qr_code_scanner"
+      @click="setItemTrackingDialog = true"
+    />
+    <InboundWarehouseOrderTrackDialog
+      v-model:show="setItemTrackingDialog"
+      :item="item"
+      :tracking-type-in="trackingType"
+      @packaged="(items) => $emit('packaged', items)"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { WarehouseItemSchema } from '@/client'
+import InboundWarehouseOrderTrackDialog, {
+  type TrackingType,
+} from './InboundWarehouseOrderTrackDialog.vue'
+import { computed, ref } from 'vue'
+import BarcodeElement from '../BarcodeElement.vue'
+import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
+import PackageTypeBadge from '../PackageTypeBadge.vue'
+// import ProductAvailability from '../product/ProductAvailability.vue'
+
+defineProps<{ readonly?: boolean }>()
+defineEmits<{
+  (e: 'removeItem'): void
+  (e: 'packaged', items: WarehouseItemSchema[]): void
+}>()
+
+const item = defineModel<WarehouseItemSchema>('item', { required: true })
+
+const setItemTrackingDialog = ref(false)
+
+const trackingType = computed<TrackingType>(() => {
+  if (item.value.package?.type) {
+    return 'package'
+  }
+  return ''
+})
+</script>
+
+<style lang="scss" scoped></style>

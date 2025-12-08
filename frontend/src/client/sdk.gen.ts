@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesOrdersAddItemToInboundOrderData, WarehouseApiRoutesOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesOrdersCreateInboundOrderData, WarehouseApiRoutesOrdersCreateInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrderData, WarehouseApiRoutesOrdersGetInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrdersData, WarehouseApiRoutesOrdersGetInboundOrdersResponses, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesOrdersTransitionInboundOrderData, WarehouseApiRoutesOrdersTransitionInboundOrderResponses, WarehouseApiRoutesOrdersUpdateInboundOrderData, WarehouseApiRoutesOrdersUpdateInboundOrderResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses } from './types.gen';
+import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesOrdersAddItemToInboundOrderData, WarehouseApiRoutesOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesOrdersCreateInboundOrderData, WarehouseApiRoutesOrdersCreateInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrderData, WarehouseApiRoutesOrdersGetInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrdersData, WarehouseApiRoutesOrdersGetInboundOrdersResponses, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesOrdersTransitionInboundOrderData, WarehouseApiRoutesOrdersTransitionInboundOrderResponses, WarehouseApiRoutesOrdersUpdateInboundOrderData, WarehouseApiRoutesOrdersUpdateInboundOrderResponses, WarehouseApiRoutesPackagingGetPackageTypesData, WarehouseApiRoutesPackagingGetPackageTypesResponses, WarehouseApiRoutesPackagingPackagePreviewData, WarehouseApiRoutesPackagingPackagePreviewResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -64,7 +64,7 @@ export const warehouseApiRoutesAuthWhoami = <ThrowOnError extends boolean = fals
  */
 export const warehouseApiRoutesWarehouseGetWarehouses = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesWarehouseGetWarehousesData, ThrowOnError>) => {
     return (options?.client ?? client).get<WarehouseApiRoutesWarehouseGetWarehousesResponses, unknown, ThrowOnError>({
-        url: '/api/v1/warehouses',
+        url: '/api/v1/warehouse/warehouses',
         ...options
     });
 };
@@ -74,7 +74,17 @@ export const warehouseApiRoutesWarehouseGetWarehouses = <ThrowOnError extends bo
  */
 export const warehouseApiRoutesWarehouseGetWarehouseLocation = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseGetWarehouseLocationData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, unknown, ThrowOnError>({
-        url: '/api/v1/locations/{warehouse_location_code}',
+        url: '/api/v1/warehouse/locations/{warehouse_location_code}',
+        ...options
+    });
+};
+
+/**
+ * Get Inbound Warehouse Orders
+ */
+export const warehouseApiRoutesWarehouseGetInboundWarehouseOrders = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData, ThrowOnError>) => {
+    return (options?.client ?? client).get<WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses, unknown, ThrowOnError>({
+        url: '/api/v1/warehouse/orders-incoming',
         ...options
     });
 };
@@ -84,7 +94,7 @@ export const warehouseApiRoutesWarehouseGetWarehouseLocation = <ThrowOnError ext
  */
 export const warehouseApiRoutesWarehouseCreateInboundWarehouseOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, ThrowOnError>) => {
     return (options.client ?? client).post<WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, unknown, ThrowOnError>({
-        url: '/api/v1/orders-incoming',
+        url: '/api/v1/warehouse/orders-incoming',
         ...options,
         headers: {
             'Content-Type': 'application/json',
@@ -98,8 +108,36 @@ export const warehouseApiRoutesWarehouseCreateInboundWarehouseOrder = <ThrowOnEr
  */
 export const warehouseApiRoutesWarehouseGetInboundWarehouseOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, unknown, ThrowOnError>({
-        url: '/api/v1/orders-incoming/{code}',
+        url: '/api/v1/warehouse/orders-incoming/{code}',
         ...options
+    });
+};
+
+/**
+ * Update Inbound Warehouse Order
+ */
+export const warehouseApiRoutesWarehouseUpdateInboundWarehouseOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData, ThrowOnError>) => {
+    return (options.client ?? client).put<WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses, unknown, ThrowOnError>({
+        url: '/api/v1/warehouse/orders-incoming/{code}',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+};
+
+/**
+ * Update Inbound Warehouse Order Items
+ */
+export const warehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItems = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData, ThrowOnError>) => {
+    return (options.client ?? client).post<WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses, unknown, ThrowOnError>({
+        url: '/api/v1/warehouse/orders-incoming/{code}/items',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
     });
 };
 
@@ -253,5 +291,29 @@ export const warehouseApiRoutesOrdersRemoveItemsFromInboundOrder = <ThrowOnError
     return (options.client ?? client).delete<WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses, unknown, ThrowOnError>({
         url: '/api/v1/orders/{order_code}/items/{product_code}',
         ...options
+    });
+};
+
+/**
+ * Get Package Types
+ */
+export const warehouseApiRoutesPackagingGetPackageTypes = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesPackagingGetPackageTypesData, ThrowOnError>) => {
+    return (options?.client ?? client).get<WarehouseApiRoutesPackagingGetPackageTypesResponses, unknown, ThrowOnError>({
+        url: '/api/v1/packaging',
+        ...options
+    });
+};
+
+/**
+ * Package Preview
+ */
+export const warehouseApiRoutesPackagingPackagePreview = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesPackagingPackagePreviewData, ThrowOnError>) => {
+    return (options.client ?? client).post<WarehouseApiRoutesPackagingPackagePreviewResponses, unknown, ThrowOnError>({
+        url: '/api/v1/packaging/',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
     });
 };

@@ -24,7 +24,7 @@
           </q-list>
         </div>
 
-        <q-list dense class="mt-2">
+        <q-list dense class="mt-2 mb-2">
           <q-item>
             <q-item-section>Skupina zboží</q-item-section>
             <q-item-section
@@ -41,7 +41,9 @@
           </q-item>
           <q-item>
             <q-item-section>Celní nomenklatura</q-item-section>
-            <q-item-section avatar :class="{ 'text-gray-5': true }">-</q-item-section>
+            <q-item-section avatar :class="{ 'text-gray-5': true }">{{
+              product.customs_declaration_group ?? '-'
+            }}</q-item-section>
           </q-item>
           <q-item>
             <q-item-section>Váha</q-item-section>
@@ -107,8 +109,11 @@ import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import WarehouseCard from '@/components/product/WarehouseCard.vue'
+import { useApi } from '@/composables/use-api'
 import type { QTableColumn } from 'quasar'
 import { computed, ref } from 'vue'
+
+const { onResponse } = useApi()
 
 const props = defineProps<{
   productCode: string
@@ -117,8 +122,9 @@ const props = defineProps<{
 const result = await warehouseApiRoutesProductGetProduct({
   path: { product_code: props.productCode },
 })
+const data = onResponse(result)
 
-const product = ref(result.data?.data)
+const product = ref(data?.data)
 
 // const prices = [
 //   {

@@ -38,6 +38,10 @@ class WarehouseLocation(BaseModel):
         Warehouse, null=False, on_delete=models.PROTECT, related_name="locations"
     )
     items: QuerySet["WarehouseItem"]
+    is_putaway = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["code"]
 
     def __str__(self) -> str:
         return f"{self.warehouse.name} - {self.code}"
@@ -168,6 +172,19 @@ class WarehouseMovement(BaseModel):
     worker = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
 
+###################################################################################
+# ORDERS
+###################################################################################
+
+
+class InboundWarehouseOrderState(models.TextChoices):
+    DRAFT = "draft", "Draft"
+    PENDING = "pending", "Pending"
+    STARTED = "started", "Started"
+    COMPLETED = "completed", "Completed"
+    CANCELLED = "cancelled", "Cancelled"
+
+
 class WarehouseOrderOut(BaseModel):
     """Warehouse work item - order - move out of the warehouse"""
 
@@ -190,6 +207,14 @@ class WarehouseOrderIn(BaseModel):
         related_name="warehouse_order",
     )
     items: QuerySet["WarehouseItem"]
+    state = models.CharField(
+        choices=InboundWarehouseOrderState,
+        default=InboundWarehouseOrderState.DRAFT,
+        max_length=30,
+    )
+
+    class Meta:
+        ordering = ["-created"]
 
     def __str__(self) -> str:
         return self.code

@@ -10,7 +10,9 @@ from apps.warehouse.models.warehouse import (
     WarehouseMovement,
     WarehouseOrderOut,
     WarehouseOrderIn,
+    InboundWarehouseOrderState,
 )
+from .order import InboundOrderFactory
 from .product import (
     StockProductFactory,
 )
@@ -32,6 +34,7 @@ class WarehouseLocationFactory(DjangoModelFactory):
 
     code = factory.Sequence(lambda n: f"LOC-{chr(65 + (n // 100))}{n % 100:02d}")
     warehouse = factory.SubFactory(WarehouseFactory)
+    is_putaway = False
 
 
 class WarehouseItemFactory(DjangoModelFactory):
@@ -43,6 +46,7 @@ class WarehouseItemFactory(DjangoModelFactory):
     package_type = None
     location = factory.SubFactory(WarehouseLocationFactory)
     amount = 0
+    order_in = None
 
 
 class WarehouseMovementFactory(DjangoModelFactory):
@@ -76,7 +80,9 @@ class WarehouseOrderInFactory(DjangoModelFactory):
         model = WarehouseOrderIn
 
     # Add fields as they are defined in your model
-    pass
+    code = factory.Sequence(lambda n: f"ORD-{n:06d}")
+    order = factory.SubFactory(InboundOrderFactory)
+    state = InboundWarehouseOrderState.DRAFT
 
 
 class WarehouseWithLocationsFactory(WarehouseFactory):

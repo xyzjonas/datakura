@@ -1,13 +1,13 @@
 <template>
   <div v-if="order" class="w-full flex flex-col gap-2">
     <div class="flex gap-2">
-      <ForegroundPanel class="flex flex-col min-w-[400px] flex-1">
-        <span class="text-gray-5 flex items-center gap-1">OBJEDNÁVKA</span>
+      <ForegroundPanel class="flex flex-col min-w-[400px] flex-[2]">
+        <span class="text-gray-5 flex items-center gap-1">POPTÁVKA</span>
         <h1 class="text-primary mb-1">{{ order.code }}</h1>
         <span class="flex items-center gap-1 mb-3">
           <small class="text-gray-5">kód:</small>
           <h5>{{ order.code }}</h5>
-          <q-btn flat round size="8px" icon="content_copy"></q-btn>
+          <CopyToClipBoardButton v-if="order.code" :text="order.code" />
         </span>
 
         <q-list dense class="mt-2" separator>
@@ -16,7 +16,7 @@
             <q-item-section avatar>
               <span class="flex gap-1">
                 {{ order.code }}
-                <q-btn flat round size="8px" icon="content_copy"></q-btn>
+                <CopyToClipBoardButton v-if="order.code" :text="order.code" />
               </span>
             </q-item-section>
           </q-item>
@@ -25,13 +25,13 @@
             <q-item-section avatar>
               <span class="flex gap-1">
                 {{ order.external_code }}
-                <q-btn flat round size="8px" icon="content_copy"></q-btn>
+                <CopyToClipBoardButton v-if="order.external_code" :text="order.external_code" />
               </span>
             </q-item-section>
           </q-item>
         </q-list>
       </ForegroundPanel>
-      <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
+      <ForegroundPanel class="flex flex-col min-w-[312px] flex-[2]">
         <q-list dense separator>
           <q-item>
             <q-item-section>Požadovaný termín dodání</q-item-section>
@@ -46,17 +46,22 @@
             <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
           </q-item>
         </q-list>
-        <q-list dense class="mt-auto">
+        <!-- <q-list dense class="mt-auto">
           <q-item>
             <q-item-section>
               <span class="text-xs text-gray-5">Číslo příjemky</span>
-              <span>N/A</span>
+              <a
+                v-if="order.warehouse_order_code"
+                class="link"
+                @click="goToWarehouseOrderIn(order.warehouse_order_code)"
+                >{{ order.warehouse_order_code }}</a
+              >
             </q-item-section>
             <q-item-section avatar></q-item-section>
           </q-item>
-        </q-list>
+        </q-list> -->
       </ForegroundPanel>
-      <CustomerCard :customer="order.supplier" title="DODAVATEL" class="flex-[0.5]" />
+      <CustomerCard :customer="order.supplier" title="DODAVATEL" class="flex-1" />
     </div>
 
     <OrderTimeline :state="order.state" />
@@ -78,17 +83,6 @@
           @click="addItemDialog = true"
         ></q-btn>
       </div>
-      <!-- <q-icon v-if="synced" name="sym_o_check_circle" size="20px" color="positive" class="ml-5" /> -->
-      <!-- <Transition name="fade" mode="out-in">
-        <q-btn
-          v-if="!synced"
-          unelevated
-          flat
-          color="primary"
-          icon="sym_o_backup"
-          label="uložit změny"
-        ></q-btn>
-      </Transition> -->
       <div class="ml-auto">
         <q-btn
           v-if="getInboundOrderStep(order) === 1"
@@ -108,9 +102,21 @@
           icon="sym_o_input"
           @click="createWarehouseOrderDialog = true"
         />
+        <div
+          v-if="getInboundOrderStep(order) === 3 && order.warehouse_order"
+          class="flex items-center gap-2"
+        >
+          <a class="link text-lg" @click="goToWarehouseOrderIn(order.warehouse_order.code)"
+            >{{ order.warehouse_order.code }}
+          </a>
+          <InboundWarehouseOrderStateBadge
+            :state="order.warehouse_order.state"
+          ></InboundWarehouseOrderStateBadge>
+        </div>
         <q-btn
           v-if="getInboundOrderStep(order) === 3 && order.warehouse_order_code"
           unelevated
+          flat
           :color="order.warehouse_order_code ? 'positive' : 'gray'"
           :label="`příjemka ${order.warehouse_order_code ?? ''}`"
           icon="sym_o_input"
@@ -121,7 +127,7 @@
 
     <div class="flex items-center gap-2">
       <CurrencyDropdown v-model="order.currency" />
-      <h2>Položky objednávky</h2>
+      <h2>Položky poptávky</h2>
       <TotalWeight :order="order" class="ml-auto mr-5" />
       <TotalPrice :order="order" />
     </div>
@@ -144,29 +150,23 @@
       v-model:show="editOrderDialog"
       :order-in="order"
       submit-label="uložit"
-      title="Upravit Objednávku"
+      title="Upravit poptávku"
       @create-order="updateOrder"
     />
-    <ConfirmDialog v-model="confirmDialog" title="Potvrdit objednávku?" @confirm="confirm">
+    <ConfirmDialog v-model="confirmDialog" title="Potvrdit poptávku?" @confirm="confirm">
       <span
-        >Objednávka přejde do stavu <strong class="text-primary">potvrzeno</strong> a nebude možné
-        ji dále editovat!</span
+        >poptávka přejde do stavu <strong class="text-primary">potvrzeno</strong> a nebude možné ji
+        dále editovat!</span
       >
     </ConfirmDialog>
-    <ConfirmDialog
-      v-model="createWarehouseOrderDialog"
-      title="Vytovřit příjemku?"
+    <InboundOrderPutawayDialog
+      v-model:show="createWarehouseOrderDialog"
       @confirm="createWarehouseOrder"
-    >
-      <span>
-        Nová výdejka bude vytvořena a objednávka přejde do stavu
-        <strong class="text-primary">příjem</strong>.
-      </span>
-    </ConfirmDialog>
+    />
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
-    <span class="text-lg text-gray-5"> OBJEDNÁVKA NENALEZENA </span>
+    <span class="text-lg text-gray-5"> POPTÁVKA NENALEZENA </span>
   </ForegroundPanel>
 </template>
 
@@ -183,15 +183,18 @@ import {
   type InboundOrderSchema,
 } from '@/client'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import CurrencyDropdown from '@/components/order/CurrencyDropdown.vue'
+import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDialog.vue'
 import InboundOrderUpdateOrCreateDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
 import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
 import OrderTimeline from '@/components/order/OrderTimeline.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
+import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
 import { getInboundOrderStep } from '@/constants/inbound-order'
@@ -222,9 +225,10 @@ const addItem = async (item: InboundOrderItemCreateSchema) => {
     path: { order_code: order.value.code },
     body: item,
   })
+  const itemData = onResponse(addResponse)
 
-  if (!addResponse.error && addResponse.data?.success === true) {
-    order.value.items?.push(addResponse.data.data)
+  if (itemData) {
+    order.value.items?.push(itemData.data)
     if (addItemDialogComponent.value) {
       addItemDialogComponent.value.reset()
     }
@@ -279,12 +283,12 @@ const confirm = async () => {
 const $q = useQuasar()
 const { goToWarehouseOrderIn } = useAppRouter()
 const createWarehouseOrderDialog = ref(false)
-const createWarehouseOrder = async () => {
+const createWarehouseOrder = async (locationCode: string) => {
   if (!order.value) {
     return
   }
   const response = await warehouseApiRoutesWarehouseCreateInboundWarehouseOrder({
-    body: { purchase_order_code: order.value.code },
+    body: { purchase_order_code: order.value.code, location_code: locationCode },
   })
   const data = onResponse(response)
   if (data) {

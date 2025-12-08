@@ -52,8 +52,8 @@
 <script setup lang="ts">
 import type { CustomerSchema, InboundOrderCreateOrUpdateSchema, InboundOrderSchema } from '@/client'
 import { ref, watch } from 'vue'
-import CustomerSearchSelect from '../product/CustomerSearchSelect.vue'
 import CurrencyDropdown from './CurrencyDropdown.vue'
+import CustomerSearchSelect from '../selects/CustomerSearchSelect.vue'
 
 type Props = {
   title?: string

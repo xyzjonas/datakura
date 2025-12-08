@@ -19,7 +19,7 @@ from apps.warehouse.core.services.orders import inbound_orders_service
 from apps.warehouse.core.transformation import inbound_order_orm_to_schema
 from apps.warehouse.models.orders import InboundOrder
 
-routes = Router(tags=["incoming_order"])
+routes = Router(tags=["inbound_order"])
 
 
 @routes.get("", response={200: list[InboundOrderSchema]}, auth=None)

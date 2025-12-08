@@ -49,7 +49,7 @@
         flat
         label="detail skladového místa"
         :to="{
-          name: 'warehouse',
+          name: 'warehouses',
           query: { location: warehouseLocation.code, locationSearch: warehouseLocation.code },
         }"
         icon-right="sym_o_jump_to_element"
@@ -70,7 +70,7 @@
       </template>
       <template #body-cell-packaging="props">
         <q-td auto-width>
-          <q-badge color="primary">{{ props.value }}</q-badge>
+          <PackageTypeBadge :package-type="props.value" />
         </q-td>
       </template>
       <template #body-cell-remaining="props">
@@ -99,6 +99,10 @@ import {
 } from '@/client'
 import { aggregatePackaging, type WarehouseItemSchemaWithCount } from '@/utils/aggregatePackaging'
 import WarehouseItemCountBadge from './WarehouseItemCountBadge.vue'
+import { useApi } from '@/composables/use-api'
+import PackageTypeBadge from '../PackageTypeBadge.vue'
+
+const { onResponse } = useApi()
 
 const props = defineProps<{ productCode: string; productUnit: string }>()
 
@@ -119,7 +123,8 @@ type TreeElement = {
 const res = await warehouseApiRoutesProductGetProductWarehouseInfo({
   path: { product_code: props.productCode },
 })
-const warehouses = res.data?.data ?? []
+const data = onResponse(res)
+const warehouses = data?.data ?? []
 
 const simple = computed(() =>
   warehouses.map((war) => {
@@ -171,8 +176,8 @@ const columns = ref<QTableColumn[]>([])
 const locationItems = computed(() =>
   (warehouseLocation.value?.items ?? []).filter(
     (item) =>
-      item.stock_item.code.toLowerCase().includes(itemSearch.value.toLowerCase()) ||
-      item.stock_item.name.toLowerCase().includes(itemSearch.value.toLowerCase()),
+      item.product.code.toLowerCase().includes(itemSearch.value.toLowerCase()) ||
+      item.product.name.toLowerCase().includes(itemSearch.value.toLowerCase()),
   ),
 )
 
@@ -189,31 +194,32 @@ watch(
     if (value) {
       columns.value = [
         {
-          field: (item: WarehouseItemSchema) =>
-            item.package ? `${item.package.amount} × ${item.unit_of_measure}` : '-',
-          name: 'packagingSize',
-          label: 'Velikost balení',
-          align: 'left' as const,
-          sortable: true,
-        },
-        {
-          field: (item: WarehouseItemSchemaWithCount) => item.itemsCount,
-          name: 'totalCount',
-          label: 'Kusů balení',
-          sortable: true,
-          align: 'right' as const,
-        },
-        {
-          field: (item: WarehouseItemSchema) => item.package?.type ?? 'Jednotky',
+          field: (item: WarehouseItemSchema) => item.package?.type,
           name: 'packaging',
           label: 'Balení',
           align: 'left' as const,
           sortable: true,
         },
         {
+          field: (item: WarehouseItemSchemaWithCount) =>
+            item.package?.type ? item.itemsCount : '-',
+          name: 'totalCount',
+          label: 'Kusů balení',
+          sortable: true,
+          align: 'left',
+        },
+        {
+          field: (item: WarehouseItemSchema) =>
+            item.package ? `${item.package.amount} × ${item.unit_of_measure}` : '-',
+          name: 'packagingSize',
+          label: 'Velikost balení',
+          align: 'right',
+          sortable: true,
+        },
+        {
           field: (item: WarehouseItemSchema) => item.amount,
           name: 'remaining',
-          label: 'Počet',
+          label: 'Počet MJ',
           align: 'left',
           sortable: true,
         },
@@ -221,16 +227,16 @@ watch(
     } else {
       columns.value = [
         {
-          field: (item: WarehouseItemSchema) => item.code,
-          name: 'code',
-          label: 'Kód',
+          field: (item: WarehouseItemSchema) => item.package?.type,
+          name: 'packaging',
+          label: 'Balení',
           align: 'left' as const,
           sortable: true,
         },
         {
-          field: (item: WarehouseItemSchema) => item.package?.type ?? 'Jednotky',
-          name: 'packaging',
-          label: 'Balení',
+          field: (item: WarehouseItemSchema) => item.code,
+          name: 'code',
+          label: 'Kód',
           align: 'left' as const,
           sortable: true,
         },

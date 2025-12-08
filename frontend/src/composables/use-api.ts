@@ -1,4 +1,5 @@
-import type { BaseResponse } from '@/client'
+import type { BaseResponse, ErrorInformation } from '@/client'
+import { containsCustomError, isCustomError } from '@/components/type-guards/api-error-response'
 import { useQuasar } from 'quasar'
 
 // interface ResponseStub<D extends BaseResponse | undefined> {
@@ -30,22 +31,27 @@ export const useApi = () => {
   const $q = useQuasar()
 
   const onResponse = <D>(response: ResponseStub<D>): D | undefined => {
-    if (response.error) {
-      $q.notify({
-        message: 'Generická chyba',
-        type: 'negative',
-      })
-      return undefined
+    if (response.response.ok) {
+      return response.data
     }
-    if (response.data !== undefined && isBaseResponse(response.data) && !response.data.success) {
-      $q.notify({
-        message: response.data.message ?? 'Operace selhala',
-        type: 'negative',
-      })
-      return undefined
+    console.info(response)
+    const statusCode = response.response.status
+    let message = 'Neočekávaná chyba, kontaktujte administrátora'
+    let caption = response.response.statusText
+
+    // custom app error codes (handled exceptions)
+    console.info(response.error)
+    if (containsCustomError(response.error) && isCustomError(response.error.error)) {
+      message = response.error.error.error_code // todo: locale translate BE codes
+      caption = `${response.error.error.exception}`
     }
 
-    return response.data
+    $q.notify({
+      message: message,
+      caption: `${statusCode}: ${caption}`,
+      type: 'negative',
+    })
+    return undefined
   }
 
   return {

@@ -19,6 +19,24 @@ export type AuthData = {
 };
 
 /**
+ * ErrorInformation
+ */
+export type ErrorInformation = {
+    /**
+     * Error Code
+     */
+    error_code: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Exception
+     */
+    exception?: string | null;
+};
+
+/**
  * SigninResponse
  */
 export type SigninResponse = {
@@ -26,11 +44,12 @@ export type SigninResponse = {
      * Success
      */
     success: boolean;
+    error?: ErrorInformation | null;
+    data?: AuthData | null;
     /**
      * Message
      */
     message: string;
-    data?: AuthData | null;
 };
 
 /**
@@ -55,10 +74,7 @@ export type SignoutResponse = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     /**
      * Data
      */
@@ -73,10 +89,7 @@ export type WhoamiResponse = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     data: AuthData;
 };
 
@@ -88,10 +101,7 @@ export type GetWarehousesResponse = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     /**
      * Data
      */
@@ -111,9 +121,17 @@ export type WarehouseLocationSchema = {
      */
     changed: string;
     /**
+     * Warehouse Name
+     */
+    warehouse_name: string;
+    /**
      * Code
      */
     code: string;
+    /**
+     * Is Putaway
+     */
+    is_putaway: boolean;
 };
 
 /**
@@ -150,10 +168,7 @@ export type GetWarehouseLocationResponse = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     data: WarehouseLocationDetailSchema;
 };
 
@@ -185,174 +200,6 @@ export type PackageSchema = {
      * Unit
      */
     unit: string;
-};
-
-/**
- * StockItemSchema
- */
-export type StockItemSchema = {
-    /**
-     * Created
-     */
-    created: string;
-    /**
-     * Changed
-     */
-    changed: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Code
-     */
-    code: string;
-};
-
-/**
- * WarehouseItemSchema
- * Atomic unit of the inventory - uniquely identifiable and trackable item in a warehouse
- */
-export type WarehouseItemSchema = {
-    /**
-     * Created
-     */
-    created: string;
-    /**
-     * Changed
-     */
-    changed: string;
-    /**
-     * Code
-     */
-    code: string;
-    stock_item: StockItemSchema;
-    /**
-     * Unit Of Measure
-     */
-    unit_of_measure: string;
-    /**
-     * Amount
-     */
-    amount: number;
-    package: PackageSchema | null;
-};
-
-/**
- * WarehouseLocationDetailSchema
- */
-export type WarehouseLocationDetailSchema = {
-    /**
-     * Created
-     */
-    created: string;
-    /**
-     * Changed
-     */
-    changed: string;
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Items
-     */
-    items: Array<WarehouseItemSchema>;
-};
-
-/**
- * GetWarehouseOrderResponse
- */
-export type GetWarehouseOrderResponse = {
-    /**
-     * Success
-     */
-    success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
-    data: WarehouseOrderSchema;
-};
-
-/**
- * WarehouseOrderSchema
- */
-export type WarehouseOrderSchema = {
-    /**
-     * Created
-     */
-    created: string;
-    /**
-     * Changed
-     */
-    changed: string;
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Items
-     */
-    items: Array<WarehouseItemSchema>;
-    /**
-     * Order Code
-     */
-    order_code: string | null;
-};
-
-/**
- * WarehouseOrderCreateSchema
- */
-export type WarehouseOrderCreateSchema = {
-    /**
-     * Purchase Order Code
-     */
-    purchase_order_code: string;
-};
-
-/**
- * Input
- */
-export type Input = {
-    /**
-     * Page
-     */
-    page?: number;
-    /**
-     * Page Size
-     */
-    page_size?: number;
-};
-
-/**
- * PagedProductSchema
- */
-export type PagedProductSchema = {
-    /**
-     * Success
-     */
-    success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
-    /**
-     * Data
-     */
-    data: Array<ProductSchema>;
-    /**
-     * Count
-     */
-    count: number;
-    /**
-     * Next
-     */
-    next: number | null;
-    /**
-     * Previous
-     */
-    previous: number | null;
 };
 
 /**
@@ -404,6 +251,10 @@ export type ProductSchema = {
      */
     currency: string;
     /**
+     * Customs Declaration Group
+     */
+    customs_declaration_group?: string | null;
+    /**
      * Attributes
      */
     attributes?: {
@@ -412,42 +263,10 @@ export type ProductSchema = {
 };
 
 /**
- * GetProductResponse
+ * WarehouseItemSchema
+ * Atomic unit of the inventory - uniquely identifiable and trackable item in a warehouse
  */
-export type GetProductResponse = {
-    /**
-     * Success
-     */
-    success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
-    data: ProductSchema;
-};
-
-/**
- * GetProductWarehouseInfoResponse
- */
-export type GetProductWarehouseInfoResponse = {
-    /**
-     * Success
-     */
-    success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
-    /**
-     * Data
-     */
-    data: Array<WarehouseExpandedSchema>;
-};
-
-/**
- * WarehouseExpandedSchema
- */
-export type WarehouseExpandedSchema = {
+export type WarehouseItemSchema = {
     /**
      * Created
      */
@@ -457,47 +276,54 @@ export type WarehouseExpandedSchema = {
      */
     changed: string;
     /**
-     * Name
+     * Id
      */
-    name: string;
+    id: number;
     /**
-     * Description
+     * Code
      */
-    description: string | null;
+    code: string;
+    product: ProductSchema;
     /**
-     * Locations
+     * Unit Of Measure
      */
-    locations: Array<WarehouseLocationDetailSchema>;
+    unit_of_measure: string;
+    /**
+     * Amount
+     */
+    amount: number;
+    package: PackageSchema | null;
+    location: WarehouseLocationSchema;
 };
 
 /**
- * GetProductWarehouseAvailabilityResponse
+ * WarehouseLocationDetailSchema
  */
-export type GetProductWarehouseAvailabilityResponse = {
+export type WarehouseLocationDetailSchema = {
     /**
-     * Success
+     * Created
      */
-    success?: boolean;
+    created: string;
     /**
-     * Message
+     * Changed
      */
-    message?: string | null;
-    data: ProductWarehouseAvailability;
-};
-
-/**
- * ProductWarehouseAvailability
- * Summary of item's availability in the warehouse
- */
-export type ProductWarehouseAvailability = {
+    changed: string;
     /**
-     * Total Amount
+     * Warehouse Name
      */
-    total_amount: number;
+    warehouse_name: string;
     /**
-     * Available Amount
+     * Code
      */
-    available_amount: number;
+    code: string;
+    /**
+     * Is Putaway
+     */
+    is_putaway: boolean;
+    /**
+     * Items
+     */
+    items: Array<WarehouseItemSchema>;
 };
 
 /**
@@ -707,6 +533,283 @@ export type CustomerSchema = {
 };
 
 /**
+ * GetWarehouseOrderResponse
+ */
+export type GetWarehouseOrderResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: InboundWarehouseOrderSchema;
+};
+
+/**
+ * InboundOrderBaseSchema
+ */
+export type InboundOrderBaseSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    supplier: CustomerSchema;
+    /**
+     * Currency
+     */
+    currency: string;
+    state: InboundOrderState;
+    /**
+     * Warehouse Order Code
+     */
+    warehouse_order_code?: string | null;
+};
+
+/**
+ * InboundOrderState
+ */
+export type InboundOrderState = 'draft' | 'submitted' | 'putaway' | 'completed' | 'cancelled';
+
+/**
+ * InboundWarehouseOrderSchema
+ */
+export type InboundWarehouseOrderSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Order Code
+     */
+    order_code: string;
+    state: InboundWarehouseOrderState;
+    /**
+     * Items
+     */
+    items: Array<WarehouseItemSchema>;
+    /**
+     * Completed Items Count
+     */
+    completed_items_count: number;
+    order: InboundOrderBaseSchema;
+};
+
+/**
+ * InboundWarehouseOrderState
+ */
+export type InboundWarehouseOrderState = 'draft' | 'pending' | 'started' | 'completed' | 'cancelled';
+
+/**
+ * WarehouseOrderCreateSchema
+ */
+export type WarehouseOrderCreateSchema = {
+    /**
+     * Purchase Order Code
+     */
+    purchase_order_code: string;
+    /**
+     * Location Code
+     */
+    location_code: string;
+};
+
+/**
+ * Input
+ */
+export type Input = {
+    /**
+     * Page
+     */
+    page?: number;
+    /**
+     * Page Size
+     */
+    page_size?: number;
+};
+
+/**
+ * PagedInboundWarehouseOrderSchema
+ */
+export type PagedInboundWarehouseOrderSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<InboundWarehouseOrderSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * InboundWarehouseOrderUpdateSchema
+ */
+export type InboundWarehouseOrderUpdateSchema = {
+    state: InboundWarehouseOrderState;
+};
+
+/**
+ * UpdateWarehouseOrderDraftItemsRequest
+ */
+export type UpdateWarehouseOrderDraftItemsRequest = {
+    /**
+     * To Be Removed
+     */
+    to_be_removed: Array<WarehouseItemSchema>;
+    /**
+     * To Be Added
+     */
+    to_be_added: Array<WarehouseItemSchema>;
+};
+
+/**
+ * PagedProductSchema
+ */
+export type PagedProductSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<ProductSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetProductResponse
+ */
+export type GetProductResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: ProductSchema;
+};
+
+/**
+ * GetProductWarehouseInfoResponse
+ */
+export type GetProductWarehouseInfoResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<WarehouseExpandedSchema>;
+};
+
+/**
+ * WarehouseExpandedSchema
+ */
+export type WarehouseExpandedSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Locations
+     */
+    locations: Array<WarehouseLocationDetailSchema>;
+};
+
+/**
+ * GetProductWarehouseAvailabilityResponse
+ */
+export type GetProductWarehouseAvailabilityResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: ProductWarehouseAvailability;
+};
+
+/**
+ * ProductWarehouseAvailability
+ * Summary of item's availability in the warehouse
+ */
+export type ProductWarehouseAvailability = {
+    /**
+     * Total Amount
+     */
+    total_amount: number;
+    /**
+     * Available Amount
+     */
+    available_amount: number;
+};
+
+/**
  * PagedCustomerSchema
  */
 export type PagedCustomerSchema = {
@@ -714,10 +817,7 @@ export type PagedCustomerSchema = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     /**
      * Data
      */
@@ -744,14 +844,11 @@ export type BaseResponse = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     /**
      * Data
      */
-    data: unknown;
+    data?: unknown | null;
 };
 
 /**
@@ -762,10 +859,7 @@ export type GetCustomerResponse = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     data: CustomerSchema;
 };
 
@@ -822,24 +916,43 @@ export type InboundOrderSchema = {
     note?: string | null;
     supplier: CustomerSchema;
     /**
-     * Items
-     */
-    items?: Array<InboundOrderItemSchema>;
-    /**
      * Currency
      */
     currency: string;
+    state: InboundOrderState;
     /**
      * Warehouse Order Code
      */
-    warehouse_order_code: string | null;
-    state: InboundOrderState;
+    warehouse_order_code?: string | null;
+    /**
+     * Items
+     */
+    items?: Array<InboundOrderItemSchema>;
+    warehouse_order: InboundWarehouseOrderBaseSchema;
 };
 
 /**
- * InboundOrderState
+ * InboundWarehouseOrderBaseSchema
  */
-export type InboundOrderState = 'draft' | 'submitted' | 'putaway' | 'completed' | 'cancelled';
+export type InboundWarehouseOrderBaseSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Order Code
+     */
+    order_code: string;
+    state: InboundWarehouseOrderState;
+};
 
 /**
  * PagedInboundOrderSchema
@@ -849,10 +962,7 @@ export type PagedInboundOrderSchema = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     /**
      * Data
      */
@@ -879,10 +989,7 @@ export type GetInboundOrderResponse = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     data: InboundOrderSchema;
 };
 
@@ -925,10 +1032,7 @@ export type CreateInboundOrderItemResponse = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     data: InboundOrderItemSchema;
 };
 
@@ -969,14 +1073,93 @@ export type EmptyResponse = {
      * Success
      */
     success?: boolean;
-    /**
-     * Message
-     */
-    message?: string | null;
+    error?: ErrorInformation | null;
     /**
      * Data
      */
     data?: null;
+};
+
+/**
+ * GetPackageTypesResponse
+ */
+export type GetPackageTypesResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<PackageTypeSchema>;
+};
+
+/**
+ * PackageTypeSchema
+ */
+export type PackageTypeSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Unit
+     */
+    unit: string;
+};
+
+/**
+ * PutInPackageResponse
+ */
+export type PutInPackageResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<WarehouseItemSchema>;
+};
+
+/**
+ * PutInPackageRequestSchema
+ */
+export type PutInPackageRequestSchema = {
+    /**
+     * Warehouse Item Id
+     */
+    warehouse_item_id: number;
+    /**
+     * Product Code
+     */
+    product_code: string;
+    /**
+     * Package Name
+     */
+    package_name: string;
+    /**
+     * Amount
+     */
+    amount: number;
 };
 
 export type WarehouseApiRoutesAuthLoginUserData = {
@@ -1049,7 +1232,7 @@ export type WarehouseApiRoutesWarehouseGetWarehousesData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/api/v1/warehouses';
+    url: '/api/v1/warehouse/warehouses';
 };
 
 export type WarehouseApiRoutesWarehouseGetWarehousesResponses = {
@@ -1070,7 +1253,7 @@ export type WarehouseApiRoutesWarehouseGetWarehouseLocationData = {
         warehouse_location_code: string;
     };
     query?: never;
-    url: '/api/v1/locations/{warehouse_location_code}';
+    url: '/api/v1/warehouse/locations/{warehouse_location_code}';
 };
 
 export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponses = {
@@ -1082,11 +1265,40 @@ export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponses = {
 
 export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponse = WarehouseApiRoutesWarehouseGetWarehouseLocationResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseLocationResponses];
 
+export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/warehouse/orders-incoming';
+};
+
+export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses = {
+    /**
+     * OK
+     */
+    200: PagedInboundWarehouseOrderSchema;
+};
+
+export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponse = WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses[keyof WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses];
+
 export type WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData = {
     body: WarehouseOrderCreateSchema;
     path?: never;
     query?: never;
-    url: '/api/v1/orders-incoming';
+    url: '/api/v1/warehouse/orders-incoming';
 };
 
 export type WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses = {
@@ -1107,7 +1319,7 @@ export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData = {
         code: string;
     };
     query?: never;
-    url: '/api/v1/orders-incoming/{code}';
+    url: '/api/v1/warehouse/orders-incoming/{code}';
 };
 
 export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses = {
@@ -1118,6 +1330,48 @@ export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses = {
 };
 
 export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses];
+
+export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData = {
+    body: InboundWarehouseOrderUpdateSchema;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}';
+};
+
+export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses];
+
+export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData = {
+    body: UpdateWarehouseOrderDraftItemsRequest;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}/items';
+};
+
+export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponse = WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses[keyof WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses];
 
 export type WarehouseApiRoutesProductGetProductsData = {
     body?: never;
@@ -1431,3 +1685,40 @@ export type WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses = {
 };
 
 export type WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponse = WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses[keyof WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses];
+
+export type WarehouseApiRoutesPackagingGetPackageTypesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+    };
+    url: '/api/v1/packaging';
+};
+
+export type WarehouseApiRoutesPackagingGetPackageTypesResponses = {
+    /**
+     * OK
+     */
+    200: GetPackageTypesResponse;
+};
+
+export type WarehouseApiRoutesPackagingGetPackageTypesResponse = WarehouseApiRoutesPackagingGetPackageTypesResponses[keyof WarehouseApiRoutesPackagingGetPackageTypesResponses];
+
+export type WarehouseApiRoutesPackagingPackagePreviewData = {
+    body: PutInPackageRequestSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/packaging/';
+};
+
+export type WarehouseApiRoutesPackagingPackagePreviewResponses = {
+    /**
+     * OK
+     */
+    200: PutInPackageResponse;
+};
+
+export type WarehouseApiRoutesPackagingPackagePreviewResponse = WarehouseApiRoutesPackagingPackagePreviewResponses[keyof WarehouseApiRoutesPackagingPackagePreviewResponses];

@@ -1,19 +1,26 @@
+from typing import cast
+
+from django.db.models import QuerySet, Q
 from django.http import HttpRequest
 from ninja import Router
+from ninja.pagination import paginate
 
+from apps.warehouse.api.pagination import IncomingWarehouseOrdersPagination
 from apps.warehouse.core.schemas.warehouse import (
     GetWarehousesResponse,
     WarehouseSchema,
-    WarehouseLocationSchema,
     GetWarehouseLocationResponse,
-    WarehouseLocationDetailSchema,
     GetWarehouseOrderResponse,
     WarehouseOrderCreateSchema,
+    InboundWarehouseOrderSchema,
+    UpdateWarehouseOrderDraftItemsRequest,
+    InboundWarehouseOrderUpdateSchema,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
-    warehouse_item_orm_to_schema,
     warehouse_inbound_order_orm_to_schema,
+    location_orm_to_schema,
+    location_orm_to_detail_schema,
 )
 from apps.warehouse.models.warehouse import (
     Warehouse,
@@ -38,11 +45,7 @@ def get_warehouses(request: HttpRequest):
                 created=warehouse.created,
                 changed=warehouse.changed,
                 locations=[
-                    WarehouseLocationSchema(
-                        code=location.code,
-                        created=location.created,
-                        changed=location.changed,
-                    )
+                    location_orm_to_schema(location)
                     for location in warehouse.locations.all()
                 ],
             )
@@ -66,15 +69,9 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
         "items__stock_product__unit_of_measure",
         "items__package_type",
         "items__package_type__unit_of_measure",
+        "items__order_in",
     ).get(code=warehouse_location_code)
-    return GetWarehouseLocationResponse(
-        data=WarehouseLocationDetailSchema(
-            code=location.code,
-            created=location.created,
-            changed=location.changed,
-            items=[warehouse_item_orm_to_schema(item) for item in location.items.all()],
-        )
-    )
+    return GetWarehouseLocationResponse(data=location_orm_to_detail_schema(location))
 
 
 @routes.post(
@@ -90,6 +87,27 @@ def create_inbound_warehouse_order(
     # )
     warehouse_order = warehouse_service.create_inbound_order(body)
     return GetWarehouseOrderResponse(data=warehouse_order)
+
+
+@routes.get(
+    "orders-incoming",
+    response={200: list[InboundWarehouseOrderSchema]},
+    auth=None,
+)
+@paginate(IncomingWarehouseOrdersPagination)
+def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None = None):
+    qs = cast(
+        QuerySet[WarehouseOrderIn],
+        WarehouseOrderIn.objects.select_related("order").prefetch_related("items"),
+    )
+    if search_term:
+        search_term = search_term.lower()
+        qs = qs.filter(
+            Q(code__iexact=search_term)
+            | Q(code__icontains=search_term)
+            | Q(order__code__icontains=search_term)
+        )
+    return qs.all()
 
 
 @routes.get(
@@ -109,3 +127,36 @@ def get_inbound_warehouse_order(request: HttpRequest, code: str):
         "items__package_type__unit_of_measure",
     ).get(code=code)
     return GetWarehouseOrderResponse(data=warehouse_inbound_order_orm_to_schema(order))
+
+
+@routes.put(
+    "orders-incoming/{code}",
+    response={200: GetWarehouseOrderResponse},
+    auth=None,
+)
+def update_inbound_warehouse_order(
+    request: HttpRequest, code: str, body: InboundWarehouseOrderUpdateSchema
+):
+    # user = authenticate(
+    #     request, username=credentials.username, password=credentials.password
+    # )
+    return GetWarehouseOrderResponse(
+        data=warehouse_service.update_inbound_order(code, body)
+    )
+
+
+@routes.post(
+    "orders-incoming/{code}/items",
+    response={200: GetWarehouseOrderResponse},
+    auth=None,
+)
+def update_inbound_warehouse_order_items(
+    request: HttpRequest, code: str, body: UpdateWarehouseOrderDraftItemsRequest
+):
+    # user = authenticate(
+    #     request, username=credentials.username, password=credentials.password
+    # )
+    order = warehouse_service.add_or_remove_inbound_order_items(
+        code, body.to_be_removed, body.to_be_added
+    )
+    return GetWarehouseOrderResponse(data=order)

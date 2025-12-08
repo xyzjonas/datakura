@@ -55,6 +55,7 @@
         </template>
       </q-input>
       <q-btn
+        v-if="!readonly"
         icon="sym_o_close_small"
         color="negative"
         flat

@@ -18,10 +18,16 @@ class BaseSchema(Schema):
         return dt.replace(microsecond=0)
 
 
+class ErrorInformation(Schema):
+    error_code: str
+    message: str
+    exception: str | None = None
+
+
 class BaseResponse(BaseModel):
     success: bool = True
-    message: str | None = None
-    data: Any
+    error: ErrorInformation | None = None
+    data: Any | None = None
 
 
 class EmptyResponse(BaseResponse):

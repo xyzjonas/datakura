@@ -51,6 +51,8 @@ class StockProduct(BaseModel):
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
+    customs_declaration_group = models.CharField(max_length=255, null=True, blank=True)
+
     attributes = models.JSONField(default=dict, blank=True)
 
     class Meta:

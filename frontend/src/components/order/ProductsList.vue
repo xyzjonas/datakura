@@ -12,8 +12,8 @@
         @dragleave="handleDragLeave"
         @drop="handleDrop($event, index)"
       >
-        <div class="drag-handle">
-          <q-icon name="sym_o_drag_indicator" size="1rem" />
+        <div :class="!readonly ? 'drag-handle' : ''">
+          <q-icon :name="readonly ? 'sym_o_check_small' : 'sym_o_drag_indicator'" size="1rem" />
         </div>
         <ProductRow
           v-model:item="items[index]"

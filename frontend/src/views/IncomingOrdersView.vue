@@ -8,14 +8,14 @@
       flat
       v-model:pagination="pagination"
       @request="onPaginationChange"
-      no-data-label="Žádné produkty nenalezeny"
+      no-data-label="Žádné poptávky nenalezeny"
       :rows-per-page-options="[10, 30, 50, 100]"
       class="bg-transparent"
     >
       <template #top-left>
         <SearchInput
           v-model="search"
-          placeholder="Vyhledat objednávku"
+          placeholder="Vyhledat poptávku"
           clearable
           :debounce="300"
         ></SearchInput>
@@ -24,7 +24,7 @@
         <q-btn
           color="primary"
           outline
-          label="Nová objednávka"
+          label="Nová poptávka"
           icon="sym_o_add"
           @click="newOrderDialog = true"
         />
@@ -46,6 +46,21 @@
       <template #body-cell-state="props">
         <q-td>
           <InboundOrderStateBadge :state="props.row.state" />
+        </q-td>
+      </template>
+      <template #body-cell-warehouseOrder="props">
+        <q-td>
+          <a
+            v-if="props.row.warehouse_order_code"
+            class="link"
+            @click="
+              $router.push({
+                name: 'warehouseInboundOrderDetail',
+                params: { code: props.row.warehouse_order_code },
+              })
+            "
+            >{{ props.row.warehouse_order_code }}</a
+          >
         </q-td>
       </template>
     </q-table>
@@ -74,6 +89,7 @@ import { useQuasar, type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+const { onResponse } = useApi()
 const { page, pageSize, search } = useQueryProducts()
 
 const pagination = ref<NonNullable<QTableProps['pagination']>>({
@@ -94,9 +110,10 @@ const fetchOrders = async () => {
         search_term: search.value,
       },
     })
-    if (res.data?.data) {
-      orders.value = res.data.data
-      pagination.value.rowsNumber = res.data.count
+    const data = onResponse(res)
+    if (data) {
+      orders.value = data.data
+      pagination.value.rowsNumber = data.count
     }
   } finally {
     setTimeout(() => (loading.value = false), 300)
@@ -145,6 +162,12 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
   {
+    name: 'warehouseOrder',
+    field: (order: InboundOrderSchema) => order.warehouse_order_code,
+    label: 'Příjemka',
+    align: 'left',
+  },
+  {
     name: 'created',
     field: 'created',
     label: 'Datum vytvoření',
@@ -172,7 +195,6 @@ const columns: QTableColumn[] = [
   },
 ]
 
-const { onResponse } = useApi()
 const newOrderDialog = ref(false)
 const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
 const $q = useQuasar()
@@ -183,7 +205,7 @@ const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
     newOrderDialogComponent.value.reset()
     $q.notify({
       type: 'positive',
-      message: `Objednávka úspěšně vytvořena: ${data.data.code}`,
+      message: `poptávka úspěšně vytvořena: ${data.data.code}`,
     })
     router.push({ name: 'incomingOrderDetail', params: { code: data.data.code } })
   }

@@ -61,9 +61,15 @@
             <MenuList
               :items="[
                 {
+                  label: 'Poptávky',
+                  icon: 'sym_o_shoppingmode',
+                  routeName: 'incomingOrders',
+                  routeMatch: 'incomingOrders,incomingOrderDetail',
+                },
+                {
                   label: 'Objednávky',
                   icon: 'sym_o_receipt',
-                  routeName: 'incomingOrders',
+                  routeName: 'outboundOrders',
                 },
                 {
                   label: 'Faktury',
@@ -83,12 +89,13 @@
                 {
                   label: 'Skladová místa',
                   icon: 'sym_o_location_on',
-                  routeName: 'warehouse',
+                  routeName: 'warehouses',
                 },
                 {
                   label: 'Příjemky',
                   icon: 'sym_o_input',
-                  routeName: 'submissions',
+                  routeName: 'warehouseInboundOrders',
+                  routeMatch: 'warehouseInboundOrders,warehouseInboundOrderDetail',
                 },
                 {
                   label: 'Výdejky',

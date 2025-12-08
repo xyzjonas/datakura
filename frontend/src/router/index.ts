@@ -5,7 +5,8 @@ import IncomingOrdersView from '@/views/IncomingOrdersView.vue'
 import IncomingOrderView from '@/views/IncomingOrderView.vue'
 import ProductsView from '@/views/ProductsView.vue'
 import ProductView from '@/views/ProductView.vue'
-import WarehouseInboundOrder from '@/views/WarehouseInboundOrder.vue'
+import WarehouseInboundOrdersView from '@/views/WarehouseInboundOrdersView.vue'
+import WarehouseInboundOrderView from '@/views/WarehouseInboundOrderView.vue'
 import WarehouseView from '@/views/WarehouseView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -20,12 +21,17 @@ const router = createRouter({
     {
       path: '/warehouse/inbound-orders/:code',
       name: 'warehouseInboundOrderDetail',
-      component: WarehouseInboundOrder,
+      component: WarehouseInboundOrderView,
       props: true,
     },
     {
-      path: '/warehouse',
-      name: 'warehouse',
+      path: '/warehouse/inbound-orders',
+      name: 'warehouseInboundOrders',
+      component: WarehouseInboundOrdersView,
+    },
+    {
+      path: '/warehouses',
+      name: 'warehouses',
       component: WarehouseView,
     },
     {

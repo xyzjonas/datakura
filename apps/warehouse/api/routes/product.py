@@ -15,16 +15,16 @@ from apps.warehouse.core.schemas.product import (
 from apps.warehouse.core.schemas.warehouse import (
     GetProductWarehouseInfoResponse,
     WarehouseExpandedSchema,
-    WarehouseLocationDetailSchema,
     GetProductWarehouseAvailabilityResponse,
 )
+from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
     get_product_by_code,
     warehouse_item_orm_to_schema,
+    location_orm_to_detail_schema,
 )
-from apps.warehouse.core.warehouse import get_total_availability
 from apps.warehouse.models.product import StockProduct
-from apps.warehouse.models.warehouse import WarehouseItem
+from apps.warehouse.models.warehouse import WarehouseItem, InboundWarehouseOrderState
 
 routes = Router(tags=["product"])
 
@@ -66,6 +66,7 @@ def get_product_warehouse_info(request: HttpRequest, product_code: str):
     # ).get(code=product_code)
     items = (
         WarehouseItem.objects.filter(stock_product__code=product_code)
+        .exclude(order_in__state=InboundWarehouseOrderState.DRAFT)
         .prefetch_related(
             "package_type",
             "stock_product",
@@ -98,12 +99,7 @@ def get_product_warehouse_info(request: HttpRequest, product_code: str):
 
         location_model = item.location
         if location_model.code not in location_names:
-            location = WarehouseLocationDetailSchema(
-                code=location_model.code,
-                created=location_model.created,
-                changed=location_model.changed,
-                items=[],
-            )
+            location = location_orm_to_detail_schema(location_model)
             warehouse.locations.append(location)
             location_names.add(location.code)
         else:
@@ -123,5 +119,5 @@ def get_product_warehouse_info(request: HttpRequest, product_code: str):
 )
 def get_product_warehouse_availability(request: HttpRequest, product_code: str):
     return GetProductWarehouseAvailabilityResponse(
-        data=get_total_availability(product_code)
+        data=warehouse_service.get_total_availability(product_code)
     )

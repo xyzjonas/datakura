@@ -12,7 +12,7 @@
     <q-step
       :name="1"
       title="Koncept"
-      caption="čeká na potvrzení"
+      caption="Čeká na potvrzení"
       icon="sym_o_ink_pen"
       active-icon="sym_o_ink_pen"
       active-color="accent"
@@ -26,7 +26,7 @@
     <q-step
       :name="2"
       title="Potvrzeno"
-      caption="zboží je na cestě"
+      caption="Zboží je na cestě"
       icon="sym_o_delivery_truck_speed"
       active-icon="sym_o_delivery_truck_speed"
       active-color="accent"
@@ -40,7 +40,7 @@
     <q-step
       :name="3"
       title="Příjem"
-      caption="zboží je na příjmu"
+      caption="Zboží je na příjmu"
       icon="sym_o_input"
       active-icon="sym_o_input"
       active-color="accent"
@@ -54,7 +54,7 @@
     <q-step
       :name="50"
       title="Přijato"
-      caption="naskladněno"
+      caption="Naskladněno"
       icon="warehouse"
       active-icon="warehouse"
       active-color="accent"

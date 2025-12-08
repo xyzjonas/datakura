@@ -184,6 +184,7 @@ class Command(BaseCommand):
                 "purchase_price": product.purchase_price or 0,
                 "base_price": product.base_price or 0,
                 "attributes": product.attributes,
+                "customs_declaration_group": product.loc_customs_declaration_group,
             },
         )
 

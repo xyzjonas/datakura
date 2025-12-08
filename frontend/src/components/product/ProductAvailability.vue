@@ -1,5 +1,5 @@
 <template>
-  <q-chip square>
+  <q-chip square @click="$emit('click')">
     <transition :duration="0" name="fade" mode="out-in">
       <q-spinner v-if="loading" class="w-12"></q-spinner>
       <div v-else class="flex items-center justify-center justify-around gap-2 min-w-30">
@@ -19,24 +19,28 @@
 
 <script setup lang="ts">
 import { warehouseApiRoutesProductGetProductWarehouseAvailability } from '@/client'
+import { useApi } from '@/composables/use-api'
 import { onMounted, ref } from 'vue'
 
 const props = defineProps<{ productCode: string }>()
+defineEmits(['click'])
 
 const loading = ref(true)
 const totalAmount = ref(0)
 const availableAmount = ref(0)
 
+const { onResponse } = useApi()
+
 const fetch = async () => {
-  const result = await warehouseApiRoutesProductGetProductWarehouseAvailability({
+  const response = await warehouseApiRoutesProductGetProductWarehouseAvailability({
     path: { product_code: props.productCode },
   })
-  if (result.data?.success && result.data?.data) {
-    totalAmount.value = result.data.data.total_amount
-    availableAmount.value = result.data.data.available_amount
+  const data = onResponse(response)
+  if (data) {
+    totalAmount.value = data.data.total_amount
+    availableAmount.value = data.data.available_amount
   }
   loading.value = false
-  // setTimeout(() => (loading.value = false), Math.random() * 300)
 }
 
 onMounted(fetch)

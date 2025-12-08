@@ -45,7 +45,7 @@
 import type { InboundOrderItemCreateSchema, ProductSchema } from '@/client'
 import { rules } from '@/utils/rules'
 import { ref, watch } from 'vue'
-import ProductSearchSelect from '../product/ProductSearchSelect.vue'
+import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 
 const showDialog = defineModel('show', { default: false })
 

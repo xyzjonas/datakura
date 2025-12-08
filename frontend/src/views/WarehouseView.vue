@@ -11,7 +11,7 @@
         <div
           @click="setLocation(prop.node)"
           :class="
-            prop.node.icon === LOCATION_ICON
+            prop.node.isPlace
               ? 'flex items-center cursor-pointer light:hover:bg-gray-1 dark:hover:bg-dark px-2 pr-4 rounded'
               : ''
           "
@@ -26,8 +26,9 @@
   </ForegroundPanel>
 
   <ForegroundPanel class="flex-[5]" v-if="warehouseLocation">
-    <div class="flex justify-between items-center">
-      <h2 class="mb-5">{{ warehouseLocation.code }}</h2>
+    <div class="flex justify-start items-center mb-2 gap-3">
+      <h2>{{ warehouseLocation.code }}</h2>
+      <q-badge v-if="warehouseLocation.is_putaway" color="accent">příjem</q-badge>
     </div>
 
     <q-table
@@ -51,11 +52,11 @@
             @click="
               $router.push({
                 name: 'productDetail',
-                params: { productCode: props.row.stock_item.code },
+                params: { productCode: props.row.product.code },
               })
             "
             class="link"
-            >{{ props.row.stock_item.name }}</a
+            >{{ props.row.product.name }}</a
           >
         </q-td>
       </template>
@@ -64,7 +65,7 @@
       </template>
       <template #body-cell-packaging="props">
         <q-td auto-width>
-          <q-badge color="primary">{{ props.row.package?.type ?? 'Jednotka' }}</q-badge>
+          <PackageTypeBadge :package-type="props.row.package?.type" />
         </q-td>
       </template>
       <template #body-cell-remaining="props">
@@ -92,19 +93,25 @@ import {
   warehouseApiRoutesWarehouseGetWarehouses,
   type WarehouseItemSchema,
   type WarehouseLocationDetailSchema,
+  type WarehouseLocationSchema,
 } from '@/client'
 import EmptyPanel from '@/components/EmptyPanel.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import PackageTypeBadge from '@/components/PackageTypeBadge.vue'
 import WarehouseItemCountBadge from '@/components/product/WarehouseItemCountBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryWarehouse } from '@/composables/query/use-warehouse-query'
+import { useApi } from '@/composables/use-api'
 import { aggregatePackaging } from '@/utils/aggregatePackaging'
 import { useLocalStorage, useWindowScroll } from '@vueuse/core'
 import { QTree, type QTable, type QTableColumn } from 'quasar'
 import { computed, onMounted, ref, watch } from 'vue'
 
+const { onResponse } = useApi()
+
 const result = await warehouseApiRoutesWarehouseGetWarehouses()
-const warehouses = ref(result.data?.data ?? [])
+const data = onResponse(result)
+const warehouses = ref(data?.data ?? [])
 
 const { location, locationSearch, itemSearch } = useQueryWarehouse()
 
@@ -114,7 +121,15 @@ const tree = ref<QTree | null>(null)
 type TreeElement = {
   label: string
   icon: string
+  isPlace?: boolean
   children?: TreeElement[]
+}
+
+const getLocationIcon = (location: WarehouseLocationSchema) => {
+  if (location.is_putaway) {
+    return 'sym_o_activity_zone'
+  }
+  return LOCATION_ICON
 }
 
 const simple = computed(() =>
@@ -124,7 +139,11 @@ const simple = computed(() =>
       icon: 'sym_o_home_work',
       children: war.locations
         .filter((loc) => loc.code.toLowerCase().includes(locationSearch.value.toLowerCase()))
-        .map((loc) => ({ label: loc.code, icon: LOCATION_ICON })) as TreeElement[],
+        .map((loc) => ({
+          label: loc.code,
+          icon: getLocationIcon(loc),
+          isPlace: true,
+        })) as TreeElement[],
     }
   }),
 )
@@ -149,11 +168,12 @@ const fetchWarehouseLocation = async () => {
     warehouseLocation.value = undefined
     return
   }
-  const res = await warehouseApiRoutesWarehouseGetWarehouseLocation({
+  const response = await warehouseApiRoutesWarehouseGetWarehouseLocation({
     path: { warehouse_location_code: location.value },
   })
-  if (res.data?.data) {
-    warehouseLocation.value = res.data.data
+  const data = onResponse(response)
+  if (data) {
+    warehouseLocation.value = data.data
   }
 }
 const warehouseLocation = ref<WarehouseLocationDetailSchema>()
@@ -163,7 +183,7 @@ if (location.value) {
 
 const { y } = useWindowScroll({ behavior: 'smooth' })
 const setLocation = (element: TreeElement) => {
-  if (element.icon === LOCATION_ICON) {
+  if (element.isPlace) {
     location.value = element.label
     y.value = 0
   }
@@ -179,14 +199,14 @@ const columns = computed<QTableColumn[]>(() => {
   if (aggregate.value) {
     return [
       {
-        field: (item: WarehouseItemSchema) => item.stock_item.name,
+        field: (item: WarehouseItemSchema) => item.product.name,
         name: 'name',
         label: 'Název produktu',
         align: 'left' as const,
         sortable: true,
       },
       {
-        field: (item: WarehouseItemSchema) => item.stock_item.code,
+        field: (item: WarehouseItemSchema) => item.product.code,
         name: 'code',
         label: 'Kód produktu',
         align: 'left' as const,
@@ -217,14 +237,14 @@ const columns = computed<QTableColumn[]>(() => {
   } else {
     return [
       {
-        field: (item: WarehouseItemSchema) => item.stock_item.name,
+        field: (item: WarehouseItemSchema) => item.product.name,
         name: 'name',
         label: 'Název produktu',
         align: 'left' as const,
         sortable: true,
       },
       {
-        field: (item: WarehouseItemSchema) => item.stock_item.code,
+        field: (item: WarehouseItemSchema) => item.product.code,
         name: 'code',
         label: 'Kód produktu',
         align: 'left' as const,
@@ -260,8 +280,8 @@ const aggregate = useLocalStorage('aggragate-package-types', true)
 const locationItems = computed(() =>
   (warehouseLocation.value?.items ?? []).filter(
     (item) =>
-      item.stock_item.code.toLowerCase().includes(itemSearch.value.toLowerCase()) ||
-      item.stock_item.name.toLowerCase().includes(itemSearch.value.toLowerCase()),
+      item.product.code.toLowerCase().includes(itemSearch.value.toLowerCase()) ||
+      item.product.name.toLowerCase().includes(itemSearch.value.toLowerCase()),
   ),
 )
 

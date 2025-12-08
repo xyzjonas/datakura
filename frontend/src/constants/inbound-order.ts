@@ -44,7 +44,7 @@ export const INBOUND_ORDER_STATES: Record<string, StateConfig> = {
   // },
   putaway: {
     label: 'Příjem',
-    icon: 'sym_o_warehouse',
+    icon: 'sym_o_input',
     color: 'accent',
     step: 3,
   },

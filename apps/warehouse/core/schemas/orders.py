@@ -1,10 +1,11 @@
+
 from ninja import Schema
 from pydantic import Field
 
-from .base import BaseSchema, PaginatedResponse, BaseResponse
-from .customer import CustomerSchema
-from .product import ProductSchema
 from apps.warehouse.models.orders import InboundOrderState
+from .base import BaseSchema, PaginatedResponse, BaseResponse
+from .base_orders import InboundOrderBaseSchema, InboundWarehouseOrderBaseSchema
+from .product import ProductSchema
 
 
 # --- IncomingOrderItem Schemas --- #
@@ -37,16 +38,10 @@ class InboundOrderTransitionSchema(Schema):
     state: InboundOrderState
 
 
-class InboundOrderSchema(BaseSchema):
-    code: str
-    external_code: str | None = None
-    description: str | None = None
-    note: str | None = None
-    supplier: CustomerSchema
+class InboundOrderSchema(InboundOrderBaseSchema):
     items: list[InboundOrderItemSchema] = Field(default_factory=list)
-    currency: str
-    warehouse_order_code: str | None
     state: InboundOrderState
+    warehouse_order: InboundWarehouseOrderBaseSchema | None = None
 
 
 class GetInboundOrderResponse(BaseResponse):

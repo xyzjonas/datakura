@@ -11,7 +11,9 @@ import type { WarehouseItemSchema } from '@/client'
 import { computed } from 'vue'
 
 const props = defineProps<{ item: WarehouseItemSchema }>()
-const isPackaged = computed(() => !!props.item.package)
+const isPackaged = computed(
+  () => props.item.package?.amount && props.item.amount <= props.item.package.amount,
+)
 const packageAmount = computed(() => (props.item.package ? props.item.package.amount : 0))
 </script>
 

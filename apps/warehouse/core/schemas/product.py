@@ -15,6 +15,7 @@ class ProductSchema(BaseSchema):
     base_price: float
     purchase_price: float
     currency: str
+    customs_declaration_group: str | None = None
     attributes: dict[str, str] = Field(default_factory=dict)
 
 
