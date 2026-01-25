@@ -33,7 +33,7 @@ from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     WarehouseItem,
-    WarehouseOrderIn,
+    InboundWarehouseOrder,
     WarehouseLocation,
     InboundWarehouseOrderState,
 )
@@ -180,11 +180,11 @@ def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
         warehouse_order=InboundWarehouseOrderBaseSchema(
             code=order.warehouse_order.code,
             order_code=order.code,
-            state=order.warehouse_order.state,
+            state=InboundWarehouseOrderState(order.warehouse_order.state),
             created=order.warehouse_order.created,
             changed=order.warehouse_order.changed,
         )
-        if hasattr(order, "warehouse_order")
+        if (hasattr(order, "warehouse_order") and order.warehouse_order)
         else None,
         state=cast(InboundOrderState, order.state),
         items=[inbound_order_item_orm_to_schema(item) for item in order.items.all()],
@@ -192,7 +192,7 @@ def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
 
 
 def warehouse_inbound_order_orm_to_schema(
-    w_order: WarehouseOrderIn,
+    w_order: InboundWarehouseOrder,
 ) -> InboundWarehouseOrderSchema:
     return InboundWarehouseOrderSchema(
         code=w_order.code,
@@ -202,10 +202,10 @@ def warehouse_inbound_order_orm_to_schema(
         completed_items_count=len(
             [item for item in w_order.items.all() if not item.location.is_putaway]
         ),
-        order_code=w_order.incoming_order_code,
+        order_code=w_order.order.code,
         order=InboundOrderBaseSchema(
             code=w_order.order.code,
-            state=w_order.order.state,
+            state=InboundOrderState(w_order.order.state),
             created=w_order.order.created,
             changed=w_order.order.changed,
             external_code=w_order.order.external_code,
@@ -215,5 +215,5 @@ def warehouse_inbound_order_orm_to_schema(
             currency=w_order.order.currency,
             warehouse_order_code=w_order.code,
         ),
-        state=w_order.state,
+        state=InboundWarehouseOrderState(w_order.state),
     )

@@ -12,7 +12,6 @@ from apps.warehouse.core.schemas.product import (
     GetProductsResponse,
 )
 from apps.warehouse.core.schemas.warehouse import (
-    InboundWarehouseOrderSchema,
     GetWarehouseOrdersResponse,
 )
 from apps.warehouse.core.transformation import (
@@ -24,6 +23,7 @@ from apps.warehouse.core.transformation import (
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import InboundOrder
 from apps.warehouse.models.product import StockProduct
+from apps.warehouse.models.warehouse import InboundWarehouseOrder
 
 
 class StockProductPagination(PaginationBase):
@@ -115,7 +115,7 @@ class IncomingWarehouseOrdersPagination(PaginationBase):
 
     def paginate_queryset(
         self,
-        queryset: QuerySet[InboundWarehouseOrderSchema],
+        queryset: QuerySet[InboundWarehouseOrder],
         pagination: Input,
         **params,
     ):

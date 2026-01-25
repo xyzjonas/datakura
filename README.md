@@ -1,5 +1,3 @@
-from turtledemo.clock import setup
-
 # DATAKURA
 
 “Data” + kura (倉, storehouse)

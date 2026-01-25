@@ -1,4 +1,4 @@
-import type { BaseResponse, ErrorInformation } from '@/client'
+import type { BaseResponse } from '@/client'
 import { containsCustomError, isCustomError } from '@/components/type-guards/api-error-response'
 import { useQuasar } from 'quasar'
 

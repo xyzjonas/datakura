@@ -14,8 +14,8 @@ from apps.warehouse.models.warehouse import (
     Warehouse,
     WarehouseLocation,
     WarehouseMovement,
-    WarehouseOrderIn,
-    WarehouseOrderOut,
+    InboundWarehouseOrder,
+    OutboundWarehouseOrder,
 )
 
 admin.site.register(WarehouseItem)
@@ -35,8 +35,8 @@ admin.site.register(Customer)
 admin.site.register(InboundOrder)
 admin.site.register(InboundOrderItem)
 
-admin.site.register(WarehouseOrderIn)
-admin.site.register(WarehouseOrderOut)
+admin.site.register(InboundWarehouseOrder)
+admin.site.register(OutboundWarehouseOrder)
 
 
 @admin.register(StockProduct)

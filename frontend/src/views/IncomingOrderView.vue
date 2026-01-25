@@ -84,6 +84,7 @@
         ></q-btn>
       </div>
       <div class="ml-auto">
+        <!-- DRAFT -->
         <q-btn
           v-if="getInboundOrderStep(order) === 1"
           unelevated
@@ -94,18 +95,16 @@
           class="ml-auto"
           :disable="order.items?.length === 0"
         ></q-btn>
+        <!-- IN TRANSIT -->
         <q-btn
           v-if="getInboundOrderStep(order) === 2"
           unelevated
           color="positive"
-          label="naskladnit"
-          icon="sym_o_input"
+          label="Zboží je na příjmu"
+          icon="sym_o_check"
           @click="createWarehouseOrderDialog = true"
         />
-        <div
-          v-if="getInboundOrderStep(order) === 3 && order.warehouse_order"
-          class="flex items-center gap-2"
-        >
+        <div v-if="order.warehouse_order" class="flex items-center gap-2">
           <a class="link text-lg" @click="goToWarehouseOrderIn(order.warehouse_order.code)"
             >{{ order.warehouse_order.code }}
           </a>

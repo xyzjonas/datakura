@@ -8,8 +8,8 @@ from apps.warehouse.models.warehouse import (
     WarehouseLocation,
     WarehouseItem,
     WarehouseMovement,
-    WarehouseOrderOut,
-    WarehouseOrderIn,
+    OutboundWarehouseOrder,
+    InboundWarehouseOrder,
     InboundWarehouseOrderState,
 )
 from .order import InboundOrderFactory
@@ -69,7 +69,7 @@ class WarehouseMovementFactory(DjangoModelFactory):
 
 class WarehouseOrderOutFactory(DjangoModelFactory):
     class Meta:
-        model = WarehouseOrderOut
+        model = OutboundWarehouseOrder
 
     # Add fields as they are defined in your model
     pass
@@ -77,7 +77,7 @@ class WarehouseOrderOutFactory(DjangoModelFactory):
 
 class WarehouseOrderInFactory(DjangoModelFactory):
     class Meta:
-        model = WarehouseOrderIn
+        model = InboundWarehouseOrder
 
     # Add fields as they are defined in your model
     code = factory.Sequence(lambda n: f"ORD-{n:06d}")

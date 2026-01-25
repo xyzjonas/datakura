@@ -33,7 +33,7 @@ from apps.warehouse.models.orders import (
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
-    WarehouseOrderIn,
+    InboundWarehouseOrder,
     WarehouseItem,
     WarehouseLocation,
 )
@@ -54,7 +54,7 @@ class WarehouseService:
     def generate_next_inbound_order_code() -> str:
         now = timezone.now()
         dt_range = _get_month_range(now)
-        orders_this_month = WarehouseOrderIn.objects.filter(
+        orders_this_month = InboundWarehouseOrder.objects.filter(
             created__range=dt_range
         ).count()
         return f"P{now.year}{now.month:02d}{orders_this_month + 1:04d}"
@@ -69,7 +69,7 @@ class WarehouseService:
         code = WarehouseService.generate_next_inbound_order_code()
 
         with transaction.atomic():
-            warehouse_order = WarehouseOrderIn.objects.create(
+            warehouse_order = InboundWarehouseOrder.objects.create(
                 code=code, order=purchase_order
             )
             for item in purchase_order.items.all():
@@ -88,7 +88,7 @@ class WarehouseService:
                     location=location,
                     order_in=warehouse_order,
                 )
-            purchase_order.state = InboundOrderState.PUTAWAY
+            purchase_order.state = InboundOrderState.RECEIVING
             purchase_order.save()
 
         return warehouse_inbound_order_orm_to_schema(warehouse_order)
@@ -175,7 +175,7 @@ class WarehouseService:
         to_be_removed: list[WarehouseItemSchema],
         to_be_added: list[WarehouseItemSchema],
     ) -> InboundWarehouseOrderSchema:
-        order = WarehouseOrderIn.objects.get(code=order_code)
+        order = InboundWarehouseOrder.objects.get(code=order_code)
         try:
             with transaction.atomic():
                 for item in to_be_removed:
@@ -183,7 +183,9 @@ class WarehouseService:
                 for item in to_be_added:
                     WarehouseItem.objects.create(
                         order_in=order,
-                        package_type=PackageType.objects.get(name=item.package.type),
+                        package_type=PackageType.objects.get(name=item.package.type)
+                        if item.package
+                        else None,
                         code=str(uuid.uuid4()),
                         stock_product=StockProduct.objects.get(code=item.product.code),
                         amount=item.amount,
@@ -193,14 +195,14 @@ class WarehouseService:
             raise WarehouseItemBadRequestError(str(exc))
 
         return warehouse_inbound_order_orm_to_schema(
-            WarehouseOrderIn.objects.get(code=order_code)
+            InboundWarehouseOrder.objects.get(code=order_code)
         )
 
     @staticmethod
     def update_inbound_order(
         code: str, body: InboundWarehouseOrderUpdateSchema
     ) -> InboundWarehouseOrderSchema:
-        order = WarehouseOrderIn.objects.get(code=code)
+        order = InboundWarehouseOrder.objects.get(code=code)
         order.state = body.state
         order.save()
         return warehouse_inbound_order_orm_to_schema(order)

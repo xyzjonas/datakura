@@ -219,7 +219,7 @@ watch(
         {
           field: (item: WarehouseItemSchema) => item.amount,
           name: 'remaining',
-          label: 'Počet MJ',
+          label: 'Počet celkem',
           align: 'left',
           sortable: true,
         },
@@ -243,7 +243,7 @@ watch(
         {
           field: (item: WarehouseItemSchema) => item.amount,
           name: 'remaining',
-          label: 'Počet MJ',
+          label: 'Počet v balení',
           align: 'left' as const,
           sortable: true,
         },

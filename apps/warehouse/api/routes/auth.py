@@ -40,7 +40,6 @@ def logout_user(request: HttpRequest):
 
     return SignoutResponse(
         success=True,
-        message="Logout successful",
     )
 
 

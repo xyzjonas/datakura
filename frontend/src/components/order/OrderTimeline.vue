@@ -1,4 +1,5 @@
 <template>
+  {{ props.state }}
   <q-stepper
     flat
     :model-value="step"
@@ -41,6 +42,20 @@
       :name="3"
       title="Příjem"
       caption="Zboží je na příjmu"
+      icon="sym_o_fact_check"
+      active-icon="sym_o_fact_check"
+      active-color="accent"
+      :done="step > 3"
+      :header-nav="step > 3"
+      :error="step >= CANCELLED"
+      error-color="negative"
+    >
+    </q-step>
+
+    <q-step
+      :name="4"
+      title="Naskladnění"
+      caption="Zboží je připraveno k naskladění"
       icon="sym_o_input"
       active-icon="sym_o_input"
       active-color="accent"

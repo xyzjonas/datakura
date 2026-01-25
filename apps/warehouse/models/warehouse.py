@@ -81,7 +81,7 @@ class WarehouseItem(BaseModel):
         help_text="Location where the physical item is stored in the warehouse",
     )
     order_in = models.ForeignKey(
-        "WarehouseOrderIn",
+        "InboundWarehouseOrder",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -185,7 +185,7 @@ class InboundWarehouseOrderState(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
-class WarehouseOrderOut(BaseModel):
+class OutboundWarehouseOrder(BaseModel):
     """Warehouse work item - order - move out of the warehouse"""
 
     code = models.CharField(max_length=50, unique=True, null=False)
@@ -195,15 +195,13 @@ class WarehouseOrderOut(BaseModel):
         return self.code
 
 
-class WarehouseOrderIn(BaseModel):
+class InboundWarehouseOrder(BaseModel):
     """Warehouse work item - supply - move in the warehouse"""
 
     code = models.CharField(max_length=50, unique=True, null=False)
     order = models.OneToOneField(
         InboundOrder,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name="warehouse_order",
     )
     items: QuerySet["WarehouseItem"]
@@ -219,8 +217,8 @@ class WarehouseOrderIn(BaseModel):
     def __str__(self) -> str:
         return self.code
 
-    @property
-    def incoming_order_code(self) -> str | None:
-        if hasattr(self, "order") and self.order:
-            return self.order.code
-        return None
+    # @property
+    # def incoming_order_code(self) -> str | None:
+    #     if hasattr(self, "order") and self.order:
+    #         return self.order.code
+    #     return None

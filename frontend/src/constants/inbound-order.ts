@@ -37,22 +37,23 @@ export const INBOUND_ORDER_STATES: Record<string, StateConfig> = {
   //   icon: 'sym_o_inventory',
   //   color: 'indigo',
   // },
-  // quality_check: {
-  //   label: 'Kontrola kvality',
-  //   icon: 'sym_o_fact_check',
-  //   color: 'amber',
-  // },
-  putaway: {
+  receiving: {
     label: 'Příjem',
-    icon: 'sym_o_input',
-    color: 'accent',
+    icon: 'sym_o_fact_check',
+    color: 'orange-8',
     step: 3,
+  },
+  putaway: {
+    label: 'Naskladnění',
+    icon: 'sym_o_input',
+    color: 'cyan-8',
+    step: 4,
   },
   completed: {
     label: 'Dokončeno',
     icon: 'sym_o_check_circle',
     color: 'positive',
-    step: 4,
+    step: 5,
   },
   cancelled: {
     label: 'Zrušeno',

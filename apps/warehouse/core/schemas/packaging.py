@@ -9,7 +9,7 @@ from .warehouse import WarehouseItemSchema
 class PackageTypeSchema(BaseSchema):
     name: str
     amount: float
-    description: str
+    description: str | None = None
     unit: str
 
 

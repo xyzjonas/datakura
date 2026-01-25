@@ -3,7 +3,7 @@ import { defineConfig, presetUno } from 'unocss'
 export default defineConfig({
   rules: [],
   shortcuts: {
-    link: 'text-current light:text-primary font-600 no-underline hover:underline hover:cursor-pointer',
+    link: 'text-current text-primary font-600 no-underline hover:underline hover:cursor-pointer',
   },
   presets: [
     // Tailwind-like utility classes, replacement for Bootstrap's utility classes.
@@ -20,7 +20,8 @@ export default defineConfig({
   // https://brand.suse.com/brand-system/color-palette
   theme: {
     colors: {
-      primary: '#cc3263',
+      // primary: '#cc3263',
+      primary: '#1976d2',
       secondary: '#192072', // Midnight
       accent: '#3f84e5', // blue
       red: '#d92b2b',

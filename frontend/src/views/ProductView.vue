@@ -1,5 +1,9 @@
 <template>
   <div v-if="product" class="flex flex-col gap-2 flex-1">
+    <div class="flex justify-end gap-2">
+      <q-btn color="primary" icon="edit" label="upravit" disable></q-btn>
+      <q-btn color="primary" icon="copy" label="duplikovat" disable></q-btn>
+    </div>
     <div class="flex gap-2">
       <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
         <span class="text-gray-5 flex items-center gap-1 mb-1">
@@ -34,7 +38,7 @@
             >
           </q-item>
           <q-item>
-            <q-item-section>Nákupní cena</q-item-section>
+            <q-item-section>Průměrná nákupní cena</q-item-section>
             <q-item-section avatar
               >{{ product.purchase_price }}&hairsp;{{ product.currency }}</q-item-section
             >

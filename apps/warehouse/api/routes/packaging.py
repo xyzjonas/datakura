@@ -23,7 +23,7 @@ def get_package_types(request: HttpRequest, search_term: str | None = None):
                 created=package_type.created,
                 changed=package_type.changed,
                 name=package_type.name,
-                amount=package_type.amount,
+                amount=float(package_type.amount),
                 description=package_type.description,
                 unit=package_type.unit_of_measure.name,
             )

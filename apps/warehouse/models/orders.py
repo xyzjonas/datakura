@@ -10,7 +10,7 @@ from .customer import Customer
 from .product import StockProduct
 
 if TYPE_CHECKING:
-    from .warehouse import WarehouseOrderIn
+    from .warehouse import InboundWarehouseOrder
 
 
 class InboundOrderState(models.TextChoices):
@@ -18,7 +18,7 @@ class InboundOrderState(models.TextChoices):
     SUBMITTED = "submitted", "Submitted"
     # IN_TRANSIT = "in_transit", "In Transit"
     # ARRIVED = "arrived", "Arrived"
-    # RECEIVING = "receiving", "Receiving"
+    RECEIVING = "receiving", "Receiving"
     # QUALITY_CHECK = "quality_check", "Quality Check"
     PUTAWAY = "putaway", "Put Away"
     COMPLETED = "completed", "Completed"
@@ -46,7 +46,7 @@ class InboundOrder(BaseModel):
         default=InboundOrderState.DRAFT,
     )
 
-    warehouse_order: WarehouseOrderIn | None
+    warehouse_order: InboundWarehouseOrder | None
 
     class Meta:
         ordering = ["-created"]

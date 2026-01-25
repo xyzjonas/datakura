@@ -1,4 +1,5 @@
 import enum
+from typing import NoReturn
 
 
 class ErrorCode(enum.Enum):
@@ -40,7 +41,7 @@ class WarehouseItemBadRequestError(ApiBaseException):
     http_status = 400
 
 
-def raise_by_code(code: ErrorCode, message: str) -> None:
+def raise_by_code(code: ErrorCode, message: str) -> NoReturn:
     exc = ApiBaseException(message)
     exc.code = code
     raise exc

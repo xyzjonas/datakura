@@ -222,7 +222,7 @@ const columns = computed<QTableColumn[]>(() => {
       {
         field: (item: WarehouseItemSchema) => item.amount,
         name: 'remaining',
-        label: 'Počet v balení',
+        label: 'Počet celkem',
         align: 'left' as const,
         sortable: true,
       },

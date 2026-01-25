@@ -1,6 +1,6 @@
 
-#[parallel]
-#default: ci-python ci-js
+[parallel]
+default: ci-python ci-js
 
 install:
     uv sync

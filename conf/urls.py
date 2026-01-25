@@ -23,6 +23,6 @@ from .views import VueAppView
 
 urlpatterns = [
     path("", include("warehouse.urls")),
-    path("admin/", admin.site.urls),
+    path("admin", admin.site.urls),
     re_path(r"^.*$", VueAppView.as_view(), name="vue-app"),  # Catch-all for Vue routing
 ]

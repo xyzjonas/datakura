@@ -21,7 +21,7 @@ def test_get_all_empty(db, client):
     assert response.data == {
         "count": 0,
         "data": [],
-        "message": None,
+        "error": None,
         "success": True,
         "next": None,
         "previous": None,

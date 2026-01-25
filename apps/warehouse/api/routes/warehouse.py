@@ -25,7 +25,7 @@ from apps.warehouse.core.transformation import (
 from apps.warehouse.models.warehouse import (
     Warehouse,
     WarehouseLocation,
-    WarehouseOrderIn,
+    InboundWarehouseOrder,
 )
 
 routes = Router(tags=["warehouse"])
@@ -97,8 +97,8 @@ def create_inbound_warehouse_order(
 @paginate(IncomingWarehouseOrdersPagination)
 def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None = None):
     qs = cast(
-        QuerySet[WarehouseOrderIn],
-        WarehouseOrderIn.objects.select_related("order").prefetch_related("items"),
+        QuerySet[InboundWarehouseOrder],
+        InboundWarehouseOrder.objects.select_related("order").prefetch_related("items"),
     )
     if search_term:
         search_term = search_term.lower()
@@ -119,7 +119,7 @@ def get_inbound_warehouse_order(request: HttpRequest, code: str):
     # user = authenticate(
     #     request, username=credentials.username, password=credentials.password
     # )
-    order = WarehouseOrderIn.objects.prefetch_related(
+    order = InboundWarehouseOrder.objects.prefetch_related(
         "items",
         "items__stock_product",
         "items__stock_product__unit_of_measure",
