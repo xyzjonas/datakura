@@ -73,7 +73,7 @@
       icon="warehouse"
       active-icon="warehouse"
       active-color="accent"
-      :done="step >= 4"
+      :done="step >= 5"
       :header-nav="step > 3"
       :error="step >= CANCELLED"
       error-color="negative"

@@ -2,7 +2,7 @@
   <div v-if="product" class="flex flex-col gap-2 flex-1">
     <div class="flex justify-end gap-2">
       <q-btn color="primary" icon="edit" label="upravit" disable></q-btn>
-      <q-btn color="primary" icon="copy" label="duplikovat" disable></q-btn>
+      <q-btn color="primary" icon="content_copy" label="duplikovat" disable></q-btn>
     </div>
     <div class="flex gap-2">
       <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">

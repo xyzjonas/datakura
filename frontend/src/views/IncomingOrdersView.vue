@@ -8,14 +8,14 @@
       flat
       v-model:pagination="pagination"
       @request="onPaginationChange"
-      no-data-label="Žádné poptávky nenalezeny"
+      no-data-label="Žádné vydané objednávky nenalezeny"
       :rows-per-page-options="[10, 30, 50, 100]"
       class="bg-transparent"
     >
       <template #top-left>
         <SearchInput
           v-model="search"
-          placeholder="Vyhledat poptávku"
+          placeholder="Vyhledat objednávku"
           clearable
           :debounce="300"
         ></SearchInput>
@@ -24,7 +24,7 @@
         <q-btn
           color="primary"
           outline
-          label="Nová poptávka"
+          label="Nová objednávka"
           icon="sym_o_add"
           @click="newOrderDialog = true"
         />
@@ -205,7 +205,7 @@ const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
     newOrderDialogComponent.value.reset()
     $q.notify({
       type: 'positive',
-      message: `poptávka úspěšně vytvořena: ${data.data.code}`,
+      message: `vydaná objednávka úspěšně vytvořena: ${data.data.code}`,
     })
     router.push({ name: 'incomingOrderDetail', params: { code: data.data.code } })
   }

@@ -12,7 +12,7 @@
         outlined
         v-model="locationCode"
         label="Skladové místo"
-        hint="Skladové místo, kde bude poptávka uložena k naskladnění"
+        hint="Skladové místo, kde bude vydaná objednávka uložena k naskladnění"
         class="mt-5"
       ></q-input>
     </span>

@@ -61,7 +61,7 @@
             <MenuList
               :items="[
                 {
-                  label: 'Poptávky',
+                  label: 'Vydané Obj.',
                   icon: 'sym_o_shoppingmode',
                   routeName: 'incomingOrders',
                   routeMatch: 'incomingOrders,incomingOrderDetail',

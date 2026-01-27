@@ -2,7 +2,7 @@
   <div v-if="order" class="w-full flex flex-col gap-2">
     <div class="flex gap-2">
       <ForegroundPanel class="flex flex-col min-w-[400px] flex-[2]">
-        <span class="text-gray-5 flex items-center gap-1">POPTÁVKA</span>
+        <span class="text-gray-5 flex items-center gap-1">VYDANÁ OBJEDNÁVKA</span>
         <h1 class="text-primary mb-1">{{ order.code }}</h1>
         <span class="flex items-center gap-1 mb-3">
           <small class="text-gray-5">kód:</small>
@@ -126,7 +126,7 @@
 
     <div class="flex items-center gap-2">
       <CurrencyDropdown v-model="order.currency" />
-      <h2>Položky poptávky</h2>
+      <h2>Položky objednávky</h2>
       <TotalWeight :order="order" class="ml-auto mr-5" />
       <TotalPrice :order="order" />
     </div>
@@ -149,13 +149,13 @@
       v-model:show="editOrderDialog"
       :order-in="order"
       submit-label="uložit"
-      title="Upravit poptávku"
+      title="Upravit objednávku"
       @create-order="updateOrder"
     />
-    <ConfirmDialog v-model="confirmDialog" title="Potvrdit poptávku?" @confirm="confirm">
+    <ConfirmDialog v-model="confirmDialog" title="Potvrdit vydanou objednávku?" @confirm="confirm">
       <span
-        >poptávka přejde do stavu <strong class="text-primary">potvrzeno</strong> a nebude možné ji
-        dále editovat!</span
+        >objednávka přejde do stavu <strong class="text-primary">potvrzeno</strong> a nebude možné
+        ji dále editovat!</span
       >
     </ConfirmDialog>
     <InboundOrderPutawayDialog
@@ -165,7 +165,7 @@
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
-    <span class="text-lg text-gray-5"> POPTÁVKA NENALEZENA </span>
+    <span class="text-lg text-gray-5"> OBJEDNÁVKA NENALEZENA </span>
   </ForegroundPanel>
 </template>
 
