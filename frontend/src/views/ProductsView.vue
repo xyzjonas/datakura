@@ -1,5 +1,12 @@
 <template>
   <div class="flex-1">
+    <div class="mb-2 flex justify-between items-center">
+      <div>
+        <h1>Produkty</h1>
+        <h5 class="text-gray-5 mt-2">Kontrolujte a spravujte produkty</h5>
+      </div>
+      <q-btn color="primary" unelevated label="vytvořit" icon="sym_o_add" disable />
+    </div>
     <q-table
       :rows="products"
       :columns="columns"
@@ -152,7 +159,7 @@ const columns: QTableColumn[] = [
   },
   {
     name: 'base_price',
-    label: 'Cena',
+    label: 'Prodejní cena',
     align: 'right',
     field: (item: ProductSchema) => (item.base_price ? `${item.base_price} ${item.currency}` : '-'),
   },

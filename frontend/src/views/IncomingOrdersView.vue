@@ -1,5 +1,18 @@
 <template>
   <div class="flex-1">
+    <div class="mb-2 flex justify-between items-center">
+      <div>
+        <h1>Vydané Objednávky</h1>
+        <h5 class="text-gray-5 mt-2">Kontrolujte a spravujte vydané objednávky</h5>
+      </div>
+      <q-btn
+        color="primary"
+        unelevated
+        label="vytvořit"
+        icon="sym_o_add"
+        @click="newOrderDialog = true"
+      />
+    </div>
     <q-table
       :rows="orders"
       :columns="columns"
@@ -20,15 +33,9 @@
           :debounce="300"
         ></SearchInput>
       </template>
-      <template #top-right>
-        <q-btn
-          color="primary"
-          outline
-          label="Nová objednávka"
-          icon="sym_o_add"
-          @click="newOrderDialog = true"
-        />
-      </template>
+      <!-- <template #top-right>
+        <q-btn color="gray" unelevated label="vytvořit" disable @click="newOrderDialog = true" />
+      </template> -->
       <template #body-cell-code="props">
         <q-td>
           <a

@@ -9,6 +9,13 @@ import { useQuasar } from 'quasar'
 //   response: Response
 // }
 
+const ERROR_CODES: { [key: string]: { title: string; caption: string } } = {
+  PACKAGING_0001: {
+    title: 'Chybné balení',
+    caption: 'Položka nelze rozdělit do požadovaného balení beze zbytku!',
+  },
+}
+
 type ResponseStub<D> = (
   | {
       data: undefined
@@ -42,8 +49,9 @@ export const useApi = () => {
     // custom app error codes (handled exceptions)
     console.info(response.error)
     if (containsCustomError(response.error) && isCustomError(response.error.error)) {
-      message = response.error.error.error_code // todo: locale translate BE codes
-      caption = `${response.error.error.exception}`
+      const localeVersion = ERROR_CODES[response.error.error.error_code]
+      message = localeVersion?.title ?? response.error.error.error_code // todo: locale translate BE codes
+      caption = localeVersion?.caption ?? `${response.error.error.exception}`
     }
 
     $q.notify({

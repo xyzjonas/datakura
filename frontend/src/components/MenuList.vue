@@ -5,10 +5,11 @@
     clickable
     v-ripple
     :active="isActive(item)"
-    active-class="light:bg-primary dark:bg-primary light:text-white dark:text-white"
+    active-class="light:bg-primary_light dark:bg-primary light:text-white dark:text-white"
     :to="{ name: item.routeName }"
     :class="{ 'rounded-md': true }"
     dense
+    dark
   >
     <q-item-section avatar>
       <q-icon :name="item.icon" />
@@ -39,4 +40,8 @@ const isActive = (item: MenuItem) => {
 }
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+a {
+  color: white !important;
+}
+</style>

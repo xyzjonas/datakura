@@ -2,7 +2,6 @@
   <q-input
     dense
     outlined
-    rounded
     v-model.trim="modelValue"
     :placeholder="placeholder ?? 'Vyhledat...'"
     :disable="disable"

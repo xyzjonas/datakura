@@ -1,16 +1,7 @@
 <template>
-  <q-layout view="hhh Lpr fff">
+  <q-layout view="lhh Lpr fff">
     <q-header>
       <q-toolbar class="flex gap-5 p-3 items-center">
-        <div class="flex items-center gap-3 flex-nowrap">
-          <!-- <q-btn dense flat :icon="isOpened ? 'close' : 'menu'" @click="isOpened = !isOpened" /> -->
-          <span class="h-[16px] w-[16px] light:bg-primary dark:bg-light ml-2"></span>
-          <q-separator vertical class="my-3 bg-gray h-[1rem]" />
-          <a href="/" class="mr-[96px] light:text-primary dark:text-light">
-            <span class="font-bold">SKLAD</span>
-          </a>
-        </div>
-
         <SearchInput v-model="search" class="w-[512px]" />
 
         <div class="ml-auto flex gap-2 flex-nowrap">
@@ -27,9 +18,10 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="isOpened" side="left" :width="196" persistent class="text-gray-6 p-1">
+    <q-drawer v-model="isOpened" side="left" persistent class="text-white p-1 bg-dark-8">
       <div class="flex flex-col h-full">
-        <q-scroll-area class="flex-1">
+        <AppLogo class="mb-2 p-1" />
+        <q-scroll-area class="flex-1 p-2">
           <q-list class="flex flex-col gap-1">
             <MenuList
               :items="[
@@ -40,7 +32,7 @@
                 },
               ]"
             />
-            <q-item-label header>Produkty</q-item-label>
+            <q-item-label header class="text-gray-4">Produkty</q-item-label>
             <MenuList
               :items="[
                 {
@@ -57,7 +49,7 @@
                 },
               ]"
             />
-            <q-item-label header>Nákup / Prodej</q-item-label>
+            <q-item-label header class="text-gray-4">Nákup / Prodej</q-item-label>
             <MenuList
               :items="[
                 {
@@ -83,7 +75,7 @@
                 },
               ]"
             />
-            <q-item-label header>Sklad</q-item-label>
+            <q-item-label header class="text-gray-4">Sklad</q-item-label>
             <MenuList
               :items="[
                 {
@@ -104,7 +96,7 @@
                 },
               ]"
             />
-            <q-item-label header>Zákazník</q-item-label>
+            <q-item-label header class="text-gray-4">Zákazník</q-item-label>
             <MenuList
               :items="[
                 {
@@ -177,10 +169,15 @@ import { ref } from 'vue'
 import MenuList from '../MenuList.vue'
 import SearchInput from '../SearchInput.vue'
 import BackToTopFab from './BackToTopFab.vue'
+import AppLogo from '../AppLogo.vue'
 
 const search = ref('')
 const { isDark, toggle } = useDarkmode()
 const isOpened = ref(true)
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+:deep(a) {
+  color: white;
+}
+</style>

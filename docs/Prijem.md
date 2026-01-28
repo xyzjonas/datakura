@@ -6,7 +6,7 @@ Kroky procesu
 
 ## 1. Vytvoření objednávky
 
-Vytvoření nákupní objednávky (draft/koncept)
+Vytvoření nákupní vydané objednávky (draft/koncept)
 Objednávka obsahuje specifikaci zboží, množství a dodavatele
 Status: Rozpracováno
 
@@ -21,6 +21,8 @@ Status: Objednáno
 Fyzický příjem zásilky na nakládací rampu/příjmovou zónu
 Registrace dodávky v systému
 Status: V příjmu
+
+> ( ! ) zboží které čeká na příjmu je přístupné pro VÝDEJ 
 
 ## 4. Fyzická kontrola zboží
 Pracovník skladu provádí kusovou kontrolu každé položky:
