@@ -1,7 +1,7 @@
 <template>
   <div v-if="warehouseOrder" class="flex flex-col gap-2 flex-1">
     <div class="flex gap-2">
-      <ForegroundPanel class="flex-[3]">
+      <ForegroundPanel class="flex-1">
         <span class="uppercase text-xs text-gray-5">Příjemka</span>
         <span class="flex gap-2 items-center">
           <h1 class="text-primary">{{ warehouseOrder.code }}</h1>
@@ -16,7 +16,7 @@
       <CustomerCard :customer="warehouseOrder.order.supplier" title="Dodavatel" class="flex-1" />
     </div>
 
-    <InboundWarehouseOrderTimeline :order="warehouseOrder" />
+    <InboundWarehouseOrderTimeline :order="warehouseOrder" class="mt-5" />
 
     <div class="flex items-center gap-2 my-5">
       <!-- <q-icon v-if="synced" name="sym_o_check_circle" size="20px" color="positive" class="ml-5" /> -->

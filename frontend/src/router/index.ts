@@ -3,8 +3,10 @@ import CustomerView from '@/views/CustomerView.vue'
 import HomeView from '@/views/HomeView.vue'
 import IncomingOrdersView from '@/views/IncomingOrdersView.vue'
 import IncomingOrderView from '@/views/IncomingOrderView.vue'
+import LoginView from '@/views/LoginView.vue'
 import ProductsView from '@/views/ProductsView.vue'
 import ProductView from '@/views/ProductView.vue'
+import SettingsView from '@/views/SettingsView.vue'
 import WarehouseInboundOrdersView from '@/views/WarehouseInboundOrdersView.vue'
 import WarehouseInboundOrderView from '@/views/WarehouseInboundOrderView.vue'
 import WarehouseView from '@/views/WarehouseView.vue'
@@ -66,6 +68,19 @@ const router = createRouter({
       name: 'incomingOrderDetail',
       component: IncomingOrderView,
       props: true,
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: SettingsView,
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+      meta: {
+        disableLayout: true,
+      },
     },
   ],
 })

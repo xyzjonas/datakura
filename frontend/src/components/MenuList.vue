@@ -39,8 +39,7 @@ const isActive = (item: MenuItem) => {
   return item.routeName.includes(String(currentRoute.value.name))
 }
 </script>
-
-<style lang="scss" scoped>
+<style lang="css" scoped>
 a {
   color: white !important;
 }

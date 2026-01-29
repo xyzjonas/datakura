@@ -13,7 +13,8 @@ const refreshToken = useLocalStorage('refresh-token', '')
 const csrfToken = useLocalStorage('csrf-token', '')
 
 export const useAuth = () => {
-  const signin = async (): Promise<void> => {
+  const signin = async (username: string, password: string): Promise<void> => {
+    console.info(username, password)
     // const res = await daysApiRoutesAuthLoginUser({
     //   body: {
     //     username,

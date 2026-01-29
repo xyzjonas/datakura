@@ -58,16 +58,17 @@
       <template #body-cell-warehouseOrder="props">
         <q-td>
           <a
-            v-if="props.row.warehouse_order_code"
+            v-if="props.row.warehouse_order?.code"
             class="link"
             @click="
               $router.push({
                 name: 'warehouseInboundOrderDetail',
-                params: { code: props.row.warehouse_order_code },
+                params: { code: props.row.warehouse_order.code },
               })
             "
-            >{{ props.row.warehouse_order_code }}</a
-          >
+            >{{ props.row.warehouse_order.code }}
+            <InboundWarehouseOrderStateBadge :state="props.row.warehouse_order.state" class="ml-1"
+          /></a>
         </q-td>
       </template>
     </q-table>
@@ -88,6 +89,7 @@ import {
 } from '@/client'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import NewOrderDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
+import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'

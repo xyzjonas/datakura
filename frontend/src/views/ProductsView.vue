@@ -3,7 +3,7 @@
     <div class="mb-2 flex justify-between items-center">
       <div>
         <h1>Produkty</h1>
-        <h5 class="text-gray-5 mt-2">Kontrolujte a spravujte produkty</h5>
+        <h5 class="text-gray-5 mt-2">Soupis evidovaných produktů</h5>
       </div>
       <q-btn color="primary" unelevated label="vytvořit" icon="sym_o_add" disable />
     </div>

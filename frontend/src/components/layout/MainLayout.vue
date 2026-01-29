@@ -1,6 +1,6 @@
 <template>
   <q-layout view="lhh Lpr fff">
-    <q-header>
+    <q-header v-if="!noLayout">
       <q-toolbar class="flex gap-5 p-3 items-center">
         <SearchInput v-model="search" class="w-[512px]" />
 
@@ -18,7 +18,13 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="isOpened" side="left" persistent class="text-white p-1 bg-dark-8">
+    <q-drawer
+      v-model="isOpened"
+      v-if="!noLayout"
+      side="left"
+      persistent
+      class="text-white p-1 bg-dark-8"
+    >
       <div class="flex flex-col h-full">
         <AppLogo class="mb-2 p-1" />
         <q-scroll-area class="flex-1 p-2">
@@ -53,7 +59,7 @@
             <MenuList
               :items="[
                 {
-                  label: 'Vydané Obj.',
+                  label: 'Vydané Objednávky',
                   icon: 'sym_o_shoppingmode',
                   routeName: 'incomingOrders',
                   routeMatch: 'incomingOrders,incomingOrderDetail',
@@ -107,41 +113,22 @@
                 },
               ]"
             />
+            <q-item-label header class="text-gray-4">Nastavení</q-item-label>
+            <MenuList
+              :items="[
+                {
+                  label: 'Nastavení Aplikace',
+                  icon: 'sym_o_settings_applications',
+                  routeName: 'settings',
+                  routeMatch: 'settings',
+                },
+              ]"
+            />
           </q-list>
-          <!-- <q-expansion-item
-            icon="sym_o_barcode_scanner"
-            label="Sklad"
-            header-class="rounded-md my-2"
-            :content-inset-level="0.3"
-            dense
-          >
-            <q-list class="flex flex-col gap-2">
-              <MenuList
-                inset
-                :items="[
-                  {
-                    label: 'Lokace',
-                    icon: 'sym_o_location_on',
-                    routeName: 'warehouse',
-                  },
-                  {
-                    label: 'Příjemky',
-                    icon: 'sym_o_input',
-                    routeName: 'submissions',
-                  },
-                  {
-                    label: 'Výdejky',
-                    icon: 'sym_o_output',
-                    routeName: 'submissions',
-                  },
-                ]"
-              />
-            </q-list>
-          </q-expansion-item> -->
           <q-list class="flex flex-col gap-2"> </q-list>
         </q-scroll-area>
 
-        <q-list>
+        <q-list class="flex flex-col gap-2">
           <q-item clickable v-ripple @click="toggle" dense class="rounded-md">
             <q-item-section avatar>
               <q-icon :name="isDark ? 'light_mode' : 'dark_mode'" />
@@ -165,19 +152,23 @@
 
 <script setup lang="ts">
 import { useDarkmode } from '@/composables/use-dark-mode'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import MenuList from '../MenuList.vue'
 import SearchInput from '../SearchInput.vue'
 import BackToTopFab from './BackToTopFab.vue'
 import AppLogo from '../AppLogo.vue'
+import { useRouter } from 'vue-router'
 
 const search = ref('')
 const { isDark, toggle } = useDarkmode()
 const isOpened = ref(true)
+
+const { currentRoute } = useRouter()
+const noLayout = computed(() => currentRoute.value.meta.disableLayout === true)
 </script>
 
 <style lang="scss" scoped>
-:deep(a) {
-  color: white;
-}
+// :deep(a) {
+//   color: white !important;
+// }
 </style>
