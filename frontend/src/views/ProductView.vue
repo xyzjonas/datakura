@@ -1,8 +1,13 @@
 <template>
   <div v-if="product" class="flex flex-col gap-2 flex-1">
-    <div class="flex justify-end gap-2">
-      <q-btn color="primary" icon="edit" label="upravit" disable></q-btn>
-      <q-btn color="primary" icon="content_copy" label="duplikovat" disable></q-btn>
+    <div class="flex justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <ProductAvailability :product-code="product.code" />
+      </div>
+      <div class="flex items-center gap-2">
+        <q-btn color="primary" icon="edit" label="upravit" disable></q-btn>
+        <q-btn color="primary" icon="content_copy" label="duplikovat" disable></q-btn>
+      </div>
     </div>
     <div class="flex gap-2">
       <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
@@ -67,12 +72,6 @@
             >
           </q-item>
         </q-list>
-
-        <div class="mt-auto flex justify-between">
-          <ProductAvailability :product-code="product.code" />
-
-          <q-btn outline color="primary" icon="edit" label="upravit" disable></q-btn>
-        </div>
       </ForegroundPanel>
       <ForegroundPanel class="flex-[2] flex flex-col">
         <h2 class="mb-4">Ceník</h2>

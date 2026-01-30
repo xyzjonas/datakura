@@ -1,3 +1,5 @@
+import { useAuth } from '@/composables/use-auth'
+import { useGlobalLoading } from '@/composables/use-global-loading'
 import CustomersView from '@/views/CustomersView.vue'
 import CustomerView from '@/views/CustomerView.vue'
 import HomeView from '@/views/HomeView.vue'
@@ -83,6 +85,35 @@ const router = createRouter({
       },
     },
   ],
+})
+
+router.beforeEach(async (to, from, next) => {
+  if (to.name === 'login') {
+    next()
+    return
+  }
+
+  const { isLoading } = useGlobalLoading()
+  const { whoami, loginVerified } = useAuth()
+
+  if (loginVerified.value) {
+    next()
+    return
+  }
+
+  try {
+    isLoading.value = true
+    const user = await whoami()
+    if (user) {
+      next()
+    } else {
+      next({ name: 'login' })
+    }
+  } catch {
+    next({ name: 'login' })
+  } finally {
+    isLoading.value = false
+  }
 })
 
 export default router

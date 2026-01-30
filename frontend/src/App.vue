@@ -15,6 +15,21 @@
 
 <script setup lang="ts">
 import MainLayout from './components/layout/MainLayout.vue'
+
+// onMounted(() => {
+//   console.info(route.path)
+//   if (currentRoute.value.name !== 'login') {
+//     isLoading.value = true
+//     whoami()
+//       .then((user) => {
+//         if (!user) {
+//           push({ name: 'login' })
+//         }
+//       })
+//       .catch(() => push({ name: 'login' }))
+//       .finally(() => (isLoading.value = false))
+//   }
+// })
 </script>
 
 <style lang="scss">

@@ -1,26 +1,15 @@
 <template>
   <q-layout view="lhh Lpr fff">
-    <q-header v-if="!noLayout">
+    <q-header v-if="!noLayout && !isLoading">
       <q-toolbar class="flex gap-5 p-3 items-center">
         <SearchInput v-model="search" class="w-[512px]" />
-
-        <div class="ml-auto flex gap-2 flex-nowrap">
-          <div class="flex flex-col items-end flex-nowrap">
-            <span class="light:text-primary font-bold dark:text-light">Jaroslav Novák</span>
-            <span class="text-xs text-gray-5">Administrátor</span>
-          </div>
-          <q-avatar rounded size="36px" class="rounded-full">
-            <img
-              src="https://static.vecteezy.com/system/resources/thumbnails/029/640/896/small_2x/side-view-of-a-handsome-young-man-face-on-white-background-generative-ai-free-photo.jpeg"
-            />
-          </q-avatar>
-        </div>
+        <LoginInfo />
       </q-toolbar>
     </q-header>
 
     <q-drawer
       v-model="isOpened"
-      v-if="!noLayout"
+      v-if="!noLayout && !isLoading"
       side="left"
       persistent
       class="text-white p-1 bg-dark-8"
@@ -143,7 +132,11 @@
     <BackToTopFab />
 
     <q-page-container>
-      <q-page padding class="flex gap-2 flex-nowrap">
+      <q-page v-if="isLoading" class="grid justify-center content-center text-center">
+        <q-spinner size="86px" :thickness="2" color="primary"></q-spinner>
+        <span class="text-primary text-xl mt-5">Načítám</span>
+      </q-page>
+      <q-page padding class="flex gap-2 flex-nowrap" v-else>
         <slot></slot>
       </q-page>
     </q-page-container>
@@ -152,12 +145,14 @@
 
 <script setup lang="ts">
 import { useDarkmode } from '@/composables/use-dark-mode'
+import { useGlobalLoading } from '@/composables/use-global-loading'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import AppLogo from '../AppLogo.vue'
+import LoginInfo from '../LoginInfo.vue'
 import MenuList from '../MenuList.vue'
 import SearchInput from '../SearchInput.vue'
 import BackToTopFab from './BackToTopFab.vue'
-import AppLogo from '../AppLogo.vue'
-import { useRouter } from 'vue-router'
 
 const search = ref('')
 const { isDark, toggle } = useDarkmode()
@@ -165,6 +160,8 @@ const isOpened = ref(true)
 
 const { currentRoute } = useRouter()
 const noLayout = computed(() => currentRoute.value.meta.disableLayout === true)
+
+const { isLoading } = useGlobalLoading()
 </script>
 
 <style lang="scss" scoped>
