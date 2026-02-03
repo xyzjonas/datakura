@@ -1,5 +1,12 @@
 <template>
   <div class="flex-1">
+    <div class="mb-2 flex justify-between items-center">
+      <div>
+        <h1>Příjemky</h1>
+        <h5 class="text-gray-5 mt-2">Soupis aktivních příjemek</h5>
+      </div>
+      <!-- <q-btn color="primary" unelevated label="vytvořit" icon="sym_o_add" disable /> -->
+    </div>
     <q-table
       :rows="orders"
       :columns="columns"

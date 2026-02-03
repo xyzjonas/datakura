@@ -1,16 +1,20 @@
-import { warehouseApiRoutesAuthLoginUser, warehouseApiRoutesAuthWhoami } from '@/client'
+import {
+  warehouseApiRoutesAuthLoginUser,
+  warehouseApiRoutesAuthWhoami,
+  type AuthData,
+} from '@/client'
 import { useLocalStorage } from '@vueuse/core'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from './use-api'
 
-interface User {
-  id?: number
-  username?: string
-}
+// interface User {
+//   id?: number
+//   username?: string
+// }
 
 const loginVerified = ref(false) // check session only on 1st page loag
-const user = useLocalStorage<User>('session-user', {})
+const user = useLocalStorage<Partial<AuthData>>('session-user', {})
 const accessToken = ref<string>()
 const refreshToken = useLocalStorage('refresh-token', '')
 const csrfToken = useLocalStorage('csrf-token', '')

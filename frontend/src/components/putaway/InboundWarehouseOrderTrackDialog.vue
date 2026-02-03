@@ -23,6 +23,25 @@
             option-value="value"
           />
 
+          <q-input
+            v-model="amount"
+            outlined
+            :label="`Množství`"
+            :rules="[
+              rules.isNumber,
+              rules.atLeastOne,
+              (val) => val <= item.amount || `K dispozici je maximálně ${item.amount} jednotek`,
+            ]"
+          >
+            <template #append>
+              <span class="text-xs">{{ item.unit_of_measure }}</span>
+            </template>
+          </q-input>
+
+          <div class="px-3">
+            <q-slider v-model="amount" markers :min="1" :max="item.amount" marker-labels></q-slider>
+          </div>
+
           <PackageTypeSearchSelect
             v-model="selectedPackage"
             v-if="trackingType.value == 'package'"
@@ -65,6 +84,7 @@ import { useAppRouter } from '@/composables/use-app-router'
 import { ref, watch } from 'vue'
 import PackageTypeSearchSelect from '../selects/PackageTypeSearchSelect.vue'
 import WarehouseItemPreviewRow from './WarehouseItemPreviewRow.vue'
+import { rules } from '@/utils/rules'
 
 const { onResponse } = useApi()
 const { goToProduct } = useAppRouter()
@@ -100,6 +120,8 @@ const trackingType = ref(
     tracking_type_options[0],
 )
 
+const amount = ref(props.item.amount)
+
 const selectedPackage = ref<PackageTypeSchema>()
 
 const showDialog = defineModel('show', { default: false })
@@ -112,7 +134,7 @@ const previewItems = async () => {
   const result = await warehouseApiRoutesPackagingPackagePreview({
     body: {
       warehouse_item_id: props.item.id,
-      amount: props.item.amount,
+      amount: amount.value,
       package_name: selectedPackage.value?.name,
       product_code: props.item.product.code,
     },

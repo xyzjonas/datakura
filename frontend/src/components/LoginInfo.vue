@@ -4,13 +4,13 @@
       <span class="light:text-primary font-bold dark:text-light capitalize">{{
         user.username
       }}</span>
-      <span class="text-xs text-gray-5">Administrátor</span>
+      <span class="text-xs text-gray-5 capitalize">{{ user.group ?? 'Anonym' }}</span>
     </div>
-    <q-avatar rounded size="36px" class="rounded-full">
+    <!-- <q-avatar rounded size="36px" class="rounded-full">
       <img
         src="https://static.vecteezy.com/system/resources/thumbnails/029/640/896/small_2x/side-view-of-a-handsome-young-man-face-on-white-background-generative-ai-free-photo.jpeg"
       />
-    </q-avatar>
+    </q-avatar> -->
     <q-btn size="small" flat dense icon="sym_o_more_vert">
       <q-menu>
         <q-list style="min-width: 100px">

@@ -1,5 +1,4 @@
 <template>
-  {{ props.state }}
   <q-stepper
     flat
     :model-value="step"
@@ -26,7 +25,7 @@
 
     <q-step
       :name="2"
-      title="Potvrzeno"
+      title="Objednáno"
       caption="Zboží je na cestě"
       icon="sym_o_delivery_truck_speed"
       active-icon="sym_o_delivery_truck_speed"

@@ -16,6 +16,10 @@ export type AuthData = {
      * Username
      */
     username: string;
+    /**
+     * Group
+     */
+    group?: string | null;
 };
 
 /**
@@ -587,7 +591,7 @@ export type InboundOrderBaseSchema = {
 /**
  * InboundOrderState
  */
-export type InboundOrderState = 'draft' | 'submitted' | 'putaway' | 'completed' | 'cancelled';
+export type InboundOrderState = 'draft' | 'submitted' | 'receiving' | 'putaway' | 'completed' | 'cancelled';
 
 /**
  * InboundWarehouseOrderSchema
@@ -696,6 +700,16 @@ export type UpdateWarehouseOrderDraftItemsRequest = {
      * To Be Removed
      */
     to_be_removed: Array<WarehouseItemSchema>;
+    /**
+     * To Be Added
+     */
+    to_be_added: Array<WarehouseItemSchema>;
+};
+
+/**
+ * SetupTrackingWarehouseItemRequest
+ */
+export type SetupTrackingWarehouseItemRequest = {
     /**
      * To Be Added
      */
@@ -928,7 +942,7 @@ export type InboundOrderSchema = {
      * Items
      */
     items?: Array<InboundOrderItemSchema>;
-    warehouse_order: InboundWarehouseOrderBaseSchema;
+    warehouse_order?: InboundWarehouseOrderBaseSchema | null;
 };
 
 /**
@@ -1118,7 +1132,7 @@ export type PackageTypeSchema = {
     /**
      * Description
      */
-    description: string;
+    description?: string | null;
     /**
      * Unit
      */
@@ -1372,6 +1386,56 @@ export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses
 };
 
 export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponse = WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses[keyof WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses];
+
+export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData = {
+    body?: never;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Item Code
+         */
+        item_code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}';
+};
+
+export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses];
+
+export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData = {
+    body: SetupTrackingWarehouseItemRequest;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Item Code
+         */
+        item_code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}';
+};
+
+export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses];
 
 export type WarehouseApiRoutesProductGetProductsData = {
     body?: never;

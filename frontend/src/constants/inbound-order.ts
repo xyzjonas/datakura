@@ -17,7 +17,7 @@ export const INBOUND_ORDER_STATES: Record<string, StateConfig> = {
     step: 1,
   },
   submitted: {
-    label: 'Potvrzeno',
+    label: 'Objednáno',
     icon: 'sym_o_delivery_truck_speed',
     color: 'primary',
     step: 2,

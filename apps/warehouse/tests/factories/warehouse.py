@@ -75,7 +75,7 @@ class WarehouseOrderOutFactory(DjangoModelFactory):
     pass
 
 
-class WarehouseOrderInFactory(DjangoModelFactory):
+class InboundWarehouseOrderFactory(DjangoModelFactory):
     class Meta:
         model = InboundWarehouseOrder
 

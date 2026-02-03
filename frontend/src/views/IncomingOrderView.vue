@@ -1,74 +1,26 @@
 <template>
   <div v-if="order" class="w-full flex flex-col gap-2">
-    <div class="flex gap-2">
-      <ForegroundPanel class="flex flex-col min-w-[400px] flex-[2]">
-        <span class="text-gray-5 flex items-center gap-1">VYDANÁ OBJEDNÁVKA</span>
-        <h1 class="text-primary mb-1">{{ order.code }}</h1>
-        <span class="flex items-center gap-1 mb-3">
-          <small class="text-gray-5">kód:</small>
-          <h5>{{ order.code }}</h5>
-          <CopyToClipBoardButton v-if="order.code" :text="order.code" />
-        </span>
+    <q-breadcrumbs class="mb-5">
+      <q-breadcrumbs-el label="Home" :to="{ name: 'home' }" />
+      <q-breadcrumbs-el label="Vydané Objednávky" :to="{ name: 'incomingOrders' }" />
+      <q-breadcrumbs-el :label="order.code" />
+    </q-breadcrumbs>
 
-        <q-list dense class="mt-2" separator>
-          <q-item>
-            <q-item-section>Číslo dokladu</q-item-section>
-            <q-item-section avatar>
-              <span class="flex gap-1">
-                {{ order.code }}
-                <CopyToClipBoardButton v-if="order.code" :text="order.code" />
-              </span>
-            </q-item-section>
-          </q-item>
-          <q-item>
-            <q-item-section>Externí číslo</q-item-section>
-            <q-item-section avatar>
-              <span class="flex gap-1">
-                {{ order.external_code }}
-                <CopyToClipBoardButton v-if="order.external_code" :text="order.external_code" />
-              </span>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </ForegroundPanel>
-      <ForegroundPanel class="flex flex-col min-w-[312px] flex-[2]">
-        <q-list dense separator>
-          <q-item>
-            <q-item-section>Požadovaný termín dodání</q-item-section>
-            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
-          </q-item>
-          <q-item>
-            <q-item-section>Datum zrušení</q-item-section>
-            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
-          </q-item>
-          <q-item>
-            <q-item-section>Zboží přijato</q-item-section>
-            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
-          </q-item>
-        </q-list>
-        <!-- <q-list dense class="mt-auto">
-          <q-item>
-            <q-item-section>
-              <span class="text-xs text-gray-5">Číslo příjemky</span>
-              <a
-                v-if="order.warehouse_order_code"
-                class="link"
-                @click="goToWarehouseOrderIn(order.warehouse_order_code)"
-                >{{ order.warehouse_order_code }}</a
-              >
-            </q-item-section>
-            <q-item-section avatar></q-item-section>
-          </q-item>
-        </q-list> -->
-      </ForegroundPanel>
-      <CustomerCard :customer="order.supplier" title="DODAVATEL" class="flex-1" />
-    </div>
-
-    <OrderTimeline :state="order.state" />
-
-    <div class="flex items-center gap-2 my-5">
-      <div v-if="getInboundOrderStep(order) === 1" class="flex items-center gap-2">
+    <div class="mb-2 flex justify-between items-center">
+      <div class="flex gap-2 items-center">
+        <div>
+          <span class="text-gray-5 flex items-center gap-1">VYDANÁ OBJEDNÁVKA</span>
+          <h1 class="text-primary mb-1 text-5xl">{{ order.code }}</h1>
+          <div class="flex items-center gap-1">
+            <h5>{{ order.code }}</h5>
+            <CopyToClipBoardButton v-if="order.code" :text="order.code" />
+          </div>
+        </div>
+        <InboundOrderStateBadge :state="order.state" />
+      </div>
+      <div class="flex gap-2">
         <q-btn
+          v-if="getInboundOrderStep(order) === 1"
           unelevated
           color="primary"
           icon="edit"
@@ -76,15 +28,13 @@
           @click="editOrderDialog = true"
         ></q-btn>
         <q-btn
+          v-if="getInboundOrderStep(order) === 1"
           outline
           color="primary"
           icon="sym_o_add"
           label="přidat položku"
           @click="addItemDialog = true"
         ></q-btn>
-      </div>
-      <div class="ml-auto">
-        <!-- DRAFT -->
         <q-btn
           v-if="getInboundOrderStep(order) === 1"
           unelevated
@@ -95,36 +45,78 @@
           class="ml-auto"
           :disable="order.items?.length === 0"
         ></q-btn>
-        <!-- IN TRANSIT -->
         <q-btn
           v-if="getInboundOrderStep(order) === 2"
           unelevated
           color="positive"
-          label="Zboží je na příjmu"
+          label="Zboží dorazilo na příjem"
           icon="sym_o_check"
           @click="createWarehouseOrderDialog = true"
         />
-        <div v-if="order.warehouse_order" class="flex items-center gap-2">
-          <a class="link text-lg" @click="goToWarehouseOrderIn(order.warehouse_order.code)"
-            >{{ order.warehouse_order.code }}
-          </a>
-          <InboundWarehouseOrderStateBadge
-            :state="order.warehouse_order.state"
-          ></InboundWarehouseOrderStateBadge>
+        <div v-if="order.warehouse_order" class="flex flex-col">
+          <span class="text-gray-5">PŘÍJEMKA</span>
+          <div class="flex items-center gap-2">
+            <a class="link text-lg" @click="goToWarehouseOrderIn(order.warehouse_order.code)"
+              >{{ order.warehouse_order.code }}
+            </a>
+            <InboundWarehouseOrderStateBadge
+              :state="order.warehouse_order.state"
+            ></InboundWarehouseOrderStateBadge>
+          </div>
         </div>
-        <q-btn
-          v-if="getInboundOrderStep(order) === 3 && order.warehouse_order_code"
-          unelevated
-          flat
-          :color="order.warehouse_order_code ? 'positive' : 'gray'"
-          :label="`příjemka ${order.warehouse_order_code ?? ''}`"
-          icon="sym_o_input"
-          @click="goToWarehouseOrderIn(order.warehouse_order_code)"
-        />
       </div>
     </div>
+    <div class="flex gap-2">
+      <ForegroundPanel class="flex flex-col min-w-[400px] flex-[2]">
+        <!-- <span class="text-gray-5 flex items-center gap-1">VYDANÁ OBJEDNÁVKA</span>
+        <h1 class="text-primary mb-1">{{ order.code }}</h1>
+        <span class="flex items-center gap-1 mb-3">
+          <small class="text-gray-5">kód:</small>
+          <h5>{{ order.code }}</h5>
+          <CopyToClipBoardButton v-if="order.code" :text="order.code" />
+        </span> -->
 
-    <div class="flex items-center gap-2">
+        <q-list dense class="mt-2" separator>
+          <q-item clickable>
+            <q-item-section>Číslo dokladu</q-item-section>
+            <q-item-section avatar>
+              <span class="flex gap-1">
+                {{ order.code }}
+                <CopyToClipBoardButton v-if="order.code" :text="order.code" />
+              </span>
+            </q-item-section>
+          </q-item>
+          <q-item clickable>
+            <q-item-section>Externí číslo</q-item-section>
+            <q-item-section avatar>
+              <span class="flex gap-1">
+                {{ order.external_code }}
+                <CopyToClipBoardButton v-if="order.external_code" :text="order.external_code" />
+              </span>
+            </q-item-section>
+          </q-item>
+          <q-item clickable>
+            <q-item-section>Požadovaný termín dodání</q-item-section>
+            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
+          </q-item>
+          <q-item clickable>
+            <q-item-section>Datum zrušení</q-item-section>
+            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
+          </q-item>
+          <q-item clickable>
+            <q-item-section>Zboží přijato</q-item-section>
+            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
+          </q-item>
+        </q-list>
+      </ForegroundPanel>
+      <CustomerCard :customer="order.supplier" title="DODAVATEL" class="flex-1" />
+    </div>
+
+    <ForegroundPanel>
+      <OrderTimeline :state="order.state" />
+    </ForegroundPanel>
+
+    <div class="flex items-center gap-2 mt-5">
       <CurrencyDropdown v-model="order.currency" />
       <h2>Položky objednávky</h2>
       <TotalWeight :order="order" class="ml-auto mr-5" />
@@ -187,6 +179,7 @@ import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import CurrencyDropdown from '@/components/order/CurrencyDropdown.vue'
 import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDialog.vue'
+import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import InboundOrderUpdateOrCreateDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
 import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
 import OrderTimeline from '@/components/order/OrderTimeline.vue'

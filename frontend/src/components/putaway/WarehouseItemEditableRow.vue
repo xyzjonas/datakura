@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-full gap-5">
+  <div class="flex w-full gap-5 items-center">
     <div class="flex flex-col gap-2">
       <div class="flex justify-between gap-2">
         <a
@@ -25,20 +25,33 @@
     <span class="flex flex-nowrap items-center ml-auto">
       <WarehouseItemAmountBadge :item="item" />
     </span>
-    <q-btn
-      v-if="!trackingType"
-      flat
-      color="primary"
-      label="evidovat"
-      icon-right="sym_o_qr_code_scanner"
-      @click="setItemTrackingDialog = true"
-    />
+    <div v-if="!readonly" class="h-full">
+      <q-btn
+        v-if="!trackingType"
+        flat
+        color="primary"
+        label="evidovat"
+        icon-right="sym_o_qr_code_scanner"
+        @click="setItemTrackingDialog = true"
+      />
+      <q-btn v-else flat color="negative" icon-right="sym_o_close" @click="confirmDelete = true" />
+    </div>
     <InboundWarehouseOrderTrackDialog
       v-model:show="setItemTrackingDialog"
       :item="item"
       :tracking-type-in="trackingType"
       @packaged="(items) => $emit('packaged', items)"
     />
+    <ConfirmDialog
+      v-model:show="confirmDelete"
+      title="Zrušit balení/evidenci?"
+      @confirm="$emit('removeItem')"
+    >
+      <div>
+        Položka ztratí zvolený typ balení a bude nadále v systému evidována pouze jako
+        <PackageTypeBadge :package-type="undefined" />.
+      </div>
+    </ConfirmDialog>
   </div>
 </template>
 
@@ -51,6 +64,7 @@ import { computed, ref } from 'vue'
 import BarcodeElement from '../BarcodeElement.vue'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
+import ConfirmDialog from '../ConfirmDialog.vue'
 // import ProductAvailability from '../product/ProductAvailability.vue'
 
 defineProps<{ readonly?: boolean }>()
@@ -69,6 +83,8 @@ const trackingType = computed<TrackingType>(() => {
   }
   return ''
 })
+
+const confirmDelete = ref(false)
 </script>
 
 <style lang="scss" scoped></style>

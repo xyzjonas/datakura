@@ -16,12 +16,13 @@ from apps.warehouse.core.schemas.warehouse import (
     GetProductWarehouseInfoResponse,
     WarehouseExpandedSchema,
     GetProductWarehouseAvailabilityResponse,
+    WarehouseLocationDetailSchema,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
     get_product_by_code,
     warehouse_item_orm_to_schema,
-    location_orm_to_detail_schema,
+    location_orm_to_schema,
 )
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import WarehouseItem, InboundWarehouseOrderState
@@ -61,9 +62,6 @@ def get_product_warehouse_info(request: HttpRequest, product_code: str):
     # user = authenticate(
     #     request, username=credentials.username, password=credentials.password
     # )
-    # product = StockProduct.objects.prefetch_related(
-    #     "base_uom", "type", "conversion_factors", "conversion_factors__uom", "group"
-    # ).get(code=product_code)
     items = (
         WarehouseItem.objects.filter(stock_product__code=product_code)
         .exclude(order_in__state=InboundWarehouseOrderState.DRAFT)
@@ -99,7 +97,9 @@ def get_product_warehouse_info(request: HttpRequest, product_code: str):
 
         location_model = item.location
         if location_model.code not in location_names:
-            location = location_orm_to_detail_schema(location_model)
+            location = WarehouseLocationDetailSchema(
+                **location_orm_to_schema(location_model).model_dump(), items=[]
+            )
             warehouse.locations.append(location)
             location_names.add(location.code)
         else:

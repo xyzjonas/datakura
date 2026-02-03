@@ -68,8 +68,6 @@ class WarehouseItem(BaseModel):
     amount = models.DecimalField(
         max_digits=10,
         decimal_places=4,
-        null=True,
-        blank=True,
         help_text="Amount of the stock product in stock product UOM",
     )
     location = models.ForeignKey(

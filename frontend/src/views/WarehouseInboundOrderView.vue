@@ -45,7 +45,9 @@
 
     <InboundWarehouseOrderItemsList
       v-model:items="warehouseOrder.items"
+      :readonly="warehouseOrder.state !== 'draft'"
       @packaged="updateOrderItems"
+      @remove-item="dissolveItem"
     ></InboundWarehouseOrderItemsList>
     <ConfirmDialog
       v-model:show="confirmDialog"
@@ -62,11 +64,12 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesWarehouseGetInboundWarehouseOrder,
-  warehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItems,
-  type WarehouseItemSchema,
   type InboundWarehouseOrderSchema,
+  warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem,
+  warehouseApiRoutesWarehouseGetInboundWarehouseOrder,
+  warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem,
   warehouseApiRoutesWarehouseUpdateInboundWarehouseOrder,
+  type WarehouseItemSchema,
 } from '@/client'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
@@ -97,17 +100,17 @@ if (data) {
 
 const step = computed(() => getInboundWarehouseOrderStep(warehouseOrder.value))
 
-const updateOrderItems = async (item: WarehouseItemSchema, items: WarehouseItemSchema[]) => {
+const updateOrderItems = async (item: WarehouseItemSchema, toBeAdded: WarehouseItemSchema[]) => {
   if (!warehouseOrder.value) {
     return
   }
-  const response = await warehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItems({
+  const response = await warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem({
     path: {
       code: warehouseOrder.value.code,
+      item_code: item.code,
     },
     body: {
-      to_be_removed: [item],
-      to_be_added: items,
+      to_be_added: toBeAdded,
     },
   })
   const data = onResponse(response)
@@ -126,6 +129,23 @@ const transitionToPending = async () => {
       path: { code: warehouseOrder.value.code },
       body: {
         state: 'pending',
+      },
+    }),
+  )
+  if (data) {
+    warehouseOrder.value = data.data
+  }
+}
+
+const dissolveItem = async (itemCode: string) => {
+  if (!warehouseOrder.value) {
+    return
+  }
+  const data = onResponse(
+    await warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem({
+      path: {
+        code: warehouseOrder.value.code,
+        item_code: itemCode,
       },
     }),
   )

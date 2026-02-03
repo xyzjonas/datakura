@@ -13,6 +13,7 @@ class LoginFormSchema(BaseModel):
 class AuthData(BaseModel):
     user_id: int
     username: str
+    group: str | None = None
 
 
 class SigninResponse(BaseResponse):

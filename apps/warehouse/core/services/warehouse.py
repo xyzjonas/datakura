@@ -1,6 +1,7 @@
 import uuid
 from calendar import monthrange
 from datetime import datetime
+from decimal import Decimal
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
@@ -11,6 +12,8 @@ from apps.warehouse.core.exceptions import (
     raise_by_code,
     ErrorCode,
     WarehouseItemBadRequestError,
+    WarehouseItemNotFoundError,
+    WarehouseOrderNotEditableError,
 )
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
 from apps.warehouse.core.schemas.warehouse import (
@@ -36,7 +39,12 @@ from apps.warehouse.models.warehouse import (
     InboundWarehouseOrder,
     WarehouseItem,
     WarehouseLocation,
+    InboundWarehouseOrderState,
 )
+
+
+def generate_warehouse_item_code() -> str:
+    return str(uuid.uuid4())[:13]
 
 
 def _get_end_of_month(date: datetime) -> datetime:
@@ -47,6 +55,13 @@ def _get_end_of_month(date: datetime) -> datetime:
 def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
     last_day = _get_end_of_month(date)
     return date.replace(day=1, hour=0, minute=0, second=0, microsecond=0), last_day
+
+
+def raise_if_readonly(order: InboundWarehouseOrder):
+    if order.state != InboundWarehouseOrderState.DRAFT:
+        raise WarehouseOrderNotEditableError(
+            f"order '{order.code}' not in draft anymore ({order.state})"
+        )
 
 
 class WarehouseService:
@@ -79,7 +94,7 @@ class WarehouseService:
                     code = existing_warehouse_item.code
                     existing_warehouse_item.save()
                 else:
-                    code = str(uuid.uuid4())
+                    code = generate_warehouse_item_code()
 
                 WarehouseItem.objects.create(
                     code=code,
@@ -176,6 +191,9 @@ class WarehouseService:
         to_be_added: list[WarehouseItemSchema],
     ) -> InboundWarehouseOrderSchema:
         order = InboundWarehouseOrder.objects.get(code=order_code)
+
+        raise_if_readonly(order)
+
         try:
             with transaction.atomic():
                 for item in to_be_removed:
@@ -186,11 +204,103 @@ class WarehouseService:
                         package_type=PackageType.objects.get(name=item.package.type)
                         if item.package
                         else None,
-                        code=str(uuid.uuid4()),
+                        code=generate_warehouse_item_code(),
                         stock_product=StockProduct.objects.get(code=item.product.code),
                         amount=item.amount,
                         location=WarehouseLocation.objects.get(code=item.location.code),
                     )
+        except ObjectDoesNotExist as exc:
+            raise WarehouseItemBadRequestError(str(exc))
+
+        return warehouse_inbound_order_orm_to_schema(
+            InboundWarehouseOrder.objects.get(code=order_code)
+        )
+
+    @staticmethod
+    def setup_tracking_for_inbound_order_item(
+        order_code: str,
+        warehouse_item_code: str,
+        to_be_added: list[WarehouseItemSchema],
+    ) -> InboundWarehouseOrderSchema:
+        """
+        Setup tracking for a warehouse item.
+
+        Untracked warehouse item is split into individual warehouse items depending on the
+        tracking type (packaging, unique pieces, batches, ...).
+
+        This function makes sure total amounts (UoM) match before and after!
+        """
+        order = InboundWarehouseOrder.objects.get(code=order_code)
+        raise_if_readonly(order)
+
+        untracked_item = WarehouseItem.objects.get(
+            code=warehouse_item_code, order_in=order
+        )
+
+        remaining_amount = untracked_item.amount - Decimal(
+            sum(item.amount for item in to_be_added)
+        )
+        try:
+            with transaction.atomic():
+                for new_item in to_be_added:
+                    WarehouseItem.objects.create(
+                        order_in=order,
+                        package_type=PackageType.objects.get(name=new_item.package.type)
+                        if new_item.package
+                        else None,
+                        code=generate_warehouse_item_code(),
+                        stock_product=StockProduct.objects.get(
+                            code=new_item.product.code
+                        ),
+                        amount=new_item.amount,
+                        location=WarehouseLocation.objects.get(
+                            code=new_item.location.code
+                        ),
+                    )
+                if remaining_amount > 0:
+                    untracked_item.amount = remaining_amount
+                    untracked_item.save()
+                else:
+                    untracked_item.delete()
+        except ObjectDoesNotExist as exc:
+            raise WarehouseItemBadRequestError(str(exc))
+
+        return warehouse_inbound_order_orm_to_schema(
+            InboundWarehouseOrder.objects.get(code=order_code)
+        )
+
+    @staticmethod
+    def dissolve_inbound_order_item(
+        order_code: str,
+        warehouse_item_code: str,
+    ) -> InboundWarehouseOrderSchema:
+        order = InboundWarehouseOrder.objects.get(code=order_code)
+
+        raise_if_readonly(order)
+
+        item = WarehouseItem.objects.get(code=warehouse_item_code, order_in=order)
+        existing_not_packaged = WarehouseItem.objects.filter(
+            order_in=order, stock_product=item.stock_product, package_type__isnull=True
+        ).first()
+        if not item:
+            raise WarehouseItemNotFoundError(
+                f"No warehouse item with code '{warehouse_item_code}' in order '{order.code}'"
+            )
+        try:
+            with transaction.atomic():
+                if not existing_not_packaged:
+                    existing_not_packaged = WarehouseItem.objects.create(
+                        code=generate_warehouse_item_code(),
+                        stock_product=item.stock_product,
+                        location=item.location,
+                        amount=item.amount,
+                        order_in=order,
+                    )
+                else:
+                    existing_not_packaged.amount += item.amount
+                    existing_not_packaged.save()
+
+                item.delete()
         except ObjectDoesNotExist as exc:
             raise WarehouseItemBadRequestError(str(exc))
 

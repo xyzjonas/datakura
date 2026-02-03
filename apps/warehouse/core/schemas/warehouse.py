@@ -113,3 +113,7 @@ class GetWarehouseOrdersResponse(PaginatedResponse[InboundWarehouseOrderSchema])
 class UpdateWarehouseOrderDraftItemsRequest(Schema):
     to_be_removed: list[WarehouseItemSchema]
     to_be_added: list[WarehouseItemSchema]
+
+
+class SetupTrackingWarehouseItemRequest(Schema):
+    to_be_added: list[WarehouseItemSchema]

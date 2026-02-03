@@ -4,7 +4,7 @@
       <WarehouseItemEditableRow
         v-model:item="items[index]"
         :readonly="readonly"
-        @remove-item="() => $emit('removeItem', item.product.code)"
+        @remove-item="() => $emit('removeItem', item.code)"
         @packaged="(items) => $emit('packaged', item, items)"
       ></WarehouseItemEditableRow>
     </ForegroundPanel>
@@ -24,7 +24,7 @@ import EmptyPanel from '../EmptyPanel.vue'
 import WarehouseItemEditableRow from './WarehouseItemEditableRow.vue'
 
 defineEmits<{
-  (e: 'removeItem', product_code: string): void
+  (e: 'removeItem', itemCode: string): void
   (e: 'addItem'): void
   (e: 'packaged', item: WarehouseItemSchema, items: WarehouseItemSchema[]): void
 }>()

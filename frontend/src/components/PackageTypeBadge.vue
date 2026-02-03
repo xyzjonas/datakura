@@ -1,5 +1,7 @@
 <template>
-  <q-badge color="primary"><q-icon :name="icon" class="mr-1" />{{ label }}</q-badge>
+  <q-badge :color="props.packageType ? 'primary' : 'gray'"
+    ><q-icon :name="icon" class="mr-1" />{{ label }}</q-badge
+  >
 </template>
 
 <script setup lang="ts">

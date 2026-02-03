@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import cast
 
+from django.db.models import F
+
 from apps.warehouse.core.schemas.base_orders import (
     InboundWarehouseOrderBaseSchema,
     InboundOrderBaseSchema,
@@ -200,7 +202,13 @@ def warehouse_inbound_order_orm_to_schema(
         changed=w_order.changed,
         items=[warehouse_item_orm_to_schema(item) for item in w_order.items.all()],
         completed_items_count=len(
-            [item for item in w_order.items.all() if not item.location.is_putaway]
+            [
+                item
+                for item in w_order.items.order_by(
+                    F("package_type").asc(nulls_first=True)
+                )
+                if not item.location.is_putaway
+            ]
         ),
         order_code=w_order.order.code,
         order=InboundOrderBaseSchema(

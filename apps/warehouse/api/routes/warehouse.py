@@ -15,6 +15,7 @@ from apps.warehouse.core.schemas.warehouse import (
     InboundWarehouseOrderSchema,
     UpdateWarehouseOrderDraftItemsRequest,
     InboundWarehouseOrderUpdateSchema,
+    SetupTrackingWarehouseItemRequest,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
@@ -160,3 +161,52 @@ def update_inbound_warehouse_order_items(
         code, body.to_be_removed, body.to_be_added
     )
     return GetWarehouseOrderResponse(data=order)
+
+
+@routes.post(
+    "orders-incoming/{code}/items/{item_code}",
+    response={200: GetWarehouseOrderResponse},
+    auth=None,
+)
+def track_inbound_warehouse_order_item(
+    request: HttpRequest,
+    code: str,
+    item_code: str,
+    body: SetupTrackingWarehouseItemRequest,
+):
+    order = warehouse_service.setup_tracking_for_inbound_order_item(
+        code, item_code, body.to_be_added
+    )
+    return GetWarehouseOrderResponse(data=order)
+
+
+@routes.delete(
+    "orders-incoming/{code}/items/{item_code}",
+    response={200: GetWarehouseOrderResponse},
+    auth=None,
+)
+def dissolve_inbound_warehouse_order_item(
+    request: HttpRequest, code: str, item_code: str
+):
+    # user = authenticate(
+    #     request, username=credentials.username, password=credentials.password
+    # )
+    order = warehouse_service.dissolve_inbound_order_item(code, item_code)
+    return GetWarehouseOrderResponse(data=order)
+
+
+# @routes.post(
+#     "orders-incoming/{code}/items",
+#     response={200: GetWarehouseOrderResponse},
+#     auth=None,
+# )
+# def update_inbound_warehouse_order_items(
+#     request: HttpRequest, code: str, body: UpdateWarehouseOrderDraftItemsRequest
+# ):
+#     # user = authenticate(
+#     #     request, username=credentials.username, password=credentials.password
+#     # )
+#     order = warehouse_service.add_or_remove_inbound_order_items(
+#         code, body.to_be_removed, body.to_be_added
+#     )
+#     return GetWarehouseOrderResponse(data=order)

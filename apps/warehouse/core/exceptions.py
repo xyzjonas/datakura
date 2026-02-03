@@ -5,8 +5,12 @@ from typing import NoReturn
 class ErrorCode(enum.Enum):
     GENERIC_ERROR = ("GEN_0000", "Unknown generic error")
     NOT_FOUND = ("NOT_FOUND_0001", "Not found")
+
     INVALID_CONVERSION = ("PACKAGING_0001", "Invalid conversion")
-    INVALID_WAREHOUSE_ITEM = ("PACKAGING_0002", "WarehouseItem: bad request")
+
+    INVALID_WAREHOUSE_ITEM = ("WAR_0001", "WarehouseItem: bad request")
+    WAREHOUSE_ITEM_NOT_FOUND = ("WAR_0002", "WarehouseItem: not found")
+    WAREHOUSE_ITEM_NOT_EDITABLE = ("WAR_0003", "WarehouseOrder: read only")
 
     @property
     def code(self):
@@ -38,6 +42,16 @@ class NotFoundException(ApiBaseException):
 
 class WarehouseItemBadRequestError(ApiBaseException):
     code = ErrorCode.INVALID_WAREHOUSE_ITEM
+    http_status = 400
+
+
+class WarehouseItemNotFoundError(ApiBaseException):
+    code = ErrorCode.WAREHOUSE_ITEM_NOT_FOUND
+    http_status = 404
+
+
+class WarehouseOrderNotEditableError(ApiBaseException):
+    code = ErrorCode.WAREHOUSE_ITEM_NOT_EDITABLE
     http_status = 400
 
 

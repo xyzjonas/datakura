@@ -95,7 +95,7 @@
             <MenuList
               :items="[
                 {
-                  label: 'Zákazník',
+                  label: 'Zákazníci',
                   icon: 'sym_o_contacts_product',
                   routeName: 'customers',
                   routeMatch: 'customers,customerDetail',

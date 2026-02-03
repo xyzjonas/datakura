@@ -47,6 +47,7 @@ class OrdersService:
         params: InboundOrderCreateOrUpdateSchema, code: str | None = None
     ) -> InboundOrderSchema:
         if code is None:
+            # todo: create code only after transitioning from 'draft'
             code = OrdersService.generate_next_incoming_order_code()
 
         supplier = Customer.objects.get(code=params.supplier_code)
