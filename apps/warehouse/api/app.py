@@ -8,7 +8,7 @@ from .routes.auth import routes as auth_routes
 from .routes.warehouse import routes as warehouse_routes
 from .routes.product import routes as product_routes
 from .routes.customer import routes as customer_routes
-from .routes.orders import routes as orders_routes
+from .routes.inbound_orders import routes as orders_routes
 from .routes.packaging import routes as packaging_routes
 
 

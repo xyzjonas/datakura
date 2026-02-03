@@ -1596,7 +1596,7 @@ export type WarehouseApiRoutesCustomerGetCustomerResponses = {
 
 export type WarehouseApiRoutesCustomerGetCustomerResponse = WarehouseApiRoutesCustomerGetCustomerResponses[keyof WarehouseApiRoutesCustomerGetCustomerResponses];
 
-export type WarehouseApiRoutesOrdersGetInboundOrdersData = {
+export type WarehouseApiRoutesInboundOrdersGetInboundOrdersData = {
     body?: never;
     path?: never;
     query?: {
@@ -1616,32 +1616,32 @@ export type WarehouseApiRoutesOrdersGetInboundOrdersData = {
     url: '/api/v1/orders';
 };
 
-export type WarehouseApiRoutesOrdersGetInboundOrdersResponses = {
+export type WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses = {
     /**
      * OK
      */
     200: PagedInboundOrderSchema;
 };
 
-export type WarehouseApiRoutesOrdersGetInboundOrdersResponse = WarehouseApiRoutesOrdersGetInboundOrdersResponses[keyof WarehouseApiRoutesOrdersGetInboundOrdersResponses];
+export type WarehouseApiRoutesInboundOrdersGetInboundOrdersResponse = WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses[keyof WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses];
 
-export type WarehouseApiRoutesOrdersCreateInboundOrderData = {
+export type WarehouseApiRoutesInboundOrdersCreateInboundOrderData = {
     body: InboundOrderCreateOrUpdateSchema;
     path?: never;
     query?: never;
     url: '/api/v1/orders';
 };
 
-export type WarehouseApiRoutesOrdersCreateInboundOrderResponses = {
+export type WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses = {
     /**
      * OK
      */
     200: GetInboundOrderResponse;
 };
 
-export type WarehouseApiRoutesOrdersCreateInboundOrderResponse = WarehouseApiRoutesOrdersCreateInboundOrderResponses[keyof WarehouseApiRoutesOrdersCreateInboundOrderResponses];
+export type WarehouseApiRoutesInboundOrdersCreateInboundOrderResponse = WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses];
 
-export type WarehouseApiRoutesOrdersGetInboundOrderData = {
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderData = {
     body?: never;
     path: {
         /**
@@ -1653,16 +1653,16 @@ export type WarehouseApiRoutesOrdersGetInboundOrderData = {
     url: '/api/v1/orders/{order_code}';
 };
 
-export type WarehouseApiRoutesOrdersGetInboundOrderResponses = {
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderResponses = {
     /**
      * OK
      */
     200: GetInboundOrderResponse;
 };
 
-export type WarehouseApiRoutesOrdersGetInboundOrderResponse = WarehouseApiRoutesOrdersGetInboundOrderResponses[keyof WarehouseApiRoutesOrdersGetInboundOrderResponses];
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderResponse = WarehouseApiRoutesInboundOrdersGetInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersGetInboundOrderResponses];
 
-export type WarehouseApiRoutesOrdersUpdateInboundOrderData = {
+export type WarehouseApiRoutesInboundOrdersUpdateInboundOrderData = {
     body: InboundOrderCreateOrUpdateSchema;
     path: {
         /**
@@ -1674,16 +1674,54 @@ export type WarehouseApiRoutesOrdersUpdateInboundOrderData = {
     url: '/api/v1/orders/{order_code}';
 };
 
-export type WarehouseApiRoutesOrdersUpdateInboundOrderResponses = {
+export type WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses = {
     /**
      * OK
      */
     200: GetInboundOrderResponse;
 };
 
-export type WarehouseApiRoutesOrdersUpdateInboundOrderResponse = WarehouseApiRoutesOrdersUpdateInboundOrderResponses[keyof WarehouseApiRoutesOrdersUpdateInboundOrderResponses];
+export type WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponse = WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses];
 
-export type WarehouseApiRoutesOrdersAddItemToInboundOrderData = {
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/pdf';
+};
+
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderPdfResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/html';
+};
+
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type WarehouseApiRoutesInboundOrdersAddItemToInboundOrderData = {
     body: InboundOrderItemCreateSchema;
     path: {
         /**
@@ -1695,16 +1733,16 @@ export type WarehouseApiRoutesOrdersAddItemToInboundOrderData = {
     url: '/api/v1/orders/{order_code}/items';
 };
 
-export type WarehouseApiRoutesOrdersAddItemToInboundOrderResponses = {
+export type WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses = {
     /**
      * OK
      */
     200: CreateInboundOrderItemResponse;
 };
 
-export type WarehouseApiRoutesOrdersAddItemToInboundOrderResponse = WarehouseApiRoutesOrdersAddItemToInboundOrderResponses[keyof WarehouseApiRoutesOrdersAddItemToInboundOrderResponses];
+export type WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponse = WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses];
 
-export type WarehouseApiRoutesOrdersTransitionInboundOrderData = {
+export type WarehouseApiRoutesInboundOrdersTransitionInboundOrderData = {
     body: InboundOrderTransitionSchema;
     path: {
         /**
@@ -1716,16 +1754,16 @@ export type WarehouseApiRoutesOrdersTransitionInboundOrderData = {
     url: '/api/v1/orders/{order_code}/state';
 };
 
-export type WarehouseApiRoutesOrdersTransitionInboundOrderResponses = {
+export type WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses = {
     /**
      * OK
      */
     200: GetInboundOrderResponse;
 };
 
-export type WarehouseApiRoutesOrdersTransitionInboundOrderResponse = WarehouseApiRoutesOrdersTransitionInboundOrderResponses[keyof WarehouseApiRoutesOrdersTransitionInboundOrderResponses];
+export type WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponse = WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses];
 
-export type WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderData = {
+export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData = {
     body?: never;
     path: {
         /**
@@ -1741,14 +1779,14 @@ export type WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderData = {
     url: '/api/v1/orders/{order_code}/items/{product_code}';
 };
 
-export type WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses = {
+export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses = {
     /**
      * OK
      */
     200: EmptyResponse;
 };
 
-export type WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponse = WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses[keyof WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses];
+export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponse = WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses];
 
 export type WarehouseApiRoutesPackagingGetPackageTypesData = {
     body?: never;

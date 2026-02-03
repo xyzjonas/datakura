@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesOrdersAddItemToInboundOrderData, WarehouseApiRoutesOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesOrdersCreateInboundOrderData, WarehouseApiRoutesOrdersCreateInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrderData, WarehouseApiRoutesOrdersGetInboundOrderResponses, WarehouseApiRoutesOrdersGetInboundOrdersData, WarehouseApiRoutesOrdersGetInboundOrdersResponses, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesOrdersTransitionInboundOrderData, WarehouseApiRoutesOrdersTransitionInboundOrderResponses, WarehouseApiRoutesOrdersUpdateInboundOrderData, WarehouseApiRoutesOrdersUpdateInboundOrderResponses, WarehouseApiRoutesPackagingGetPackageTypesData, WarehouseApiRoutesPackagingGetPackageTypesResponses, WarehouseApiRoutesPackagingPackagePreviewData, WarehouseApiRoutesPackagingPackagePreviewResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses } from './types.gen';
+import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderData, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesInboundOrdersCreateInboundOrderData, WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrdersData, WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesInboundOrdersTransitionInboundOrderData, WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses, WarehouseApiRoutesInboundOrdersUpdateInboundOrderData, WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses, WarehouseApiRoutesPackagingGetPackageTypesData, WarehouseApiRoutesPackagingGetPackageTypesResponses, WarehouseApiRoutesPackagingPackagePreviewData, WarehouseApiRoutesPackagingPackagePreviewResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -229,8 +229,8 @@ export const warehouseApiRoutesCustomerGetCustomer = <ThrowOnError extends boole
  * Get Inbound Orders
  * List incoming orders, optionally filtered by code or supplier name.
  */
-export const warehouseApiRoutesOrdersGetInboundOrders = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesOrdersGetInboundOrdersData, ThrowOnError>) => {
-    return (options?.client ?? client).get<WarehouseApiRoutesOrdersGetInboundOrdersResponses, unknown, ThrowOnError>({
+export const warehouseApiRoutesInboundOrdersGetInboundOrders = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesInboundOrdersGetInboundOrdersData, ThrowOnError>) => {
+    return (options?.client ?? client).get<WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses, unknown, ThrowOnError>({
         url: '/api/v1/orders',
         ...options
     });
@@ -240,8 +240,8 @@ export const warehouseApiRoutesOrdersGetInboundOrders = <ThrowOnError extends bo
  * Create Inbound Order
  * Create an order
  */
-export const warehouseApiRoutesOrdersCreateInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesOrdersCreateInboundOrderData, ThrowOnError>) => {
-    return (options.client ?? client).post<WarehouseApiRoutesOrdersCreateInboundOrderResponses, unknown, ThrowOnError>({
+export const warehouseApiRoutesInboundOrdersCreateInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersCreateInboundOrderData, ThrowOnError>) => {
+    return (options.client ?? client).post<WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses, unknown, ThrowOnError>({
         url: '/api/v1/orders',
         ...options,
         headers: {
@@ -255,8 +255,8 @@ export const warehouseApiRoutesOrdersCreateInboundOrder = <ThrowOnError extends 
  * Get Inbound Order
  * Retrieve a single incoming order by code.
  */
-export const warehouseApiRoutesOrdersGetInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesOrdersGetInboundOrderData, ThrowOnError>) => {
-    return (options.client ?? client).get<WarehouseApiRoutesOrdersGetInboundOrderResponses, unknown, ThrowOnError>({
+export const warehouseApiRoutesInboundOrdersGetInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersGetInboundOrderData, ThrowOnError>) => {
+    return (options.client ?? client).get<WarehouseApiRoutesInboundOrdersGetInboundOrderResponses, unknown, ThrowOnError>({
         url: '/api/v1/orders/{order_code}',
         ...options
     });
@@ -266,8 +266,8 @@ export const warehouseApiRoutesOrdersGetInboundOrder = <ThrowOnError extends boo
  * Update Inbound Order
  * Update an order
  */
-export const warehouseApiRoutesOrdersUpdateInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesOrdersUpdateInboundOrderData, ThrowOnError>) => {
-    return (options.client ?? client).put<WarehouseApiRoutesOrdersUpdateInboundOrderResponses, unknown, ThrowOnError>({
+export const warehouseApiRoutesInboundOrdersUpdateInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersUpdateInboundOrderData, ThrowOnError>) => {
+    return (options.client ?? client).put<WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses, unknown, ThrowOnError>({
         url: '/api/v1/orders/{order_code}',
         ...options,
         headers: {
@@ -278,11 +278,31 @@ export const warehouseApiRoutesOrdersUpdateInboundOrder = <ThrowOnError extends 
 };
 
 /**
+ * Get Inbound Order Pdf
+ */
+export const warehouseApiRoutesInboundOrdersGetInboundOrderPdf = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData, ThrowOnError>) => {
+    return (options.client ?? client).get<WarehouseApiRoutesInboundOrdersGetInboundOrderPdfResponses, unknown, ThrowOnError>({
+        url: '/api/v1/orders/{order_code}/pdf',
+        ...options
+    });
+};
+
+/**
+ * Get Inbound Order Html
+ */
+export const warehouseApiRoutesInboundOrdersGetInboundOrderHtml = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlData, ThrowOnError>) => {
+    return (options.client ?? client).get<WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlResponses, unknown, ThrowOnError>({
+        url: '/api/v1/orders/{order_code}/html',
+        ...options
+    });
+};
+
+/**
  * Add Item To Inbound Order
  * Retrieve a single incoming order by code.
  */
-export const warehouseApiRoutesOrdersAddItemToInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesOrdersAddItemToInboundOrderData, ThrowOnError>) => {
-    return (options.client ?? client).post<WarehouseApiRoutesOrdersAddItemToInboundOrderResponses, unknown, ThrowOnError>({
+export const warehouseApiRoutesInboundOrdersAddItemToInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersAddItemToInboundOrderData, ThrowOnError>) => {
+    return (options.client ?? client).post<WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses, unknown, ThrowOnError>({
         url: '/api/v1/orders/{order_code}/items',
         ...options,
         headers: {
@@ -296,8 +316,8 @@ export const warehouseApiRoutesOrdersAddItemToInboundOrder = <ThrowOnError exten
  * Transition Inbound Order
  * Transition an inbound order.
  */
-export const warehouseApiRoutesOrdersTransitionInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesOrdersTransitionInboundOrderData, ThrowOnError>) => {
-    return (options.client ?? client).patch<WarehouseApiRoutesOrdersTransitionInboundOrderResponses, unknown, ThrowOnError>({
+export const warehouseApiRoutesInboundOrdersTransitionInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersTransitionInboundOrderData, ThrowOnError>) => {
+    return (options.client ?? client).patch<WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses, unknown, ThrowOnError>({
         url: '/api/v1/orders/{order_code}/state',
         ...options,
         headers: {
@@ -311,8 +331,8 @@ export const warehouseApiRoutesOrdersTransitionInboundOrder = <ThrowOnError exte
  * Remove Items From Inbound Order
  * Retrieve a single incoming order by code.
  */
-export const warehouseApiRoutesOrdersRemoveItemsFromInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderData, ThrowOnError>) => {
-    return (options.client ?? client).delete<WarehouseApiRoutesOrdersRemoveItemsFromInboundOrderResponses, unknown, ThrowOnError>({
+export const warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData, ThrowOnError>) => {
+    return (options.client ?? client).delete<WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses, unknown, ThrowOnError>({
         url: '/api/v1/orders/{order_code}/items/{product_code}',
         ...options
     });

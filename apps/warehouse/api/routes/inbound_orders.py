@@ -1,7 +1,7 @@
 from typing import cast
 
 from django.db.models import Q, QuerySet
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from ninja import Router
 from ninja.pagination import paginate
 
@@ -72,6 +72,24 @@ def update_inbound_order(
         params, code=order_code
     )
     return GetInboundOrderResponse(data=updated_order)
+
+
+@routes.get("/{order_code}/pdf", auth=None)
+def get_inbound_order_pdf(request: HttpRequest, order_code: str):
+    response = HttpResponse(
+        inbound_orders_service.get_pdf(order_code), content_type="application/pdf"
+    )
+    response["Content-Disposition"] = 'attachment; filename="document.pdf"'
+    return response
+
+
+@routes.get("/{order_code}/html", auth=None)
+def get_inbound_order_html(request: HttpRequest, order_code: str):
+    response = HttpResponse(
+        inbound_orders_service.get_html(order_code), content_type="text/html"
+    )
+    # response['Content-Disposition'] = 'attachment; filename="document.pdf"'
+    return response
 
 
 @routes.post(

@@ -53,7 +53,16 @@
           icon="sym_o_check"
           @click="createWarehouseOrderDialog = true"
         />
-        <div v-if="order.warehouse_order" class="flex flex-col">
+        <PrintDropdownButton
+          :items="[
+            {
+              label: 'Tisk PDF bez cen',
+              onClick: openPdf,
+            },
+          ]"
+        />
+        <q-btn unelevated color="negative" label="archivovat" icon="sym_o_close_small" disable />
+        <div v-if="order.warehouse_order" class="flex flex-col border">
           <span class="text-gray-5">PŘÍJEMKA</span>
           <div class="flex items-center gap-2">
             <a class="link text-lg" @click="goToWarehouseOrderIn(order.warehouse_order.code)"
@@ -163,11 +172,12 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesOrdersAddItemToInboundOrder,
-  warehouseApiRoutesOrdersGetInboundOrder,
-  warehouseApiRoutesOrdersRemoveItemsFromInboundOrder,
-  warehouseApiRoutesOrdersTransitionInboundOrder,
-  warehouseApiRoutesOrdersUpdateInboundOrder,
+  warehouseApiRoutesInboundOrdersAddItemToInboundOrder,
+  warehouseApiRoutesInboundOrdersGetInboundOrder,
+  warehouseApiRoutesInboundOrdersGetInboundOrderPdf,
+  warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder,
+  warehouseApiRoutesInboundOrdersTransitionInboundOrder,
+  warehouseApiRoutesInboundOrdersUpdateInboundOrder,
   warehouseApiRoutesWarehouseCreateInboundWarehouseOrder,
   type InboundOrderCreateOrUpdateSchema,
   type InboundOrderItemCreateSchema,
@@ -186,6 +196,7 @@ import OrderTimeline from '@/components/order/OrderTimeline.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
+import PrintDropdownButton from '@/components/PrintDropdownButton.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
@@ -199,7 +210,7 @@ const order = ref<InboundOrderSchema>()
 
 const { onResponse } = useApi()
 
-const response = await warehouseApiRoutesOrdersGetInboundOrder({
+const response = await warehouseApiRoutesInboundOrdersGetInboundOrder({
   path: { order_code: props.code },
 })
 const data = onResponse(response)
@@ -213,7 +224,7 @@ const addItem = async (item: InboundOrderItemCreateSchema) => {
   if (!order.value) {
     return
   }
-  const addResponse = await warehouseApiRoutesOrdersAddItemToInboundOrder({
+  const addResponse = await warehouseApiRoutesInboundOrdersAddItemToInboundOrder({
     path: { order_code: order.value.code },
     body: item,
   })
@@ -231,7 +242,7 @@ const removeItem = async (product_code: string) => {
   if (!order.value) {
     return
   }
-  const result = await warehouseApiRoutesOrdersRemoveItemsFromInboundOrder({
+  const result = await warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder({
     path: { order_code: order.value.code, product_code },
   })
   const data = onResponse(result)
@@ -245,7 +256,7 @@ const updateOrder = async (body: InboundOrderCreateOrUpdateSchema) => {
   if (!order.value) {
     return
   }
-  const result = await warehouseApiRoutesOrdersUpdateInboundOrder({
+  const result = await warehouseApiRoutesInboundOrdersUpdateInboundOrder({
     body: body,
     path: { order_code: order.value.code },
   })
@@ -261,7 +272,7 @@ const confirm = async () => {
   if (!order.value) {
     return
   }
-  const response = await warehouseApiRoutesOrdersTransitionInboundOrder({
+  const response = await warehouseApiRoutesInboundOrdersTransitionInboundOrder({
     path: { order_code: order.value.code },
     body: { state: 'submitted' },
   })
@@ -290,6 +301,17 @@ const createWarehouseOrder = async (locationCode: string) => {
       message: `Příjemka úspěšně vytvořena: ${data.data.code}`,
     })
     goToWarehouseOrderIn(data.data.code)
+  }
+}
+
+const openPdf = async () => {
+  const resonse = await warehouseApiRoutesInboundOrdersGetInboundOrderPdf({
+    path: { order_code: props.code },
+  })
+  if (!resonse.error) {
+    const blobUrl = URL.createObjectURL(resonse.data as unknown as Blob)
+    window.open(blobUrl, '_blank')
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
   }
 }
 </script>

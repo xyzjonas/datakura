@@ -2,8 +2,10 @@ from calendar import monthrange
 from datetime import datetime
 
 from django.db import transaction
+from django.template.loader import get_template
 from django.utils import timezone
 from loguru import logger
+from weasyprint import HTML  # type: ignore
 
 from apps.warehouse.core.schemas.orders import (
     InboundOrderItemCreateSchema,
@@ -106,6 +108,19 @@ class OrdersService:
             )
 
         return inbound_order_orm_to_schema(order)
+
+    @staticmethod
+    def get_html(code: str) -> str:
+        order = InboundOrder.objects.get(code=code)
+        order_schema = inbound_order_orm_to_schema(order)
+        template = get_template("inbound_order.html")
+        html_content = template.render({"order": order_schema.model_dump()})
+
+        return html_content
+
+    @classmethod
+    def get_pdf(cls, code: str) -> bytes:
+        return HTML(string=cls.get_html(code)).write_pdf()
 
 
 inbound_orders_service = OrdersService()

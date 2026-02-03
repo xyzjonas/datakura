@@ -82,8 +82,8 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesOrdersCreateInboundOrder,
-  warehouseApiRoutesOrdersGetInboundOrders,
+  warehouseApiRoutesInboundOrdersCreateInboundOrder,
+  warehouseApiRoutesInboundOrdersGetInboundOrders,
   type InboundOrderCreateOrUpdateSchema,
   type InboundOrderSchema,
 } from '@/client'
@@ -112,7 +112,7 @@ const loading = ref(false)
 const fetchOrders = async () => {
   loading.value = true
   try {
-    const res = await warehouseApiRoutesOrdersGetInboundOrders({
+    const res = await warehouseApiRoutesInboundOrdersGetInboundOrders({
       query: {
         page: page.value,
         page_size: pageSize.value,
@@ -208,7 +208,7 @@ const newOrderDialog = ref(false)
 const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
 const $q = useQuasar()
 const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
-  const response = await warehouseApiRoutesOrdersCreateInboundOrder({ body: params })
+  const response = await warehouseApiRoutesInboundOrdersCreateInboundOrder({ body: params })
   const data = onResponse(response)
   if (data && newOrderDialogComponent.value) {
     newOrderDialogComponent.value.reset()
