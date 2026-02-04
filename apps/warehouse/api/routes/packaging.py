@@ -25,7 +25,9 @@ def get_package_types(request: HttpRequest, search_term: str | None = None):
                 name=package_type.name,
                 amount=float(package_type.amount),
                 description=package_type.description,
-                unit=package_type.unit_of_measure.name,
+                unit=package_type.unit_of_measure.name
+                if package_type.unit_of_measure
+                else None,
             )
             for package_type in PackageType.objects.prefetch_related(
                 "unit_of_measure"

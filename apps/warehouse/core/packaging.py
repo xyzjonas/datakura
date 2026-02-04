@@ -15,6 +15,9 @@ def get_package_amount_in_product_uom(
     product_uom = stock_product.unit_of_measure
     package_uom = package_type.unit_of_measure
 
+    if not package_uom:
+        return None
+
     if product_uom.name == package_uom.name:
         return float(package_type.amount)
 

@@ -11,7 +11,7 @@
     <div class="ml-auto flex items-center">
       <span v-if="item.package" class="text-gray-5 text-xs mr-1">V balení:</span>
       <span class="flex flex-nowrap items-center">
-        <WarehouseItemAmountBadge :item="item" />
+        <WarehouseItemAmountBadge :item="item" :amount="amount" />
       </span>
     </div>
   </div>
@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import type { WarehouseItemSchema } from '@/client'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
-defineProps<{ readonly?: boolean; index: number }>()
+defineProps<{ readonly?: boolean; index: number; amount?: number }>()
 defineEmits(['removeItem'])
 
 const item = defineModel<WarehouseItemSchema>('item', { required: true })

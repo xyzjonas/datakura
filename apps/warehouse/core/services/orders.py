@@ -13,6 +13,7 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderCreateOrUpdateSchema,
     InboundOrderSchema,
 )
+from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
     inbound_order_item_orm_to_schema,
     inbound_order_orm_to_schema,
@@ -108,6 +109,13 @@ class OrdersService:
             )
 
         return inbound_order_orm_to_schema(order)
+
+    @classmethod
+    def accept_inbound_order(cls, order_code: str):
+        order = InboundOrder.objects.get(code=order_code)
+        cls.transition_order(order_code, InboundOrderState.RECEIVING)
+        for item in order.items.all():
+            stock_product_service.update_pricing(item.stock_product.code)
 
     @staticmethod
     def get_html(code: str) -> str:

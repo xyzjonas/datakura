@@ -145,16 +145,21 @@ class WarehouseService:
         product = StockProduct.objects.get(code=product_code)
         package = PackageType.objects.get(name=package_name)
 
-        package_amount_in_product_uom = get_package_amount_in_product_uom(
-            package, product
-        )
+        if not package.unit_of_measure:
+            # no units for a package - special kind that holds any number (carton, pallet)
+            package_amount_in_product_uom: float | None = float(warehouse_item.amount)
+        else:
+            package_amount_in_product_uom = get_package_amount_in_product_uom(
+                package, product
+            )
+
         if not package_amount_in_product_uom:
             raise_by_code(
                 ErrorCode.INVALID_CONVERSION,
                 f"Product's '{product.name}' unit of measure "
                 f"'{product.unit_of_measure.name}' can't be "
                 f"converted to package '{package.name}' unit of measure "
-                f"'{package.unit_of_measure.name}'",
+                f"'{package.unit_of_measure.name if package.unit_of_measure else 'None'}'",
             )
 
         if amount / package_amount_in_product_uom % 1 != 0:
@@ -162,7 +167,7 @@ class WarehouseService:
                 ErrorCode.INVALID_CONVERSION,
                 f"Product amount '{amount}' ({product.unit_of_measure.name}) doesn't "
                 f"fit evenly into the requested package "
-                f"'{package.name}' ({package.unit_of_measure.name})",
+                f"'{package.name}' ({package.unit_of_measure.name if package.unit_of_measure else 'None'})",
             )
 
         num_of_packages = round(amount / package_amount_in_product_uom)
@@ -315,6 +320,11 @@ class WarehouseService:
         order = InboundWarehouseOrder.objects.get(code=code)
         order.state = body.state
         order.save()
+
+        if body.state == InboundWarehouseOrderState.PENDING:
+            order_order = InboundOrder.objects.get(code=order.order.code)
+            order_order.state = InboundOrderState.PUTAWAY
+            order_order.save()
         return warehouse_inbound_order_orm_to_schema(order)
 
 

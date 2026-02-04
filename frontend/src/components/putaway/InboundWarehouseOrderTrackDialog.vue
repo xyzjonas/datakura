@@ -54,7 +54,7 @@
           />
 
           <div v-if="items.length > 0">
-            <WarehouseItemPreviewRow :item="item" :index="0" />
+            <WarehouseItemPreviewRow :item="item" :index="0" :amount="amount" />
             <div class="flex w-full justify-center my-2">
               <q-icon name="sym_o_arrow_cool_down" size="20px" />
             </div>
@@ -151,7 +151,7 @@ const previewItems = async () => {
   }
 }
 
-watch(selectedPackage, () => {
+watch([selectedPackage, amount], () => {
   if (selectedPackage.value) {
     previewItems()
   } else {

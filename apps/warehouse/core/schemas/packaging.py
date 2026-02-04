@@ -10,7 +10,7 @@ class PackageTypeSchema(BaseSchema):
     name: str
     amount: float
     description: str | None = None
-    unit: str
+    unit: str | None = None
 
 
 class GetPackageTypesResponse(BaseResponse):

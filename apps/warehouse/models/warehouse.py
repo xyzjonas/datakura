@@ -98,6 +98,8 @@ class WarehouseItem(BaseModel):
 
         product_uom = self.stock_product.unit_of_measure
         package_uom = self.package_type.unit_of_measure
+        if not package_uom:
+            return None
 
         if product_uom.name == package_uom.name:
             return float(self.package_type.amount)

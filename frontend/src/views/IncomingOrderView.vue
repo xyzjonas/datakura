@@ -130,7 +130,7 @@
     <ConfirmDialog v-model:show="cancelDialog" title="Zrušit vydanou objednávku?" @confirm="cancel">
       <span
         >objednávka bude označena jako <strong class="text-red">zrušeno</strong> a bude archivována
-        (zmizí z výpisu objednáívek).</span
+        (zmizí z výpisu objednávek).</span
       >
     </ConfirmDialog>
     <InboundOrderPutawayDialog

@@ -37,6 +37,23 @@ def test_warehouse_item_transform_with_pkg_same_uom_as_product():
 
 
 @pytest.mark.django_db
+def test_warehouse_item_transform_with_pkg_no_uom():
+    base_uom = UnitOfMeasureFactory(name="KS")
+    unit_of_measure = UnitOfMeasureFactory(
+        name="100ks", base_uom=base_uom, amount_of_base_uom=100
+    )
+    package_type = PackageTypeFactory(unit_of_measure=None, amount=0, name="pallet")
+    item_model = WarehouseItemFactory(
+        amount=1.2,
+        package_type=package_type,
+        stock_product=StockProductFactory(unit_of_measure=unit_of_measure),
+    )
+    transformed = warehouse_item_orm_to_schema(item_model)
+    assert transformed.amount == 1.2
+    assert transformed.package.amount == 0
+
+
+@pytest.mark.django_db
 def test_warehouse_item_transform_with_pkg_pkg_is_base_uom():
     base_uom = UnitOfMeasureFactory(name="KS")
     unit_of_measure = UnitOfMeasureFactory(

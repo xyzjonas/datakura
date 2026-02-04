@@ -22,9 +22,9 @@ class WarehouseLocationSchema(BaseSchema):
 
 class PackageSchema(BaseSchema):
     type: str
-    description: str | None
+    description: str | None = None
     amount: float
-    unit: str
+    unit: str | None = None
 
 
 class WarehouseItemSchema(BaseSchema):

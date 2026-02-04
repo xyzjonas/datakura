@@ -129,7 +129,9 @@ def package_orm_to_schema(package_type: PackageType | None) -> PackageSchema | N
     return PackageSchema(
         changed=package_type.changed,
         created=package_type.created,
-        unit=package_type.unit_of_measure.name,
+        unit=package_type.unit_of_measure.name
+        if package_type.unit_of_measure
+        else None,
         type=package_type.name,
         description=package_type.description,
         amount=float(package_type.amount),
@@ -139,7 +141,7 @@ def package_orm_to_schema(package_type: PackageType | None) -> PackageSchema | N
 def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
     amount = float(item.amount) if item.amount else None
     package_type = package_orm_to_schema(item.package_type)
-    if package_type and item.package_amount_in_product_uom:
+    if package_type and package_type.unit and item.package_amount_in_product_uom:
         package_type.amount = item.package_amount_in_product_uom
         if amount is None:
             amount = package_type.amount

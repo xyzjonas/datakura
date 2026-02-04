@@ -1,5 +1,5 @@
 <template>
-  <span class="text-lg mr-1">{{ item.amount }}</span>
+  <span class="text-lg mr-1">{{ amount ?? item.amount }}</span>
   <span class="text-gray-5 text-xs border-solid border-1 rounded px-[4px] py-[1px]">{{
     item.unit_of_measure
   }}</span>
@@ -10,6 +10,7 @@ import type { WarehouseItemSchema } from '@/client'
 
 defineProps<{
   item: Pick<WarehouseItemSchema, 'amount' | 'unit_of_measure'>
+  amount?: number
 }>()
 </script>
 
