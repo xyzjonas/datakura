@@ -21,14 +21,15 @@
     </style>
 </head>
 <body>
-    <div class="is-flex is-flex-direction-row">
-        <div>
-            <span class="has-text-grey is-size-7">Objednávka vydaná</span>
-            <h1 class="is-size-5">{{ order.code }}</h1>
-        </div>
+    <div class="is-flex is-flex-direction-row mb-5">
+        <img src="https://www.stemax.cz/assets/img/logo.png">
+
         <span class="ml-auto is-size-7">Požadované datum dodání <strong>04.04.2025</strong></span>
     </div>
-    <img src="https://www.stemax.cz/assets/img/logo.png" class="mt-5">
+    <div>
+        <span class="has-text-grey is-size-7">Objednávka vydaná</span>
+        <h1 class="is-size-5">{{ order.code }}</h1>
+    </div>
 
     <div class="columns my-3 is-mobile">
       <div class="column">

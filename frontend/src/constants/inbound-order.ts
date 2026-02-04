@@ -57,7 +57,7 @@ export const INBOUND_ORDER_STATES: Record<string, StateConfig> = {
   },
   cancelled: {
     label: 'Zrušeno',
-    icon: 'sym_o_cancel',
+    icon: 'sym_o_block',
     color: 'negative',
     step: CANCELLED,
   },

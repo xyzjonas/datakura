@@ -37,9 +37,15 @@
               <span class="text-xs">{{ item.unit_of_measure }}</span>
             </template>
           </q-input>
-
           <div class="px-3">
-            <q-slider v-model="amount" markers :min="1" :max="item.amount" marker-labels></q-slider>
+            <q-slider
+              v-model="amount"
+              :markers="Math.ceil(item.amount / 10)"
+              :min="0"
+              :max="item.amount"
+              marker-labels
+              :step="item.amount > 50 ? 10 : 1"
+            ></q-slider>
           </div>
 
           <PackageTypeSearchSelect

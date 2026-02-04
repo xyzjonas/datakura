@@ -18,7 +18,7 @@
         </div>
         <InboundOrderStateBadge :state="order.state" />
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 items-center">
         <q-btn
           v-if="getInboundOrderStep(order) === 1"
           unelevated
@@ -28,13 +28,21 @@
           @click="editOrderDialog = true"
         ></q-btn>
         <q-btn
-          v-if="getInboundOrderStep(order) === 1"
-          outline
-          color="primary"
-          icon="sym_o_add"
-          label="přidat položku"
-          @click="addItemDialog = true"
-        ></q-btn>
+          v-if="order.state !== 'cancelled'"
+          unelevated
+          color="negative"
+          label="zrušit"
+          icon="sym_o_scan_delete"
+          @click="cancelDialog = true"
+        />
+        <PrintDropdownButton
+          :items="[
+            {
+              label: 'PDF bez cen',
+              onClick: openPdf,
+            },
+          ]"
+        />
         <q-btn
           v-if="getInboundOrderStep(order) === 1"
           unelevated
@@ -53,17 +61,9 @@
           icon="sym_o_check"
           @click="createWarehouseOrderDialog = true"
         />
-        <PrintDropdownButton
-          :items="[
-            {
-              label: 'Tisk PDF bez cen',
-              onClick: openPdf,
-            },
-          ]"
-        />
-        <q-btn unelevated color="negative" label="archivovat" icon="sym_o_close_small" disable />
-        <div v-if="order.warehouse_order" class="flex flex-col border">
-          <span class="text-gray-5">PŘÍJEMKA</span>
+
+        <div v-if="order.warehouse_order" class="flex flex-col ml-2 border py-2 px-5 rounded">
+          <span class="text-gray-5 text-2xs">PŘÍJEMKA</span>
           <div class="flex items-center gap-2">
             <a class="link text-lg" @click="goToWarehouseOrderIn(order.warehouse_order.code)"
               >{{ order.warehouse_order.code }}
@@ -76,58 +76,26 @@
       </div>
     </div>
     <div class="flex gap-2">
-      <ForegroundPanel class="flex flex-col min-w-[400px] flex-[2]">
-        <!-- <span class="text-gray-5 flex items-center gap-1">VYDANÁ OBJEDNÁVKA</span>
-        <h1 class="text-primary mb-1">{{ order.code }}</h1>
-        <span class="flex items-center gap-1 mb-3">
-          <small class="text-gray-5">kód:</small>
-          <h5>{{ order.code }}</h5>
-          <CopyToClipBoardButton v-if="order.code" :text="order.code" />
-        </span> -->
-
-        <q-list dense class="mt-2" separator>
-          <q-item clickable>
-            <q-item-section>Číslo dokladu</q-item-section>
-            <q-item-section avatar>
-              <span class="flex gap-1">
-                {{ order.code }}
-                <CopyToClipBoardButton v-if="order.code" :text="order.code" />
-              </span>
-            </q-item-section>
-          </q-item>
-          <q-item clickable>
-            <q-item-section>Externí číslo</q-item-section>
-            <q-item-section avatar>
-              <span class="flex gap-1">
-                {{ order.external_code }}
-                <CopyToClipBoardButton v-if="order.external_code" :text="order.external_code" />
-              </span>
-            </q-item-section>
-          </q-item>
-          <q-item clickable>
-            <q-item-section>Požadovaný termín dodání</q-item-section>
-            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
-          </q-item>
-          <q-item clickable>
-            <q-item-section>Datum zrušení</q-item-section>
-            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
-          </q-item>
-          <q-item clickable>
-            <q-item-section>Zboží přijato</q-item-section>
-            <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
-          </q-item>
-        </q-list>
-      </ForegroundPanel>
+      <InboundOrderDetailsListCard :order="order" />
       <CustomerCard :customer="order.supplier" title="DODAVATEL" class="flex-1" />
     </div>
 
     <ForegroundPanel>
-      <OrderTimeline :state="order.state" />
+      <InboundOrderTimeline :state="order.state" />
     </ForegroundPanel>
 
     <div class="flex items-center gap-2 mt-5">
       <CurrencyDropdown v-model="order.currency" />
       <h2>Položky objednávky</h2>
+      <q-btn
+        v-if="getInboundOrderStep(order) === 1"
+        flat
+        color="primary"
+        icon="sym_o_add"
+        label="přidat položku"
+        @click="addItemDialog = true"
+        class="ml-5"
+      ></q-btn>
       <TotalWeight :order="order" class="ml-auto mr-5" />
       <TotalPrice :order="order" />
     </div>
@@ -159,6 +127,12 @@
         ji dále editovat!</span
       >
     </ConfirmDialog>
+    <ConfirmDialog v-model:show="cancelDialog" title="Zrušit vydanou objednávku?" @confirm="cancel">
+      <span
+        >objednávka bude označena jako <strong class="text-red">zrušeno</strong> a bude archivována
+        (zmizí z výpisu objednáívek).</span
+      >
+    </ConfirmDialog>
     <InboundOrderPutawayDialog
       v-model:show="createWarehouseOrderDialog"
       @confirm="createWarehouseOrder"
@@ -188,11 +162,12 @@ import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import CurrencyDropdown from '@/components/order/CurrencyDropdown.vue'
+import InboundOrderDetailsListCard from '@/components/order/InboundOrderDetailsListCard.vue'
 import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDialog.vue'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import InboundOrderUpdateOrCreateDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
 import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
-import OrderTimeline from '@/components/order/OrderTimeline.vue'
+import InboundOrderTimeline from '@/components/order/InboundOrderTimeline.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
@@ -201,7 +176,6 @@ import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehou
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
 import { getInboundOrderStep } from '@/constants/inbound-order'
-import { formatDateLong } from '@/utils/date'
 import { useQuasar } from 'quasar'
 import { ref } from 'vue'
 
@@ -280,6 +254,22 @@ const confirm = async () => {
   if (data) {
     order.value = data.data
     confirmDialog.value = false
+  }
+}
+
+const cancelDialog = ref(false)
+const cancel = async () => {
+  if (!order.value) {
+    return
+  }
+  const response = await warehouseApiRoutesInboundOrdersTransitionInboundOrder({
+    path: { order_code: order.value.code },
+    body: { state: 'cancelled' },
+  })
+  const data = onResponse(response)
+  if (data) {
+    order.value = data.data
+    cancelDialog.value = false
   }
 }
 

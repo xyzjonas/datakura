@@ -1,5 +1,5 @@
 <template>
-  <q-btn-dropdown unelevated color="primary" label="PDF" icon="sym_o_picture_as_pdf">
+  <q-btn-dropdown unelevated outline color="primary" label="PDF" icon="sym_o_picture_as_pdf">
     <q-list>
       <q-item
         v-for="item in items"
@@ -12,7 +12,7 @@
           <q-item-label>{{ item.label }}</q-item-label>
         </q-item-section>
         <q-item-section side>
-          <q-icon name="sym_o_file_export" />
+          <q-icon name="sym_o_file_save" />
         </q-item-section>
       </q-item>
     </q-list>

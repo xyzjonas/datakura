@@ -17,7 +17,7 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.services.orders import inbound_orders_service
 from apps.warehouse.core.transformation import inbound_order_orm_to_schema
-from apps.warehouse.models.orders import InboundOrder
+from apps.warehouse.models.orders import InboundOrder, InboundOrderState
 
 routes = Router(tags=["inbound_order"])
 
@@ -28,7 +28,12 @@ def get_inbound_orders(request: HttpRequest, search_term: str | None = None):
     """
     List incoming orders, optionally filtered by code or supplier name.
     """
-    qs = cast(QuerySet[InboundOrder], InboundOrder.objects.select_related("supplier"))
+    qs = cast(
+        QuerySet[InboundOrder],
+        InboundOrder.objects.select_related("supplier").exclude(
+            state=InboundOrderState.CANCELLED
+        ),
+    )
     if search_term:
         search_term = search_term.lower()
         qs = qs.filter(

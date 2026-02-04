@@ -20,6 +20,7 @@
       :header-nav="step > 1"
       :error="step >= CANCELLED"
       error-color="negative"
+      error-icon="block"
     >
     </q-step>
 
@@ -34,6 +35,7 @@
       :header-nav="step > 2"
       :error="step >= CANCELLED"
       error-color="negative"
+      error-icon="block"
     >
     </q-step>
 
@@ -48,6 +50,7 @@
       :header-nav="step > 3"
       :error="step >= CANCELLED"
       error-color="negative"
+      error-icon="block"
     >
     </q-step>
 
@@ -62,6 +65,7 @@
       :header-nav="step > 3"
       :error="step >= CANCELLED"
       error-color="negative"
+      error-icon="block"
     >
     </q-step>
 
@@ -76,6 +80,7 @@
       :header-nav="step > 3"
       :error="step >= CANCELLED"
       error-color="negative"
+      error-icon="block"
     >
     </q-step>
   </q-stepper>

@@ -23,6 +23,7 @@ from apps.warehouse.core.transformation import (
     location_orm_to_schema,
     location_orm_to_detail_schema,
 )
+from apps.warehouse.models.orders import InboundOrderState
 from apps.warehouse.models.warehouse import (
     Warehouse,
     WarehouseLocation,
@@ -99,7 +100,9 @@ def create_inbound_warehouse_order(
 def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None = None):
     qs = cast(
         QuerySet[InboundWarehouseOrder],
-        InboundWarehouseOrder.objects.select_related("order").prefetch_related("items"),
+        InboundWarehouseOrder.objects.select_related("order")
+        .prefetch_related("items")
+        .exclude(order__state=InboundOrderState.CANCELLED),
     )
     if search_term:
         search_term = search_term.lower()

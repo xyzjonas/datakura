@@ -21,6 +21,9 @@ class UnitOfMeasure(BaseModel):
         return self.name
 
 
+# todo: zboží ponechané na paletě - v rámci této palety je technicky "volně skladem"
+
+
 class PackageType(BaseModel):
     """Packaging type - contains n amount of root unit of the stock item"""
 
