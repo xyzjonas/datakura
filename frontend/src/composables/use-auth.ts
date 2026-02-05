@@ -1,5 +1,6 @@
 import {
   warehouseApiRoutesAuthLoginUser,
+  warehouseApiRoutesAuthSwitchSite,
   warehouseApiRoutesAuthWhoami,
   type AuthData,
 } from '@/client'
@@ -7,6 +8,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from './use-api'
+import { client } from '@/client/client.gen'
 
 // interface User {
 //   id?: number
@@ -63,10 +65,27 @@ export const useAuth = () => {
     if (data) {
       user.value = data.data
       loginVerified.value = true
+
+      client.setConfig({
+        auth: () => 'TOKEEEEEN',
+      })
+
       return user.value
     }
     reset()
     return undefined
+  }
+
+  const switchSite = async (siteName?: string) => {
+    const result = await warehouseApiRoutesAuthSwitchSite({
+      body: {
+        site_code: siteName ?? null,
+      },
+    })
+    const data = onResponse(result)
+    if (data) {
+      user.value = data.data
+    }
   }
 
   const router = useRouter()
@@ -95,5 +114,6 @@ export const useAuth = () => {
     signin,
     signout,
     whoami,
+    switchSite,
   }
 }

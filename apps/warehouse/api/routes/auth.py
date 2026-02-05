@@ -12,6 +12,7 @@ from apps.warehouse.core.schemas.auth import (
     SignoutResponse,
     WhoamiResponse,
     AuthData,
+    SwitchSiteBody,
 )
 
 
@@ -62,13 +63,30 @@ def logout_user(request: HttpRequest):
 
 
 @routes.get("whoami", response={200: WhoamiResponse, 401: SigninResponse})
-def whoami(request):
+def whoami(request: HttpRequest):
     if request.user.is_authenticated:
         return 200, WhoamiResponse(
             data=AuthData(
                 username=request.user.username,
                 user_id=request.user.id,
                 group=get_user_group(request.user),
+                active_site=request.session.get("active_site"),
+            )
+        )
+
+    return 401, SigninResponse(success=False, message="Invalid credentials")
+
+
+@routes.put("whoami/site", response={200: WhoamiResponse, 401: SigninResponse})
+def switch_site(request: HttpRequest, body: SwitchSiteBody):
+    if request.user.is_authenticated:
+        request.session["active_site"] = body.site_code
+        return 200, WhoamiResponse(
+            data=AuthData(
+                username=request.user.username,
+                user_id=request.user.id,
+                group=get_user_group(request.user),
+                active_site=request.session.get("active_site"),
             )
         )
 

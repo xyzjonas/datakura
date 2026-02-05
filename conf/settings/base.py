@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -67,6 +68,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "conf.context_processors.vite_assets",
             ],
         },
     },
@@ -131,6 +133,24 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 JWT_SECRET_KEY = config("JWT_SECRET_KEY")
 
 
-STATICFILES_DIRS = [BASE_DIR / "frontend/dist/assets"]
+STATICFILES_DIRS = [
+    BASE_DIR / "frontend/dist",
+]
 
 STATIC_URL = "/static/"
+
+
+# Load Vite manifest
+VITE_MANIFEST_PATH = BASE_DIR / "frontend" / "dist" / ".vite" / "manifest.json"
+
+
+def get_vite_manifest():
+    if VITE_MANIFEST_PATH.exists():
+        with open(VITE_MANIFEST_PATH, "r") as f:
+            return json.load(f)
+    else:
+        print(f"(!) VITE_MANIFEST_PATH ({VITE_MANIFEST_PATH}) does not exist!")
+    return {}
+
+
+VITE_MANIFEST = get_vite_manifest()

@@ -16,6 +16,9 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    manifest: true,
+  },
   plugins: [
     UnoCSS(),
     vue({

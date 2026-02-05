@@ -30,7 +30,7 @@ from apps.warehouse.models.warehouse import WarehouseItem, InboundWarehouseOrder
 routes = Router(tags=["product"])
 
 
-@routes.get("", response={200: list[ProductSchema]}, auth=None)
+@routes.get("", response={200: list[ProductSchema]})
 @paginate(StockProductPagination)
 def get_products(request: HttpRequest, search_term: str | None = None):
     qs = cast(QuerySet[StockProduct], StockProduct.objects)

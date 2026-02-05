@@ -1,5 +1,5 @@
 <template>
-  <div class="ml-auto flex gap-2 flex-nowrap">
+  <div class="flex gap-2 flex-nowrap">
     <div class="flex flex-col items-end flex-nowrap">
       <span class="light:text-primary font-bold dark:text-light capitalize">{{
         user.username
@@ -13,10 +13,16 @@
     </q-avatar> -->
     <q-btn size="small" flat dense icon="sym_o_more_vert">
       <q-menu>
-        <q-list style="min-width: 100px">
+        <q-list>
           <q-item clickable v-close-popup @click="signout">
             <q-item-section avatar><q-icon name="logout"></q-icon></q-item-section>
             <q-item-section>Odhlásit</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup href="/admin">
+            <q-item-section avatar
+              ><q-icon name="sym_o_admin_panel_settings"></q-icon
+            ></q-item-section>
+            <q-item-section>Django Administrace</q-item-section>
           </q-item>
         </q-list>
       </q-menu>

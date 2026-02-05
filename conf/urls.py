@@ -16,13 +16,20 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.shortcuts import redirect
 from django.urls import path, include, re_path
 
 from .views import VueAppView
 
 
+def assets_redirect(request, path):
+    return redirect(f"/static/assets/{path}", permanent=False)
+
+
 urlpatterns = [
     path("", include("warehouse.urls")),
     path("admin", admin.site.urls),
+    # Quasar/Vite looks for .woff2 in `/assets/...` and not `/static/...` (a bit hackish but works)
+    path("assets/<path:path>", assets_redirect),
     re_path(r"^.*$", VueAppView.as_view(), name="vue-app"),  # Catch-all for Vue routing
 ]

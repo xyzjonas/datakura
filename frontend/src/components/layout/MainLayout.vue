@@ -3,7 +3,10 @@
     <q-header v-if="!noLayout && !isLoading">
       <q-toolbar class="flex gap-5 p-3 items-center">
         <SearchInput v-model="search" class="w-[512px]" />
-        <LoginInfo />
+        <div class="ml-auto flex items-center gap-10">
+          <CurrentSiteInfo />
+          <LoginInfo />
+        </div>
       </q-toolbar>
     </q-header>
 
@@ -149,10 +152,11 @@ import { useGlobalLoading } from '@/composables/use-global-loading'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLogo from '../AppLogo.vue'
-import LoginInfo from '../LoginInfo.vue'
+import LoginInfo from './LoginInfo.vue'
 import MenuList from '../MenuList.vue'
 import SearchInput from '../SearchInput.vue'
 import BackToTopFab from './BackToTopFab.vue'
+import CurrentSiteInfo from './CurrentSiteInfo.vue'
 
 const search = ref('')
 const { isDark, toggle } = useDarkmode()

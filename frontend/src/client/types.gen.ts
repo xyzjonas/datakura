@@ -20,6 +20,10 @@ export type AuthData = {
      * Group
      */
     group?: string | null;
+    /**
+     * Active Site
+     */
+    active_site?: string | null;
 };
 
 /**
@@ -95,6 +99,16 @@ export type WhoamiResponse = {
     success?: boolean;
     error?: ErrorInformation | null;
     data: AuthData;
+};
+
+/**
+ * SwitchSiteBody
+ */
+export type SwitchSiteBody = {
+    /**
+     * Site Code
+     */
+    site_code: string | null;
 };
 
 /**
@@ -195,7 +209,7 @@ export type PackageSchema = {
     /**
      * Description
      */
-    description: string | null;
+    description?: string | null;
     /**
      * Amount
      */
@@ -203,7 +217,7 @@ export type PackageSchema = {
     /**
      * Unit
      */
-    unit: string;
+    unit?: string | null;
 };
 
 /**
@@ -1136,7 +1150,7 @@ export type PackageTypeSchema = {
     /**
      * Unit
      */
-    unit: string;
+    unit?: string | null;
 };
 
 /**
@@ -1241,6 +1255,31 @@ export type WarehouseApiRoutesAuthWhoamiResponses = {
 };
 
 export type WarehouseApiRoutesAuthWhoamiResponse = WarehouseApiRoutesAuthWhoamiResponses[keyof WarehouseApiRoutesAuthWhoamiResponses];
+
+export type WarehouseApiRoutesAuthSwitchSiteData = {
+    body: SwitchSiteBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/whoami/site';
+};
+
+export type WarehouseApiRoutesAuthSwitchSiteErrors = {
+    /**
+     * Unauthorized
+     */
+    401: SigninResponse;
+};
+
+export type WarehouseApiRoutesAuthSwitchSiteError = WarehouseApiRoutesAuthSwitchSiteErrors[keyof WarehouseApiRoutesAuthSwitchSiteErrors];
+
+export type WarehouseApiRoutesAuthSwitchSiteResponses = {
+    /**
+     * OK
+     */
+    200: WhoamiResponse;
+};
+
+export type WarehouseApiRoutesAuthSwitchSiteResponse = WarehouseApiRoutesAuthSwitchSiteResponses[keyof WarehouseApiRoutesAuthSwitchSiteResponses];
 
 export type WarehouseApiRoutesWarehouseGetWarehousesData = {
     body?: never;
