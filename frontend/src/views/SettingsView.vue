@@ -39,10 +39,10 @@
 import MissingSettingsTab from '@/components/settings/MissingSettingsTab.vue'
 import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue'
 import { useLocalStorage } from '@vueuse/core'
-import { ref, watch, type Component } from 'vue'
+import { shallowRef, watch, type Component } from 'vue'
 
 const selectedTab = useLocalStorage('settings-selected-tab', 'packaging')
-const selectedTabComponent = ref<Component>()
+const selectedTabComponent = shallowRef<Component>()
 
 watch(
   selectedTab,
@@ -57,6 +57,11 @@ watch(
 )
 
 const items = [
+  {
+    key: 'location',
+    label: 'Lokace a skladová místa',
+    icon: 'sym_o_home_work',
+  },
   {
     key: 'packaging',
     label: 'balení',

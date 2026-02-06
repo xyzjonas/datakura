@@ -3,9 +3,9 @@ import { useGlobalLoading } from '@/composables/use-global-loading'
 import CustomersView from '@/views/CustomersView.vue'
 import CustomerView from '@/views/CustomerView.vue'
 import HomeView from '@/views/HomeView.vue'
-import IncomingOrdersView from '@/views/IncomingOrdersView.vue'
 import IncomingOrderView from '@/views/IncomingOrderView.vue'
 import LoginView from '@/views/LoginView.vue'
+import OrdersView from '@/views/OrdersView.vue'
 import ProductsView from '@/views/ProductsView.vue'
 import ProductView from '@/views/ProductView.vue'
 import SettingsView from '@/views/SettingsView.vue'
@@ -61,9 +61,9 @@ const router = createRouter({
       props: true,
     },
     {
-      path: '/incoming-orders',
-      name: 'incomingOrders',
-      component: IncomingOrdersView,
+      path: '/orders',
+      name: 'orders',
+      component: OrdersView,
     },
     {
       path: '/incoming-orders/:code',

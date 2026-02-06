@@ -77,7 +77,9 @@ def whoami(request: HttpRequest):
     return 401, SigninResponse(success=False, message="Invalid credentials")
 
 
-@routes.put("whoami/site", response={200: WhoamiResponse, 401: SigninResponse})
+@routes.put(
+    "whoami/site", response={200: WhoamiResponse, 401: SigninResponse}, auth=None
+)
 def switch_site(request: HttpRequest, body: SwitchSiteBody):
     if request.user.is_authenticated:
         request.session["active_site"] = body.site_code

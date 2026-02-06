@@ -1,18 +1,5 @@
 <template>
-  <div class="flex-1">
-    <div class="mb-2 flex justify-between items-center">
-      <div>
-        <h1>Vydané Objednávky</h1>
-        <h5 class="text-gray-5 mt-2">Kontrolujte a spravujte vydané objednávky</h5>
-      </div>
-      <q-btn
-        color="primary"
-        unelevated
-        label="vytvořit"
-        icon="sym_o_add"
-        @click="newOrderDialog = true"
-      />
-    </div>
+  <div>
     <q-table
       :rows="orders"
       :columns="columns"
@@ -21,7 +8,7 @@
       flat
       v-model:pagination="pagination"
       @request="onPaginationChange"
-      no-data-label="Žádné vydané objednávky nenalezeny"
+      no-data-label="Žádné objednávky nenalezeny"
       :rows-per-page-options="[10, 30, 50, 100]"
       class="bg-transparent"
     >
@@ -83,7 +70,6 @@
 <script setup lang="ts">
 import {
   warehouseApiRoutesInboundOrdersCreateInboundOrder,
-  warehouseApiRoutesInboundOrdersGetInboundOrders,
   type InboundOrderCreateOrUpdateSchema,
   type InboundOrderSchema,
 } from '@/client'
@@ -95,41 +81,54 @@ import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'
 import router from '@/router'
 import { useQuasar, type QTableColumn, type QTableProps } from 'quasar'
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const { onResponse } = useApi()
 const { page, pageSize, search } = useQueryProducts()
 
-const pagination = ref<NonNullable<QTableProps['pagination']>>({
+export type Pagination = NonNullable<QTableProps['pagination']>
+
+const pagination = ref<Pagination>({
   rowsPerPage: pageSize.value,
   page: page.value,
   rowsNumber: pageSize.value,
 })
 
-const orders = ref<InboundOrderSchema[]>([])
+// todo: 'or' Outbound
+type Order = InboundOrderSchema
+
+const props = defineProps<{
+  fetchOrders: (pagination: Ref<Pagination>, loading: Ref<boolean>) => Promise<Order[]>
+}>()
+
+const orders = ref<Order[]>([])
 const loading = ref(false)
-const fetchOrders = async () => {
-  loading.value = true
-  try {
-    const res = await warehouseApiRoutesInboundOrdersGetInboundOrders({
-      query: {
-        page: page.value,
-        page_size: pageSize.value,
-        search_term: search.value,
-      },
-    })
-    const data = onResponse(res)
-    if (data) {
-      orders.value = data.data
-      pagination.value.rowsNumber = data.count
-    }
-  } finally {
-    setTimeout(() => (loading.value = false), 300)
-  }
+// const fetchOrders = async () => {
+//   loading.value = true
+//   try {
+//     const res = await warehouseApiRoutesInboundOrdersGetInboundOrders({
+//       query: {
+//         page: page.value,
+//         page_size: pageSize.value,
+//         search_term: search.value,
+//       },
+//     })
+//     const data = onResponse(res)
+//     if (data) {
+//       orders.value = data.data
+//       pagination.value.rowsNumber = data.count
+//     }
+//   } finally {
+//     setTimeout(() => (loading.value = false), 300)
+//   }
+// }
+
+const fetch = async () => {
+  orders.value = await props.fetchOrders(pagination, loading)
 }
 
-onMounted(fetchOrders)
+onMounted(fetch)
 
 const shouldNotFetch = () => {
   return pagination.value.rowsPerPage === pageSize.value && pagination.value.page === page.value
@@ -145,17 +144,17 @@ const onPaginationChange = async (requestProp: { pagination: QTableProps['pagina
   }
   page.value = Number(pagination.value.page)
   setTimeout(() => (pageSize.value = Number(pagination.value.rowsPerPage)), 1)
-  setTimeout(() => fetchOrders(), 2)
+  setTimeout(() => fetch(), 2)
 }
 
 const { currentRoute } = useRouter()
 watch(currentRoute, () => {
   if (!shouldNotFetch()) {
-    fetchOrders()
+    fetch()
   }
 })
 
-watch(search, fetchOrders)
+watch(search, fetch)
 
 const columns: QTableColumn[] = [
   {

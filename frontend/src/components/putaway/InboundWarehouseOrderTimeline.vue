@@ -11,10 +11,10 @@
   >
     <q-step
       :name="1"
-      title="Koncept"
-      caption="Čeká na potvrzení"
-      icon="sym_o_ink_pen"
-      active-icon="sym_o_ink_pen"
+      title="Kontrola"
+      caption="Probíhá validace objednávky"
+      icon="sym_o_search"
+      active-icon="sym_o_search"
       active-color="accent"
       :done="step > 1"
       :header-nav="step > 1"

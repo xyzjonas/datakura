@@ -51,19 +51,19 @@
             <MenuList
               :items="[
                 {
-                  label: 'Vydané Objednávky',
-                  icon: 'sym_o_shoppingmode',
-                  routeName: 'incomingOrders',
-                  routeMatch: 'incomingOrders,incomingOrderDetail',
-                },
-                {
                   label: 'Objednávky',
                   icon: 'sym_o_receipt',
-                  routeName: 'outboundOrders',
+                  routeName: 'orders',
+                  routeMatch: 'orders',
                 },
                 {
                   label: 'Faktury',
-                  icon: 'sym_o_receipt_long',
+                  icon: 'sym_o_attach_money',
+                  routeName: 'submissions',
+                },
+                {
+                  label: 'Dobropisy',
+                  icon: 'sym_o_undo',
                   routeName: 'submissions',
                 },
                 {

@@ -1,5 +1,9 @@
 <template>
-  <q-select v-model="activeSite" :options="['Centrála', 'Nosek']" outlined dense></q-select>
+  <q-select v-model="activeSite" :options="['Centrála', 'Nosek']" outlined dense>
+    <template #prepend>
+      <q-icon name="sym_o_home_work" />
+    </template>
+  </q-select>
 </template>
 
 <script setup lang="ts">

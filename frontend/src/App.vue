@@ -2,9 +2,7 @@
   <MainLayout>
     <RouterView v-slot="{ Component }" :key="$route.path">
       <Suspense>
-        <template #default>
-          <component :is="Component" />
-        </template>
+        <component :is="Component" />
         <template #fallback>
           <span>...loading</span>
         </template>
