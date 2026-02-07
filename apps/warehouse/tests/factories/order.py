@@ -2,7 +2,11 @@ import factory
 from factory.django import DjangoModelFactory
 
 from apps.warehouse.models.currency import CURRENCY_CHOICES
-from apps.warehouse.models.orders import InboundOrder, InboundOrderItem
+from apps.warehouse.models.orders import (
+    InboundOrder,
+    InboundOrderItem,
+    CreditNoteToSupplier,
+)
 from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
 
@@ -33,3 +37,17 @@ class InboundOrderFactory(DjangoModelFactory):
 
     supplier = factory.SubFactory(CustomerFactory)
     currency = CURRENCY_CHOICES[0][0]
+
+
+class CreditNoteSupplierFactory(DjangoModelFactory):
+    """Factory for CreditNoteSupplier model"""
+
+    class Meta:
+        model = CreditNoteToSupplier
+        django_get_or_create = ("code",)
+
+    code = factory.Sequence(lambda n: f"ORD-{n:04d}")
+    reason = factory.Faker("text", max_nb_chars=50)
+    note = factory.Faker("text", max_nb_chars=200)
+
+    order = factory.SubFactory(InboundOrderFactory)

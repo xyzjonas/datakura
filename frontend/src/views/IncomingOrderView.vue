@@ -31,7 +31,7 @@
           v-if="order.state !== 'cancelled'"
           unelevated
           color="negative"
-          label="zrušit"
+          label="Uzavřít"
           icon="sym_o_scan_delete"
           @click="cancelDialog = true"
         />
@@ -61,18 +61,7 @@
           icon="sym_o_check"
           @click="createWarehouseOrderDialog = true"
         />
-
-        <div v-if="order.warehouse_order" class="flex flex-col ml-2 border py-2 px-5 rounded">
-          <span class="text-gray-5 text-2xs">PŘÍJEMKA</span>
-          <div class="flex items-center gap-2">
-            <a class="link text-lg" @click="goToWarehouseOrderIn(order.warehouse_order.code)"
-              >{{ order.warehouse_order.code }}
-            </a>
-            <InboundWarehouseOrderStateBadge
-              :state="order.warehouse_order.state"
-            ></InboundWarehouseOrderStateBadge>
-          </div>
-        </div>
+        <InboundWarehouseOrderBadge v-if="order.warehouse_order" :order="order.warehouse_order" />
       </div>
     </div>
     <div class="flex gap-2">
@@ -127,7 +116,11 @@
         ji dále editovat!</span
       >
     </ConfirmDialog>
-    <ConfirmDialog v-model:show="cancelDialog" title="Zrušit vydanou objednávku?" @confirm="cancel">
+    <ConfirmDialog
+      v-model:show="cancelDialog"
+      title="Uzavřít vydanou objednávku?"
+      @confirm="cancel"
+    >
       <span
         >objednávka bude označena jako <strong class="text-red">zrušeno</strong> a bude archivována
         (zmizí z výpisu objednávek).</span
@@ -165,14 +158,14 @@ import CurrencyDropdown from '@/components/order/CurrencyDropdown.vue'
 import InboundOrderDetailsListCard from '@/components/order/InboundOrderDetailsListCard.vue'
 import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDialog.vue'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
+import InboundOrderTimeline from '@/components/order/InboundOrderTimeline.vue'
 import InboundOrderUpdateOrCreateDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
 import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
-import InboundOrderTimeline from '@/components/order/InboundOrderTimeline.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
 import PrintDropdownButton from '@/components/PrintDropdownButton.vue'
-import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
+import InboundWarehouseOrderBadge from '@/components/putaway/InboundWarehouseOrderBadge.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
 import { getInboundOrderStep } from '@/constants/inbound-order'

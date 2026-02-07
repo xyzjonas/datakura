@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import cast
 
+import pytest
+
 from apps.warehouse.core.schemas.orders import (
     InboundOrderItemCreateSchema,
     InboundOrderCreateOrUpdateSchema,
@@ -11,12 +13,15 @@ from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
     InboundOrderState,
+    CreditNoteSupplierItem,
+    CreditNoteToSupplier,
 )
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.tests.factories.customer import CustomerFactoryMinimal
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
     InboundOrderItemFactory,
+    CreditNoteSupplierFactory,
 )
 from apps.warehouse.tests.factories.product import StockProductFactory
 
@@ -134,3 +139,37 @@ def test_transition_order(db):
     assert order_db.state == InboundOrderState.COMPLETED
 
     assert result == inbound_order_orm_to_schema(order_db)
+
+
+def test_create_credit_note(db):
+    order = InboundOrderFactory(state=InboundOrderState.DRAFT)
+
+    result, created = inbound_orders_service.get_or_create_credit_note(order.code)
+    assert created
+    assert len(result.items) == 0
+
+
+def test_create_credit_note_no_order(db):
+    with pytest.raises(InboundOrder.DoesNotExist):
+        inbound_orders_service.get_or_create_credit_note("foobar")
+
+
+def test_create_credit_note_exist(db):
+    note = CreditNoteSupplierFactory()
+
+    result, created = inbound_orders_service.get_or_create_credit_note(note.order.code)
+    assert not created
+    assert CreditNoteToSupplier.objects.count() == 1
+    assert len(result.items) == 0
+
+    CreditNoteSupplierItem.objects.create(
+        stock_product=StockProductFactory(),
+        amount=1.0,
+        credit_note=note,
+        unit_price=1.0,
+    )
+
+    result, created = inbound_orders_service.get_or_create_credit_note(note.order.code)
+    assert not created
+    assert CreditNoteToSupplier.objects.count() == 1
+    assert len(result.items) == 1

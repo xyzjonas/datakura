@@ -12,17 +12,21 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderItemSchema,
     InboundOrderCreateOrUpdateSchema,
     InboundOrderSchema,
+    CreditNoteSupplierSchema,
 )
 from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
     inbound_order_item_orm_to_schema,
     inbound_order_orm_to_schema,
+    credit_note_supplier_orm_to_schema,
 )
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
     InboundOrderState,
+    CreditNoteToSupplier,
+    CreditNoteState,
 )
 from apps.warehouse.models.product import StockProduct
 
@@ -44,6 +48,15 @@ class OrdersService:
         dt_range = _get_month_range(now)
         orders_this_month = InboundOrder.objects.filter(created__range=dt_range).count()
         return f"OV{now.year}{now.month:02d}{orders_this_month + 1:04d}"
+
+    @staticmethod
+    def generate_next_credit_note_code() -> str:
+        now = timezone.now()
+        dt_range = _get_month_range(now)
+        notes_this_month = CreditNoteToSupplier.objects.filter(
+            created__range=dt_range
+        ).count()
+        return f"DV{now.year}{now.month:02d}{notes_this_month + 1:04d}"
 
     @staticmethod
     def update_or_create_incoming(
@@ -129,6 +142,26 @@ class OrdersService:
     @classmethod
     def get_pdf(cls, code: str) -> bytes:
         return HTML(string=cls.get_html(code)).write_pdf()
+
+    @classmethod
+    def get_or_create_credit_note(
+        cls, order_code: str
+    ) -> tuple[CreditNoteSupplierSchema, bool]:
+        if not CreditNoteToSupplier.objects.filter(order__code=order_code).exists():
+            order = InboundOrder.objects.get(code=order_code)
+            created = True
+            code = cls.generate_next_credit_note_code()
+            note = CreditNoteToSupplier.objects.create(
+                code=code, order=order, reason="", note="", state=CreditNoteState.DRAFT
+            )
+
+            result = credit_note_supplier_orm_to_schema(note)
+        else:
+            order = InboundOrder.objects.get(code=order_code)
+            created = False
+            result = credit_note_supplier_orm_to_schema(order.credit_note)
+
+        return result, created
 
 
 inbound_orders_service = OrdersService()

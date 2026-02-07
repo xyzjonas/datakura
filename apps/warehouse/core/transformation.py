@@ -16,6 +16,8 @@ from apps.warehouse.core.schemas.customer import (
 from apps.warehouse.core.schemas.orders import (
     InboundOrderSchema,
     InboundOrderItemSchema,
+    CreditNoteSupplierSchema,
+    CreditNoteSupplierItemSchema,
 )
 from apps.warehouse.core.schemas.product import ProductSchema
 from apps.warehouse.core.schemas.warehouse import (
@@ -30,6 +32,8 @@ from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
     InboundOrderState,
+    CreditNoteToSupplier,
+    CreditNoteState,
 )
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
@@ -226,4 +230,28 @@ def warehouse_inbound_order_orm_to_schema(
             warehouse_order_code=w_order.code,
         ),
         state=InboundWarehouseOrderState(w_order.state),
+    )
+
+
+def credit_note_supplier_orm_to_schema(
+    credit_note: CreditNoteToSupplier,
+) -> CreditNoteSupplierSchema:
+    return CreditNoteSupplierSchema(
+        code=credit_note.code,
+        created=credit_note.created,
+        changed=credit_note.changed,
+        reason=credit_note.reason,
+        note=credit_note.note,
+        state=CreditNoteState(credit_note.state),
+        order=inbound_order_orm_to_schema(credit_note.order),
+        items=[
+            CreditNoteSupplierItemSchema(
+                product=product_orm_to_schema(item.stock_product),
+                amount=item.amount,
+                unit_price=item.unit_price,
+                changed=item.changed,
+                created=item.created,
+            )
+            for item in credit_note.items.all()
+        ],
     )
