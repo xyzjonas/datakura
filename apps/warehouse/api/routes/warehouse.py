@@ -16,10 +16,10 @@ from apps.warehouse.core.schemas.warehouse import (
     UpdateWarehouseOrderDraftItemsRequest,
     InboundWarehouseOrderUpdateSchema,
     SetupTrackingWarehouseItemRequest,
+    RemoveItemToCreditNoteRequest,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
-    warehouse_inbound_order_orm_to_schema,
     location_orm_to_schema,
     location_orm_to_detail_schema,
 )
@@ -123,14 +123,8 @@ def get_inbound_warehouse_order(request: HttpRequest, code: str):
     # user = authenticate(
     #     request, username=credentials.username, password=credentials.password
     # )
-    order = InboundWarehouseOrder.objects.prefetch_related(
-        "items",
-        "items__stock_product",
-        "items__stock_product__unit_of_measure",
-        "items__package_type",
-        "items__package_type__unit_of_measure",
-    ).get(code=code)
-    return GetWarehouseOrderResponse(data=warehouse_inbound_order_orm_to_schema(order))
+    order = warehouse_service.get_inbound_warehouse_order(code)
+    return GetWarehouseOrderResponse(data=order)
 
 
 @routes.put(
@@ -195,6 +189,20 @@ def dissolve_inbound_warehouse_order_item(
     #     request, username=credentials.username, password=credentials.password
     # )
     order = warehouse_service.dissolve_inbound_order_item(code, item_code)
+    return GetWarehouseOrderResponse(data=order)
+
+
+@routes.post(
+    "orders-incoming/{code}/credit",
+    response={200: GetWarehouseOrderResponse},
+    auth=None,
+)
+def remove_from_order_to_credit_note(
+    request: HttpRequest, code: str, body: RemoveItemToCreditNoteRequest
+):
+    order = warehouse_service.remove_from_order_to_credit_note(
+        code, body.item_code, body.amount
+    )
     return GetWarehouseOrderResponse(data=order)
 
 

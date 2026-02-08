@@ -13,7 +13,7 @@ from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
     InboundOrderState,
-    CreditNoteSupplierItem,
+    CreditNoteToSupplierItem,
     CreditNoteToSupplier,
 )
 from apps.warehouse.models.product import StockProduct
@@ -162,7 +162,7 @@ def test_create_credit_note_exist(db):
     assert CreditNoteToSupplier.objects.count() == 1
     assert len(result.items) == 0
 
-    CreditNoteSupplierItem.objects.create(
+    CreditNoteToSupplierItem.objects.create(
         stock_product=StockProductFactory(),
         amount=1.0,
         credit_note=note,

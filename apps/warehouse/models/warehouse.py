@@ -80,9 +80,7 @@ class WarehouseItem(BaseModel):
     )
     order_in = models.ForeignKey(
         "InboundWarehouseOrder",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="items",
         help_text="Order which brought the item into the warehouse",
     )

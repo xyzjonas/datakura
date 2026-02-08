@@ -23,6 +23,7 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,
     InboundWarehouseOrderUpdateSchema,
 )
+from apps.warehouse.core.services.orders import inbound_orders_service
 from apps.warehouse.core.transformation import (
     warehouse_inbound_order_orm_to_schema,
     product_orm_to_schema,
@@ -32,6 +33,10 @@ from apps.warehouse.core.transformation import (
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderState,
+    InboundOrderItem,
+    CreditNoteState,
+    CreditNoteToSupplier,
+    CreditNoteToSupplierItem,
 )
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
@@ -73,6 +78,24 @@ class WarehouseService:
             created__range=dt_range
         ).count()
         return f"P{now.year}{now.month:02d}{orders_this_month + 1:04d}"
+
+    @staticmethod
+    def get_inbound_warehouse_order(code: str):
+        # user = authenticate(
+        #     request, username=credentials.username, password=credentials.password
+        # )
+        order = (
+            InboundWarehouseOrder.objects.prefetch_related(
+                "items",
+                "items__stock_product",
+                "items__stock_product__unit_of_measure",
+                "items__package_type",
+                "items__package_type__unit_of_measure",
+            )
+            .select_related("order", "order__credit_note")
+            .get(code=code)
+        )
+        return warehouse_inbound_order_orm_to_schema(order)
 
     @staticmethod
     def create_inbound_order(
@@ -326,6 +349,67 @@ class WarehouseService:
             order_order.state = InboundOrderState.PUTAWAY
             order_order.save()
         return warehouse_inbound_order_orm_to_schema(order)
+
+    @classmethod
+    def remove_from_order_to_credit_note(
+        cls,
+        warehouse_order_code: str,
+        warehouse_item_code: str,
+        amount: float | Decimal,
+    ) -> InboundWarehouseOrderSchema:
+        amount = Decimal(amount)
+        warehouse_item = (
+            WarehouseItem.objects.filter(
+                order_in__code=warehouse_order_code, code=warehouse_item_code
+            )
+            .prefetch_related("stock_product")
+            .get()
+        )
+        stock_product = warehouse_item.stock_product
+        warehouse_order = warehouse_item.order_in
+        order = warehouse_item.order_in.order
+
+        order_item = InboundOrderItem.objects.filter(
+            order=order, stock_product=stock_product
+        ).get()
+        if warehouse_order.state != InboundWarehouseOrderState.DRAFT:
+            raise ValueError(
+                f"Warehouse order '{warehouse_order.code}' is already confirmed and read-only."
+            )
+
+        with transaction.atomic():
+            if amount > warehouse_item.amount:
+                raise ValueError(
+                    f"Requested amount ({amount}) exceeds item amount: {warehouse_item.amount} ({warehouse_item.stock_product.name})"
+                )
+
+            note, _ = inbound_orders_service.get_or_create_credit_note(order.code)
+            if note.state != CreditNoteState.DRAFT:
+                raise ValueError(
+                    f"Credit Note '{note.code}' is already confirmed and read-only"
+                )
+
+            code_model = CreditNoteToSupplier.objects.get(code=note.code)
+            existing_item = CreditNoteToSupplierItem.objects.filter(
+                credit_note__code=note.code, stock_product=stock_product
+            ).first()
+            if existing_item:
+                existing_item.amount += amount
+            else:
+                existing_item = CreditNoteToSupplierItem.objects.create(
+                    stock_product=stock_product,
+                    amount=amount,
+                    credit_note=code_model,
+                    unit_price=order_item.unit_price,
+                )
+
+            if amount == warehouse_item.amount:
+                warehouse_item.delete()
+            else:
+                warehouse_item.amount -= amount
+                warehouse_item.save()
+
+        return cls.get_inbound_warehouse_order(warehouse_order_code)
 
 
 warehouse_service = WarehouseService()

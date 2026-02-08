@@ -14,6 +14,7 @@ from apps.warehouse.core.transformation import (
     package_orm_to_schema,
     warehouse_item_orm_to_schema,
 )
+from apps.warehouse.models.orders import CreditNoteState
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     WarehouseLocation,
@@ -29,6 +30,7 @@ from apps.warehouse.tests.factories.product import StockProductFactory
 from apps.warehouse.tests.factories.warehouse import (
     WarehouseItemFactory,
     InboundWarehouseOrderFactory,
+    CompleteOrderFactory,
 )
 from apps.warehouse.tests.factories.warehouse import WarehouseLocationFactory
 
@@ -241,3 +243,48 @@ def test_dissolve_inbound_order_item_add(db):
 
     with pytest.raises(WarehouseItem.DoesNotExist):
         WarehouseItem.objects.get(code=packaged_item.code)
+
+
+def test_remove_from_order_to_credit_note(db):
+    amount = 100
+    unit_price = 99
+    warehouse_order = CompleteOrderFactory(amount_and_unit_price=(amount, unit_price))
+    item = warehouse_order.items.first()
+    # product = StockProductFactory()
+    # item = WarehouseItemFactory(order_in=order, stock_product=product, amount=100, package_type=None)
+
+    credited_amount = 10
+    w_order = warehouse_service.remove_from_order_to_credit_note(
+        warehouse_order.code, item.code, credited_amount
+    )
+    credit_note = w_order.credit_note
+    assert credit_note
+    assert credit_note.state == CreditNoteState.DRAFT
+    assert credit_note.order.code == warehouse_order.order.code
+    assert len(credit_note.items) == 1
+
+    credit_item = credit_note.items[0]
+    assert credit_item.product.code == item.stock_product.code
+    assert credit_item.amount == credited_amount
+    assert credit_item.unit_price == unit_price
+
+    war_item = WarehouseItem.objects.get(code=item.code)
+    assert war_item.amount == amount - credited_amount
+
+
+def test_remove_from_order_to_credit_note_all_gone(db):
+    amount = 100
+    warehouse_order = CompleteOrderFactory(amount_and_unit_price=(amount, 1))
+    item = warehouse_order.items.first()
+
+    credited_amount = amount
+    w_order = warehouse_service.remove_from_order_to_credit_note(
+        warehouse_order.code, item.code, credited_amount
+    )
+    assert len(w_order.credit_note.items) == 1
+
+    credit_item = w_order.credit_note.items[0]
+    assert credit_item.product.code == item.stock_product.code
+    assert credit_item.amount == credited_amount
+
+    assert not WarehouseItem.objects.filter(code=item.code).exists()

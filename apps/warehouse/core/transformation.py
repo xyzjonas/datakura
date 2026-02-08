@@ -199,6 +199,30 @@ def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
     )
 
 
+def credit_note_supplier_orm_to_schema(
+    credit_note: CreditNoteToSupplier,
+) -> CreditNoteSupplierSchema:
+    return CreditNoteSupplierSchema(
+        code=credit_note.code,
+        created=credit_note.created,
+        changed=credit_note.changed,
+        reason=credit_note.reason,
+        note=credit_note.note,
+        state=CreditNoteState(credit_note.state),
+        order=inbound_order_orm_to_schema(credit_note.order),
+        items=[
+            CreditNoteSupplierItemSchema(
+                product=product_orm_to_schema(item.stock_product),
+                amount=item.amount,
+                unit_price=item.unit_price,
+                changed=item.changed,
+                created=item.created,
+            )
+            for item in credit_note.items.all()
+        ],
+    )
+
+
 def warehouse_inbound_order_orm_to_schema(
     w_order: InboundWarehouseOrder,
 ) -> InboundWarehouseOrderSchema:
@@ -230,28 +254,7 @@ def warehouse_inbound_order_orm_to_schema(
             warehouse_order_code=w_order.code,
         ),
         state=InboundWarehouseOrderState(w_order.state),
-    )
-
-
-def credit_note_supplier_orm_to_schema(
-    credit_note: CreditNoteToSupplier,
-) -> CreditNoteSupplierSchema:
-    return CreditNoteSupplierSchema(
-        code=credit_note.code,
-        created=credit_note.created,
-        changed=credit_note.changed,
-        reason=credit_note.reason,
-        note=credit_note.note,
-        state=CreditNoteState(credit_note.state),
-        order=inbound_order_orm_to_schema(credit_note.order),
-        items=[
-            CreditNoteSupplierItemSchema(
-                product=product_orm_to_schema(item.stock_product),
-                amount=item.amount,
-                unit_price=item.unit_price,
-                changed=item.changed,
-                created=item.created,
-            )
-            for item in credit_note.items.all()
-        ],
+        credit_note=credit_note_supplier_orm_to_schema(w_order.order.credit_note)
+        if getattr(w_order.order, "credit_note", None)
+        else None,
     )

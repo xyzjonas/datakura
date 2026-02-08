@@ -60,7 +60,7 @@
         color="negative"
         flat
         dense
-        @click="$emit('removeItem')"
+        @click="$emit('dissolveItem')"
       ></q-btn>
     </div>
   </div>
@@ -72,7 +72,7 @@ import { computed } from 'vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 
 defineProps<{ currency: string; readonly?: boolean }>()
-defineEmits(['removeItem'])
+defineEmits(['dissolveItem'])
 
 const item = defineModel<InboundOrderItemSchema>('item', { required: true })
 

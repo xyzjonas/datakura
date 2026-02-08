@@ -34,38 +34,18 @@
         />
 
         <InboundOrderBadge :order="order.order" />
+        {{ order.credit_note?.code ?? 'NO CREDIT' }}
       </div>
     </div>
     <div class="flex gap-2">
-      <ForegroundPanel class="flex-1">
-        <span class="uppercase text-xs text-gray-5">Příjemka</span>
-        <span class="flex gap-2 items-center">
-          <h1 class="text-primary">{{ order.code }}</h1>
-          <InboundWarehouseOrderStateBadge :state="order.state" />
-        </span>
-        <span class="uppercase text-xs text-gray-5">{{ order.code }}</span>
-        <CopyToClipBoardButton :text="order.code" class="text-gray-5" />
-        <h2 @click="goToOrderIn(order.order.code)" class="text-primary link mt-5 w-fit">
-          {{ order.order.code }}
-        </h2>
-      </ForegroundPanel>
       <CustomerCard :customer="order.order.supplier" title="Dodavatel" class="flex-1" />
     </div>
 
-    <InboundWarehouseOrderTimeline :order="order" class="mt-5" />
+    <ForegroundPanel>
+      <InboundWarehouseOrderTimeline :order="order" />
+    </ForegroundPanel>
 
     <div class="flex items-center gap-2 my-5">
-      <!-- <q-icon v-if="synced" name="sym_o_check_circle" size="20px" color="positive" class="ml-5" /> -->
-      <!-- <Transition name="fade" mode="out-in">
-        <q-btn
-          v-if="!synced"
-          unelevated
-          flat
-          color="primary"
-          icon="sym_o_backup"
-          label="uložit změny"
-        ></q-btn>
-      </Transition> -->
       <div class="ml-auto">
         <q-btn
           v-if="step === 1"
@@ -83,7 +63,8 @@
       v-model:items="order.items"
       :readonly="order.state !== 'draft'"
       @packaged="updateOrderItems"
-      @remove-item="dissolveItem"
+      @dissolve-item="dissolveItem"
+      @remove-item="removeItem"
     ></InboundWarehouseOrderItemsList>
     <ConfirmDialog
       v-model:show="confirmDialog"
@@ -103,6 +84,7 @@ import {
   type InboundWarehouseOrderSchema,
   warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem,
   warehouseApiRoutesWarehouseGetInboundWarehouseOrder,
+  warehouseApiRoutesWarehouseRemoveFromOrderToCreditNote,
   warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem,
   warehouseApiRoutesWarehouseUpdateInboundWarehouseOrder,
   type WarehouseItemSchema,
@@ -116,14 +98,14 @@ import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehous
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import InboundWarehouseOrderTimeline from '@/components/putaway/InboundWarehouseOrderTimeline.vue'
 import { useApi } from '@/composables/use-api'
-import { useAppRouter } from '@/composables/use-app-router'
 import { getInboundWarehouseOrderStep } from '@/constants/inbound-warehouse-order'
+import { useQuasar } from 'quasar'
 import { computed, ref } from 'vue'
 
 const props = defineProps<{ code: string }>()
 
 const { onResponse } = useApi()
-const { goToOrderIn } = useAppRouter()
+const $q = useQuasar()
 
 const response = await warehouseApiRoutesWarehouseGetInboundWarehouseOrder({
   path: { code: props.code },
@@ -189,6 +171,31 @@ const dissolveItem = async (itemCode: string) => {
   if (data) {
     order.value = data.data
   }
+}
+
+const removeItem = async (itemCode: string, amount: number) => {
+  if (!order.value) {
+    return
+  }
+  const data = onResponse(
+    await warehouseApiRoutesWarehouseRemoveFromOrderToCreditNote({
+      path: {
+        code: order.value.code,
+      },
+      body: {
+        item_code: itemCode,
+        amount: amount,
+      },
+    }),
+  )
+  if (data) {
+    order.value = data.data
+  }
+  $q.notify({
+    type: 'positive',
+    message: `${amount} MJ odstraněno z příjemky`,
+    caption: `Evidováno v dobropisu ${order.value.credit_note?.code ?? 'N/A'}`,
+  })
 }
 </script>
 

@@ -21,7 +21,7 @@
 import type { WarehouseItemSchema } from '@/client'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 defineProps<{ readonly?: boolean; index: number; amount?: number }>()
-defineEmits(['removeItem'])
+defineEmits(['dissolveItem'])
 
 const item = defineModel<WarehouseItemSchema>('item', { required: true })
 </script>

@@ -103,10 +103,10 @@ class CreditNoteToSupplier(BaseModel):
         default=CreditNoteState.DRAFT,
     )
 
-    items: QuerySet["CreditNoteSupplierItem"]
+    items: QuerySet["CreditNoteToSupplierItem"]
 
 
-class CreditNoteSupplierItem(BaseModel):
+class CreditNoteToSupplierItem(BaseModel):
     """Credit note item (returning back to suppliers)"""
 
     stock_product = models.ForeignKey(

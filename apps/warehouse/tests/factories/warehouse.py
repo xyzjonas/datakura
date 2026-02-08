@@ -12,7 +12,7 @@ from apps.warehouse.models.warehouse import (
     InboundWarehouseOrder,
     InboundWarehouseOrderState,
 )
-from .order import InboundOrderFactory
+from .order import InboundOrderFactory, InboundOrderItemFactory
 from .product import (
     StockProductFactory,
 )
@@ -37,6 +37,24 @@ class WarehouseLocationFactory(DjangoModelFactory):
     is_putaway = False
 
 
+class WarehouseOrderOutFactory(DjangoModelFactory):
+    class Meta:
+        model = OutboundWarehouseOrder
+
+    # Add fields as they are defined in your model
+    pass
+
+
+class InboundWarehouseOrderFactory(DjangoModelFactory):
+    class Meta:
+        model = InboundWarehouseOrder
+
+    # Add fields as they are defined in your model
+    code = factory.Sequence(lambda n: f"ORD-{n:06d}")
+    order = factory.SubFactory(InboundOrderFactory)
+    state = InboundWarehouseOrderState.DRAFT
+
+
 class WarehouseItemFactory(DjangoModelFactory):
     class Meta:
         model = WarehouseItem
@@ -45,8 +63,8 @@ class WarehouseItemFactory(DjangoModelFactory):
     stock_product = factory.SubFactory(StockProductFactory)
     package_type = None
     location = factory.SubFactory(WarehouseLocationFactory)
+    order_in = factory.SubFactory(InboundWarehouseOrderFactory)
     amount = 0
-    order_in = None
 
 
 class WarehouseMovementFactory(DjangoModelFactory):
@@ -67,24 +85,6 @@ class WarehouseMovementFactory(DjangoModelFactory):
         )
 
 
-class WarehouseOrderOutFactory(DjangoModelFactory):
-    class Meta:
-        model = OutboundWarehouseOrder
-
-    # Add fields as they are defined in your model
-    pass
-
-
-class InboundWarehouseOrderFactory(DjangoModelFactory):
-    class Meta:
-        model = InboundWarehouseOrder
-
-    # Add fields as they are defined in your model
-    code = factory.Sequence(lambda n: f"ORD-{n:06d}")
-    order = factory.SubFactory(InboundOrderFactory)
-    state = InboundWarehouseOrderState.DRAFT
-
-
 class WarehouseWithLocationsFactory(WarehouseFactory):
     """Creates a Warehouse with multiple locations"""
 
@@ -98,3 +98,35 @@ class WarehouseWithLocationsFactory(WarehouseFactory):
             WarehouseLocationFactory(
                 warehouse=obj, code=f"{obj.name}-{chr(65 + i)}{i:02d}"
             )
+
+
+class CompleteOrderFactory(InboundWarehouseOrderFactory):
+    """Creates a complete inbound order with warehouse order and items"""
+
+    class Params:
+        amount: float = 100
+        unit_price: float = 1
+
+    @factory.post_generation
+    def amount_and_unit_price(obj, create, extracted: tuple[float, float], **kwargs):
+        if not create:
+            return
+
+        amount, unit_price = extracted
+
+        product = StockProductFactory()
+        inbound_order = InboundOrderFactory()
+        obj.order = inbound_order  # type: ignore
+
+        WarehouseItemFactory(
+            order_in=obj,
+            stock_product=product,
+            amount=amount,
+        )
+
+        InboundOrderItemFactory(
+            order=inbound_order,
+            stock_product=product,
+            amount=amount,
+            unit_price=unit_price,
+        )

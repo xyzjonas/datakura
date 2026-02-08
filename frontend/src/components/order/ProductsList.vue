@@ -19,7 +19,7 @@
           v-model:item="items[index]"
           :readonly="readonly"
           :currency="currency"
-          @remove-item="() => $emit('removeItem', item.product.code)"
+          @remove-item="() => $emit('dissolveItem', item.product.code)"
         ></ProductRow>
       </ForegroundPanel>
     </TransitionGroup>
@@ -40,7 +40,7 @@ import ForegroundPanel from '../ForegroundPanel.vue'
 import EmptyPanel from '../EmptyPanel.vue'
 
 defineEmits<{
-  (e: 'removeItem', product_code: string): void
+  (e: 'dissolveItem', product_code: string): void
   (e: 'addItem'): void
 }>()
 defineProps<{ currency: string; readonly?: boolean }>()

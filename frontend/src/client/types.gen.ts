@@ -420,6 +420,66 @@ export type ContactPersonSchema = {
 };
 
 /**
+ * CreditNoteState
+ */
+export type CreditNoteState = 'draft' | 'confirmed';
+
+/**
+ * CreditNoteSupplierItemSchema
+ */
+export type CreditNoteSupplierItemSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    product: ProductSchema;
+    /**
+     * Amount
+     */
+    amount: number | string;
+    /**
+     * Unit Price
+     */
+    unit_price: number | string;
+};
+
+/**
+ * CreditNoteSupplierSchema
+ */
+export type CreditNoteSupplierSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    order: InboundOrderBaseSchema;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    state: CreditNoteState;
+    /**
+     * Items
+     */
+    items: Array<CreditNoteSupplierItemSchema>;
+};
+
+/**
  * CustomerGroupSchema
  * Schema for CustomerGroup output
  */
@@ -637,6 +697,7 @@ export type InboundWarehouseOrderSchema = {
      */
     completed_items_count: number;
     order: InboundOrderBaseSchema;
+    credit_note?: CreditNoteSupplierSchema | null;
 };
 
 /**
@@ -728,6 +789,20 @@ export type SetupTrackingWarehouseItemRequest = {
      * To Be Added
      */
     to_be_added: Array<WarehouseItemSchema>;
+};
+
+/**
+ * RemoveItemToCreditNoteRequest
+ */
+export type RemoveItemToCreditNoteRequest = {
+    /**
+     * Item Code
+     */
+    item_code: string;
+    /**
+     * Amount
+     */
+    amount: number;
 };
 
 /**
@@ -1475,6 +1550,27 @@ export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses =
 };
 
 export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses];
+
+export type WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteData = {
+    body: RemoveItemToCreditNoteRequest;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}/credit';
+};
+
+export type WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponse = WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses[keyof WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses];
 
 export type WarehouseApiRoutesProductGetProductsData = {
     body?: never;

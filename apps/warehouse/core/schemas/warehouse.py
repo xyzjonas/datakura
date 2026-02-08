@@ -6,6 +6,7 @@ from ninja import Schema
 
 from .base import BaseResponse, BaseSchema, PaginatedResponse
 from .base_orders import InboundWarehouseOrderBaseSchema, InboundOrderBaseSchema
+from .orders import CreditNoteSupplierSchema
 from .product import ProductSchema
 from ...models.warehouse import InboundWarehouseOrderState
 
@@ -66,6 +67,7 @@ class InboundWarehouseOrderSchema(InboundWarehouseOrderBaseSchema):
     items: list[WarehouseItemSchema]
     completed_items_count: int
     order: InboundOrderBaseSchema
+    credit_note: CreditNoteSupplierSchema | None = None
 
 
 class InboundWarehouseOrderUpdateSchema(Schema):
@@ -117,3 +119,8 @@ class UpdateWarehouseOrderDraftItemsRequest(Schema):
 
 class SetupTrackingWarehouseItemRequest(Schema):
     to_be_added: list[WarehouseItemSchema]
+
+
+class RemoveItemToCreditNoteRequest(Schema):
+    item_code: str
+    amount: float

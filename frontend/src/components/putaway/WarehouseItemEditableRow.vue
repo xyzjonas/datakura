@@ -30,6 +30,14 @@
       <q-btn
         v-if="!trackingType"
         flat
+        color="negative"
+        label="dobropis"
+        icon="sym_o_undo"
+        @click="removeItemDialog = true"
+      />
+      <q-btn
+        v-if="!trackingType"
+        flat
         color="primary"
         label="evidovat"
         icon-right="sym_o_qr_code_scanner"
@@ -43,10 +51,15 @@
       :tracking-type-in="trackingType"
       @packaged="(items) => $emit('packaged', items)"
     />
+    <InboundWarehouseOrderRemoveItemDialog
+      v-model:show="removeItemDialog"
+      :item="item"
+      @remove="(amount) => $emit('remove', amount)"
+    />
     <ConfirmDialog
       v-model:show="confirmDelete"
       title="Zrušit balení/evidenci?"
-      @confirm="$emit('removeItem')"
+      @confirm="$emit('dissolveItem')"
     >
       <div>
         Položka ztratí zvolený typ balení a bude nadále v systému evidována pouze jako
@@ -66,11 +79,12 @@ import BarcodeElement from '../BarcodeElement.vue'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
-// import ProductAvailability from '../product/ProductAvailability.vue'
+import InboundWarehouseOrderRemoveItemDialog from './InboundWarehouseOrderRemoveItemDialog.vue'
 
 defineProps<{ readonly?: boolean }>()
 defineEmits<{
-  (e: 'removeItem'): void
+  (e: 'dissolveItem'): void
+  (e: 'remove', amount: number): void
   (e: 'packaged', items: WarehouseItemSchema[]): void
 }>()
 
@@ -86,6 +100,7 @@ const trackingType = computed<TrackingType>(() => {
 })
 
 const confirmDelete = ref(false)
+const removeItemDialog = ref(false)
 </script>
 
 <style lang="scss" scoped></style>
