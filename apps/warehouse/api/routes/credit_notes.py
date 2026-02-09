@@ -32,7 +32,7 @@ def get_credit_notes_to_supplier(request: HttpRequest, search_term: str | None =
         qs = qs.filter(
             Q(code__iexact=search_term)
             | Q(code__icontains=search_term)
-            | Q(supplier__name__icontains=search_term)
+            | Q(order__supplier__name__icontains=search_term)
         )
 
     return qs.all()
