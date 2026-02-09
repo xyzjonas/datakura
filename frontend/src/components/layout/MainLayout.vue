@@ -64,7 +64,7 @@
                 {
                   label: 'Dobropisy',
                   icon: 'sym_o_undo',
-                  routeName: 'submissions',
+                  routeName: 'creditNotes',
                 },
                 {
                   label: 'Kalkulace',

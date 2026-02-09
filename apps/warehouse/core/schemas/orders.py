@@ -3,7 +3,7 @@ from decimal import Decimal
 from ninja import Schema
 from pydantic import Field
 
-from apps.warehouse.models.orders import InboundOrderState, CreditNoteState
+from apps.warehouse.models.orders import InboundOrderState
 from .base import BaseSchema, PaginatedResponse, BaseResponse
 from .base_orders import InboundOrderBaseSchema, InboundWarehouseOrderBaseSchema
 from .product import ProductSchema
@@ -60,12 +60,3 @@ class CreditNoteSupplierItemSchema(BaseSchema):
     product: ProductSchema
     amount: Decimal
     unit_price: Decimal
-
-
-class CreditNoteSupplierSchema(BaseSchema):
-    code: str
-    order: InboundOrderBaseSchema
-    reason: str | None = None
-    note: str | None = None
-    state: CreditNoteState
-    items: list[CreditNoteSupplierItemSchema]

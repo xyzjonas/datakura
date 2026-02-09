@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthSwitchSiteData, WarehouseApiRoutesAuthSwitchSiteErrors, WarehouseApiRoutesAuthSwitchSiteResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderData, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesInboundOrdersCreateInboundOrderData, WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrdersData, WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesInboundOrdersTransitionInboundOrderData, WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses, WarehouseApiRoutesInboundOrdersUpdateInboundOrderData, WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses, WarehouseApiRoutesPackagingGetPackageTypesData, WarehouseApiRoutesPackagingGetPackageTypesResponses, WarehouseApiRoutesPackagingPackagePreviewData, WarehouseApiRoutesPackagingPackagePreviewResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses, WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteData, WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses } from './types.gen';
+import type { WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthSwitchSiteData, WarehouseApiRoutesAuthSwitchSiteErrors, WarehouseApiRoutesAuthSwitchSiteResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierData, WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierResponses, WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierData, WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderData, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesInboundOrdersCreateInboundOrderData, WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrdersData, WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesInboundOrdersTransitionInboundOrderData, WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses, WarehouseApiRoutesInboundOrdersUpdateInboundOrderData, WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses, WarehouseApiRoutesPackagingGetPackageTypesData, WarehouseApiRoutesPackagingGetPackageTypesResponses, WarehouseApiRoutesPackagingPackagePreviewData, WarehouseApiRoutesPackagingPackagePreviewResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses, WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteData, WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -37,6 +37,13 @@ export const warehouseApiRoutesAuthLoginUser = <ThrowOnError extends boolean = f
  */
 export const warehouseApiRoutesAuthLogoutUser = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesAuthLogoutUserData, ThrowOnError>) => {
     return (options?.client ?? client).post<WarehouseApiRoutesAuthLogoutUserResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/auth/logout',
         ...options
     });
@@ -64,6 +71,13 @@ export const warehouseApiRoutesAuthWhoami = <ThrowOnError extends boolean = fals
  */
 export const warehouseApiRoutesAuthSwitchSite = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesAuthSwitchSiteData, ThrowOnError>) => {
     return (options.client ?? client).put<WarehouseApiRoutesAuthSwitchSiteResponses, WarehouseApiRoutesAuthSwitchSiteErrors, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/auth/whoami/site',
         ...options,
         headers: {
@@ -78,6 +92,13 @@ export const warehouseApiRoutesAuthSwitchSite = <ThrowOnError extends boolean = 
  */
 export const warehouseApiRoutesWarehouseGetWarehouses = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesWarehouseGetWarehousesData, ThrowOnError>) => {
     return (options?.client ?? client).get<WarehouseApiRoutesWarehouseGetWarehousesResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/warehouses',
         ...options
     });
@@ -88,6 +109,13 @@ export const warehouseApiRoutesWarehouseGetWarehouses = <ThrowOnError extends bo
  */
 export const warehouseApiRoutesWarehouseGetWarehouseLocation = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseGetWarehouseLocationData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/locations/{warehouse_location_code}',
         ...options
     });
@@ -98,6 +126,13 @@ export const warehouseApiRoutesWarehouseGetWarehouseLocation = <ThrowOnError ext
  */
 export const warehouseApiRoutesWarehouseGetInboundWarehouseOrders = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData, ThrowOnError>) => {
     return (options?.client ?? client).get<WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/orders-incoming',
         ...options
     });
@@ -108,6 +143,13 @@ export const warehouseApiRoutesWarehouseGetInboundWarehouseOrders = <ThrowOnErro
  */
 export const warehouseApiRoutesWarehouseCreateInboundWarehouseOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, ThrowOnError>) => {
     return (options.client ?? client).post<WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/orders-incoming',
         ...options,
         headers: {
@@ -122,6 +164,13 @@ export const warehouseApiRoutesWarehouseCreateInboundWarehouseOrder = <ThrowOnEr
  */
 export const warehouseApiRoutesWarehouseGetInboundWarehouseOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/orders-incoming/{code}',
         ...options
     });
@@ -132,6 +181,13 @@ export const warehouseApiRoutesWarehouseGetInboundWarehouseOrder = <ThrowOnError
  */
 export const warehouseApiRoutesWarehouseUpdateInboundWarehouseOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData, ThrowOnError>) => {
     return (options.client ?? client).put<WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/orders-incoming/{code}',
         ...options,
         headers: {
@@ -146,6 +202,13 @@ export const warehouseApiRoutesWarehouseUpdateInboundWarehouseOrder = <ThrowOnEr
  */
 export const warehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItems = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData, ThrowOnError>) => {
     return (options.client ?? client).post<WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/orders-incoming/{code}/items',
         ...options,
         headers: {
@@ -160,6 +223,13 @@ export const warehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItems = <Thro
  */
 export const warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData, ThrowOnError>) => {
     return (options.client ?? client).delete<WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}',
         ...options
     });
@@ -170,6 +240,13 @@ export const warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem = <Thr
  */
 export const warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData, ThrowOnError>) => {
     return (options.client ?? client).post<WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}',
         ...options,
         headers: {
@@ -184,6 +261,13 @@ export const warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem = <ThrowO
  */
 export const warehouseApiRoutesWarehouseRemoveFromOrderToCreditNote = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteData, ThrowOnError>) => {
     return (options.client ?? client).post<WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/warehouse/orders-incoming/{code}/credit',
         ...options,
         headers: {
@@ -215,6 +299,13 @@ export const warehouseApiRoutesProductGetProducts = <ThrowOnError extends boolea
  */
 export const warehouseApiRoutesProductGetProduct = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesProductGetProductData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesProductGetProductResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/products/{product_code}',
         ...options
     });
@@ -225,6 +316,13 @@ export const warehouseApiRoutesProductGetProduct = <ThrowOnError extends boolean
  */
 export const warehouseApiRoutesProductGetProductWarehouseInfo = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesProductGetProductWarehouseInfoData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesProductGetProductWarehouseInfoResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/products/{product_code}/warehouse-info',
         ...options
     });
@@ -235,6 +333,13 @@ export const warehouseApiRoutesProductGetProductWarehouseInfo = <ThrowOnError ex
  */
 export const warehouseApiRoutesProductGetProductWarehouseAvailability = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/products/{product_code}/warehouse-availablity',
         ...options
     });
@@ -245,6 +350,13 @@ export const warehouseApiRoutesProductGetProductWarehouseAvailability = <ThrowOn
  */
 export const warehouseApiRoutesCustomerGetCustomers = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesCustomerGetCustomersData, ThrowOnError>) => {
     return (options?.client ?? client).get<WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesCustomerGetCustomersErrors, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/customers',
         ...options
     });
@@ -255,6 +367,13 @@ export const warehouseApiRoutesCustomerGetCustomers = <ThrowOnError extends bool
  */
 export const warehouseApiRoutesCustomerGetCustomer = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesCustomerGetCustomerData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesCustomerGetCustomerResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/customers/{customer_code}',
         ...options
     });
@@ -266,6 +385,13 @@ export const warehouseApiRoutesCustomerGetCustomer = <ThrowOnError extends boole
  */
 export const warehouseApiRoutesInboundOrdersGetInboundOrders = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesInboundOrdersGetInboundOrdersData, ThrowOnError>) => {
     return (options?.client ?? client).get<WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/orders',
         ...options
     });
@@ -277,6 +403,13 @@ export const warehouseApiRoutesInboundOrdersGetInboundOrders = <ThrowOnError ext
  */
 export const warehouseApiRoutesInboundOrdersCreateInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersCreateInboundOrderData, ThrowOnError>) => {
     return (options.client ?? client).post<WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/orders',
         ...options,
         headers: {
@@ -292,6 +425,13 @@ export const warehouseApiRoutesInboundOrdersCreateInboundOrder = <ThrowOnError e
  */
 export const warehouseApiRoutesInboundOrdersGetInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersGetInboundOrderData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesInboundOrdersGetInboundOrderResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/orders/{order_code}',
         ...options
     });
@@ -303,6 +443,13 @@ export const warehouseApiRoutesInboundOrdersGetInboundOrder = <ThrowOnError exte
  */
 export const warehouseApiRoutesInboundOrdersUpdateInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersUpdateInboundOrderData, ThrowOnError>) => {
     return (options.client ?? client).put<WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/orders/{order_code}',
         ...options,
         headers: {
@@ -317,6 +464,13 @@ export const warehouseApiRoutesInboundOrdersUpdateInboundOrder = <ThrowOnError e
  */
 export const warehouseApiRoutesInboundOrdersGetInboundOrderPdf = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesInboundOrdersGetInboundOrderPdfResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/orders/{order_code}/pdf',
         ...options
     });
@@ -327,6 +481,13 @@ export const warehouseApiRoutesInboundOrdersGetInboundOrderPdf = <ThrowOnError e
  */
 export const warehouseApiRoutesInboundOrdersGetInboundOrderHtml = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlData, ThrowOnError>) => {
     return (options.client ?? client).get<WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/orders/{order_code}/html',
         ...options
     });
@@ -353,6 +514,13 @@ export const warehouseApiRoutesInboundOrdersAddItemToInboundOrder = <ThrowOnErro
  */
 export const warehouseApiRoutesInboundOrdersTransitionInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersTransitionInboundOrderData, ThrowOnError>) => {
     return (options.client ?? client).patch<WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/orders/{order_code}/state',
         ...options,
         headers: {
@@ -368,6 +536,13 @@ export const warehouseApiRoutesInboundOrdersTransitionInboundOrder = <ThrowOnErr
  */
 export const warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData, ThrowOnError>) => {
     return (options.client ?? client).delete<WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/orders/{order_code}/items/{product_code}',
         ...options
     });
@@ -378,6 +553,13 @@ export const warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder = <Throw
  */
 export const warehouseApiRoutesPackagingGetPackageTypes = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesPackagingGetPackageTypesData, ThrowOnError>) => {
     return (options?.client ?? client).get<WarehouseApiRoutesPackagingGetPackageTypesResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/packaging',
         ...options
     });
@@ -388,11 +570,54 @@ export const warehouseApiRoutesPackagingGetPackageTypes = <ThrowOnError extends 
  */
 export const warehouseApiRoutesPackagingPackagePreview = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesPackagingPackagePreviewData, ThrowOnError>) => {
     return (options.client ?? client).post<WarehouseApiRoutesPackagingPackagePreviewResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
         url: '/api/v1/packaging/',
         ...options,
         headers: {
             'Content-Type': 'application/json',
             ...options.headers
         }
+    });
+};
+
+/**
+ * Get Credit Notes To Supplier
+ * List credit notes for incoming goods (towards supplier)
+ */
+export const warehouseApiRoutesCreditNotesGetCreditNotesToSupplier = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierData, ThrowOnError>) => {
+    return (options?.client ?? client).get<WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
+        url: '/api/v1/credit',
+        ...options
+    });
+};
+
+/**
+ * Get Credit Note To Supplier
+ * Retrieve a single credit note.
+ */
+export const warehouseApiRoutesCreditNotesGetCreditNoteToSupplier = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierData, ThrowOnError>) => {
+    return (options.client ?? client).get<WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
+        url: '/api/v1/credit/{note_code}',
+        ...options
     });
 };

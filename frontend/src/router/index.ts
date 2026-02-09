@@ -1,5 +1,6 @@
 import { useAuth } from '@/composables/use-auth'
 import { useGlobalLoading } from '@/composables/use-global-loading'
+import CreditNotesView from '@/views/CreditNotesView.vue'
 import CustomersView from '@/views/CustomersView.vue'
 import CustomerView from '@/views/CustomerView.vue'
 import HomeView from '@/views/HomeView.vue'
@@ -64,6 +65,11 @@ const router = createRouter({
       path: '/orders',
       name: 'orders',
       component: OrdersView,
+    },
+    {
+      path: '/credit-notes',
+      name: 'creditNotes',
+      component: CreditNotesView,
     },
     {
       path: '/incoming-orders/:code',

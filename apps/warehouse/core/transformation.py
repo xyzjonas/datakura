@@ -16,9 +16,9 @@ from apps.warehouse.core.schemas.customer import (
 from apps.warehouse.core.schemas.orders import (
     InboundOrderSchema,
     InboundOrderItemSchema,
-    CreditNoteSupplierSchema,
     CreditNoteSupplierItemSchema,
 )
+from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.product import ProductSchema
 from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,

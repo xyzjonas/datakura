@@ -440,11 +440,11 @@ export type CreditNoteSupplierItemSchema = {
     /**
      * Amount
      */
-    amount: number | string;
+    amount: string;
     /**
      * Unit Price
      */
-    unit_price: number | string;
+    unit_price: string;
 };
 
 /**
@@ -1265,6 +1265,45 @@ export type PutInPackageRequestSchema = {
     amount: number;
 };
 
+/**
+ * PagedCreditNoteSupplierSchema
+ */
+export type PagedCreditNoteSupplierSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<CreditNoteSupplierSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetCreditNoteToSupplierResponse
+ */
+export type GetCreditNoteToSupplierResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: CreditNoteSupplierSchema;
+};
+
 export type WarehouseApiRoutesAuthLoginUserData = {
     body: LoginFormSchema;
     path?: never;
@@ -1959,3 +1998,53 @@ export type WarehouseApiRoutesPackagingPackagePreviewResponses = {
 };
 
 export type WarehouseApiRoutesPackagingPackagePreviewResponse = WarehouseApiRoutesPackagingPackagePreviewResponses[keyof WarehouseApiRoutesPackagingPackagePreviewResponses];
+
+export type WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/credit';
+};
+
+export type WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierResponses = {
+    /**
+     * OK
+     */
+    200: PagedCreditNoteSupplierSchema;
+};
+
+export type WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierResponse = WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierResponses[keyof WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierResponses];
+
+export type WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierData = {
+    body?: never;
+    path: {
+        /**
+         * Note Code
+         */
+        note_code: string;
+    };
+    query?: never;
+    url: '/api/v1/credit/{note_code}';
+};
+
+export type WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses = {
+    /**
+     * OK
+     */
+    200: GetCreditNoteToSupplierResponse;
+};
+
+export type WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponse = WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses[keyof WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses];

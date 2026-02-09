@@ -6,7 +6,7 @@ from ninja import Schema
 
 from .base import BaseResponse, BaseSchema, PaginatedResponse
 from .base_orders import InboundWarehouseOrderBaseSchema, InboundOrderBaseSchema
-from .orders import CreditNoteSupplierSchema
+from .credit_notes import CreditNoteSupplierSchema
 from .product import ProductSchema
 from ...models.warehouse import InboundWarehouseOrderState
 

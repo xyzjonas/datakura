@@ -12,8 +12,8 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderItemSchema,
     InboundOrderCreateOrUpdateSchema,
     InboundOrderSchema,
-    CreditNoteSupplierSchema,
 )
+from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
     inbound_order_item_orm_to_schema,

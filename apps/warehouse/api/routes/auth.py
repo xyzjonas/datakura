@@ -33,7 +33,7 @@ def get_user_group(user: AbstractBaseUser) -> str | None:
     return group_name
 
 
-@routes.post("login", response={200: SigninResponse, 401: SigninResponse})
+@routes.post("login", response={200: SigninResponse, 401: SigninResponse}, auth=None)
 def login_user(request: HttpRequest, credentials: LoginFormSchema):
     user = authenticate(
         request, username=credentials.username, password=credentials.password
