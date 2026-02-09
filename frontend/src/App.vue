@@ -12,22 +12,28 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import MainLayout from './components/layout/MainLayout.vue'
+import { client } from './client/client.gen'
+import { getCsrfFromCookie, getCsrfToken } from './utils/csrf'
 
-// onMounted(() => {
-//   console.info(route.path)
-//   if (currentRoute.value.name !== 'login') {
-//     isLoading.value = true
-//     whoami()
-//       .then((user) => {
-//         if (!user) {
-//           push({ name: 'login' })
-//         }
-//       })
-//       .catch(() => push({ name: 'login' }))
-//       .finally(() => (isLoading.value = false))
-//   }
-// })
+onMounted(() => {
+  let csrfToken
+  if (import.meta.env.MODE === 'development') {
+    console.warn('Getting CSRF token from the cookie - should not happen in production!')
+    csrfToken = getCsrfFromCookie()
+    console.info(`CSRF token (from cookie): ${csrfToken}`)
+  } else {
+    csrfToken = getCsrfToken()
+    console.debug(`CSRF token (SSR): ${csrfToken ? 'YES' : 'MISSING!'}`)
+  }
+
+  client.setConfig({
+    headers: {
+      'X-CSRFToken': csrfToken ?? 'not-set',
+    },
+  })
+})
 </script>
 
 <style lang="scss">

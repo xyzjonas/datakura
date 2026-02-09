@@ -11,7 +11,7 @@ dev:
 
 preview:
     cd frontend && npm run build
-    just dev
+    uv run gunicorn --bind 0.0.0.0:8081 conf.wsgi
 
 manage *ARGS:
     uv run manage.py {{ARGS}}
@@ -78,3 +78,9 @@ ci-js: eslint ts-check test-js
 
 [parallel]
 ci-python: lint format-check type-check test
+
+docker-build:
+    docker build -t datakura .
+
+docker-run:
+    docker run -it --rm  -p "8082:8000" -e "SECRET_KEY=123456789" -e "JWT_SECRET_KEY=987654321" datakura

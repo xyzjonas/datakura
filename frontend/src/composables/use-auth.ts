@@ -4,22 +4,16 @@ import {
   warehouseApiRoutesAuthWhoami,
   type AuthData,
 } from '@/client'
+import { getCsrfToken } from '@/utils/csrf'
 import { useLocalStorage } from '@vueuse/core'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from './use-api'
-import { client } from '@/client/client.gen'
-
-// interface User {
-//   id?: number
-//   username?: string
-// }
 
 const loginVerified = ref(false) // check session only on 1st page loag
 const user = useLocalStorage<Partial<AuthData>>('session-user', {})
 const accessToken = ref<string>()
 const refreshToken = useLocalStorage('refresh-token', '')
-const csrfToken = useLocalStorage('csrf-token', '')
 
 export const useAuth = () => {
   const { onResponse } = useApi()
@@ -65,11 +59,6 @@ export const useAuth = () => {
     if (data) {
       user.value = data.data
       loginVerified.value = true
-
-      client.setConfig({
-        auth: () => 'TOKEEEEEN',
-      })
-
       return user.value
     }
     reset()
@@ -97,7 +86,7 @@ export const useAuth = () => {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `bearer ${accessToken.value}`,
-          'X-CSRFToken': csrfToken.value,
+          'X-CSRFToken': getCsrfToken() ?? 'not-set',
         },
       })
 

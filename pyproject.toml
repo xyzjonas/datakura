@@ -3,14 +3,17 @@ name = "datakura"
 version = "0.0.1dev1"
 description = "datakura"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
+    "brotli>=1.2.0",
     "django>=5.2.6",
     "django-ninja>=1.4.3",
+    "gunicorn>=25.0.3",
     "loguru>=0.7.3",
     "pyjwt>=2.10.1",
     "python-decouple>=3.8",
     "weasyprint>=68.0",
+    "whitenoise>=6.11.0",
 ]
 
 [dependency-groups]
@@ -28,7 +31,7 @@ python_files = "tests.py test_*.py *_tests.py"
 
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 plugins = ["mypy_django_plugin.main"]
 files = "apps/**/*.py"
 exclude = "(^conf/)"

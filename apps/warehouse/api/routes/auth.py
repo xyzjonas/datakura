@@ -33,7 +33,7 @@ def get_user_group(user: AbstractBaseUser) -> str | None:
     return group_name
 
 
-@routes.post("login", response={200: SigninResponse, 401: SigninResponse}, auth=None)
+@routes.post("login", response={200: SigninResponse, 401: SigninResponse})
 def login_user(request: HttpRequest, credentials: LoginFormSchema):
     user = authenticate(
         request, username=credentials.username, password=credentials.password
@@ -53,7 +53,7 @@ def login_user(request: HttpRequest, credentials: LoginFormSchema):
         return 401, SigninResponse(success=False, message="Invalid credentials")
 
 
-@routes.post("logout", response={200: SignoutResponse}, auth=None)
+@routes.post("logout", response={200: SignoutResponse})
 def logout_user(request: HttpRequest):
     logout(request)
 
@@ -77,9 +77,7 @@ def whoami(request: HttpRequest):
     return 401, SigninResponse(success=False, message="Invalid credentials")
 
 
-@routes.put(
-    "whoami/site", response={200: WhoamiResponse, 401: SigninResponse}, auth=None
-)
+@routes.put("whoami/site", response={200: WhoamiResponse, 401: SigninResponse})
 def switch_site(request: HttpRequest, body: SwitchSiteBody):
     if request.user.is_authenticated:
         request.session["active_site"] = body.site_code

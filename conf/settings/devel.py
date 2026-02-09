@@ -26,3 +26,5 @@ CORS_ALLOW_ALL_ORIGINS = True
 # # Or use django-cors-headers for better CORS handling
 # INSTALLED_APPS += ['corsheaders']
 # MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
+
+CSRF_COOKIE_HTTPONLY = False  # Allow JS to read it in development mode

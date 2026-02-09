@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Generic
+from typing import Any, Generic, TypeVar
 
-from mypyc.ir.ops import TypeVar
 from ninja import Schema
 from pydantic import BaseModel, field_serializer
 

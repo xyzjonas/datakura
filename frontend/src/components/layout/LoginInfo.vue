@@ -22,7 +22,7 @@
             <q-item-section avatar
               ><q-icon name="sym_o_admin_panel_settings"></q-icon
             ></q-item-section>
-            <q-item-section>Django Administrace</q-item-section>
+            <q-item-section>Administrace</q-item-section>
           </q-item>
         </q-list>
       </q-menu>

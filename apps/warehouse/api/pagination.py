@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import QuerySet
+from django.http.request import HttpRequest
 from ninja import Schema
 from ninja.pagination import PaginationBase
 
@@ -36,7 +37,11 @@ class StockProductPagination(PaginationBase):
     class Output(GetProductsResponse): ...
 
     def paginate_queryset(
-        self, queryset: QuerySet[StockProduct], pagination: Input, **params
+        self,
+        queryset: QuerySet[StockProduct],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
     ):
         offset = (pagination.page - 1) * pagination.page_size
         items = queryset[offset : offset + pagination.page_size]
@@ -62,7 +67,11 @@ class CustomersPagination(PaginationBase):
     class Output(GetCustomersResponse): ...
 
     def paginate_queryset(
-        self, queryset: QuerySet[Customer], pagination: Input, **params
+        self,
+        queryset: QuerySet[Customer],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
     ):
         offset = (pagination.page - 1) * pagination.page_size
         items = queryset[offset : offset + pagination.page_size]
@@ -88,7 +97,11 @@ class IncomingOrdersPagination(PaginationBase):
     class Output(GetInboundOrdersResponse): ...
 
     def paginate_queryset(
-        self, queryset: QuerySet[InboundOrder], pagination: Input, **params
+        self,
+        queryset: QuerySet[InboundOrder],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
     ):
         offset = (pagination.page - 1) * pagination.page_size
         items = queryset[offset : offset + pagination.page_size]
@@ -117,6 +130,7 @@ class IncomingWarehouseOrdersPagination(PaginationBase):
         self,
         queryset: QuerySet[InboundWarehouseOrder],
         pagination: Input,
+        request: HttpRequest,
         **params,
     ):
         offset = (pagination.page - 1) * pagination.page_size
