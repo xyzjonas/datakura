@@ -19,7 +19,7 @@ from apps.warehouse.models.customer import Customer
 routes = Router(tags=["customers"])
 
 
-@routes.get("", response={200: list[CustomerSchema], 404: BaseResponse}, auth=None)
+@routes.get("", response={200: list[CustomerSchema], 404: BaseResponse})
 @paginate(CustomersPagination)
 def get_customers(
     request: HttpRequest,
@@ -49,7 +49,7 @@ def get_customers(
     return qs.all()
 
 
-@routes.get("/{customer_code}", response={200: GetCustomerResponse}, auth=None)
+@routes.get("/{customer_code}", response={200: GetCustomerResponse})
 def get_customer(request: HttpRequest, customer_code: str):
     customer = Customer.objects.prefetch_related(
         "contacts", "customer_group", "responsible_user", "owner"

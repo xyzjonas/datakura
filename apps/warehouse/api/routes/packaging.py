@@ -15,7 +15,7 @@ from apps.warehouse.models.packaging import PackageType
 routes = Router(tags=["packaging"])
 
 
-@routes.get("", response={200: GetPackageTypesResponse}, auth=None)
+@routes.get("", response={200: GetPackageTypesResponse})
 def get_package_types(request: HttpRequest, search_term: str | None = None):
     return GetPackageTypesResponse(
         data=[
@@ -36,7 +36,7 @@ def get_package_types(request: HttpRequest, search_term: str | None = None):
     )
 
 
-@routes.post("/", response={200: PutInPackageResponse}, auth=None)
+@routes.post("/", response={200: PutInPackageResponse})
 def package_preview(request: HttpRequest, body: PutInPackageRequestSchema):
     return PutInPackageResponse(
         data=warehouse_service.preview_packaging(

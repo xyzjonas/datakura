@@ -45,7 +45,7 @@ def get_products(request: HttpRequest, search_term: str | None = None):
     return qs.all()
 
 
-@routes.get("/{product_code}", response={200: GetProductResponse}, auth=None)
+@routes.get("/{product_code}", response={200: GetProductResponse})
 def get_product(request: HttpRequest, product_code: str):
     # user = authenticate(
     #     request, username=credentials.username, password=credentials.password
@@ -56,7 +56,6 @@ def get_product(request: HttpRequest, product_code: str):
 @routes.get(
     "/{product_code}/warehouse-info",
     response={200: GetProductWarehouseInfoResponse},
-    auth=None,
 )
 def get_product_warehouse_info(request: HttpRequest, product_code: str):
     # user = authenticate(
@@ -115,7 +114,6 @@ def get_product_warehouse_info(request: HttpRequest, product_code: str):
 @routes.get(
     "/{product_code}/warehouse-availablity",
     response={200: GetProductWarehouseAvailabilityResponse},
-    auth=None,
 )
 def get_product_warehouse_availability(request: HttpRequest, product_code: str):
     return GetProductWarehouseAvailabilityResponse(

@@ -22,7 +22,7 @@ from apps.warehouse.models.orders import InboundOrder, InboundOrderState
 routes = Router(tags=["inbound_order"])
 
 
-@routes.get("", response={200: list[InboundOrderSchema]}, auth=None)
+@routes.get("", response={200: list[InboundOrderSchema]})
 @paginate(IncomingOrdersPagination)
 def get_inbound_orders(request: HttpRequest, search_term: str | None = None):
     """
@@ -45,7 +45,7 @@ def get_inbound_orders(request: HttpRequest, search_term: str | None = None):
     return qs.all()
 
 
-@routes.post("", response={200: GetInboundOrderResponse}, auth=None)
+@routes.post("", response={200: GetInboundOrderResponse})
 def create_inbound_order(
     request: HttpRequest, params: InboundOrderCreateOrUpdateSchema
 ):
@@ -56,7 +56,7 @@ def create_inbound_order(
     return GetInboundOrderResponse(data=new_order)
 
 
-@routes.get("/{order_code}", response={200: GetInboundOrderResponse}, auth=None)
+@routes.get("/{order_code}", response={200: GetInboundOrderResponse})
 def get_inbound_order(request: HttpRequest, order_code: str):
     """
     Retrieve a single incoming order by code.
@@ -66,7 +66,7 @@ def get_inbound_order(request: HttpRequest, order_code: str):
     )
 
 
-@routes.put("/{order_code}", response={200: GetInboundOrderResponse}, auth=None)
+@routes.put("/{order_code}", response={200: GetInboundOrderResponse})
 def update_inbound_order(
     request: HttpRequest, order_code: str, params: InboundOrderCreateOrUpdateSchema
 ):
@@ -79,7 +79,7 @@ def update_inbound_order(
     return GetInboundOrderResponse(data=updated_order)
 
 
-@routes.get("/{order_code}/pdf", auth=None)
+@routes.get("/{order_code}/pdf")
 def get_inbound_order_pdf(request: HttpRequest, order_code: str):
     response = HttpResponse(
         inbound_orders_service.get_pdf(order_code), content_type="application/pdf"
@@ -88,7 +88,7 @@ def get_inbound_order_pdf(request: HttpRequest, order_code: str):
     return response
 
 
-@routes.get("/{order_code}/html", auth=None)
+@routes.get("/{order_code}/html")
 def get_inbound_order_html(request: HttpRequest, order_code: str):
     response = HttpResponse(
         inbound_orders_service.get_html(order_code), content_type="text/html"
@@ -110,7 +110,7 @@ def add_item_to_inbound_order(
     return CreateInboundOrderItemResponse(data=new_item)
 
 
-@routes.patch("/{order_code}/state", response={200: GetInboundOrderResponse}, auth=None)
+@routes.patch("/{order_code}/state", response={200: GetInboundOrderResponse})
 def transition_inbound_order(
     request: HttpRequest, order_code: str, body: InboundOrderTransitionSchema
 ):
@@ -121,9 +121,7 @@ def transition_inbound_order(
     return GetInboundOrderResponse(data=new_item)
 
 
-@routes.delete(
-    "/{order_code}/items/{product_code}", response={200: EmptyResponse}, auth=None
-)
+@routes.delete("/{order_code}/items/{product_code}", response={200: EmptyResponse})
 def remove_items_from_inbound_order(
     request: HttpRequest, order_code: str, product_code: str
 ):

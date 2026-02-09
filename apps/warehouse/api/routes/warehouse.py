@@ -33,7 +33,7 @@ from apps.warehouse.models.warehouse import (
 routes = Router(tags=["warehouse"])
 
 
-@routes.get("warehouses", response={200: GetWarehousesResponse}, auth=None)
+@routes.get("warehouses", response={200: GetWarehousesResponse})
 def get_warehouses(request: HttpRequest):
     # user = authenticate(
     #     request, username=credentials.username, password=credentials.password
@@ -59,7 +59,6 @@ def get_warehouses(request: HttpRequest):
 @routes.get(
     "locations/{warehouse_location_code}",
     response={200: GetWarehouseLocationResponse},
-    auth=None,
 )
 def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
     # user = authenticate(
@@ -79,7 +78,6 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
 @routes.post(
     "orders-incoming",
     response={200: GetWarehouseOrderResponse},
-    auth=None,
 )
 def create_inbound_warehouse_order(
     request: HttpRequest, body: WarehouseOrderCreateSchema
@@ -94,7 +92,6 @@ def create_inbound_warehouse_order(
 @routes.get(
     "orders-incoming",
     response={200: list[InboundWarehouseOrderSchema]},
-    auth=None,
 )
 @paginate(IncomingWarehouseOrdersPagination)
 def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None = None):
@@ -117,7 +114,6 @@ def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None =
 @routes.get(
     "orders-incoming/{code}",
     response={200: GetWarehouseOrderResponse},
-    auth=None,
 )
 def get_inbound_warehouse_order(request: HttpRequest, code: str):
     # user = authenticate(
@@ -130,7 +126,6 @@ def get_inbound_warehouse_order(request: HttpRequest, code: str):
 @routes.put(
     "orders-incoming/{code}",
     response={200: GetWarehouseOrderResponse},
-    auth=None,
 )
 def update_inbound_warehouse_order(
     request: HttpRequest, code: str, body: InboundWarehouseOrderUpdateSchema
@@ -146,7 +141,6 @@ def update_inbound_warehouse_order(
 @routes.post(
     "orders-incoming/{code}/items",
     response={200: GetWarehouseOrderResponse},
-    auth=None,
 )
 def update_inbound_warehouse_order_items(
     request: HttpRequest, code: str, body: UpdateWarehouseOrderDraftItemsRequest
@@ -163,7 +157,6 @@ def update_inbound_warehouse_order_items(
 @routes.post(
     "orders-incoming/{code}/items/{item_code}",
     response={200: GetWarehouseOrderResponse},
-    auth=None,
 )
 def track_inbound_warehouse_order_item(
     request: HttpRequest,
@@ -180,7 +173,6 @@ def track_inbound_warehouse_order_item(
 @routes.delete(
     "orders-incoming/{code}/items/{item_code}",
     response={200: GetWarehouseOrderResponse},
-    auth=None,
 )
 def dissolve_inbound_warehouse_order_item(
     request: HttpRequest, code: str, item_code: str
@@ -195,7 +187,6 @@ def dissolve_inbound_warehouse_order_item(
 @routes.post(
     "orders-incoming/{code}/credit",
     response={200: GetWarehouseOrderResponse},
-    auth=None,
 )
 def remove_from_order_to_credit_note(
     request: HttpRequest, code: str, body: RemoveItemToCreditNoteRequest
@@ -209,7 +200,7 @@ def remove_from_order_to_credit_note(
 # @routes.post(
 #     "orders-incoming/{code}/items",
 #     response={200: GetWarehouseOrderResponse},
-#     auth=None,
+#
 # )
 # def update_inbound_warehouse_order_items(
 #     request: HttpRequest, code: str, body: UpdateWarehouseOrderDraftItemsRequest
