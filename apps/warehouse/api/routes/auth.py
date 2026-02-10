@@ -47,6 +47,7 @@ def login_user(request: HttpRequest, credentials: LoginFormSchema):
                 username=user.username,
                 user_id=user.id,
                 group=get_user_group(user),
+                expiry_date=request.session.get_expiry_date(),
             ),
         )
     else:
@@ -71,6 +72,7 @@ def whoami(request: HttpRequest):
                 user_id=request.user.id,
                 group=get_user_group(request.user),
                 active_site=request.session.get("active_site"),
+                expiry_date=request.session.get_expiry_date(),
             )
         )
 
@@ -87,6 +89,7 @@ def switch_site(request: HttpRequest, body: SwitchSiteBody):
                 user_id=request.user.id,
                 group=get_user_group(request.user),
                 active_site=request.session.get("active_site"),
+                expiry_date=request.session.get_expiry_date(),
             )
         )
 

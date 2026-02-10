@@ -20,16 +20,23 @@
           :debounce="300"
         ></SearchInput>
       </template>
-      <template #body-cell-order="props">
+      <template #body-cell-code="props">
         <q-td>
           <a
             @click="
               $router.push({
-                name: 'incomingOrderDetail',
-                params: { code: props.row.order.code },
+                name: entityRouteName,
+                params: { code: props.row.code },
               })
             "
             class="link mr-2"
+            >{{ props.row.code }}
+          </a>
+        </q-td>
+      </template>
+      <template #body-cell-order="props">
+        <q-td>
+          <a @click="goToOrderIn(props.row.order.code)" class="link mr-2"
             >{{ props.row.order.code }}
           </a>
           <InboundOrderStateBadge :state="props.row.order.state" />
@@ -37,23 +44,7 @@
       </template>
       <template #body-cell-state="props">
         <q-td>
-          <InboundOrderStateBadge :state="props.row.state" />
-        </q-td>
-      </template>
-      <template #body-cell-warehouseOrder="props">
-        <q-td>
-          <a
-            v-if="props.row.warehouse_order?.code"
-            class="link"
-            @click="
-              $router.push({
-                name: 'warehouseInboundOrderDetail',
-                params: { code: props.row.warehouse_order.code },
-              })
-            "
-            >{{ props.row.warehouse_order.code }}
-            <InboundWarehouseOrderStateBadge :state="props.row.warehouse_order.state" class="ml-1"
-          /></a>
+          <GenericStateBadge :state="props.row.state" />
         </q-td>
       </template>
     </q-table>
@@ -63,14 +54,18 @@
 <script setup lang="ts">
 import { type CreditNoteSupplierSchema } from '@/client'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
-import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
+import { useAppRouter } from '@/composables/use-app-router'
+import { calculateTotalPrice } from '@/utils/total-price'
 import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
+import GenericStateBadge from '../GenericStateBadge.vue'
 
 const { page, pageSize, search } = useQueryProducts()
+
+const { goToOrderIn } = useAppRouter()
 
 export type Pagination = NonNullable<QTableProps['pagination']>
 
@@ -85,6 +80,7 @@ type CreditNote = CreditNoteSupplierSchema
 
 const props = defineProps<{
   fetchCreditNotes: (pagination: Ref<Pagination>, loading: Ref<boolean>) => Promise<CreditNote[]>
+  entityRouteName: string
 }>()
 
 const orders = ref<CreditNote[]>([])
@@ -165,6 +161,12 @@ const columns: QTableColumn[] = [
     name: 'supplier',
     field: (note: CreditNote) => note.order.supplier.name,
     label: 'Dodavatel',
+    align: 'left',
+  },
+  {
+    name: 'price',
+    field: (note: CreditNote) => `${calculateTotalPrice(note.items)} ${note.order.currency}`,
+    label: 'Celková částka',
     align: 'left',
   },
 ]

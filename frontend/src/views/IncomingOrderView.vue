@@ -61,12 +61,18 @@
           icon="sym_o_check"
           @click="createWarehouseOrderDialog = true"
         />
-        <InboundWarehouseOrderBadge v-if="order.warehouse_order" :order="order.warehouse_order" />
       </div>
     </div>
     <div class="flex gap-2">
       <InboundOrderDetailsListCard :order="order" />
       <CustomerCard :customer="order.supplier" title="DODAVATEL" class="flex-1" />
+      <LinkedEntitiesCard
+        show-warehouse-order
+        :warehouse-order="order.warehouse_order"
+        show-invoice
+        show-credit-note
+        :credit-note="order.credit_note"
+      />
     </div>
 
     <ForegroundPanel>
@@ -160,12 +166,12 @@ import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDia
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import InboundOrderTimeline from '@/components/order/InboundOrderTimeline.vue'
 import InboundOrderUpdateOrCreateDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
+import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
 import PrintDropdownButton from '@/components/PrintDropdownButton.vue'
-import InboundWarehouseOrderBadge from '@/components/putaway/InboundWarehouseOrderBadge.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
 import { getInboundOrderStep } from '@/constants/inbound-order'

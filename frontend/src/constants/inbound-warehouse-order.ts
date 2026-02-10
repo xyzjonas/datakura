@@ -29,7 +29,7 @@ export const INBOUND_WAREHOUSE_ORDER_STATES: Record<string, StateConfig> = {
     step: 3,
   },
   completed: {
-    label: 'Dokončeno',
+    label: 'Přijato',
     icon: 'sym_o_check_circle',
     color: 'positive',
     step: 4,

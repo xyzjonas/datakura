@@ -27,7 +27,7 @@ api.add_router(router=product_routes, prefix="products")
 api.add_router(router=customer_routes, prefix="customers")
 api.add_router(router=orders_routes, prefix="orders")
 api.add_router(router=packaging_routes, prefix="packaging")
-api.add_router(router=credit_notes_routes, prefix="credit")
+api.add_router(router=credit_notes_routes, prefix="credit-notes")
 
 
 @api.exception_handler(ApiBaseException)

@@ -74,6 +74,10 @@ class InboundWarehouseOrderUpdateSchema(Schema):
     state: InboundWarehouseOrderState
 
 
+class InboundWarehouseOrderSetStateSchema(Schema):
+    state: InboundWarehouseOrderState
+
+
 class WarehouseOrderCreateSchema(Schema):
     purchase_order_code: str
     location_code: str

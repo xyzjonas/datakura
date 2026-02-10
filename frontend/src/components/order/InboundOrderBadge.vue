@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col ml-2 border py-2 px-5 rounded">
+  <div class="flex flex-col">
     <span class="text-gray-5 text-2xs">VYDANÁ OBJEDNÁVKA</span>
     <div class="flex items-center gap-2">
       <a class="link text-lg" @click="goToOrderIn(order.code)">{{ order.code }} </a>

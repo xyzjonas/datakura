@@ -14,15 +14,24 @@
     <q-btn size="small" flat dense icon="sym_o_more_vert">
       <q-menu>
         <q-list>
-          <q-item clickable v-close-popup @click="signout">
-            <q-item-section avatar><q-icon name="logout"></q-icon></q-item-section>
-            <q-item-section>Odhlásit</q-item-section>
+          <q-item>
+            <q-item-section>
+              <div class="flex flex-col">
+                <span class="text-xs text-gray-5">Přihlášení vyprší</span>
+                <span>{{ expiryDate ? formatDateTimeLong(expiryDate) : 'N/A' }}</span>
+              </div>
+            </q-item-section>
           </q-item>
+          <q-separator></q-separator>
           <q-item clickable v-close-popup href="/admin">
             <q-item-section avatar
               ><q-icon name="sym_o_admin_panel_settings"></q-icon
             ></q-item-section>
             <q-item-section>Administrace</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="signout">
+            <q-item-section avatar><q-icon name="logout"></q-icon></q-item-section>
+            <q-item-section>Odhlásit</q-item-section>
           </q-item>
         </q-list>
       </q-menu>
@@ -32,8 +41,9 @@
 
 <script setup lang="ts">
 import { useAuth } from '@/composables/use-auth'
+import { formatDateTimeLong } from '@/utils/date'
 
-const { user, signout } = useAuth()
+const { user, expiryDate, signout } = useAuth()
 </script>
 
 <style lang="scss" scoped></style>

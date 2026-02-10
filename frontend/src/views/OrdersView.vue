@@ -7,12 +7,9 @@
         :active="activeTabKey === 'inbound'"
         clickable
       >
-        <div class="flex items-center gap-5">
-          <q-icon name="sym_o_call_received" size="24px"></q-icon>
-          <div>
-            <h2 class="">12</h2>
-            <h5 class="font-bold uppercase">Vydaných Objednávek</h5>
-          </div>
+        <q-icon name="sym_o_call_received" size="24px"></q-icon>
+        <div>
+          <h5 class="font-bold uppercase">Vydané Objednávky</h5>
         </div>
       </ForegroundPanel>
       <ForegroundPanel
@@ -21,12 +18,9 @@
         :active="activeTabKey === 'outbound'"
         clickable
       >
-        <div class="flex items-center gap-5">
-          <q-icon name="sym_o_call_made" size="24px"></q-icon>
-          <div>
-            <h2 class="">0</h2>
-            <h5 class="font-bold uppercase">Objednávek</h5>
-          </div>
+        <q-icon name="sym_o_call_made" size="24px"></q-icon>
+        <div>
+          <h5 class="font-bold uppercase">Objednávky</h5>
         </div>
       </ForegroundPanel>
     </div>

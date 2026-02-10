@@ -123,6 +123,21 @@ class OrdersService:
 
         return inbound_order_orm_to_schema(order)
 
+    @staticmethod
+    def transition_credit_note(code: str, new_state: CreditNoteState) -> None:
+        # todo: audit log
+        note = CreditNoteToSupplier.objects.get(code=code)
+        with transaction.atomic():
+            old_state = note.state
+            note.state = new_state
+
+            note.save()
+            logger.info(
+                f"Credit note '{note.code}' transitioned: {old_state} -> {new_state}"
+            )
+
+        return None
+
     @classmethod
     def accept_inbound_order(cls, order_code: str):
         order = InboundOrder.objects.get(code=order_code)

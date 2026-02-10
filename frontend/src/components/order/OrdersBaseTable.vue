@@ -80,6 +80,7 @@ import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'
 import router from '@/router'
+import { calculateTotalPrice } from '@/utils/total-price'
 import { useQuasar, type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -199,6 +200,12 @@ const columns: QTableColumn[] = [
     name: 'supplier',
     field: (order: InboundOrderSchema) => order.supplier.name,
     label: 'Dodavatel',
+    align: 'left',
+  },
+  {
+    name: 'price',
+    field: (order: InboundOrderSchema) => `${calculateTotalPrice(order.items)} ${order.currency}`,
+    label: 'Celková částka',
     align: 'left',
   },
 ]

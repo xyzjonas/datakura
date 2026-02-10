@@ -24,6 +24,10 @@ export type AuthData = {
      * Active Site
      */
     active_site?: string | null;
+    /**
+     * Expiry Date
+     */
+    expiry_date: string;
 };
 
 /**
@@ -440,11 +444,11 @@ export type CreditNoteSupplierItemSchema = {
     /**
      * Amount
      */
-    amount: string;
+    amount: number;
     /**
      * Unit Price
      */
-    unit_price: string;
+    unit_price: number;
 };
 
 /**
@@ -463,7 +467,6 @@ export type CreditNoteSupplierSchema = {
      * Code
      */
     code: string;
-    order: InboundOrderBaseSchema;
     /**
      * Reason
      */
@@ -477,6 +480,7 @@ export type CreditNoteSupplierSchema = {
      * Items
      */
     items: Array<CreditNoteSupplierItemSchema>;
+    order: InboundOrderBaseSchema;
 };
 
 /**
@@ -806,6 +810,13 @@ export type RemoveItemToCreditNoteRequest = {
 };
 
 /**
+ * InboundWarehouseOrderSetStateSchema
+ */
+export type InboundWarehouseOrderSetStateSchema = {
+    state: InboundWarehouseOrderState;
+};
+
+/**
  * PagedProductSchema
  */
 export type PagedProductSchema = {
@@ -967,6 +978,37 @@ export type GetCustomerResponse = {
 };
 
 /**
+ * CreditNoteBaseSchema
+ */
+export type CreditNoteBaseSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    state: CreditNoteState;
+    /**
+     * Items
+     */
+    items: Array<CreditNoteSupplierItemSchema>;
+};
+
+/**
  * InboundOrderItemSchema
  */
 export type InboundOrderItemSchema = {
@@ -1032,6 +1074,7 @@ export type InboundOrderSchema = {
      */
     items?: Array<InboundOrderItemSchema>;
     warehouse_order?: InboundWarehouseOrderBaseSchema | null;
+    credit_note?: CreditNoteBaseSchema | null;
 };
 
 /**
@@ -1611,6 +1654,27 @@ export type WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses = {
 
 export type WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponse = WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses[keyof WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses];
 
+export type WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderData = {
+    body: InboundWarehouseOrderSetStateSchema;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}/state';
+};
+
+export type WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponses];
+
 export type WarehouseApiRoutesProductGetProductsData = {
     body?: never;
     path?: never;
@@ -2016,7 +2080,7 @@ export type WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierData = {
          */
         page_size?: number;
     };
-    url: '/api/v1/credit';
+    url: '/api/v1/credit-notes';
 };
 
 export type WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierResponses = {
@@ -2037,7 +2101,7 @@ export type WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierData = {
         note_code: string;
     };
     query?: never;
-    url: '/api/v1/credit/{note_code}';
+    url: '/api/v1/credit-notes/{note_code}';
 };
 
 export type WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses = {

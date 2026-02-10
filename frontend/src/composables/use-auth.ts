@@ -11,6 +11,7 @@ import { useRouter } from 'vue-router'
 import { useApi } from './use-api'
 
 const loginVerified = ref(false) // check session only on 1st page loag
+const expiryDate = ref<Date>()
 const user = useLocalStorage<Partial<AuthData>>('session-user', {})
 const accessToken = ref<string>()
 const refreshToken = useLocalStorage('refresh-token', '')
@@ -45,6 +46,7 @@ export const useAuth = () => {
     if (res.data?.data?.username) {
       user.value = res.data.data
       loginVerified.value = true
+      expiryDate.value = new Date(res.data.data.expiry_date)
       return true
     }
 
@@ -59,6 +61,7 @@ export const useAuth = () => {
     if (data) {
       user.value = data.data
       loginVerified.value = true
+      expiryDate.value = new Date(data.data.expiry_date)
       return user.value
     }
     reset()
@@ -100,6 +103,7 @@ export const useAuth = () => {
     user,
     accessToken,
     loginVerified,
+    expiryDate,
     signin,
     signout,
     whoami,

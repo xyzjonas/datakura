@@ -25,7 +25,7 @@
 
     <q-step
       :name="2"
-      title="Potvrzeno"
+      title="Připraveno"
       caption="Zboží čeká na příjmu"
       icon="sym_o_pallet"
       active-icon="sym_o_pallet"
@@ -39,7 +39,7 @@
 
     <q-step
       :name="3"
-      title="Příjem"
+      title="Příjem zahájen"
       caption="Probíhá příjem"
       icon="sym_o_input"
       active-icon="sym_o_input"

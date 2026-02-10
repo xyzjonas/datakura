@@ -6,6 +6,7 @@ from ninja import Router
 from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import IncomingWarehouseOrdersPagination
+from apps.warehouse.core.exceptions import WarehouseItemGenericError
 from apps.warehouse.core.schemas.warehouse import (
     GetWarehousesResponse,
     WarehouseSchema,
@@ -17,6 +18,7 @@ from apps.warehouse.core.schemas.warehouse import (
     InboundWarehouseOrderUpdateSchema,
     SetupTrackingWarehouseItemRequest,
     RemoveItemToCreditNoteRequest,
+    InboundWarehouseOrderSetStateSchema,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
@@ -28,6 +30,7 @@ from apps.warehouse.models.warehouse import (
     Warehouse,
     WarehouseLocation,
     InboundWarehouseOrder,
+    InboundWarehouseOrderState,
 )
 
 routes = Router(tags=["warehouse"])
@@ -130,11 +133,9 @@ def get_inbound_warehouse_order(request: HttpRequest, code: str):
 def update_inbound_warehouse_order(
     request: HttpRequest, code: str, body: InboundWarehouseOrderUpdateSchema
 ):
-    # user = authenticate(
-    #     request, username=credentials.username, password=credentials.password
-    # )
+    warehouse_service.update_inbound_order(code, body)
     return GetWarehouseOrderResponse(
-        data=warehouse_service.update_inbound_order(code, body)
+        data=warehouse_service.get_inbound_warehouse_order(code)
     )
 
 
@@ -195,6 +196,25 @@ def remove_from_order_to_credit_note(
         code, body.item_code, body.amount
     )
     return GetWarehouseOrderResponse(data=order)
+
+
+@routes.post(
+    "orders-incoming/{code}/state",
+    response={200: GetWarehouseOrderResponse},
+)
+def transition_inbound_warehouse_order(
+    request: HttpRequest, code: str, body: InboundWarehouseOrderSetStateSchema
+):
+    if body.state == InboundWarehouseOrderState.DRAFT:
+        warehouse_service.reset_to_draft(code)
+    elif body.state == InboundWarehouseOrderState.PENDING:
+        warehouse_service.confirm_draft(code)
+    else:
+        raise WarehouseItemGenericError(f"Unsupported state transition '{body.state}'")
+
+    return GetWarehouseOrderResponse(
+        data=warehouse_service.get_inbound_warehouse_order(code)
+    )
 
 
 # @routes.post(

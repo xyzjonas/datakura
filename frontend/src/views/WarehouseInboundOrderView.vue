@@ -32,32 +32,31 @@
           @click="confirmDialog = true"
           class="ml-auto"
         />
-
-        <InboundOrderBadge :order="order.order" />
-        {{ order.credit_note?.code ?? 'NO CREDIT' }}
+        <q-btn
+          v-if="step === 2"
+          unelevated
+          color="primary"
+          icon="sym_o_restart_alt"
+          label="editovat"
+          @click="resetDialog = true"
+          class="ml-auto"
+        />
       </div>
     </div>
     <div class="flex gap-2">
       <CustomerCard :customer="order.order.supplier" title="Dodavatel" class="flex-1" />
+      <LinkedEntitiesCard
+        show-inbound-order
+        :inbound-order="order.order"
+        show-invoice
+        show-credit-note
+        :credit-note="order.credit_note"
+      />
     </div>
 
     <ForegroundPanel>
       <InboundWarehouseOrderTimeline :order="order" />
     </ForegroundPanel>
-
-    <div class="flex items-center gap-2 my-5">
-      <div class="ml-auto">
-        <q-btn
-          v-if="step === 1"
-          unelevated
-          color="positive"
-          icon="sym_o_order_approve"
-          label="potvrdit"
-          @click="confirmDialog = true"
-          class="ml-auto"
-        />
-      </div>
-    </div>
 
     <InboundWarehouseOrderItemsList
       v-model:items="order.items"
@@ -69,11 +68,23 @@
     <ConfirmDialog
       v-model:show="confirmDialog"
       title="Potvrdit příjemku"
-      @confirm="transitionToPending"
+      @confirm="transitionOrder('pending')"
     >
       <span>
-        Příjemka bude označena jako <strong class="text-primary">připravená</strong> a zobrazí se
-        pracovníkovi na příjmu. Po tomto kroku již nebude možné ji upravovat.
+        Příjemka bude označena jako <InboundWarehouseOrderStateBadge state="pending" /> a pracovník
+        na příjmu může začít s přesunem zboží. Po tomto kroku již nebude možné příjemku upravovat.
+      </span>
+    </ConfirmDialog>
+    <ConfirmDialog
+      v-model:show="resetDialog"
+      title="Resetovat příjemku"
+      @confirm="transitionOrder('draft')"
+    >
+      <span>
+        Příjemka bude zpátky označena jako <InboundWarehouseOrderStateBadge state="draft" /> a bude
+        možné ji opět editovat. Pracovník na příjmu nebude schopen pokračovat s přesunem zboží.<br /><small
+          >Není možné vrátit rozpracovanou příjemku.</small
+        >
       </span>
     </ConfirmDialog>
   </div>
@@ -86,14 +97,14 @@ import {
   warehouseApiRoutesWarehouseGetInboundWarehouseOrder,
   warehouseApiRoutesWarehouseRemoveFromOrderToCreditNote,
   warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem,
-  warehouseApiRoutesWarehouseUpdateInboundWarehouseOrder,
+  warehouseApiRoutesWarehouseTransitionInboundWarehouseOrder,
   type WarehouseItemSchema,
 } from '@/client'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import InboundOrderBadge from '@/components/order/InboundOrderBadge.vue'
+import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehouseOrderItemsList.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import InboundWarehouseOrderTimeline from '@/components/putaway/InboundWarehouseOrderTimeline.vue'
@@ -139,21 +150,27 @@ const updateOrderItems = async (item: WarehouseItemSchema, toBeAdded: WarehouseI
 }
 
 const confirmDialog = ref(false)
-const transitionToPending = async () => {
+const resetDialog = ref(false)
+const transitionOrder = async (state: 'pending' | 'draft') => {
   if (!order.value) {
     return
   }
   const data = onResponse(
-    await warehouseApiRoutesWarehouseUpdateInboundWarehouseOrder({
+    await warehouseApiRoutesWarehouseTransitionInboundWarehouseOrder({
       path: { code: order.value.code },
       body: {
-        state: 'pending',
+        state: state,
       },
     }),
   )
   if (data) {
     order.value = data.data
   }
+  $q.notify({
+    type: 'positive',
+    message: 'Nový stav zaznamenán',
+    caption: `Příjemka ${order.value.code}`,
+  })
 }
 
 const dissolveItem = async (itemCode: string) => {

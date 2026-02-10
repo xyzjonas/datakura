@@ -1,19 +1,31 @@
 <template>
   <div class="flex flex-col items-end">
     <span class="text-gray-5"> Celková cena </span>
-    <span class="flex items-baseline gap-1">
-      <h2 class="text-bold text-3xl">{{ formatNumber(totalPrice) }}</h2>
+    <span :class="['flex', 'items-baseline', 'gap-1', negative ? 'text-positive' : '']">
+      <h2 class="text-bold text-3xl">{{ negative ? '-' : '' }}{{ formatNumber(totalPrice) }}</h2>
       <span class="text-gray-5">{{ order.currency }}</span>
     </span>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { InboundOrderSchema } from '@/client'
 import { formatNumber } from '@/utils/format-number'
 import { computed } from 'vue'
 
-const props = defineProps<{ order: InboundOrderSchema }>()
+type Props = {
+  negative?: boolean
+  order: {
+    currency: string
+    items?: {
+      amount: number
+      unit_price: number
+    }[]
+  }
+}
+
+//  & Record<string, unknown>
+
+const props = defineProps<Props>()
 const totalPrice = computed(() => {
   if (!props.order) {
     return 0

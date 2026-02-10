@@ -1,11 +1,13 @@
-from decimal import Decimal
-
 from ninja import Schema
 from pydantic import Field
 
 from apps.warehouse.models.orders import InboundOrderState
 from .base import BaseSchema, PaginatedResponse, BaseResponse
-from .base_orders import InboundOrderBaseSchema, InboundWarehouseOrderBaseSchema
+from .base_orders import (
+    InboundOrderBaseSchema,
+    InboundWarehouseOrderBaseSchema,
+    CreditNoteBaseSchema,
+)
 from .product import ProductSchema
 
 
@@ -43,6 +45,7 @@ class InboundOrderSchema(InboundOrderBaseSchema):
     items: list[InboundOrderItemSchema] = Field(default_factory=list)
     state: InboundOrderState
     warehouse_order: InboundWarehouseOrderBaseSchema | None = None
+    credit_note: CreditNoteBaseSchema | None = None
 
 
 class GetInboundOrderResponse(BaseResponse):
@@ -54,9 +57,3 @@ class GetInboundOrdersResponse(PaginatedResponse[InboundOrderSchema]): ...
 
 class CreateInboundOrderItemResponse(BaseResponse):
     data: InboundOrderItemSchema
-
-
-class CreditNoteSupplierItemSchema(BaseSchema):
-    product: ProductSchema
-    amount: Decimal
-    unit_price: Decimal

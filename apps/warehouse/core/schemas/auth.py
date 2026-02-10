@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel
 
 from .base import BaseResponse
@@ -15,6 +17,7 @@ class AuthData(BaseModel):
     username: str
     group: str | None = None
     active_site: str | None = None
+    expiry_date: datetime
 
 
 class SigninResponse(BaseResponse):

@@ -6,7 +6,10 @@
         <h5 class="text-gray-5 mt-2">Správa ...</h5>
       </div>
     </div>
-    <CreditNotesBaseTable :fetch-credit-notes="fetchCreditNotes" />
+    <CreditNotesBaseTable
+      :fetch-credit-notes="fetchCreditNotes"
+      entityRouteName="creditNoteToSupplier"
+    />
   </div>
 </template>
 

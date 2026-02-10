@@ -1,6 +1,7 @@
 import { useAuth } from '@/composables/use-auth'
 import { useGlobalLoading } from '@/composables/use-global-loading'
 import CreditNotesView from '@/views/CreditNotesView.vue'
+import CreditNoteToSupplierView from '@/views/CreditNoteToSupplierView.vue'
 import CustomersView from '@/views/CustomersView.vue'
 import CustomerView from '@/views/CustomerView.vue'
 import HomeView from '@/views/HomeView.vue'
@@ -70,6 +71,12 @@ const router = createRouter({
       path: '/credit-notes',
       name: 'creditNotes',
       component: CreditNotesView,
+    },
+    {
+      path: '/credit-notes/supplier/:code',
+      name: 'creditNoteToSupplier',
+      component: CreditNoteToSupplierView,
+      props: true,
     },
     {
       path: '/incoming-orders/:code',

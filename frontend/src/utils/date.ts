@@ -5,3 +5,8 @@ export const formatDateLong = (date: string | Date) => {
     weekday: 'short',
   })
 }
+
+export const formatDateTimeLong = (date: string | Date) => {
+  const acutalDate = new Date(date)
+  return `${formatDateLong(date)} - ${acutalDate.toLocaleTimeString()}`
+}

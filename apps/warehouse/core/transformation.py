@@ -7,6 +7,8 @@ from django.db.models import F
 from apps.warehouse.core.schemas.base_orders import (
     InboundWarehouseOrderBaseSchema,
     InboundOrderBaseSchema,
+    CreditNoteSupplierItemSchema,
+    CreditNoteBaseSchema,
 )
 from apps.warehouse.core.schemas.customer import (
     CustomerSchema,
@@ -16,7 +18,6 @@ from apps.warehouse.core.schemas.customer import (
 from apps.warehouse.core.schemas.orders import (
     InboundOrderSchema,
     InboundOrderItemSchema,
-    CreditNoteSupplierItemSchema,
 )
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.product import ProductSchema
@@ -175,6 +176,29 @@ def inbound_order_item_orm_to_schema(
     )
 
 
+def credit_note_supplier_orm_to_base_schema(
+    credit_note: CreditNoteToSupplier,
+) -> CreditNoteBaseSchema:
+    return CreditNoteBaseSchema(
+        code=credit_note.code,
+        created=credit_note.created,
+        changed=credit_note.changed,
+        reason=credit_note.reason,
+        note=credit_note.note,
+        state=CreditNoteState(credit_note.state),
+        items=[
+            CreditNoteSupplierItemSchema(
+                product=product_orm_to_schema(item.stock_product),
+                amount=float(item.amount),
+                unit_price=float(item.unit_price),
+                changed=item.changed,
+                created=item.created,
+            )
+            for item in credit_note.items.all()
+        ],
+    )
+
+
 def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
     return InboundOrderSchema(
         created=order.created,
@@ -196,6 +220,9 @@ def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
         else None,
         state=cast(InboundOrderState, order.state),
         items=[inbound_order_item_orm_to_schema(item) for item in order.items.all()],
+        credit_note=credit_note_supplier_orm_to_base_schema(order.credit_note)
+        if getattr(order, "credit_note", None)
+        else None,
     )
 
 
@@ -203,23 +230,19 @@ def credit_note_supplier_orm_to_schema(
     credit_note: CreditNoteToSupplier,
 ) -> CreditNoteSupplierSchema:
     return CreditNoteSupplierSchema(
-        code=credit_note.code,
-        created=credit_note.created,
-        changed=credit_note.changed,
-        reason=credit_note.reason,
-        note=credit_note.note,
-        state=CreditNoteState(credit_note.state),
-        order=inbound_order_orm_to_schema(credit_note.order),
-        items=[
-            CreditNoteSupplierItemSchema(
-                product=product_orm_to_schema(item.stock_product),
-                amount=item.amount,
-                unit_price=item.unit_price,
-                changed=item.changed,
-                created=item.created,
-            )
-            for item in credit_note.items.all()
-        ],
+        **credit_note_supplier_orm_to_base_schema(credit_note).model_dump(),
+        order=InboundOrderBaseSchema(
+            code=credit_note.order.code,
+            state=InboundOrderState(credit_note.order.state),
+            created=credit_note.order.created,
+            changed=credit_note.order.changed,
+            external_code=credit_note.order.external_code,
+            description=credit_note.order.description,
+            note=credit_note.order.note,
+            supplier=customer_orm_to_schema(credit_note.order.supplier),
+            currency=credit_note.order.currency,
+            warehouse_order_code=credit_note.code,
+        ),
     )
 
 

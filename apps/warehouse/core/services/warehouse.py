@@ -14,6 +14,7 @@ from apps.warehouse.core.exceptions import (
     WarehouseItemBadRequestError,
     WarehouseItemNotFoundError,
     WarehouseOrderNotEditableError,
+    WarehouseItemGenericError,
 )
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
 from apps.warehouse.core.schemas.warehouse import (
@@ -339,16 +340,17 @@ class WarehouseService:
     @staticmethod
     def update_inbound_order(
         code: str, body: InboundWarehouseOrderUpdateSchema
-    ) -> InboundWarehouseOrderSchema:
+    ) -> None:
         order = InboundWarehouseOrder.objects.get(code=code)
         order.state = body.state
         order.save()
+        return None
 
-        if body.state == InboundWarehouseOrderState.PENDING:
-            order_order = InboundOrder.objects.get(code=order.order.code)
-            order_order.state = InboundOrderState.PUTAWAY
-            order_order.save()
-        return warehouse_inbound_order_orm_to_schema(order)
+    @classmethod
+    def transition_order(cls, code: str, state: InboundWarehouseOrderState) -> None:
+        return cls.update_inbound_order(
+            code, InboundWarehouseOrderUpdateSchema(state=state)
+        )
 
     @classmethod
     def remove_from_order_to_credit_note(
@@ -373,19 +375,19 @@ class WarehouseService:
             order=order, stock_product=stock_product
         ).get()
         if warehouse_order.state != InboundWarehouseOrderState.DRAFT:
-            raise ValueError(
+            raise WarehouseItemGenericError(
                 f"Warehouse order '{warehouse_order.code}' is already confirmed and read-only."
             )
 
         with transaction.atomic():
             if amount > warehouse_item.amount:
-                raise ValueError(
+                raise WarehouseItemGenericError(
                     f"Requested amount ({amount}) exceeds item amount: {warehouse_item.amount} ({warehouse_item.stock_product.name})"
                 )
 
             note, _ = inbound_orders_service.get_or_create_credit_note(order.code)
             if note.state != CreditNoteState.DRAFT:
-                raise ValueError(
+                raise WarehouseItemGenericError(
                     f"Credit Note '{note.code}' is already confirmed and read-only"
                 )
 
@@ -410,6 +412,40 @@ class WarehouseService:
                 warehouse_item.save()
 
         return cls.get_inbound_warehouse_order(warehouse_order_code)
+
+    @classmethod
+    def confirm_draft(cls, code: str) -> None:
+        w_order = cls.get_inbound_warehouse_order(code)
+        if w_order.state != InboundWarehouseOrderState.DRAFT:
+            raise WarehouseItemGenericError(
+                f"Warehouse order '{code}' (state={w_order.state}) has to be in draft state in order to be confirmed."
+            )
+        cls.transition_order(code, InboundWarehouseOrderState.PENDING)
+        inbound_order = InboundOrder.objects.get(warehouse_order__code=code)
+        inbound_orders_service.transition_order(
+            inbound_order.code, InboundOrderState.PUTAWAY
+        )
+        if credit_note := getattr(inbound_order, "credit_note", None):
+            inbound_orders_service.transition_credit_note(
+                credit_note.code, CreditNoteState.CONFIRMED
+            )
+
+    @classmethod
+    def reset_to_draft(cls, code: str) -> None:
+        w_order = cls.get_inbound_warehouse_order(code)
+        if w_order.state != InboundWarehouseOrderState.PENDING:
+            raise WarehouseItemGenericError(
+                f"Warehouse order ${code}, state={w_order.state} has to be in pending state in order to be reset to draft."
+            )
+        cls.transition_order(code, InboundWarehouseOrderState.DRAFT)
+        inbound_order = InboundOrder.objects.get(warehouse_order__code=code)
+        inbound_orders_service.transition_order(
+            inbound_order.code, InboundOrderState.RECEIVING
+        )
+        if credit_note := getattr(inbound_order, "credit_note", None):
+            inbound_orders_service.transition_credit_note(
+                credit_note.code, CreditNoteState.DRAFT
+            )
 
 
 warehouse_service = WarehouseService()
