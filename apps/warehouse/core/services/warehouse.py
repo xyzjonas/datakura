@@ -447,5 +447,54 @@ class WarehouseService:
                 credit_note.code, CreditNoteState.DRAFT
             )
 
+    @classmethod
+    def putaway_item(
+        cls, item_code, warehouse_order_code: str, new_location_code: str
+    ) -> None:
+        """
+        Putaway an item while processing an inbound order.
+        """
+        warehouse_order = InboundWarehouseOrder.objects.get(code=warehouse_order_code)
+        if warehouse_order.state == InboundWarehouseOrderState.DRAFT:
+            raise WarehouseItemGenericError(
+                f"Warehouse order '{warehouse_order_code}' is not yet confirmed and thus read-only."
+            )
+
+        if warehouse_order.state in (
+            InboundWarehouseOrderState.COMPLETED,
+            InboundWarehouseOrderState.CANCELLED,
+        ):
+            raise WarehouseItemGenericError(
+                f"Warehouse order ${warehouse_order_code} is already confirmed and/or canceled and thus read-only."
+            )
+
+        item = warehouse_order.items.get(code=item_code)
+        new_location = WarehouseLocation.objects.get(code=new_location_code)
+
+        existing_same_item = new_location.items.filter(code=item.code).first()
+        with transaction.atomic():
+            if not existing_same_item:
+                item.location = new_location
+            else:
+                existing_same_item.amount += item.amount
+                existing_same_item.save()
+                item.delete()
+            item.save()
+
+        if warehouse_order.items.filter(location__is_putaway=True).count() == 0:
+            cls.transition_order(
+                warehouse_order_code, InboundWarehouseOrderState.COMPLETED
+            )
+        else:
+            cls.transition_order(
+                warehouse_order_code, InboundWarehouseOrderState.STARTED
+            )
+
+    # @staticmethod
+    # def move_item(
+    #     item_code: str, location_code: str | None = None, amount: float = None
+    # ) -> None:
+    #     pass
+
 
 warehouse_service = WarehouseService()

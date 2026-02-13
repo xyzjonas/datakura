@@ -45,6 +45,9 @@
       />
       <q-btn v-else flat color="negative" icon-right="sym_o_close" @click="confirmDelete = true" />
     </div>
+    <div v-if="allowMove" class="h-full">
+      <q-btn @click="moveDialog = true" label="move"></q-btn>
+    </div>
     <InboundWarehouseOrderTrackDialog
       v-model:show="setItemTrackingDialog"
       :item="item"
@@ -66,6 +69,7 @@
         <PackageTypeBadge :package-type="undefined" />.
       </div>
     </ConfirmDialog>
+    <LocationSelectionDialog v-model:show="moveDialog" :item="item" />
   </div>
 </template>
 
@@ -80,8 +84,9 @@ import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
 import InboundWarehouseOrderRemoveItemDialog from './InboundWarehouseOrderRemoveItemDialog.vue'
+import LocationSelectionDialog from './LocationSelectionDialog.vue'
 
-defineProps<{ readonly?: boolean }>()
+defineProps<{ allowMove?: boolean; readonly?: boolean }>()
 defineEmits<{
   (e: 'dissolveItem'): void
   (e: 'remove', amount: number): void
@@ -101,6 +106,7 @@ const trackingType = computed<TrackingType>(() => {
 
 const confirmDelete = ref(false)
 const removeItemDialog = ref(false)
+const moveDialog = ref(false)
 </script>
 
 <style lang="scss" scoped></style>

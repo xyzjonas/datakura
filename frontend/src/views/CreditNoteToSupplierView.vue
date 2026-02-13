@@ -18,14 +18,16 @@
         </div>
         <GenericStateBadge :state="credit_note.state" />
       </div>
-      <PrintDropdownButton
-        :items="[
-          {
-            label: 'PDF bez cen',
-            onClick: openPdf,
-          },
-        ]"
-      />
+      <MissingMarker>
+        <PrintDropdownButton
+          :items="[
+            {
+              label: 'PDF bez cen',
+              onClick: openPdf,
+            },
+          ]"
+        />
+      </MissingMarker>
     </div>
 
     <div class="flex gap-2">
@@ -66,6 +68,7 @@ import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import GenericStateBadge from '@/components/GenericStateBadge.vue'
+import MissingMarker from '@/components/MissingMarker.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'

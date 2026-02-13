@@ -5,7 +5,10 @@ from django.http import HttpRequest
 from ninja import Router
 from ninja.pagination import paginate
 
-from apps.warehouse.api.pagination import IncomingWarehouseOrdersPagination
+from apps.warehouse.api.pagination import (
+    IncomingWarehouseOrdersPagination,
+    WarehouseLocationsPagination,
+)
 from apps.warehouse.core.exceptions import WarehouseItemGenericError
 from apps.warehouse.core.schemas.warehouse import (
     GetWarehousesResponse,
@@ -19,6 +22,8 @@ from apps.warehouse.core.schemas.warehouse import (
     SetupTrackingWarehouseItemRequest,
     RemoveItemToCreditNoteRequest,
     InboundWarehouseOrderSetStateSchema,
+    WarehouseLocationSchema,
+    PutawayItemRequest,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
@@ -38,9 +43,6 @@ routes = Router(tags=["warehouse"])
 
 @routes.get("warehouses", response={200: GetWarehousesResponse})
 def get_warehouses(request: HttpRequest):
-    # user = authenticate(
-    #     request, username=credentials.username, password=credentials.password
-    # )
     warehouses = Warehouse.objects.prefetch_related("locations").all()
     return GetWarehousesResponse(
         data=[
@@ -57,6 +59,28 @@ def get_warehouses(request: HttpRequest):
             for warehouse in warehouses
         ]
     )
+
+
+@routes.get(
+    "locations",
+    response={200: list[WarehouseLocationSchema]},
+)
+@paginate(WarehouseLocationsPagination)
+def get_warehouse_locations(
+    request: HttpRequest,
+    search_term: str | None = None,
+    stock_product_code: str | None = None,
+):
+    qs = cast(
+        QuerySet[WarehouseLocation],
+        WarehouseLocation.objects.select_related("warehouse").all(),
+    )
+    if search_term:
+        search_term = search_term.lower()
+        qs = qs.filter(Q(code__iexact=search_term) | Q(code__icontains=search_term))
+    if stock_product_code:
+        qs = qs.filter(items__stock_product__code=stock_product_code).distinct()
+    return qs.all()
 
 
 @routes.get(
@@ -217,18 +241,20 @@ def transition_inbound_warehouse_order(
     )
 
 
-# @routes.post(
-#     "orders-incoming/{code}/items",
-#     response={200: GetWarehouseOrderResponse},
-#
-# )
-# def update_inbound_warehouse_order_items(
-#     request: HttpRequest, code: str, body: UpdateWarehouseOrderDraftItemsRequest
-# ):
-#     # user = authenticate(
-#     #     request, username=credentials.username, password=credentials.password
-#     # )
-#     order = warehouse_service.add_or_remove_inbound_order_items(
-#         code, body.to_be_removed, body.to_be_added
-#     )
-#     return GetWarehouseOrderResponse(data=order)
+@routes.post(
+    "orders-incoming/{code}/items/{item_code}/putaway",
+    response={200: GetWarehouseOrderResponse},
+)
+def putaway_inbound_warehouse_order_item(
+    request: HttpRequest,
+    code: str,
+    item_code: str,
+    body: PutawayItemRequest,
+):
+    warehouse_service.putaway_item(
+        item_code=item_code,
+        warehouse_order_code=code,
+        new_location_code=body.new_location_code,
+    )
+    order = warehouse_service.get_inbound_warehouse_order(code)
+    return GetWarehouseOrderResponse(data=order)

@@ -4,6 +4,7 @@
       <WarehouseItemEditableRow
         v-model:item="items[index]"
         :readonly="readonly"
+        :allow-move="allowMove"
         @dissolve-item="() => $emit('dissolveItem', item.code)"
         @packaged="(items) => $emit('packaged', item, items)"
         @remove="(amount) => $emit('removeItem', item.code, amount)"
@@ -30,6 +31,6 @@ defineEmits<{
   (e: 'addItem'): void
   (e: 'packaged', item: WarehouseItemSchema, items: WarehouseItemSchema[]): void
 }>()
-defineProps<{ readonly?: boolean }>()
+defineProps<{ readonly?: boolean; allowMove?: boolean }>()
 const items = defineModel<Array<WarehouseItemSchema>>('items', { default: [] })
 </script>

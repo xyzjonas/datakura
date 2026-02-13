@@ -23,6 +23,10 @@
             option-value="value"
           />
 
+          <div v-if="helpText" class="bg-gray-2 p-4 rounded-lg my-1 shadow shadow-inset">
+            {{ helpText }}
+          </div>
+
           <q-input
             v-model="amount"
             outlined
@@ -87,7 +91,7 @@ import {
 } from '@/client'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import PackageTypeSearchSelect from '../selects/PackageTypeSearchSelect.vue'
 import WarehouseItemPreviewRow from './WarehouseItemPreviewRow.vue'
 import { rules } from '@/utils/rules'
@@ -97,7 +101,17 @@ const { goToProduct } = useAppRouter()
 
 export type TrackingType = 'package' | '' | 'batch' | 'piece'
 
-const tracking_type_options = [
+const helpTextMapping: Record<TrackingType, string> = {
+  '': 'Toto zboží sledujeme jen celkově - evidujeme kolik kusů máme na skladě, ale nezapisujeme, odkud konkrétní kusy přišly nebo kde přesně leží. Všechny kusy stejného produktu jsou pro nás zaměnitelné - při výdeji vezmeme jakýkoliv dostupný kus.',
+  batch:
+    'Určité zboží sledujeme po výrobních dávkách (šaržích). Každá dávka má své číslo. Zboží můžeme brát jen ze stejné dávky - nemůžeme míchat kusy z různých dávek dohromady. Díky tomu vždy víme, odkud dávka přišla a kde přesně ve skladu leží.',
+  piece:
+    'Každý kus má své vlastní jedinečné číslo (jako sériové číslo). Díky tomu u každého kusu víme, odkud přišel a kde přesně ve skladu se nachází. Žádné dva kusy nejsou zaměnitelné.',
+  package:
+    'Každé balení má své jedinečné číslo. Díky tomu u každého balení víme, odkud přišlo a kde přesně se nachází. Z balení můžeme brát zboží i po jednotlivých kusech - balení se tím zmenší, ale pořád ho sledujeme a víme, kolik v něm zbývá.',
+}
+
+const tracking_type_options: { label: string; value: TrackingType }[] = [
   {
     label: 'Volně skladem',
     value: '',
@@ -125,6 +139,7 @@ const trackingType = ref(
   tracking_type_options.find((opt) => opt.value === props.trackingTypeIn) ??
     tracking_type_options[0],
 )
+const helpText = computed(() => helpTextMapping[trackingType.value.value])
 
 const amount = ref(props.item.amount)
 

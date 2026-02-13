@@ -183,6 +183,47 @@ export type WarehouseSchema = {
 };
 
 /**
+ * Input
+ */
+export type Input = {
+    /**
+     * Page
+     */
+    page?: number;
+    /**
+     * Page Size
+     */
+    page_size?: number;
+};
+
+/**
+ * PagedWarehouseLocationSchema
+ */
+export type PagedWarehouseLocationSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<WarehouseLocationSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
  * GetWarehouseLocationResponse
  */
 export type GetWarehouseLocationResponse = {
@@ -724,20 +765,6 @@ export type WarehouseOrderCreateSchema = {
 };
 
 /**
- * Input
- */
-export type Input = {
-    /**
-     * Page
-     */
-    page?: number;
-    /**
-     * Page Size
-     */
-    page_size?: number;
-};
-
-/**
  * PagedInboundWarehouseOrderSchema
  */
 export type PagedInboundWarehouseOrderSchema = {
@@ -814,6 +841,16 @@ export type RemoveItemToCreditNoteRequest = {
  */
 export type InboundWarehouseOrderSetStateSchema = {
     state: InboundWarehouseOrderState;
+};
+
+/**
+ * PutawayItemRequest
+ */
+export type PutawayItemRequest = {
+    /**
+     * New Location Code
+     */
+    new_location_code: string;
 };
 
 /**
@@ -1454,6 +1491,35 @@ export type WarehouseApiRoutesWarehouseGetWarehousesResponses = {
 
 export type WarehouseApiRoutesWarehouseGetWarehousesResponse = WarehouseApiRoutesWarehouseGetWarehousesResponses[keyof WarehouseApiRoutesWarehouseGetWarehousesResponses];
 
+export type WarehouseApiRoutesWarehouseGetWarehouseLocationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/warehouse/locations';
+};
+
+export type WarehouseApiRoutesWarehouseGetWarehouseLocationsResponses = {
+    /**
+     * OK
+     */
+    200: PagedWarehouseLocationSchema;
+};
+
+export type WarehouseApiRoutesWarehouseGetWarehouseLocationsResponse = WarehouseApiRoutesWarehouseGetWarehouseLocationsResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseLocationsResponses];
+
 export type WarehouseApiRoutesWarehouseGetWarehouseLocationData = {
     body?: never;
     path: {
@@ -1674,6 +1740,31 @@ export type WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponses 
 };
 
 export type WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponses];
+
+export type WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemData = {
+    body: PutawayItemRequest;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Item Code
+         */
+        item_code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}/putaway';
+};
+
+export type WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses];
 
 export type WarehouseApiRoutesProductGetProductsData = {
     body?: never;

@@ -8,10 +8,12 @@
       <InboundOrderBadge v-if="inboundOrder" :order="inboundOrder" />
       <span v-else class="text-gray-5">Žádná Příchozí Objednávka</span>
     </ForegroundPanel>
-    <ForegroundPanel v-if="showInvoice" class="flex-1 flex justify-center items-center">
-      <span v-if="invoice">FAKTURA #123</span>
-      <span class="text-gray-5">Žádná Faktura</span>
-    </ForegroundPanel>
+    <MissingMarker v-if="showInvoice">
+      <ForegroundPanel v-if="showInvoice" class="flex-1 flex justify-center items-center">
+        <span v-if="invoice">FAKTURA #123</span>
+        <span class="text-gray-5">Žádná Faktura</span>
+      </ForegroundPanel>
+    </MissingMarker>
     <ForegroundPanel v-if="showCreditNote" class="flex-1 flex justify-center items-center">
       <CreditNoteBadge v-if="creditNote" :note="creditNote" />
       <span v-else class="text-gray-5">Žádný Dopbropis</span>
@@ -30,6 +32,7 @@ import ForegroundPanel from '../ForegroundPanel.vue'
 import InboundWarehouseOrderBadge from '../putaway/InboundWarehouseOrderBadge.vue'
 import type { Optional } from '@/utils/optional'
 import InboundOrderBadge from './InboundOrderBadge.vue'
+import MissingMarker from '../MissingMarker.vue'
 
 defineProps<{
   showCreditNote?: boolean

@@ -95,6 +95,9 @@ class GetWarehousesResponse(BaseResponse):
     data: list[WarehouseSchema]
 
 
+class GetWarehouseLocationsResponse(PaginatedResponse[WarehouseLocationSchema]): ...
+
+
 class GetWarehouseLocationResponse(BaseResponse):
     data: WarehouseLocationDetailSchema
 
@@ -128,3 +131,7 @@ class SetupTrackingWarehouseItemRequest(Schema):
 class RemoveItemToCreditNoteRequest(Schema):
     item_code: str
     amount: float
+
+
+class PutawayItemRequest(Schema):
+    new_location_code: str

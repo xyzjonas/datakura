@@ -61,6 +61,7 @@
     <InboundWarehouseOrderItemsList
       v-model:items="order.items"
       :readonly="order.state !== 'draft'"
+      :allow-move="order.state === 'pending' || order.state === 'started'"
       @packaged="updateOrderItems"
       @dissolve-item="dissolveItem"
       @remove-item="removeItem"

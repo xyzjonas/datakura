@@ -1,12 +1,19 @@
 <template>
-  <q-btn-dropdown unelevated outline color="primary" label="PDF" icon="sym_o_picture_as_pdf">
+  <q-btn-dropdown
+    unelevated
+    outline
+    color="primary"
+    label="PDF"
+    icon="sym_o_picture_as_pdf"
+    :loading="loading"
+  >
     <q-list>
       <q-item
         v-for="item in items"
         :key="item.label"
         clickable
         v-close-popup
-        @click="() => item.onClick()"
+        @click="() => clickPrint(item)"
       >
         <q-item-section>
           <q-item-label>{{ item.label }}</q-item-label>
@@ -20,14 +27,26 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+
 interface DropdownItem {
   label: string
-  onClick: () => void
+  onClick: () => Promise<void>
 }
 
 defineProps<{
   items: DropdownItem[]
 }>()
+
+const loading = ref(false)
+const clickPrint = async (item: DropdownItem) => {
+  loading.value = true
+  try {
+    await item.onClick()
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <style lang="scss" scoped></style>
