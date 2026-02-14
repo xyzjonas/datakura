@@ -481,14 +481,17 @@ class WarehouseService:
                 item.delete()
             item.save()
 
-        if warehouse_order.items.filter(location__is_putaway=True).count() == 0:
-            cls.transition_order(
-                warehouse_order_code, InboundWarehouseOrderState.COMPLETED
-            )
-        else:
-            cls.transition_order(
-                warehouse_order_code, InboundWarehouseOrderState.STARTED
-            )
+            if warehouse_order.items.filter(location__is_putaway=True).count() == 0:
+                cls.transition_order(
+                    warehouse_order_code, InboundWarehouseOrderState.COMPLETED
+                )
+                inbound_orders_service.transition_order(
+                    warehouse_order.order.code, InboundOrderState.COMPLETED
+                )
+            else:
+                cls.transition_order(
+                    warehouse_order_code, InboundWarehouseOrderState.STARTED
+                )
 
     # @staticmethod
     # def move_item(

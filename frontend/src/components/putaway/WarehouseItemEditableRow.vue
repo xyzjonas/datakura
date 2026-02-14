@@ -17,7 +17,9 @@
           <q-badge class="py-1" :color="item.location.is_putaway ? 'accent' : 'positive'">{{
             item.location.is_putaway ? 'Příjem' : 'hotovo'
           }}</q-badge>
-          <q-badge class="py-1" color="gray">{{ item.location.code }}</q-badge>
+          <q-badge class="py-1" :color="item.location.is_putaway ? 'gray' : 'positive'">{{
+            item.location.code
+          }}</q-badge>
           <PackageTypeBadge :package-type="item.package?.type" class="py-1" />
         </div>
       </div>
