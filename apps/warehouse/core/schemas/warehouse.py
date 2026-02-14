@@ -21,6 +21,10 @@ class WarehouseLocationSchema(BaseSchema):
     is_putaway: bool
 
 
+class WarehouseLocationWithCountSchema(WarehouseLocationSchema):
+    count: float
+
+
 class PackageSchema(BaseSchema):
     type: str
     description: str | None = None
@@ -51,10 +55,17 @@ class WarehouseLocationDetailSchema(WarehouseLocationSchema):
     items: list[WarehouseItemSchema]
 
 
-class WarehouseSchema(BaseSchema):
+class WarehouseBaseSchema(BaseSchema):
     name: str
     description: str | None
+
+
+class WarehouseSchema(WarehouseBaseSchema):
     locations: list[WarehouseLocationSchema]
+
+
+class WarehouseWithCountsSchema(WarehouseBaseSchema):
+    locations: list[WarehouseLocationWithCountSchema]
 
 
 class WarehouseExpandedSchema(BaseSchema):
@@ -93,6 +104,10 @@ class WarehouseItemGetOrCreateSchema(Schema):
 
 class GetWarehousesResponse(BaseResponse):
     data: list[WarehouseSchema]
+
+
+class GetWarehousesWithCountsResponse(BaseResponse):
+    data: list[WarehouseWithCountsSchema]
 
 
 class GetWarehouseLocationsResponse(PaginatedResponse[WarehouseLocationSchema]): ...

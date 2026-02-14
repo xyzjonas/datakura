@@ -86,7 +86,7 @@ import {
   type WarehouseLocationSchema,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
-import { onMounted, ref, watch } from 'vue'
+import { onUpdated, ref, watch } from 'vue'
 import EmptyPanel from '../EmptyPanel.vue'
 
 const { onResponse } = useApi()
@@ -108,7 +108,7 @@ const emit = defineEmits<{
 const loading = ref(false)
 
 const locationsWithTheSameProduct = ref<WarehouseLocationSchema[]>([])
-onMounted(async () => {
+onUpdated(async () => {
   loading.value = true
   const result = await warehouseApiRoutesWarehouseGetWarehouseLocations({
     query: {

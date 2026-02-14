@@ -11,8 +11,6 @@ from apps.warehouse.api.pagination import (
 )
 from apps.warehouse.core.exceptions import WarehouseItemGenericError
 from apps.warehouse.core.schemas.warehouse import (
-    GetWarehousesResponse,
-    WarehouseSchema,
     GetWarehouseLocationResponse,
     GetWarehouseOrderResponse,
     WarehouseOrderCreateSchema,
@@ -24,11 +22,13 @@ from apps.warehouse.core.schemas.warehouse import (
     InboundWarehouseOrderSetStateSchema,
     WarehouseLocationSchema,
     PutawayItemRequest,
+    GetWarehousesWithCountsResponse,
+    WarehouseWithCountsSchema,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
-    location_orm_to_schema,
     location_orm_to_detail_schema,
+    location_orm_to_schema_with_count,
 )
 from apps.warehouse.models.orders import InboundOrderState
 from apps.warehouse.models.warehouse import (
@@ -41,18 +41,18 @@ from apps.warehouse.models.warehouse import (
 routes = Router(tags=["warehouse"])
 
 
-@routes.get("warehouses", response={200: GetWarehousesResponse})
+@routes.get("warehouses", response={200: GetWarehousesWithCountsResponse})
 def get_warehouses(request: HttpRequest):
     warehouses = Warehouse.objects.prefetch_related("locations").all()
-    return GetWarehousesResponse(
+    return GetWarehousesWithCountsResponse(
         data=[
-            WarehouseSchema(
+            WarehouseWithCountsSchema(
                 name=warehouse.name,
                 description=warehouse.description,
                 created=warehouse.created,
                 changed=warehouse.changed,
                 locations=[
-                    location_orm_to_schema(location)
+                    location_orm_to_schema_with_count(location)
                     for location in warehouse.locations.all()
                 ],
             )

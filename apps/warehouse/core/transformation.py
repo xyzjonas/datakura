@@ -27,6 +27,7 @@ from apps.warehouse.core.schemas.warehouse import (
     InboundWarehouseOrderSchema,
     WarehouseLocationSchema,
     WarehouseLocationDetailSchema,
+    WarehouseLocationWithCountSchema,
 )
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import (
@@ -53,6 +54,15 @@ def location_orm_to_schema(location: WarehouseLocation) -> WarehouseLocationSche
         changed=location.changed,
         created=location.created,
         is_putaway=location.is_putaway,
+    )
+
+
+def location_orm_to_schema_with_count(
+    location: WarehouseLocation,
+) -> WarehouseLocationWithCountSchema:
+    return WarehouseLocationWithCountSchema(
+        **location_orm_to_schema(location).model_dump(),
+        count=location.items.values("stock_product").distinct().count(),
     )
 
 

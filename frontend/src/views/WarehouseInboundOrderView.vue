@@ -65,6 +65,7 @@
       @packaged="updateOrderItems"
       @dissolve-item="dissolveItem"
       @remove-item="removeItem"
+      @moved="moveItem"
     ></InboundWarehouseOrderItemsList>
     <ConfirmDialog
       v-model:show="confirmDialog"
@@ -96,10 +97,12 @@ import {
   type InboundWarehouseOrderSchema,
   warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem,
   warehouseApiRoutesWarehouseGetInboundWarehouseOrder,
+  warehouseApiRoutesWarehousePutawayInboundWarehouseOrderItem,
   warehouseApiRoutesWarehouseRemoveFromOrderToCreditNote,
   warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem,
   warehouseApiRoutesWarehouseTransitionInboundWarehouseOrder,
   type WarehouseItemSchema,
+  type WarehouseLocationSchema,
 } from '@/client'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
@@ -213,6 +216,31 @@ const removeItem = async (itemCode: string, amount: number) => {
     type: 'positive',
     message: `${amount} MJ odstraněno z příjemky`,
     caption: `Evidováno v dobropisu ${order.value.credit_note?.code ?? 'N/A'}`,
+  })
+}
+
+const moveItem = async (itemCode: string, location: WarehouseLocationSchema) => {
+  if (!order.value) {
+    return
+  }
+  const data = onResponse(
+    await warehouseApiRoutesWarehousePutawayInboundWarehouseOrderItem({
+      path: {
+        code: order.value.code,
+        item_code: itemCode,
+      },
+      body: {
+        new_location_code: location.code,
+      },
+    }),
+  )
+  if (data) {
+    order.value = data.data
+  }
+  $q.notify({
+    type: 'positive',
+    message: `Položka úspěšně přesunuta`,
+    caption: `'${itemCode}' se nyní nachází na skladovém místě ${location.code}`,
   })
 }
 </script>

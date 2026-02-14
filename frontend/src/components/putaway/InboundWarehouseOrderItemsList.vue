@@ -8,6 +8,7 @@
         @dissolve-item="() => $emit('dissolveItem', item.code)"
         @packaged="(items) => $emit('packaged', item, items)"
         @remove="(amount) => $emit('removeItem', item.code, amount)"
+        @moved="(location) => $emit('moved', item.code, location)"
       ></WarehouseItemEditableRow>
     </ForegroundPanel>
   </div>
@@ -20,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import type { WarehouseItemSchema } from '@/client'
+import type { WarehouseItemSchema, WarehouseLocationSchema } from '@/client'
 import ForegroundPanel from '../ForegroundPanel.vue'
 import EmptyPanel from '../EmptyPanel.vue'
 import WarehouseItemEditableRow from './WarehouseItemEditableRow.vue'
@@ -30,6 +31,7 @@ defineEmits<{
   (e: 'removeItem', itemCode: string, amount: number): void
   (e: 'addItem'): void
   (e: 'packaged', item: WarehouseItemSchema, items: WarehouseItemSchema[]): void
+  (e: 'moved', itemCode: string, location: WarehouseLocationSchema): void
 }>()
 defineProps<{ readonly?: boolean; allowMove?: boolean }>()
 const items = defineModel<Array<WarehouseItemSchema>>('items', { default: [] })

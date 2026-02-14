@@ -69,12 +69,16 @@
         <PackageTypeBadge :package-type="undefined" />.
       </div>
     </ConfirmDialog>
-    <LocationSelectionDialog v-model:show="moveDialog" :item="item" />
+    <LocationSelectionDialog
+      v-model:show="moveDialog"
+      :item="item"
+      @confirm="(location) => $emit('moved', location)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import type { WarehouseItemSchema } from '@/client'
+import type { WarehouseItemSchema, WarehouseLocationSchema } from '@/client'
 import InboundWarehouseOrderTrackDialog, {
   type TrackingType,
 } from './InboundWarehouseOrderTrackDialog.vue'
@@ -91,6 +95,7 @@ defineEmits<{
   (e: 'dissolveItem'): void
   (e: 'remove', amount: number): void
   (e: 'packaged', items: WarehouseItemSchema[]): void
+  (e: 'moved', location: WarehouseLocationSchema): void
 }>()
 
 const item = defineModel<WarehouseItemSchema>('item', { required: true })

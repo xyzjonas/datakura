@@ -1,11 +1,17 @@
 <template>
-  <ForegroundPanel class="min-w-[256px]">
-    <SearchInput
-      v-model="locationSearch"
-      placeholder="Vyhledat skladové místo"
-      clearable
-      class="mb-4"
-    />
+  <ForegroundPanel class="min-w-[312px]">
+    <div class="flex flex-col items-start">
+      <SearchInput
+        v-model="locationSearch"
+        placeholder="Vyhledat skladové místo"
+        clearable
+        class="w-full"
+      />
+      <q-toggle v-model="showEmpty" size="sm"
+        ><span class="text-xs">Zobrazit prazdná místa</span></q-toggle
+      >
+    </div>
+    <q-separator></q-separator>
     <q-tree :nodes="simple" node-key="label" selected-color="primary" ref="tree">
       <template v-slot:default-header="prop">
         <div
@@ -17,9 +23,12 @@
           "
         >
           <q-icon :name="prop.node.icon" class="mr-2" color="gray-5" size="18px" />
-          <span :class="{ 'font-bold text-primary': location === prop.node.label }">{{
-            prop.node.label
-          }}</span>
+          <span :class="{ 'font-bold text-primary': location === prop.node.label }">
+            {{ prop.node.label }}
+          </span>
+          <span v-if="prop.node.count" class="ml-1 text-gray-5">
+            - {{ prop.node.count }} {{ getProductsDeclention(prop.node.count) }}
+          </span>
         </div>
       </template>
     </q-tree>
@@ -123,6 +132,7 @@ type TreeElement = {
   icon: string
   isPlace?: boolean
   children?: TreeElement[]
+  count: number
 }
 
 const getLocationIcon = (location: WarehouseLocationSchema) => {
@@ -132,6 +142,7 @@ const getLocationIcon = (location: WarehouseLocationSchema) => {
   return LOCATION_ICON
 }
 
+const showEmpty = ref(false)
 const simple = computed(() =>
   warehouses.value.map((war) => {
     return {
@@ -139,10 +150,12 @@ const simple = computed(() =>
       icon: 'sym_o_home_work',
       children: war.locations
         .filter((loc) => loc.code.toLowerCase().includes(locationSearch.value.toLowerCase()))
+        .filter((loc) => (showEmpty.value ? true : loc.count > 0))
         .map((loc) => ({
           label: loc.code,
           icon: getLocationIcon(loc),
           isPlace: true,
+          count: loc.count,
         })) as TreeElement[],
     }
   }),
@@ -313,6 +326,16 @@ const rows = computed(() => {
 //   },
 //   { immediate: true },
 // )
+
+const getProductsDeclention = (amount: number) => {
+  if (amount === 1) {
+    return 'produkt'
+  }
+  if (amount > 1 && amount < 5) {
+    return 'produkty'
+  }
+  return 'produktů'
+}
 </script>
 
 <style></style>

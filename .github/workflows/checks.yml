@@ -9,7 +9,7 @@ jobs:
   backend:
     name: Python Checks
     runs-on: ubuntu-latest
-    container: python:3.13-slim
+    container: python:3.14-slim
     env:
       SECRET_KEY: foobarbaz
       JWT_SECRET_KEY: foobar

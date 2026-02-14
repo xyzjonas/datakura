@@ -116,9 +116,9 @@ export type SwitchSiteBody = {
 };
 
 /**
- * GetWarehousesResponse
+ * GetWarehousesWithCountsResponse
  */
-export type GetWarehousesResponse = {
+export type GetWarehousesWithCountsResponse = {
     /**
      * Success
      */
@@ -127,13 +127,13 @@ export type GetWarehousesResponse = {
     /**
      * Data
      */
-    data: Array<WarehouseSchema>;
+    data: Array<WarehouseWithCountsSchema>;
 };
 
 /**
- * WarehouseLocationSchema
+ * WarehouseLocationWithCountSchema
  */
-export type WarehouseLocationSchema = {
+export type WarehouseLocationWithCountSchema = {
     /**
      * Created
      */
@@ -154,12 +154,16 @@ export type WarehouseLocationSchema = {
      * Is Putaway
      */
     is_putaway: boolean;
+    /**
+     * Count
+     */
+    count: number;
 };
 
 /**
- * WarehouseSchema
+ * WarehouseWithCountsSchema
  */
-export type WarehouseSchema = {
+export type WarehouseWithCountsSchema = {
     /**
      * Created
      */
@@ -179,7 +183,7 @@ export type WarehouseSchema = {
     /**
      * Locations
      */
-    locations: Array<WarehouseLocationSchema>;
+    locations: Array<WarehouseLocationWithCountSchema>;
 };
 
 /**
@@ -221,6 +225,32 @@ export type PagedWarehouseLocationSchema = {
      * Previous
      */
     previous: number | null;
+};
+
+/**
+ * WarehouseLocationSchema
+ */
+export type WarehouseLocationSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Warehouse Name
+     */
+    warehouse_name: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Is Putaway
+     */
+    is_putaway: boolean;
 };
 
 /**
@@ -1486,7 +1516,7 @@ export type WarehouseApiRoutesWarehouseGetWarehousesResponses = {
     /**
      * OK
      */
-    200: GetWarehousesResponse;
+    200: GetWarehousesWithCountsResponse;
 };
 
 export type WarehouseApiRoutesWarehouseGetWarehousesResponse = WarehouseApiRoutesWarehouseGetWarehousesResponses[keyof WarehouseApiRoutesWarehouseGetWarehousesResponses];

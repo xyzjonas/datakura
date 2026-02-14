@@ -19,13 +19,13 @@ export const INBOUND_WAREHOUSE_ORDER_STATES: Record<string, StateConfig> = {
   pending: {
     label: 'Připraveno',
     icon: 'sym_o_pallet',
-    color: 'accent',
+    color: 'orange-8',
     step: 2,
   },
-  submitted: {
+  started: {
     label: 'Příjem zahájen',
     icon: 'sym_o_avg_pace',
-    color: 'primary',
+    color: 'cyan-8',
     step: 3,
   },
   completed: {
