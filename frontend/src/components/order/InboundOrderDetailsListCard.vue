@@ -47,6 +47,7 @@
 import type { InboundOrderSchema } from '@/client'
 import ForegroundPanel from '../ForegroundPanel.vue'
 import { formatDateLong } from '@/utils/date'
+import CopyToClipBoardButton from '../CopyToClipBoardButton.vue'
 
 defineProps<{ order: InboundOrderSchema }>()
 </script>
