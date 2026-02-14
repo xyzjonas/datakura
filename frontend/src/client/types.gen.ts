@@ -1500,6 +1500,10 @@ export type WarehouseApiRoutesWarehouseGetWarehouseLocationsData = {
          */
         search_term?: string | null;
         /**
+         * Stock Product Code
+         */
+        stock_product_code?: string | null;
+        /**
          * Page
          */
         page?: number;

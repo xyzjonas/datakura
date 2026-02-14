@@ -73,6 +73,10 @@ eslint:
 ts-check:
     npm run type-check
 
+[working-directory: "frontend"]
+generate-assets:
+    npm run generate-pwa-assets
+
 [parallel]
 ci-js: eslint ts-check test-js
 
@@ -84,3 +88,4 @@ docker-build:
 
 docker-run:
     docker run -it --rm  -p "8082:8000" -e "SECRET_KEY=123456789" -e "JWT_SECRET_KEY=987654321" datakura
+

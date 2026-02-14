@@ -8,6 +8,32 @@
         </div>
         <span class="text-xl text-gray-5">{{ item.product.name }}</span>
         <q-form class="flex flex-col gap-2" @submit="onConfirm">
+          <q-separator class="my-5"></q-separator>
+          <h2 class="text-lg">Skladová místa kde se tato položka již nachází</h2>
+          <q-list separator class="mt-3" v-if="locationsWithTheSameProduct.length > 0">
+            <q-item
+              v-for="location in locationsWithTheSameProduct"
+              :key="location.code"
+              clickable
+              v-ripple
+              @click="selectedLocation = location"
+              :active="selectedLocation?.code === location.code"
+              active-class="bg-blue-1"
+            >
+              <q-item-section>{{ location.code }}</q-item-section>
+              <q-item-section>{{ location.warehouse_name }}</q-item-section>
+              <q-item-section avatar>
+                <q-icon v-if="location.is_putaway" name="sym_o_crop_free" size="18px">
+                  <q-tooltip>Toto skladové místo je určeno pro příjem</q-tooltip>
+                </q-icon>
+              </q-item-section>
+            </q-item>
+          </q-list>
+          <empty-panel v-else class="py-5">Položka není skladem</empty-panel>
+
+          <q-separator class="my-5"></q-separator>
+          <h2 class="text-lg">Vyhledat skladové místo</h2>
+
           <q-input
             outlined
             v-model="search"
@@ -60,11 +86,12 @@ import {
   type WarehouseLocationSchema,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import EmptyPanel from '../EmptyPanel.vue'
 
 const { onResponse } = useApi()
 
-defineProps<{ item: WarehouseItemSchema }>()
+const props = defineProps<{ item: WarehouseItemSchema }>()
 
 const showDialog = defineModel('show', { default: false })
 const search = ref('')
@@ -79,6 +106,23 @@ const emit = defineEmits<{
 }>()
 
 const loading = ref(false)
+
+const locationsWithTheSameProduct = ref<WarehouseLocationSchema[]>([])
+onMounted(async () => {
+  loading.value = true
+  const result = await warehouseApiRoutesWarehouseGetWarehouseLocations({
+    query: {
+      page_size: 200,
+      stock_product_code: props.item.product.code,
+    },
+  })
+  const data = onResponse(result)
+  if (data) {
+    locationsWithTheSameProduct.value = data.data
+  }
+  setTimeout(() => (loading.value = false), 300)
+})
+
 const fetchLocations = async () => {
   loading.value = true
   const result = await warehouseApiRoutesWarehouseGetWarehouseLocations({
