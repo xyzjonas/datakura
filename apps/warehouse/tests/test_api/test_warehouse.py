@@ -4,7 +4,7 @@ import pytest
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.warehouse import routes
-from apps.warehouse.core.exceptions import WarehouseItemGenericError
+from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import InboundWarehouseOrderState, WarehouseItem
 from apps.warehouse.tests.factories.warehouse import (
@@ -39,7 +39,7 @@ def test_putaway_item_invalid_state(db, client) -> None:
     item = WarehouseItemFactory(order_in=order)
     new_location = WarehouseLocationFactory()
 
-    with pytest.raises(WarehouseItemGenericError):
+    with pytest.raises(WarehouseGenericError):
         client.post(
             f"orders-incoming/{order.code}/items/{item.code}/putaway",
             json={"new_location_code": new_location.code},

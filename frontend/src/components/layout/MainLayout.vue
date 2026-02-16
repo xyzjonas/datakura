@@ -66,11 +66,6 @@
                   icon: 'sym_o_undo',
                   routeName: 'creditNotes',
                 },
-                {
-                  label: 'Kalkulace',
-                  icon: 'sym_o_calculate',
-                  routeName: 'submissions',
-                },
               ]"
             />
             <q-item-label header class="text-gray-4">Sklad</q-item-label>

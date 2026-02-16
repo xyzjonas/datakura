@@ -42,3 +42,9 @@ class StockProductFactory(DjangoModelFactory):
     group = factory.SubFactory(ProductGroupFactory)
     unit_of_measure = factory.SubFactory(UnitOfMeasureFactory)
     attributes = factory.Dict({"color": factory.Faker("color_name")})
+    base_price = factory.Faker(
+        "pydecimal", left_digits=4, right_digits=2, min_value=1, max_value=10000
+    )
+    purchase_price = factory.Faker(
+        "pydecimal", left_digits=4, right_digits=2, min_value=1, max_value=10000
+    )

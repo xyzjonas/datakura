@@ -5,7 +5,6 @@ from django.db import transaction
 from django.template.loader import get_template
 from django.utils import timezone
 from loguru import logger
-from weasyprint import HTML  # type: ignore
 
 from apps.warehouse.core.schemas.orders import (
     InboundOrderItemCreateSchema,
@@ -14,6 +13,7 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderSchema,
 )
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
+from apps.warehouse.core.services.pdf import print_html_to_pdf
 from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
     inbound_order_item_orm_to_schema,
@@ -156,7 +156,7 @@ class OrdersService:
 
     @classmethod
     def get_pdf(cls, code: str) -> bytes:
-        return HTML(string=cls.get_html(code)).write_pdf()
+        return print_html_to_pdf(content_html=cls.get_html(code))
 
     @classmethod
     def get_or_create_credit_note(

@@ -41,7 +41,7 @@ class NotFoundException(ApiBaseException):
     http_status = 404
 
 
-class WarehouseItemGenericError(ApiBaseException):
+class WarehouseGenericError(ApiBaseException):
     code = ErrorCode.GENERIC_WAREHOUSE_ERROR
     http_status = 400
 

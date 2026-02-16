@@ -1,5 +1,7 @@
 """Factory Boy factories for warehouse and stock models"""
 
+from typing import cast
+
 import factory
 from factory.django import DjangoModelFactory
 
@@ -17,6 +19,7 @@ from .product import (
     StockProductFactory,
 )
 from .user import UserFactory
+from ...models.product import StockProduct
 
 
 class WarehouseFactory(DjangoModelFactory):
@@ -108,13 +111,19 @@ class CompleteOrderFactory(InboundWarehouseOrderFactory):
         unit_price: float = 1
 
     @factory.post_generation
-    def amount_and_unit_price(obj, create, extracted: tuple[float, float], **kwargs):
+    def amount_and_unit_price(
+        obj, create, extracted: tuple[float, float, StockProduct | None], **kwargs
+    ):
         if not create:
             return
 
-        amount, unit_price = extracted
+        if len(extracted) == 3:
+            amount, unit_price, product = extracted
+        else:
+            amount, unit_price = extracted
+            product = None
 
-        product = StockProductFactory()
+        product = product or cast(StockProduct, StockProductFactory())
         inbound_order = InboundOrderFactory()
         obj.order = inbound_order  # type: ignore
 

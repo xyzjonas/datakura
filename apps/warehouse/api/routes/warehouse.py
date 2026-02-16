@@ -9,7 +9,7 @@ from apps.warehouse.api.pagination import (
     IncomingWarehouseOrdersPagination,
     WarehouseLocationsPagination,
 )
-from apps.warehouse.core.exceptions import WarehouseItemGenericError
+from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.core.schemas.warehouse import (
     GetWarehouseLocationResponse,
     GetWarehouseOrderResponse,
@@ -234,7 +234,7 @@ def transition_inbound_warehouse_order(
     elif body.state == InboundWarehouseOrderState.PENDING:
         warehouse_service.confirm_draft(code)
     else:
-        raise WarehouseItemGenericError(f"Unsupported state transition '{body.state}'")
+        raise WarehouseGenericError(f"Unsupported state transition '{body.state}'")
 
     return GetWarehouseOrderResponse(
         data=warehouse_service.get_inbound_warehouse_order(code)

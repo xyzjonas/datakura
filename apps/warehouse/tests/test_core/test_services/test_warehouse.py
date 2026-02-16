@@ -1,9 +1,10 @@
+from decimal import Decimal
 from typing import cast
 
 import pytest
 from django.utils import timezone
 
-from apps.warehouse.core.exceptions import WarehouseItemGenericError
+from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.core.schemas.warehouse import (
     WarehouseOrderCreateSchema,
     WarehouseItemSchema,
@@ -379,7 +380,7 @@ def test_putaway_item_invalid_order_state(db, state):
     war_order = InboundWarehouseOrderFactory(state=state)
     unpackaged = WarehouseItemFactory(order_in=war_order)
 
-    with pytest.raises(WarehouseItemGenericError):
+    with pytest.raises(WarehouseGenericError):
         warehouse_service.putaway_item(
             unpackaged.code, war_order.code, new_location.code
         )
@@ -415,3 +416,35 @@ def test_complete_inbound_order(db):
     warehouse_service.putaway_item(to_be_moved_2.code, order.code, new_location.code)
     order.refresh_from_db()
     assert order.state == InboundWarehouseOrderState.COMPLETED
+
+
+@pytest.mark.parametrize(
+    "amount_pre, price_pre, amount_in, price_in, expected",
+    [
+        (0, 1000, 1, 1, 1),
+        (1, 1, 1, 1, 1),
+        (1, 1, 1, 2, 1.5),
+        (10, 10, 5, 20, 13.33),
+        (0, 0, 10, 5, 5),
+        (5, 10, 0, 0, 10),
+        (100, 1.5, 200, 2.0, 1.83),
+        (7, 3.2, 15, 4.1, 3.81),
+        (120, 0.5, 30, 0.7, 0.54),
+    ],
+)
+def test_recalculate_average_purchase_price_existing_stock(
+    db, price_in, price_pre, amount_pre, amount_in, expected
+):
+    product = StockProductFactory(purchase_price=price_pre)
+    WarehouseItemFactory(stock_product=product, amount=amount_pre)
+    war_order = CompleteOrderFactory(
+        amount_and_unit_price=(amount_in, price_in, product)
+    )
+
+    assert WarehouseItem.objects.filter(order_in=war_order).count() == 1
+    item = WarehouseItem.objects.filter(order_in=war_order).first()
+
+    warehouse_service.recalculate_average_purchase_price(item)
+
+    product.refresh_from_db()
+    assert product.purchase_price == Decimal(str(expected))

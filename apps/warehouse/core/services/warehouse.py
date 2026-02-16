@@ -14,7 +14,7 @@ from apps.warehouse.core.exceptions import (
     WarehouseItemBadRequestError,
     WarehouseItemNotFoundError,
     WarehouseOrderNotEditableError,
-    WarehouseItemGenericError,
+    WarehouseGenericError,
 )
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
 from apps.warehouse.core.schemas.warehouse import (
@@ -375,19 +375,19 @@ class WarehouseService:
             order=order, stock_product=stock_product
         ).get()
         if warehouse_order.state != InboundWarehouseOrderState.DRAFT:
-            raise WarehouseItemGenericError(
+            raise WarehouseGenericError(
                 f"Warehouse order '{warehouse_order.code}' is already confirmed and read-only."
             )
 
         with transaction.atomic():
             if amount > warehouse_item.amount:
-                raise WarehouseItemGenericError(
+                raise WarehouseGenericError(
                     f"Requested amount ({amount}) exceeds item amount: {warehouse_item.amount} ({warehouse_item.stock_product.name})"
                 )
 
             note, _ = inbound_orders_service.get_or_create_credit_note(order.code)
             if note.state != CreditNoteState.DRAFT:
-                raise WarehouseItemGenericError(
+                raise WarehouseGenericError(
                     f"Credit Note '{note.code}' is already confirmed and read-only"
                 )
 
@@ -417,7 +417,7 @@ class WarehouseService:
     def confirm_draft(cls, code: str) -> None:
         w_order = cls.get_inbound_warehouse_order(code)
         if w_order.state != InboundWarehouseOrderState.DRAFT:
-            raise WarehouseItemGenericError(
+            raise WarehouseGenericError(
                 f"Warehouse order '{code}' (state={w_order.state}) has to be in draft state in order to be confirmed."
             )
         cls.transition_order(code, InboundWarehouseOrderState.PENDING)
@@ -434,7 +434,7 @@ class WarehouseService:
     def reset_to_draft(cls, code: str) -> None:
         w_order = cls.get_inbound_warehouse_order(code)
         if w_order.state != InboundWarehouseOrderState.PENDING:
-            raise WarehouseItemGenericError(
+            raise WarehouseGenericError(
                 f"Warehouse order ${code}, state={w_order.state} has to be in pending state in order to be reset to draft."
             )
         cls.transition_order(code, InboundWarehouseOrderState.DRAFT)
@@ -447,6 +447,35 @@ class WarehouseService:
                 credit_note.code, CreditNoteState.DRAFT
             )
 
+    @staticmethod
+    def recalculate_average_purchase_price(item: WarehouseItem) -> None:
+        stock_product = item.stock_product
+        item_from_order = item.order_in.order.items.filter(
+            stock_product=stock_product
+        ).first()
+        if not item_from_order:
+            raise WarehouseGenericError(
+                f"Warehouse item lacks an appropriate order item ({stock_product.name} - {stock_product.code})"
+            )
+        unit_price = item_from_order.unit_price
+        if not stock_product.purchase_price:
+            stock_product.purchase_price = unit_price
+
+        else:
+            total_items_amount = (
+                WarehouseItem.objects.filter(stock_product=stock_product)
+                .exclude(pk=item.pk)
+                .aggregate(total_amount=Sum("amount"))["total_amount"]
+                or 0
+            )
+            new_avg = (
+                total_items_amount * stock_product.purchase_price
+                + item.amount * unit_price
+            ) / (total_items_amount + item.amount)
+            stock_product.purchase_price = new_avg
+
+        stock_product.save()
+
     @classmethod
     def putaway_item(
         cls, item_code, warehouse_order_code: str, new_location_code: str
@@ -456,7 +485,7 @@ class WarehouseService:
         """
         warehouse_order = InboundWarehouseOrder.objects.get(code=warehouse_order_code)
         if warehouse_order.state == InboundWarehouseOrderState.DRAFT:
-            raise WarehouseItemGenericError(
+            raise WarehouseGenericError(
                 f"Warehouse order '{warehouse_order_code}' is not yet confirmed and thus read-only."
             )
 
@@ -464,7 +493,7 @@ class WarehouseService:
             InboundWarehouseOrderState.COMPLETED,
             InboundWarehouseOrderState.CANCELLED,
         ):
-            raise WarehouseItemGenericError(
+            raise WarehouseGenericError(
                 f"Warehouse order ${warehouse_order_code} is already confirmed and/or canceled and thus read-only."
             )
 
