@@ -1,54 +1,83 @@
 <template>
-  <div class="flex w-full gap-5 items-center">
-    <!-- <h5 class="text-gray">1</h5> -->
-    <div class="flex flex-col gap-2">
-      <div class="flex justify-between gap-2">
-        <a
-          @click="
-            $router.push({
-              name: 'productDetail',
-              params: { productCode: item.product.code },
-            })
-          "
-          class="link mr-5"
-          >{{ item.product.name }}</a
-        >
-        <div class="flex items-center gap-2">
+  <div>
+    <div class="flex items-center min-h-20 py-1">
+      <div class="flex flex-col gap-2">
+        <div class="flex justify-between gap-2">
+          <a
+            @click="
+              $router.push({
+                name: 'productDetail',
+                params: { productCode: item.product.code },
+              })
+            "
+            class="link mr-5"
+            >{{ item.product.name }}</a
+          >
+        </div>
+        <div class="mb-2">
+          <BarcodeElement
+            v-if="item.primary_barcode"
+            :barcode="item.primary_barcode"
+            :width="1.6"
+            text-align="left"
+          />
+          <!-- <BarcodeElement
+            v-else-if="item.product.primary_barcode"
+            :barcode="item.product.primary_barcode"
+            :width="1.6"
+            text-align="left"
+          /> -->
+          <div v-else class="h-[20px]"></div>
+        </div>
+        <div class="flex gap-2">
           <q-badge class="py-1" :color="item.location.is_putaway ? 'accent' : 'positive'">{{
             item.location.is_putaway ? 'Příjem' : 'hotovo'
           }}</q-badge>
           <q-badge class="py-1" :color="item.location.is_putaway ? 'gray' : 'positive'">{{
             item.location.code
           }}</q-badge>
-          <PackageTypeBadge :package-type="item.package?.type" class="py-1" />
+          <WarehouseItemTrackingLevelBadge :level="item.tracking_level" />
+          <PackageTypeBadge v-if="item.package?.type" :package-type="item.package.type" />
         </div>
       </div>
-      <BarcodeElement :barcode="item.code" :width="1.6" text-align="left" />
-    </div>
-    <span class="flex flex-nowrap items-center ml-auto">
+      <div class="light:text-gray-5 dark:text-gray-3 q-gutter-xs ml-auto">
+        <q-btn
+          v-if="isRemovable"
+          @click="removeItemDialog = true"
+          size="14px"
+          flat
+          dense
+          round
+          icon="delete"
+        >
+          <q-tooltip :offset="[0, 10]">Zrušit evidenci položky ⤍ skladem volně</q-tooltip>
+        </q-btn>
+
+        <q-btn
+          v-if="isReadyToBeTracked"
+          @click="setItemTrackingDialog = true"
+          size="14px"
+          flat
+          dense
+          round
+          icon="sym_o_qr_code_scanner"
+        >
+          <q-tooltip :offset="[0, 10]">Evidovat položku</q-tooltip>
+        </q-btn>
+        <q-btn
+          v-if="allowMove"
+          @click="moveDialog = true"
+          size="14px"
+          flat
+          dense
+          round
+          icon="sym_o_move_up"
+        >
+          <q-tooltip :offset="[0, 10]">Přesunout položku</q-tooltip>
+        </q-btn>
+      </div>
+      <q-separator vertical class="mx-8" inset />
       <WarehouseItemAmountBadge :item="item" />
-    </span>
-    <div v-if="!readonly" class="h-full">
-      <q-btn
-        v-if="!trackingType"
-        flat
-        color="negative"
-        label="dobropis"
-        icon="sym_o_undo"
-        @click="removeItemDialog = true"
-      />
-      <q-btn
-        v-if="!trackingType"
-        flat
-        color="primary"
-        label="evidovat"
-        icon-right="sym_o_qr_code_scanner"
-        @click="setItemTrackingDialog = true"
-      />
-      <q-btn v-else flat color="negative" icon-right="sym_o_close" @click="confirmDelete = true" />
-    </div>
-    <div v-if="allowMove" class="h-full">
-      <q-btn @click="moveDialog = true" label="move"></q-btn>
     </div>
     <InboundWarehouseOrderTrackDialog
       v-model:show="setItemTrackingDialog"
@@ -91,8 +120,9 @@ import PackageTypeBadge from '../PackageTypeBadge.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
 import InboundWarehouseOrderRemoveItemDialog from './InboundWarehouseOrderRemoveItemDialog.vue'
 import LocationSelectionDialog from './LocationSelectionDialog.vue'
+import WarehouseItemTrackingLevelBadge from './WarehouseItemTrackingLevelBadge.vue'
 
-defineProps<{ allowMove?: boolean; readonly?: boolean }>()
+const props = defineProps<{ allowMove?: boolean; readonly?: boolean }>()
 defineEmits<{
   (e: 'dissolveItem'): void
   (e: 'remove', amount: number): void
@@ -114,6 +144,11 @@ const trackingType = computed<TrackingType>(() => {
 const confirmDelete = ref(false)
 const removeItemDialog = ref(false)
 const moveDialog = ref(false)
+
+const isRemovable = computed(() => item.value.tracking_level !== 'FUNGIBLE' && !props.readonly)
+const isReadyToBeTracked = computed(
+  () => item.value.tracking_level === 'FUNGIBLE' && !props.readonly,
+)
 </script>
 
 <style lang="scss" scoped></style>

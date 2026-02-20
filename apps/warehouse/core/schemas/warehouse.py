@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from ninja import Schema
@@ -8,10 +9,16 @@ from .base import BaseResponse, BaseSchema, PaginatedResponse
 from .base_orders import InboundWarehouseOrderBaseSchema, InboundOrderBaseSchema
 from .credit_notes import CreditNoteSupplierSchema
 from .product import ProductSchema
-from ...models.warehouse import InboundWarehouseOrderState
+from ...models.warehouse import InboundWarehouseOrderState, TrackingLevel
 
 if TYPE_CHECKING:
     pass
+
+
+class BarcodeSchema(BaseSchema):
+    code: str
+    barcode_type: str
+    is_primary: bool
 
 
 class WarehouseLocationSchema(BaseSchema):
@@ -32,16 +39,24 @@ class PackageSchema(BaseSchema):
     unit: str | None = None
 
 
+class BatchSchema(BaseSchema):
+    id: int
+    primary_barcode: BarcodeSchema | None = None
+    description: str | None = None
+
+
 class WarehouseItemSchema(BaseSchema):
     """Atomic unit of the inventory - uniquely identifiable and trackable item in a warehouse"""
 
     id: int
-    code: str
     product: ProductSchema
     unit_of_measure: str
     amount: float
-    package: PackageSchema | None
     location: WarehouseLocationSchema
+    tracking_level: TrackingLevel
+    package: PackageSchema | None = None
+    batch: BatchSchema | None = None
+    primary_barcode: str | None = None
 
 
 class ProductWarehouseAvailability(Schema):
@@ -72,6 +87,12 @@ class WarehouseExpandedSchema(BaseSchema):
     name: str
     description: str | None
     locations: list[WarehouseLocationDetailSchema]
+
+
+class InboundWarehouseOrderItemSchema(BaseSchema):
+    id: int
+    amount: Decimal
+    warehouse_items: list[WarehouseItemSchema]
 
 
 class InboundWarehouseOrderSchema(InboundWarehouseOrderBaseSchema):
@@ -144,7 +165,7 @@ class SetupTrackingWarehouseItemRequest(Schema):
 
 
 class RemoveItemToCreditNoteRequest(Schema):
-    item_code: str
+    item_id: int
     amount: float
 
 

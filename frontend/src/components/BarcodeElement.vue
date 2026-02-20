@@ -6,6 +6,7 @@
 
 <script setup lang="ts">
 import JsBarcode from 'jsbarcode'
+import { useQuasar } from 'quasar'
 import { onMounted, ref } from 'vue'
 
 const props = withDefaults(
@@ -25,6 +26,8 @@ const props = withDefaults(
 )
 const barcodeElement = ref<SVGElement>()
 
+const $q = useQuasar()
+
 onMounted(() => {
   if (barcodeElement.value) {
     JsBarcode(barcodeElement.value, props.barcode, {
@@ -34,12 +37,14 @@ onMounted(() => {
       ean128: false,
       marginBottom: 0,
       flat: true,
-      height: 20,
+      height: 15,
       width: props.width,
       marginTop: 0,
       textPosition: 'bottom',
       displayValue: props.displayValue,
       textAlign: props.textAlign,
+      background: $q.dark.isActive ? 'var(--q-dark-page)' : 'white',
+      lineColor: $q.dark.isActive ? 'white' : 'black',
     })
   }
 })

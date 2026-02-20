@@ -120,7 +120,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     return_amount = 20
     res = warehouse_client.post(
         f"/orders-incoming/{w_order_code}/credit",
-        json={"item_code": item_to_return["code"], "amount": return_amount},
+        json={"item_id": item_to_return["id"], "amount": return_amount},
     )
     assert res.status_code == 200
     w_order_res = res.json()["data"]
@@ -154,7 +154,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
             else storage_location_2
         )
         res = warehouse_client.post(
-            f"/orders-incoming/{w_order_code}/items/{item['code']}/putaway",
+            f"/orders-incoming/{w_order_code}/items/{item['id']}/putaway",
             json={"new_location_code": new_location.code},
         )
         assert res.status_code == 200
@@ -191,4 +191,4 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     assert w_order_db.state == InboundWarehouseOrderState.COMPLETED
 
     receiving_location.refresh_from_db()
-    receiving_location.items.count() == 0
+    assert receiving_location.items.count() == 0

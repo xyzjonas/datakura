@@ -236,23 +236,6 @@ export const warehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItems = <Thro
 };
 
 /**
- * Dissolve Inbound Warehouse Order Item
- */
-export const warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData, ThrowOnError>) => {
-    return (options.client ?? client).delete<WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses, unknown, ThrowOnError>({
-        security: [
-            {
-                in: 'cookie',
-                name: 'sessionid',
-                type: 'apiKey'
-            }
-        ],
-        url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}',
-        ...options
-    });
-};
-
-/**
  * Track Inbound Warehouse Order Item
  */
 export const warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData, ThrowOnError>) => {
@@ -270,6 +253,23 @@ export const warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem = <ThrowO
             'Content-Type': 'application/json',
             ...options.headers
         }
+    });
+};
+
+/**
+ * Dissolve Inbound Warehouse Order Item
+ */
+export const warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData, ThrowOnError>) => {
+    return (options.client ?? client).delete<WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
+        url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_id}',
+        ...options
     });
 };
 
@@ -327,7 +327,7 @@ export const warehouseApiRoutesWarehousePutawayInboundWarehouseOrderItem = <Thro
                 type: 'apiKey'
             }
         ],
-        url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}/putaway',
+        url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_id}/putaway',
         ...options,
         headers: {
             'Content-Type': 'application/json',

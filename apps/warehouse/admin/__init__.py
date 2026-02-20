@@ -16,11 +16,39 @@ from apps.warehouse.models.warehouse import (
     WarehouseMovement,
     InboundWarehouseOrder,
     OutboundWarehouseOrder,
+    Batch,
 )
+from apps.warehouse.models.barcode import Barcode
 
-admin.site.register(WarehouseItem)
+
+@admin.register(WarehouseItem)
+class WarehouseItemAdmin(admin.ModelAdmin):
+    autocomplete_fields = ["stock_product", "location", "batch"]
+
+    # Standard optimizations
+    list_display = ["id", "stock_product", "tracking_level"]
+    list_filter = ["tracking_level"]  # Be careful with filters on huge sets!
+    search_fields = ["id"]
+
+
+@admin.register(Barcode)
+class BarcodeAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(Batch)
+class BatchAdmin(admin.ModelAdmin):
+    search_fields = ["code"]
+
+
 admin.site.register(Warehouse)
-admin.site.register(WarehouseLocation)
+
+
+@admin.register(WarehouseLocation)
+class WarehouseLocationAdmin(admin.ModelAdmin):
+    search_fields = ["code"]
+
+
 admin.site.register(PackageType)
 admin.site.register(WarehouseMovement)
 
@@ -35,7 +63,12 @@ admin.site.register(Customer)
 admin.site.register(InboundOrder)
 admin.site.register(InboundOrderItem)
 
-admin.site.register(InboundWarehouseOrder)
+
+@admin.register(InboundWarehouseOrder)
+class InboundWarehouseOrderAdmin(admin.ModelAdmin):
+    search_fields = ["code"]
+
+
 admin.site.register(OutboundWarehouseOrder)
 
 

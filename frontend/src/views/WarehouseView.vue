@@ -264,9 +264,9 @@ const columns = computed<QTableColumn[]>(() => {
         sortable: true,
       },
       {
-        field: (item: WarehouseItemSchema) => item.code,
+        field: (item: WarehouseItemSchema) => item.primary_barcode,
         name: 'code',
-        label: 'Kód skladové položky',
+        label: 'EAN skladové položky',
         align: 'left' as const,
         sortable: true,
       },

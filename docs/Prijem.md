@@ -22,7 +22,12 @@ Fyzický příjem zásilky na nakládací rampu/příjmovou zónu
 Registrace dodávky v systému
 Status: V příjmu
 
-> ( ! ) zboží které čeká na příjmu je přístupné pro VÝDEJ 
+> ( ! ) zboží které čeká na příjmu je přístupné pro VÝDEJ
+
+1. serial/baleni - staci skenerem skenovat polozku a nove misto
+2. batch - staci skenerem skenovat polozku a nove misto a zadat pocet
+3. fungible - skenerem skenovat polozku, prijemku, nove misto a zadat pocet
+=> presunem se ztraci vazba na prijemku, prijemka vi pouze kolik polozek zbyva (podle stock product)
 
 ## 4. Fyzická kontrola zboží
 Pracovník skladu provádí kusovou kontrolu každé položky:

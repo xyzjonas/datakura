@@ -46,6 +46,7 @@ from apps.warehouse.models.warehouse import (
     WarehouseItem,
     WarehouseLocation,
     InboundWarehouseOrderState,
+    TrackingLevel,
 )
 
 
@@ -70,6 +71,85 @@ def raise_if_readonly(order: InboundWarehouseOrder):
         )
 
 
+class MovementService:
+    @staticmethod
+    def move_item(
+        item: WarehouseItem,
+        new_location_or_code: WarehouseLocation | str,
+        amount: Decimal | None = None,
+    ) -> None:
+        amount = amount or item.amount
+        if isinstance(new_location_or_code, str):
+            new_location = WarehouseLocation.objects.get(code=new_location_or_code)
+        else:
+            new_location = new_location_or_code
+
+        if item.tracking_level in (
+            TrackingLevel.SERIALIZED_PACKAGE,
+            TrackingLevel.SERIALIZED_PIECE,
+        ):
+            item.location = new_location
+
+        if item.tracking_level == TrackingLevel.BATCH:
+            existing_of_the_same_batch = new_location.items.filter(
+                batch=item.batch
+            ).first()
+            if existing_of_the_same_batch:
+                existing_of_the_same_batch.amount += amount
+                existing_of_the_same_batch.save()
+                if amount == item.amount:
+                    item.delete()
+                else:
+                    item.amount -= amount
+                    item.save()
+            else:
+                if amount == item.amount:
+                    item.location = new_location
+                    item.save()
+                else:
+                    item.amount -= amount
+                    item.save()
+                    WarehouseItem.objects.create(
+                        stock_product=item.stock_product,
+                        tracking_level=item.tracking_level,
+                        amount=amount,
+                        location=new_location,
+                        order_in=item.order_in,
+                        batch=item.batch,
+                    )
+
+        else:
+            existing_of_the_same_type = new_location.items.filter(
+                stock_product=item.stock_product, tracking_level=TrackingLevel.FUNGIBLE
+            ).first()
+            if existing_of_the_same_type:
+                existing_of_the_same_type.amount += amount
+                existing_of_the_same_type.save()
+                if amount == item.amount:
+                    item.delete()
+                else:
+                    item.amount -= amount
+                    item.save()
+            else:
+                if amount == item.amount:
+                    item.location = new_location
+                    item.save()
+                else:
+                    item.amount -= amount
+                    item.save()
+                    WarehouseItem.objects.create(
+                        stock_product=item.stock_product,
+                        tracking_level=item.tracking_level,
+                        amount=amount,
+                        location=new_location,
+                    )
+
+        # todo: audit
+
+
+movement_service = MovementService()
+
+
 class WarehouseService:
     @staticmethod
     def generate_next_inbound_order_code() -> str:
@@ -90,8 +170,6 @@ class WarehouseService:
                 "items",
                 "items__stock_product",
                 "items__stock_product__unit_of_measure",
-                "items__package_type",
-                "items__package_type__unit_of_measure",
             )
             .select_related("order", "order__credit_note")
             .get(code=code)
@@ -112,24 +190,19 @@ class WarehouseService:
                 code=code, order=purchase_order
             )
             for item in purchase_order.items.all():
-                if existing_warehouse_item := WarehouseItem.objects.filter(
-                    stock_product=item.stock_product
-                ).first():
-                    code = existing_warehouse_item.code
-                    existing_warehouse_item.save()
-                else:
-                    code = generate_warehouse_item_code()
-
                 WarehouseItem.objects.create(
-                    code=code,
                     stock_product=item.stock_product,
+                    tracking_level=TrackingLevel.FUNGIBLE,
                     amount=item.amount,
-                    location=location,
                     order_in=warehouse_order,
+                    location=location,
                 )
-            purchase_order.state = InboundOrderState.RECEIVING
-            purchase_order.save()
 
+            inbound_orders_service.transition_order(
+                purchase_order.code, InboundOrderState.RECEIVING
+            )
+
+        warehouse_order.refresh_from_db()
         return warehouse_inbound_order_orm_to_schema(warehouse_order)
 
     @staticmethod
@@ -177,30 +250,36 @@ class WarehouseService:
                 package, product
             )
 
-        if not package_amount_in_product_uom:
-            raise_by_code(
-                ErrorCode.INVALID_CONVERSION,
-                f"Product's '{product.name}' unit of measure "
-                f"'{product.unit_of_measure.name}' can't be "
-                f"converted to package '{package.name}' unit of measure "
-                f"'{package.unit_of_measure.name if package.unit_of_measure else 'None'}'",
-            )
+        if package.amount == 0:
+            num_of_packages = 1
+            package_amount_in_product_uom = amount
 
-        if amount / package_amount_in_product_uom % 1 != 0:
-            raise_by_code(
-                ErrorCode.INVALID_CONVERSION,
-                f"Product amount '{amount}' ({product.unit_of_measure.name}) doesn't "
-                f"fit evenly into the requested package "
-                f"'{package.name}' ({package.unit_of_measure.name if package.unit_of_measure else 'None'})",
-            )
+        else:
+            if not package_amount_in_product_uom:
+                raise_by_code(
+                    ErrorCode.INVALID_CONVERSION,
+                    f"Product's '{product.name}' unit of measure "
+                    f"'{product.unit_of_measure.name}' can't be "
+                    f"converted to package '{package.name}' unit of measure "
+                    f"'{package.unit_of_measure.name if package.unit_of_measure else 'None'}'",
+                )
 
-        num_of_packages = round(amount / package_amount_in_product_uom)
+            if amount / package_amount_in_product_uom % 1 != 0:
+                raise_by_code(
+                    ErrorCode.INVALID_CONVERSION,
+                    f"Product amount '{amount}' ({product.unit_of_measure.name}) doesn't "
+                    f"fit evenly into the requested package "
+                    f"'{package.name}' ({package.unit_of_measure.name if package.unit_of_measure else 'None'})",
+                )
+
+            num_of_packages = round(amount / package_amount_in_product_uom)
+
         items = []
         for _ in range(num_of_packages):
             items.append(
                 WarehouseItemSchema(
                     id=-1,
-                    code=warehouse_item.code,
+                    tracking_level=TrackingLevel.SERIALIZED_PACKAGE,
                     product=product_orm_to_schema(product),
                     unit_of_measure=product.unit_of_measure.name,
                     amount=float(package_amount_in_product_uom),
@@ -233,7 +312,6 @@ class WarehouseService:
                         package_type=PackageType.objects.get(name=item.package.type)
                         if item.package
                         else None,
-                        code=generate_warehouse_item_code(),
                         stock_product=StockProduct.objects.get(code=item.product.code),
                         amount=item.amount,
                         location=WarehouseLocation.objects.get(code=item.location.code),
@@ -248,7 +326,7 @@ class WarehouseService:
     @staticmethod
     def setup_tracking_for_inbound_order_item(
         order_code: str,
-        warehouse_item_code: str,
+        stock_product_code: str,
         to_be_added: list[WarehouseItemSchema],
     ) -> InboundWarehouseOrderSchema:
         """
@@ -263,7 +341,9 @@ class WarehouseService:
         raise_if_readonly(order)
 
         untracked_item = WarehouseItem.objects.get(
-            code=warehouse_item_code, order_in=order
+            stock_product__code=stock_product_code,
+            order_in=order,
+            tracking_level=TrackingLevel.FUNGIBLE,
         )
 
         remaining_amount = untracked_item.amount - Decimal(
@@ -272,12 +352,12 @@ class WarehouseService:
         try:
             with transaction.atomic():
                 for new_item in to_be_added:
-                    WarehouseItem.objects.create(
+                    item = WarehouseItem.objects.create(
                         order_in=order,
                         package_type=PackageType.objects.get(name=new_item.package.type)
                         if new_item.package
                         else None,
-                        code=generate_warehouse_item_code(),
+                        # code=generate_warehouse_item_code(),
                         stock_product=StockProduct.objects.get(
                             code=new_item.product.code
                         ),
@@ -285,6 +365,10 @@ class WarehouseService:
                         location=WarehouseLocation.objects.get(
                             code=new_item.location.code
                         ),
+                        tracking_level=new_item.tracking_level,
+                    )
+                    item.attach_barcode(
+                        code=generate_warehouse_item_code(), is_primary=True
                     )
                 if remaining_amount > 0:
                     untracked_item.amount = remaining_amount
@@ -301,29 +385,32 @@ class WarehouseService:
     @staticmethod
     def dissolve_inbound_order_item(
         order_code: str,
-        warehouse_item_code: str,
+        warehouse_item_id: int,
     ) -> InboundWarehouseOrderSchema:
         order = InboundWarehouseOrder.objects.get(code=order_code)
 
         raise_if_readonly(order)
 
-        item = WarehouseItem.objects.get(code=warehouse_item_code, order_in=order)
-        existing_not_packaged = WarehouseItem.objects.filter(
-            order_in=order, stock_product=item.stock_product, package_type__isnull=True
-        ).first()
+        item = WarehouseItem.objects.get(pk=warehouse_item_id, order_in=order)
         if not item:
             raise WarehouseItemNotFoundError(
-                f"No warehouse item with code '{warehouse_item_code}' in order '{order.code}'"
+                f"No warehouse item with pk={warehouse_item_id} in order '{order.code}'"
             )
+
+        existing_not_packaged = order.items.filter(
+            stock_product=item.stock_product,
+            package_type__isnull=True,
+            tracking_level=TrackingLevel.FUNGIBLE,
+        ).first()
         try:
             with transaction.atomic():
                 if not existing_not_packaged:
-                    existing_not_packaged = WarehouseItem.objects.create(
-                        code=generate_warehouse_item_code(),
+                    WarehouseItem.objects.create(
                         stock_product=item.stock_product,
                         location=item.location,
                         amount=item.amount,
                         order_in=order,
+                        tracking_level=TrackingLevel.FUNGIBLE,
                     )
                 else:
                     existing_not_packaged.amount += item.amount
@@ -356,20 +443,16 @@ class WarehouseService:
     def remove_from_order_to_credit_note(
         cls,
         warehouse_order_code: str,
-        warehouse_item_code: str,
+        warehouse_item_id: int,
         amount: float | Decimal,
     ) -> InboundWarehouseOrderSchema:
         amount = Decimal(amount)
-        warehouse_item = (
-            WarehouseItem.objects.filter(
-                order_in__code=warehouse_order_code, code=warehouse_item_code
-            )
-            .prefetch_related("stock_product")
-            .get()
+        warehouse_item = WarehouseItem.objects.prefetch_related("stock_product").get(
+            pk=warehouse_item_id
         )
         stock_product = warehouse_item.stock_product
-        warehouse_order = warehouse_item.order_in
-        order = warehouse_item.order_in.order
+        warehouse_order = InboundWarehouseOrder.objects.get(code=warehouse_order_code)
+        order = warehouse_order.order
 
         order_item = InboundOrderItem.objects.filter(
             order=order, stock_product=stock_product
@@ -450,6 +533,8 @@ class WarehouseService:
     @staticmethod
     def recalculate_average_purchase_price(item: WarehouseItem) -> None:
         stock_product = item.stock_product
+        if not item.order_in:
+            raise ValueError
         item_from_order = item.order_in.order.items.filter(
             stock_product=stock_product
         ).first()
@@ -478,7 +563,7 @@ class WarehouseService:
 
     @classmethod
     def putaway_item(
-        cls, item_code, warehouse_order_code: str, new_location_code: str
+        cls, item_id: int, warehouse_order_code: str, new_location_code: str
     ) -> None:
         """
         Putaway an item while processing an inbound order.
@@ -497,18 +582,11 @@ class WarehouseService:
                 f"Warehouse order ${warehouse_order_code} is already confirmed and/or canceled and thus read-only."
             )
 
-        item = warehouse_order.items.get(code=item_code)
+        item = warehouse_order.items.get(pk=item_id)
         new_location = WarehouseLocation.objects.get(code=new_location_code)
 
-        existing_same_item = new_location.items.filter(code=item.code).first()
         with transaction.atomic():
-            if not existing_same_item:
-                item.location = new_location
-            else:
-                existing_same_item.amount += item.amount
-                existing_same_item.save()
-                item.delete()
-            item.save()
+            movement_service.move_item(item, new_location)
 
             if warehouse_order.items.filter(location__is_putaway=True).count() == 0:
                 cls.transition_order(

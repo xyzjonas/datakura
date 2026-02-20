@@ -17,12 +17,14 @@ from apps.warehouse.core.transformation import (
     warehouse_item_orm_to_schema,
 )
 from apps.warehouse.models.orders import CreditNoteState
+from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     WarehouseLocation,
     WarehouseItem,
     InboundWarehouseOrder,
     InboundWarehouseOrderState,
+    TrackingLevel,
 )
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
@@ -70,7 +72,7 @@ def test_get_warehouse_availability(db, items_amount, amount):
 
 @pytest.mark.parametrize("items_amount, amount", [(10, 10), (0, 10), (3, 1.2)])
 def test_get_total_availability(db, items_amount, amount):
-    product = cast(StockProduct, StockProductFactory())
+    product: StockProduct = StockProductFactory()  # type: ignore
     WarehouseItemFactory.create_batch(
         items_amount, amount=amount, stock_product=product
     )
@@ -81,15 +83,14 @@ def test_get_total_availability(db, items_amount, amount):
 
 def test_update_inbound_order_items(db):
     order = InboundWarehouseOrderFactory()
-    pkg = PackageTypeFactory()
-    new_location = WarehouseLocationFactory()
-    old_item = WarehouseItemFactory(order_in=order, amount=10)
+    pkg: PackageType = PackageTypeFactory()  # type: ignore
+    new_location: WarehouseLocation = WarehouseLocationFactory()  # type: ignore
+    old_item: WarehouseItem = WarehouseItemFactory(order_in=order, amount=10)  # type: ignore
 
     count = 10
     new_items = [
         WarehouseItemSchema(
             id=-1,
-            code="...",
             unit_of_measure=old_item.stock_product.unit_of_measure.name,
             created=timezone.now(),
             changed=timezone.now(),
@@ -97,6 +98,7 @@ def test_update_inbound_order_items(db):
             location=location_orm_to_schema(new_location),
             amount=1,
             package=package_orm_to_schema(pkg),
+            tracking_level=TrackingLevel.FUNGIBLE,
         )
         for _ in range(count)
     ]
@@ -105,28 +107,27 @@ def test_update_inbound_order_items(db):
     result = warehouse_service.add_or_remove_inbound_order_items(
         order.code, to_be_deleted, new_items
     )
-    assert WarehouseItem.objects.filter(code=old_item.code).first() is None
+    assert WarehouseItem.objects.filter(pk=old_item.pk).first() is None
     assert result.code == order.code
     assert result.state == order.state
     assert len(result.items) == count
     for item in result.items:
         assert item.location.code == new_location.code
-        assert item.code != old_item.code
+        assert item.id != old_item.pk
         assert item.package.type == pkg.name
         assert item.product.code == old_item.stock_product.code
 
 
 def test_setup_tracking_for_inbound_order_item_total(db):
-    order = InboundWarehouseOrderFactory()
-    pkg = PackageTypeFactory()
-    new_location = WarehouseLocationFactory()
-    old_item = WarehouseItemFactory(order_in=order, amount=10)
+    order: InboundWarehouseOrder = InboundWarehouseOrderFactory()  # type: ignore
+    pkg: PackageType = PackageTypeFactory()  # type: ignore
+    new_location: WarehouseLocation = WarehouseLocationFactory()  # type: ignore
+    old_item: WarehouseItem = WarehouseItemFactory(order_in=order, amount=10)  # type: ignore
 
     count = 10
     new_items = [
         WarehouseItemSchema(
             id=-1,
-            code="...",
             unit_of_measure=old_item.stock_product.unit_of_measure.name,
             created=timezone.now(),
             changed=timezone.now(),
@@ -134,20 +135,21 @@ def test_setup_tracking_for_inbound_order_item_total(db):
             location=location_orm_to_schema(new_location),
             amount=1,
             package=package_orm_to_schema(pkg),
+            tracking_level=TrackingLevel.FUNGIBLE,
         )
         for _ in range(count)
     ]
 
     result = warehouse_service.setup_tracking_for_inbound_order_item(
-        order.code, old_item.code, new_items
+        order.code, old_item.stock_product.code, new_items
     )
-    assert WarehouseItem.objects.filter(code=old_item.code).first() is None
+    assert WarehouseItem.objects.filter(pk=old_item.pk).first() is None
     assert result.code == order.code
     assert result.state == order.state
     assert len(result.items) == count
     for item in result.items:
         assert item.location.code == new_location.code
-        assert item.code != old_item.code
+        assert item.id != old_item.pk
         assert item.package.type == pkg.name
         assert item.product.code == old_item.stock_product.code
 
@@ -163,7 +165,6 @@ def test_setup_tracking_for_inbound_order_item_remaining(db):
     new_items = [
         WarehouseItemSchema(
             id=-1,
-            code="...",
             unit_of_measure=old_item.stock_product.unit_of_measure.name,
             created=timezone.now(),
             changed=timezone.now(),
@@ -171,14 +172,15 @@ def test_setup_tracking_for_inbound_order_item_remaining(db):
             location=location_orm_to_schema(location),
             amount=1,
             package=package_orm_to_schema(pkg),
+            tracking_level=TrackingLevel.FUNGIBLE,
         )
         for _ in range(count)
     ]
 
     result = warehouse_service.setup_tracking_for_inbound_order_item(
-        order.code, old_item.code, new_items
+        order.code, old_item.stock_product.code, new_items
     )
-    old_item = WarehouseItem.objects.filter(code=old_item.code).first()
+    old_item = WarehouseItem.objects.filter(pk=old_item.pk).first()
     assert old_item is not None
     assert old_item.amount == 10
 
@@ -207,7 +209,7 @@ def test_dissolve_inbound_order_item_create(db):
     pkg = PackageTypeFactory()
     packaged_item = WarehouseItemFactory(order_in=order, amount=10, package_type=pkg)
 
-    warehouse_service.dissolve_inbound_order_item(order.code, packaged_item.code)
+    warehouse_service.dissolve_inbound_order_item(order.code, packaged_item.pk)
 
     order = InboundWarehouseOrder.objects.get(code=order.code)
     items = list(order.items.all())
@@ -218,7 +220,7 @@ def test_dissolve_inbound_order_item_create(db):
     assert item.package_type is None
 
     with pytest.raises(WarehouseItem.DoesNotExist):
-        WarehouseItem.objects.get(code=packaged_item.code)
+        WarehouseItem.objects.get(pk=packaged_item.pk)
 
 
 def test_dissolve_inbound_order_item_add(db):
@@ -235,7 +237,7 @@ def test_dissolve_inbound_order_item_add(db):
         stock_product=product, order_in=order, amount=10, package_type=pkg
     )
 
-    warehouse_service.dissolve_inbound_order_item(order.code, packaged_item.code)
+    warehouse_service.dissolve_inbound_order_item(order.code, packaged_item.pk)
 
     order = InboundWarehouseOrder.objects.get(code=order.code)
     items = list(order.items.filter(stock_product=packaged_item.stock_product))
@@ -246,7 +248,7 @@ def test_dissolve_inbound_order_item_add(db):
     assert item.package_type is None
 
     with pytest.raises(WarehouseItem.DoesNotExist):
-        WarehouseItem.objects.get(code=packaged_item.code)
+        WarehouseItem.objects.get(pk=packaged_item.pk)
 
 
 def test_remove_from_order_to_credit_note(db):
@@ -259,7 +261,7 @@ def test_remove_from_order_to_credit_note(db):
 
     credited_amount = 10
     w_order = warehouse_service.remove_from_order_to_credit_note(
-        warehouse_order.code, item.code, credited_amount
+        warehouse_order.code, item.pk, credited_amount
     )
     credit_note = w_order.credit_note
     assert credit_note
@@ -272,7 +274,7 @@ def test_remove_from_order_to_credit_note(db):
     assert credit_item.amount == credited_amount
     assert credit_item.unit_price == unit_price
 
-    war_item = WarehouseItem.objects.get(code=item.code)
+    war_item = WarehouseItem.objects.get(pk=item.pk)
     assert war_item.amount == amount - credited_amount
 
 
@@ -283,7 +285,7 @@ def test_remove_from_order_to_credit_note_all_gone(db):
 
     credited_amount = amount
     w_order = warehouse_service.remove_from_order_to_credit_note(
-        warehouse_order.code, item.code, credited_amount
+        warehouse_order.code, item.pk, credited_amount
     )
     assert len(w_order.credit_note.items) == 1
 
@@ -291,7 +293,7 @@ def test_remove_from_order_to_credit_note_all_gone(db):
     assert credit_item.product.code == item.stock_product.code
     assert credit_item.amount == credited_amount
 
-    assert not WarehouseItem.objects.filter(code=item.code).exists()
+    assert not WarehouseItem.objects.filter(pk=item.pk).exists()
 
 
 def test_putaway_item_simple(db):
@@ -304,7 +306,7 @@ def test_putaway_item_simple(db):
         stock_product=stock_product, order_in=war_order, amount=10
     )
 
-    warehouse_service.putaway_item(unpackaged.code, war_order.code, new_location.code)
+    warehouse_service.putaway_item(unpackaged.pk, war_order.code, new_location.code)
 
     loc = WarehouseLocation.objects.get(code=new_location.code)
     assert loc.items.count() == 1
@@ -328,7 +330,7 @@ def test_putaway_item_packaged(db):
         package_type=box_100,
     )
 
-    warehouse_service.putaway_item(packaged.code, war_order.code, new_location.code)
+    warehouse_service.putaway_item(packaged.pk, war_order.code, new_location.code)
 
     loc = WarehouseLocation.objects.get(code=new_location.code)
     assert loc.items.count() == 1
@@ -338,29 +340,25 @@ def test_putaway_item_packaged(db):
 
 
 def test_putaway_item_unpackaged_merge(db):
-    # untracked items containing the same stock product HAVE to have the same code!
-    item_code = "111222333"
     piece_uom = UnitOfMeasureFactory(name="KS")
     stock_product = StockProductFactory(unit_of_measure=piece_uom)
     new_location = WarehouseLocationFactory()
 
     # new location already has the same untracked stock-product-item, it has to be merged
-    WarehouseItemFactory(
-        code=item_code, stock_product=stock_product, amount=50, location=new_location
-    )
+    WarehouseItemFactory(stock_product=stock_product, amount=50, location=new_location)
 
     war_order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING)
     unpackaged = WarehouseItemFactory(
-        code=item_code, stock_product=stock_product, order_in=war_order, amount=10
+        stock_product=stock_product, order_in=war_order, amount=10
     )
     old_pk = unpackaged.pk
 
-    warehouse_service.putaway_item(unpackaged.code, war_order.code, new_location.code)
+    warehouse_service.putaway_item(unpackaged.pk, war_order.code, new_location.code)
 
     loc = WarehouseLocation.objects.get(code=new_location.code)
     assert loc.items.count() == 1
     item = loc.items.first()
-    assert item.amount == (50 + 10)
+    assert item.amount == Decimal(str(50 + 10))
     assert item.package_type is None
 
     with pytest.raises(WarehouseItem.DoesNotExist):
@@ -381,9 +379,7 @@ def test_putaway_item_invalid_order_state(db, state):
     unpackaged = WarehouseItemFactory(order_in=war_order)
 
     with pytest.raises(WarehouseGenericError):
-        warehouse_service.putaway_item(
-            unpackaged.code, war_order.code, new_location.code
-        )
+        warehouse_service.putaway_item(unpackaged.pk, war_order.code, new_location.code)
 
 
 def test_start_inbound_order(db):
@@ -394,7 +390,7 @@ def test_start_inbound_order(db):
 
     new_location = WarehouseLocationFactory(is_putaway=False)
 
-    warehouse_service.putaway_item(to_be_moved.code, order.code, new_location.code)
+    warehouse_service.putaway_item(to_be_moved.pk, order.code, new_location.code)
 
     order.refresh_from_db()
     assert order.state == InboundWarehouseOrderState.STARTED
@@ -409,11 +405,11 @@ def test_complete_inbound_order(db):
 
     new_location = WarehouseLocationFactory(is_putaway=False)
 
-    warehouse_service.putaway_item(to_be_moved_1.code, order.code, new_location.code)
+    warehouse_service.putaway_item(to_be_moved_1.pk, order.code, new_location.code)
     order.refresh_from_db()
     assert order.state == InboundWarehouseOrderState.STARTED
 
-    warehouse_service.putaway_item(to_be_moved_2.code, order.code, new_location.code)
+    warehouse_service.putaway_item(to_be_moved_2.pk, order.code, new_location.code)
     order.refresh_from_db()
     assert order.state == InboundWarehouseOrderState.COMPLETED
 

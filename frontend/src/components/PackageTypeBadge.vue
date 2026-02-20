@@ -1,6 +1,6 @@
 <template>
-  <q-badge :color="props.packageType ? 'primary' : 'gray'"
-    ><q-icon :name="icon" class="mr-1" />{{ label }}</q-badge
+  <q-badge :color="props.packageType ? 'primary' : 'gray'" outline
+    ><q-icon :name="icon" class="mr-[1px]" size="14px" />{{ label }}</q-badge
   >
 </template>
 

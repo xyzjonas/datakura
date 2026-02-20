@@ -234,9 +234,9 @@ watch(
           sortable: true,
         },
         {
-          field: (item: WarehouseItemSchema) => item.code,
+          field: (item: WarehouseItemSchema) => item.primary_barcode,
           name: 'code',
-          label: 'Kód',
+          label: 'EAN',
           align: 'left' as const,
           sortable: true,
         },

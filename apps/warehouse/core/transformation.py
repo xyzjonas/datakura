@@ -28,7 +28,10 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseLocationSchema,
     WarehouseLocationDetailSchema,
     WarehouseLocationWithCountSchema,
+    BatchSchema,
+    BarcodeSchema,
 )
+from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import (
     InboundOrder,
@@ -44,7 +47,28 @@ from apps.warehouse.models.warehouse import (
     InboundWarehouseOrder,
     WarehouseLocation,
     InboundWarehouseOrderState,
+    Batch,
 )
+
+
+def barcode_orm_to_schema(barcode: Barcode) -> BarcodeSchema:
+    return BarcodeSchema(
+        code=barcode.code,
+        barcode_type=barcode.barcode_type,
+        is_primary=barcode.is_primary,
+        created=barcode.created,
+        changed=barcode.changed,
+    )
+
+
+def batch_orm_to_schema(batch: Batch) -> BatchSchema:
+    barcode = batch.get_primary_barcode()
+    return BatchSchema(
+        id=batch.pk,
+        primary_barcode=barcode_orm_to_schema(barcode) if barcode else None,
+        created=batch.created,
+        changed=batch.changed,
+    )
 
 
 def location_orm_to_schema(location: WarehouseLocation) -> WarehouseLocationSchema:
@@ -161,16 +185,19 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
         if amount is None:
             amount = package_type.amount
 
+    bar = item.get_primary_barcode()
     return WarehouseItemSchema(
         id=item.pk,
-        code=item.code,
-        package=package_type,
+        primary_barcode=bar.code if bar else None,
         product=product_orm_to_schema(item.stock_product),
         unit_of_measure=item.unit_of_measure.name,
         created=item.created,
         changed=item.changed,
         amount=float(amount or 0),
         location=location_orm_to_schema(item.location),
+        package=package_type,
+        batch=batch_orm_to_schema(item.batch) if getattr(item, "batch") else None,  # type: ignore
+        tracking_level=item.tracking_level,  # type: ignore
     )
 
 
@@ -254,6 +281,21 @@ def credit_note_supplier_orm_to_schema(
             warehouse_order_code=credit_note.code,
         ),
     )
+
+
+#
+# def warehouse_inbound_order_item_orm_to_schema(
+#         item: InboundWarehouseOrderItem
+# ) -> InboundWarehouseOrderItemSchema:
+#     return InboundWarehouseOrderItemSchema(
+#         id=item.pk,
+#         amount=item.amount,
+#         created=item.created,
+#         changed=item.changed,
+#         warehouse_items=[
+#             warehouse_item_orm_to_schema(w_item) for w_item in item.warehouse_items
+#         ]
+#     )
 
 
 def warehouse_inbound_order_orm_to_schema(

@@ -21,11 +21,11 @@ def client() -> TestClient:
 
 def test_putaway_item(db, client) -> None:
     order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING)
-    item = cast(WarehouseItem, WarehouseItemFactory(order_in=order))
+    item: WarehouseItem = WarehouseItemFactory(order_in=order)  # type: ignore
     new_location = WarehouseLocationFactory()
 
     res = client.post(
-        f"orders-incoming/{order.code}/items/{item.code}/putaway",
+        f"orders-incoming/{order.code}/items/{item.pk}/putaway",
         json={"new_location_code": new_location.code},
     )
 
@@ -36,34 +36,30 @@ def test_putaway_item(db, client) -> None:
 
 def test_putaway_item_invalid_state(db, client) -> None:
     order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.DRAFT)
-    item = WarehouseItemFactory(order_in=order)
+    item: WarehouseItem = WarehouseItemFactory(order_in=order)  # type: ignore
     new_location = WarehouseLocationFactory()
 
     with pytest.raises(WarehouseGenericError):
         client.post(
-            f"orders-incoming/{order.code}/items/{item.code}/putaway",
+            f"orders-incoming/{order.code}/items/{item.pk}/putaway",
             json={"new_location_code": new_location.code},
         )
 
 
 def test_putaway_item_merge(db, client) -> None:
     order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING)
-    item_to_move = cast(WarehouseItem, WarehouseItemFactory(order_in=order))
+    item_to_move: WarehouseItem = WarehouseItemFactory(order_in=order)  # type: ignore
     original_amount = item_to_move.amount
 
     new_location = WarehouseLocationFactory()
-    existing_item = cast(
-        WarehouseItem,
-        WarehouseItemFactory(
-            code=item_to_move.code,
-            location=new_location,
-            stock_product=item_to_move.stock_product,
-        ),
+    existing_item: WarehouseItem = WarehouseItemFactory(  # type: ignore
+        location=new_location,
+        stock_product=item_to_move.stock_product,
     )
     existing_amount = existing_item.amount
 
     res = client.post(
-        f"orders-incoming/{order.code}/items/{item_to_move.code}/putaway",
+        f"orders-incoming/{order.code}/items/{item_to_move.pk}/putaway",
         json={"new_location_code": new_location.code},
     )
 

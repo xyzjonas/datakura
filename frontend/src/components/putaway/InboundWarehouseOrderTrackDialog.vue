@@ -91,10 +91,10 @@ import {
 } from '@/client'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
+import { rules } from '@/utils/rules'
 import { computed, ref, watch } from 'vue'
 import PackageTypeSearchSelect from '../selects/PackageTypeSearchSelect.vue'
 import WarehouseItemPreviewRow from './WarehouseItemPreviewRow.vue'
-import { rules } from '@/utils/rules'
 
 const { onResponse } = useApi()
 const { goToProduct } = useAppRouter()
@@ -174,6 +174,12 @@ watch([selectedPackage, amount], () => {
   }
 })
 
+watch(showDialog, (value) => {
+  if (value) {
+    amount.value = props.item.amount
+  }
+})
+
 const emit = defineEmits<{
   (e: 'packaged', items: WarehouseItemSchema[]): void
 }>()
@@ -184,6 +190,7 @@ const onSubmit = () => {
   }
   if (trackingType.value.value === 'package') {
     emit('packaged', items.value)
+    showDialog.value = false
     return
   }
 }

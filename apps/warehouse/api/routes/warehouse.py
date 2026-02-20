@@ -97,7 +97,7 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
         "items__stock_product__unit_of_measure",
         "items__package_type",
         "items__package_type__unit_of_measure",
-        "items__order_in",
+        # "items__order_in",
     ).get(code=warehouse_location_code)
     return GetWarehouseLocationResponse(data=location_orm_to_detail_schema(location))
 
@@ -196,16 +196,16 @@ def track_inbound_warehouse_order_item(
 
 
 @routes.delete(
-    "orders-incoming/{code}/items/{item_code}",
+    "orders-incoming/{code}/items/{item_id}",
     response={200: GetWarehouseOrderResponse},
 )
 def dissolve_inbound_warehouse_order_item(
-    request: HttpRequest, code: str, item_code: str
+    request: HttpRequest, code: str, item_id: int
 ):
     # user = authenticate(
     #     request, username=credentials.username, password=credentials.password
     # )
-    order = warehouse_service.dissolve_inbound_order_item(code, item_code)
+    order = warehouse_service.dissolve_inbound_order_item(code, item_id)
     return GetWarehouseOrderResponse(data=order)
 
 
@@ -217,7 +217,7 @@ def remove_from_order_to_credit_note(
     request: HttpRequest, code: str, body: RemoveItemToCreditNoteRequest
 ):
     order = warehouse_service.remove_from_order_to_credit_note(
-        code, body.item_code, body.amount
+        code, body.item_id, body.amount
     )
     return GetWarehouseOrderResponse(data=order)
 
@@ -242,17 +242,17 @@ def transition_inbound_warehouse_order(
 
 
 @routes.post(
-    "orders-incoming/{code}/items/{item_code}/putaway",
+    "orders-incoming/{code}/items/{item_id}/putaway",
     response={200: GetWarehouseOrderResponse},
 )
 def putaway_inbound_warehouse_order_item(
     request: HttpRequest,
     code: str,
-    item_code: str,
+    item_id: int,
     body: PutawayItemRequest,
 ):
     warehouse_service.putaway_item(
-        item_code=item_code,
+        item_id=item_id,
         warehouse_order_code=code,
         new_location_code=body.new_location_code,
     )

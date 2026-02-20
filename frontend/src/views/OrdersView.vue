@@ -1,35 +1,19 @@
 <template>
   <div class="flex-1">
-    <div class="flex gap-2 mb-8">
-      <ForegroundPanel
-        class="flex-1"
-        @click="activeTabKey = 'inbound'"
-        :active="activeTabKey === 'inbound'"
-        clickable
-      >
-        <q-icon name="sym_o_call_received" size="24px"></q-icon>
-        <div>
-          <h5 class="font-bold uppercase">Vydané Objednávky</h5>
-        </div>
-      </ForegroundPanel>
-      <ForegroundPanel
-        class="flex-1"
-        @click="activeTabKey = 'outbound'"
-        :active="activeTabKey === 'outbound'"
-        clickable
-      >
-        <q-icon name="sym_o_call_made" size="24px"></q-icon>
-        <div>
-          <h5 class="font-bold uppercase">Objednávky</h5>
-        </div>
-      </ForegroundPanel>
-    </div>
+    <LargeTabs
+      v-model:tab="activeTabKey"
+      :items="[
+        { key: 'inbound', icon: 'sym_o_call_received', title: 'Vydané Objednávky' },
+        { key: 'outbound', icon: 'sym_o_call_made', title: 'Objednávky' },
+      ]"
+      class="mb-5"
+    />
     <component :is="activeTab" />
   </div>
 </template>
 
 <script setup lang="ts">
-import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import LargeTabs from '@/components/LargeTabs.vue'
 import InboundOrdersView from '@/components/order/InboundOrdersView.vue'
 import OutboundOrdersView from '@/components/order/OutboundOrdersView.vue'
 import { useLocalStorage } from '@vueuse/core'

@@ -62,11 +62,11 @@ class WarehouseItemFactory(DjangoModelFactory):
     class Meta:
         model = WarehouseItem
 
-    code = factory.Sequence(lambda n: f"ITEM-{n:08d}")
     stock_product = factory.SubFactory(StockProductFactory)
     package_type = None
     location = factory.SubFactory(WarehouseLocationFactory)
     order_in = factory.SubFactory(InboundWarehouseOrderFactory)
+    tracking_level = "FUNGIBLE"
     amount = 0
 
 

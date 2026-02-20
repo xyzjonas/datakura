@@ -254,6 +254,55 @@ export type WarehouseLocationSchema = {
 };
 
 /**
+ * BarcodeSchema
+ */
+export type BarcodeSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Barcode Type
+     */
+    barcode_type: string;
+    /**
+     * Is Primary
+     */
+    is_primary: boolean;
+};
+
+/**
+ * BatchSchema
+ */
+export type BatchSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    primary_barcode?: BarcodeSchema | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+};
+
+/**
  * GetWarehouseLocationResponse
  */
 export type GetWarehouseLocationResponse = {
@@ -356,6 +405,11 @@ export type ProductSchema = {
 };
 
 /**
+ * TrackingLevel
+ */
+export type TrackingLevel = 'SERIALIZED_PIECE' | 'SERIALIZED_PACKAGE' | 'BATCH' | 'FUNGIBLE';
+
+/**
  * WarehouseItemSchema
  * Atomic unit of the inventory - uniquely identifiable and trackable item in a warehouse
  */
@@ -372,10 +426,6 @@ export type WarehouseItemSchema = {
      * Id
      */
     id: number;
-    /**
-     * Code
-     */
-    code: string;
     product: ProductSchema;
     /**
      * Unit Of Measure
@@ -385,8 +435,14 @@ export type WarehouseItemSchema = {
      * Amount
      */
     amount: number;
-    package: PackageSchema | null;
     location: WarehouseLocationSchema;
+    tracking_level: TrackingLevel;
+    package?: PackageSchema | null;
+    batch?: BatchSchema | null;
+    /**
+     * Primary Barcode
+     */
+    primary_barcode?: string | null;
 };
 
 /**
@@ -857,9 +913,9 @@ export type SetupTrackingWarehouseItemRequest = {
  */
 export type RemoveItemToCreditNoteRequest = {
     /**
-     * Item Code
+     * Item Id
      */
-    item_code: string;
+    item_id: number;
     /**
      * Amount
      */
@@ -1683,31 +1739,6 @@ export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses
 
 export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponse = WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses[keyof WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses];
 
-export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData = {
-    body?: never;
-    path: {
-        /**
-         * Code
-         */
-        code: string;
-        /**
-         * Item Code
-         */
-        item_code: string;
-    };
-    query?: never;
-    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}';
-};
-
-export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses = {
-    /**
-     * OK
-     */
-    200: GetWarehouseOrderResponse;
-};
-
-export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses];
-
 export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData = {
     body: SetupTrackingWarehouseItemRequest;
     path: {
@@ -1732,6 +1763,31 @@ export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses =
 };
 
 export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses];
+
+export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData = {
+    body?: never;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Item Id
+         */
+        item_id: number;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_id}';
+};
+
+export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses];
 
 export type WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteData = {
     body: RemoveItemToCreditNoteRequest;
@@ -1783,12 +1839,12 @@ export type WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemData = {
          */
         code: string;
         /**
-         * Item Code
+         * Item Id
          */
-        item_code: string;
+        item_id: number;
     };
     query?: never;
-    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}/putaway';
+    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_id}/putaway';
 };
 
 export type WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses = {

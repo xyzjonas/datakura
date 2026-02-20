@@ -58,6 +58,15 @@
       <InboundWarehouseOrderTimeline :order="order" />
     </ForegroundPanel>
 
+    <LargeTabs
+      v-model:tab="activeTabKey"
+      :items="[
+        { key: 'todo', icon: 'sym_o_call_received', title: 'Neuzavřené' },
+        { key: 'outbound', icon: 'sym_o_call_made', title: 'Uzavřené' },
+      ]"
+      class="my-5"
+    />
+
     <InboundWarehouseOrderItemsList
       v-model:items="order.items"
       :readonly="order.state !== 'draft'"
@@ -108,6 +117,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import LargeTabs from '@/components/LargeTabs.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehouseOrderItemsList.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
@@ -121,6 +131,8 @@ const props = defineProps<{ code: string }>()
 
 const { onResponse } = useApi()
 const $q = useQuasar()
+
+const activeTabKey = ref('todo')
 
 const response = await warehouseApiRoutesWarehouseGetInboundWarehouseOrder({
   path: { code: props.code },
@@ -141,7 +153,7 @@ const updateOrderItems = async (item: WarehouseItemSchema, toBeAdded: WarehouseI
   const response = await warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem({
     path: {
       code: order.value.code,
-      item_code: item.code,
+      item_code: item.product.code,
     },
     body: {
       to_be_added: toBeAdded,
@@ -177,7 +189,7 @@ const transitionOrder = async (state: 'pending' | 'draft') => {
   })
 }
 
-const dissolveItem = async (itemCode: string) => {
+const dissolveItem = async (itemId: number) => {
   if (!order.value) {
     return
   }
@@ -185,7 +197,7 @@ const dissolveItem = async (itemCode: string) => {
     await warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem({
       path: {
         code: order.value.code,
-        item_code: itemCode,
+        item_id: itemId,
       },
     }),
   )
@@ -194,7 +206,7 @@ const dissolveItem = async (itemCode: string) => {
   }
 }
 
-const removeItem = async (itemCode: string, amount: number) => {
+const removeItem = async (itemId: number, amount: number) => {
   if (!order.value) {
     return
   }
@@ -204,7 +216,7 @@ const removeItem = async (itemCode: string, amount: number) => {
         code: order.value.code,
       },
       body: {
-        item_code: itemCode,
+        item_id: itemId,
         amount: amount,
       },
     }),
@@ -219,7 +231,7 @@ const removeItem = async (itemCode: string, amount: number) => {
   })
 }
 
-const moveItem = async (itemCode: string, location: WarehouseLocationSchema) => {
+const moveItem = async (itemCode: number, location: WarehouseLocationSchema) => {
   if (!order.value) {
     return
   }
@@ -227,7 +239,7 @@ const moveItem = async (itemCode: string, location: WarehouseLocationSchema) => 
     await warehouseApiRoutesWarehousePutawayInboundWarehouseOrderItem({
       path: {
         code: order.value.code,
-        item_code: itemCode,
+        item_id: itemCode,
       },
       body: {
         new_location_code: location.code,

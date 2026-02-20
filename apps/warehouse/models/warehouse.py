@@ -7,16 +7,11 @@ from django.db import models
 from django.db.models import QuerySet
 from django.utils.functional import cached_property
 
+from .barcode import BarcodeMixin
 from .base import BaseModel
 from .orders import InboundOrder
 from .packaging import PackageType
 from .product import StockProduct, UnitOfMeasure
-
-
-# Virtual location?
-
-# Receiving dock? Scan the barcode of the incoming order - unlock the warehouse movement order
-# for workers
 
 
 class Warehouse(BaseModel):
@@ -47,23 +42,30 @@ class WarehouseLocation(BaseModel):
         return f"{self.warehouse.name} - {self.code}"
 
 
-class WarehouseItem(BaseModel):
+class TrackingLevel(models.TextChoices):
+    SERIALIZED_PIECE = "SERIALIZED_PIECE", "Individual Pieces"
+    SERIALIZED_PACKAGE = "SERIALIZED_PACKAGE", "Individual Packages"
+    BATCH = "BATCH", "Batch Tracked"
+    FUNGIBLE = "FUNGIBLE", "Fully Fungible"
+
+
+class Batch(BaseModel, BarcodeMixin):
+    description = models.CharField(max_length=300, null=True, blank=True)
+
+
+class WarehouseItem(BaseModel, BarcodeMixin):
     """Atomic unit of the inventory - uniquely identifiable and trackable item in a warehouse"""
 
-    code = models.CharField(max_length=50, unique=False, null=False)
     stock_product = models.ForeignKey(
         StockProduct,
         null=False,
         on_delete=models.PROTECT,
         help_text="Product information",
     )
-    package_type = models.ForeignKey(
-        PackageType,
-        null=True,
-        blank=True,
-        on_delete=models.PROTECT,
-        related_name="items",
-        help_text="Packaging information - in case the item is packaged in some way (optional)",
+    tracking_level = models.CharField(
+        max_length=20,
+        choices=TrackingLevel.choices,
+        default=TrackingLevel.FUNGIBLE,
     )
     amount = models.DecimalField(
         max_digits=10,
@@ -80,9 +82,28 @@ class WarehouseItem(BaseModel):
     )
     order_in = models.ForeignKey(
         "InboundWarehouseOrder",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="items",
-        help_text="Order which brought the item into the warehouse",
+        help_text="Order item which brought the item into the warehouse",
+        null=True,
+        blank=True,
+    )
+    # Optional fields - populated based on tracking_level
+    batch = models.ForeignKey(
+        "Batch",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="inventory",
+        help_text="Required for BATCH and SERIALIZED_* levels",
+    )
+    package_type = models.ForeignKey(
+        PackageType,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="items",
+        help_text="Packaging information - in case the item is packaged in some way (optional)",
     )
 
     @cached_property
@@ -111,35 +132,6 @@ class WarehouseItem(BaseModel):
                 return float(self.package_type.amount * package_uom.amount_of_base_uom)
 
         return None
-
-    # 3. Current Quantity
-    # remaining = models.DecimalField(max_digits=10, decimal_places=4, null=False)
-
-    # class Meta:
-    #     constraints = [
-    #         CheckConstraint(
-    #             check=(
-    #                 # Case 1: Load is present, Item is null
-    #                 (Q(current_load__isnull=False) & Q(warehouse_location__isnull=True))
-    #                 |
-    #                 # Case 2: Load is null, Item is present
-    #                 (Q(current_load__isnull=True) & Q(warehouse_location__isnull=False))
-    #             ),
-    #             name="load_or_location_exclusive",
-    #         )
-    #     ]
-
-    def __str__(self) -> str:
-        # Example: Product X, Base UoM: Each. Conversion: Box (Factor 12)
-        # Remaining: 5.0000.  Initial Quantity: 12.0000
-        max_package_amount = ""
-        if self.package_type:
-            max_package_amount = f"/{self.package_type.amount}"
-        uom_name = self.stock_product.unit_of_measure.name
-
-        return (
-            f"{self.stock_product.name}, {uom_name} ({self.amount}{max_package_amount})"
-        )
 
 
 class WarehouseMovement(BaseModel):
@@ -202,7 +194,7 @@ class InboundWarehouseOrder(BaseModel):
         on_delete=models.PROTECT,
         related_name="warehouse_order",
     )
-    items: QuerySet["WarehouseItem"]
+    items: QuerySet[WarehouseItem]
     state = models.CharField(
         choices=InboundWarehouseOrderState,
         default=InboundWarehouseOrderState.DRAFT,
@@ -214,9 +206,3 @@ class InboundWarehouseOrder(BaseModel):
 
     def __str__(self) -> str:
         return self.code
-
-    # @property
-    # def incoming_order_code(self) -> str | None:
-    #     if hasattr(self, "order") and self.order:
-    #         return self.order.code
-    #     return None
