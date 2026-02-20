@@ -31,7 +31,7 @@ def get_inbound_orders(request: HttpRequest, search_term: str | None = None):
     qs = cast(
         QuerySet[InboundOrder],
         InboundOrder.objects.select_related("supplier").exclude(
-            state=InboundOrderState.CANCELLED
+            state__in=[InboundOrderState.CANCELLED, InboundOrderState.COMPLETED]
         ),
     )
     if search_term:
