@@ -23,9 +23,7 @@
             option-value="value"
           />
 
-          <div v-if="helpText" class="bg-gray-2 p-4 rounded-lg my-1 shadow shadow-inset">
-            {{ helpText }}
-          </div>
+          <div v-if="helpText" class="description">{{ helpText }}</div>
 
           <q-input
             v-model="amount"

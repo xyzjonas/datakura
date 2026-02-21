@@ -260,6 +260,9 @@ def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
         credit_note=credit_note_supplier_orm_to_base_schema(order.credit_note)
         if getattr(order, "credit_note", None)
         else None,
+        requested_delivery_date=order.requested_delivery_date,
+        cancelled_date=order.cancelled_date,
+        received_date=order.received_date,
     )
 
 
@@ -279,6 +282,9 @@ def credit_note_supplier_orm_to_schema(
             supplier=customer_orm_to_schema(credit_note.order.supplier),
             currency=credit_note.order.currency,
             warehouse_order_code=credit_note.code,
+            requested_delivery_date=credit_note.order.requested_delivery_date,
+            cancelled_date=credit_note.order.cancelled_date,
+            received_date=credit_note.order.received_date,
         ),
     )
 
@@ -327,6 +333,9 @@ def warehouse_inbound_order_orm_to_schema(
             supplier=customer_orm_to_schema(w_order.order.supplier),
             currency=w_order.order.currency,
             warehouse_order_code=w_order.code,
+            requested_delivery_date=w_order.order.requested_delivery_date,
+            cancelled_date=w_order.order.cancelled_date,
+            received_date=w_order.order.received_date,
         ),
         state=InboundWarehouseOrderState(w_order.state),
         credit_note=credit_note_supplier_orm_to_schema(w_order.order.credit_note)

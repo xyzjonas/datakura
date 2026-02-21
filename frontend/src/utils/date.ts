@@ -1,4 +1,7 @@
-export const formatDateLong = (date: string | Date) => {
+export const formatDateLong = (date?: string | Date | null) => {
+  if (!date) {
+    return '-'
+  }
   return new Date(date).toLocaleDateString(undefined, {
     day: '2-digit',
     month: 'long',

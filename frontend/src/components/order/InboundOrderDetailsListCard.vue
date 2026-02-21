@@ -24,20 +24,24 @@
         <q-item-section avatar>{{ order.description }}</q-item-section>
       </q-item>
       <q-item clickable>
-        <q-item-section>Poznámka</q-item-section>
-        <q-item-section avatar>{{ order.note }}</q-item-section>
+        <q-item-section>Měna objednávky</q-item-section>
+        <q-item-section avatar>{{ order.currency }}</q-item-section>
       </q-item>
+
       <q-item clickable>
         <q-item-section>Požadovaný termín dodání</q-item-section>
-        <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
-      </q-item>
-      <q-item clickable>
-        <q-item-section>Datum zrušení</q-item-section>
-        <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
+        <q-item-section avatar>{{ formatDateLong(order.requested_delivery_date) }}</q-item-section>
       </q-item>
       <q-item clickable>
         <q-item-section>Zboží přijato</q-item-section>
-        <q-item-section avatar>{{ formatDateLong(order.created) }}</q-item-section>
+        <q-item-section avatar>{{ formatDateLong(order.received_date) }}</q-item-section>
+      </q-item>
+      <q-item clickable>
+        <q-item-section>Datum zrušení</q-item-section>
+        <q-item-section avatar>{{ formatDateLong(order.cancelled_date) }}</q-item-section>
+      </q-item>
+      <q-item v-if="order.note">
+        <div class="description overflow-y-auto h-30 w-full">{{ order.note }}</div>
       </q-item>
     </q-list>
   </ForegroundPanel>

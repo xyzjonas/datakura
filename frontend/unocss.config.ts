@@ -4,6 +4,7 @@ export default defineConfig({
   rules: [],
   shortcuts: {
     link: 'text-current text-primary font-600 no-underline hover:underline hover:cursor-pointer',
+    description: 'light:bg-gray-2 dark:bg-gray-6 p-4 rounded-lg my-1 shadow shadow-inset',
   },
   presets: [
     // Tailwind-like utility classes, replacement for Bootstrap's utility classes.

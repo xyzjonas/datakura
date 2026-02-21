@@ -76,6 +76,7 @@ class OrdersService:
                     note=params.note,
                     currency=params.currency,
                     supplier=supplier,
+                    requested_delivery_date=params.requested_delivery_date,
                 ),
             )
 
@@ -115,6 +116,15 @@ class OrdersService:
         with transaction.atomic():
             old_state = order.state
             order.state = new_state
+
+            if (
+                order.state == InboundOrderState.SUBMITTED
+                and new_state == InboundOrderState.RECEIVING
+            ):
+                order.received_date = timezone.now()
+
+            if order.state == InboundOrderState.CANCELLED:
+                order.cancelled_date = timezone.now()
 
             order.save()
             logger.info(

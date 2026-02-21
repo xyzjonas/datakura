@@ -791,6 +791,18 @@ export type InboundOrderBaseSchema = {
      * Warehouse Order Code
      */
     warehouse_order_code?: string | null;
+    /**
+     * Requested Delivery Date
+     */
+    requested_delivery_date?: string | null;
+    /**
+     * Cancelled Date
+     */
+    cancelled_date?: string | null;
+    /**
+     * Received Date
+     */
+    received_date?: string | null;
 };
 
 /**
@@ -1193,6 +1205,18 @@ export type InboundOrderSchema = {
      */
     warehouse_order_code?: string | null;
     /**
+     * Requested Delivery Date
+     */
+    requested_delivery_date?: string | null;
+    /**
+     * Cancelled Date
+     */
+    cancelled_date?: string | null;
+    /**
+     * Received Date
+     */
+    received_date?: string | null;
+    /**
      * Items
      */
     items?: Array<InboundOrderItemSchema>;
@@ -1291,6 +1315,10 @@ export type InboundOrderCreateOrUpdateSchema = {
      */
     supplier_name: string;
     state?: InboundOrderState | null;
+    /**
+     * Requested Delivery Date
+     */
+    requested_delivery_date?: string | null;
 };
 
 /**

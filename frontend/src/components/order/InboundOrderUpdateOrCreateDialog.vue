@@ -8,8 +8,6 @@
           <q-btn flat round icon="close" v-close-popup class="ml-auto" />
         </div>
         <q-form class="flex flex-col gap-2" @submit="addItem">
-          <!-- <ItemSelectByName v-model="newItem" :rules="[rules.notEmpty]" class="flex-1" />
-          <PlaceSelect v-show="manualSearchItem" v-model="newPlace" :rules="[rules.notEmpty]" /> -->
           <CustomerSearchSelect v-model="customer" />
           <q-input
             v-model.trim="item.external_code"
@@ -28,6 +26,13 @@
             hint="Popis (volitelné)"
             autogrow
           ></q-input>
+          <q-date
+            v-model="deliveryDate"
+            landscape
+            title="Dodání"
+            subtitle="Požadovaný termín"
+            class="w-full"
+          />
           <q-input
             v-model.trim="item.note"
             outlined
@@ -61,6 +66,8 @@ type Props = {
   orderIn?: InboundOrderSchema
 }
 
+const deliveryDate = ref<string>('')
+
 const showDialog = defineModel('show', { default: false })
 const props = withDefaults(defineProps<Props>(), {
   title: 'Nová objednávka',
@@ -81,6 +88,9 @@ const propToRef = (order?: InboundOrderSchema) => {
   }
 
   customer.value = order.supplier
+  if (order.requested_delivery_date) {
+    deliveryDate.value = new Date(order.requested_delivery_date).toISOString()
+  }
   return {
     currency: order.currency,
     note: order.note,
@@ -89,6 +99,7 @@ const propToRef = (order?: InboundOrderSchema) => {
     supplier_code: order.supplier.code,
     supplier_name: order.supplier.name,
     external_code: order.external_code,
+    requested_delivery_date: order.requested_delivery_date,
   } as InboundOrderCreateOrUpdateSchema
 }
 
@@ -111,6 +122,11 @@ watch(customer, (newValue: CustomerSchema | undefined) => {
     item.value.supplier_code = ''
     item.value.supplier_name = ''
   }
+})
+
+watch(deliveryDate, (newValue: string) => {
+  console.info(typeof newValue)
+  item.value.requested_delivery_date = new Date(newValue).toISOString()
 })
 
 const emit = defineEmits<{

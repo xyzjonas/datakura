@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from apps.warehouse.core.schemas.base import BaseSchema
 from apps.warehouse.core.schemas.customer import CustomerSchema
 from apps.warehouse.core.schemas.product import ProductSchema
@@ -20,6 +22,9 @@ class InboundOrderBaseSchema(BaseSchema):
     currency: str
     state: InboundOrderState
     warehouse_order_code: str | None = None
+    requested_delivery_date: datetime | None = None
+    cancelled_date: datetime | None = None
+    received_date: datetime | None = None
 
 
 class InboundWarehouseOrderBaseSchema(BaseSchema):

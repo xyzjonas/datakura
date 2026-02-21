@@ -1,3 +1,4 @@
+from datetime import datetime
 from ninja import Schema
 from pydantic import Field
 
@@ -35,6 +36,7 @@ class InboundOrderCreateOrUpdateSchema(Schema):
     supplier_code: str
     supplier_name: str
     state: InboundOrderState | None = None
+    requested_delivery_date: datetime | None = None
 
 
 class InboundOrderTransitionSchema(Schema):

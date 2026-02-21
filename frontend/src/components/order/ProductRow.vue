@@ -70,13 +70,14 @@
 import type { InboundOrderItemSchema } from '@/client'
 import { computed } from 'vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
+import { round } from '@/utils/round'
 
 defineProps<{ currency: string; readonly?: boolean }>()
 defineEmits(['dissolveItem'])
 
 const item = defineModel<InboundOrderItemSchema>('item', { required: true })
 
-const totalPrice = computed(() => item.value.unit_price * item.value.amount)
+const totalPrice = computed(() => round(item.value.unit_price * item.value.amount))
 </script>
 
 <style lang="scss" scoped></style>
