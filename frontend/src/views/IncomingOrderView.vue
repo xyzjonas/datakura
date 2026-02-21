@@ -80,7 +80,6 @@
     </ForegroundPanel>
 
     <div class="flex items-center gap-2 mt-5">
-      <CurrencyDropdown v-model="order.currency" />
       <h2>Položky objednávky</h2>
       <q-btn
         v-if="getInboundOrderStep(order) === 1"
@@ -160,7 +159,6 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import CurrencyDropdown from '@/components/order/CurrencyDropdown.vue'
 import InboundOrderDetailsListCard from '@/components/order/InboundOrderDetailsListCard.vue'
 import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDialog.vue'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'

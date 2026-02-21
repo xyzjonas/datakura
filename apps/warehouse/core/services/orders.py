@@ -117,10 +117,7 @@ class OrdersService:
             old_state = order.state
             order.state = new_state
 
-            if (
-                order.state == InboundOrderState.SUBMITTED
-                and new_state == InboundOrderState.RECEIVING
-            ):
+            if new_state == InboundOrderState.RECEIVING:
                 order.received_date = timezone.now()
 
             if order.state == InboundOrderState.CANCELLED:
