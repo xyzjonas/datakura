@@ -110,6 +110,19 @@ def add_item_to_inbound_order(
     return CreateInboundOrderItemResponse(data=new_item)
 
 
+@routes.put(
+    "/{order_code}/items", response={200: CreateInboundOrderItemResponse}, auth=None
+)
+def update_item_in_inbound_order(
+    request: HttpRequest, order_code: str, item: InboundOrderItemCreateSchema
+):
+    """
+    Update an existing item in incoming order by stock product code.
+    """
+    updated_item = inbound_orders_service.update_item(order_code, item)
+    return CreateInboundOrderItemResponse(data=updated_item)
+
+
 @routes.patch("/{order_code}/state", response={200: GetInboundOrderResponse})
 def transition_inbound_order(
     request: HttpRequest, order_code: str, body: InboundOrderTransitionSchema

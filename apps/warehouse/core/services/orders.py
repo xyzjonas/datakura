@@ -6,6 +6,7 @@ from django.template.loader import get_template
 from django.utils import timezone
 from loguru import logger
 
+from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.schemas.orders import (
     InboundOrderItemCreateSchema,
     InboundOrderItemSchema,
@@ -88,6 +89,14 @@ class OrdersService:
     ) -> InboundOrderItemSchema:
         order = InboundOrder.objects.get(code=code)
         stock_product = StockProduct.objects.get(code=item.product_code)
+
+        if InboundOrderItem.objects.filter(
+            order=order, stock_product=stock_product
+        ).exists():
+            raise WarehouseItemBadRequestError(
+                f"Item for product '{stock_product.code}' already exists in order '{order.code}'"
+            )
+
         with transaction.atomic():
             item_model = InboundOrderItem.objects.create(
                 stock_product=stock_product,
@@ -95,6 +104,22 @@ class OrdersService:
                 order=order,
                 unit_price=item.unit_price,
             )
+
+        return inbound_order_item_orm_to_schema(item_model)
+
+    @staticmethod
+    def update_item(
+        code: str, item: InboundOrderItemCreateSchema
+    ) -> InboundOrderItemSchema:
+        order = InboundOrder.objects.get(code=code)
+        item_model = InboundOrderItem.objects.get(
+            order=order, stock_product__code=item.product_code
+        )
+
+        with transaction.atomic():
+            item_model.amount = item.amount
+            item_model.unit_price = item.unit_price
+            item_model.save()
 
         return inbound_order_item_orm_to_schema(item_model)
 

@@ -48,6 +48,7 @@
       <ProductsList
         v-model:items="credit_note.items"
         :currency="credit_note.order.currency"
+        :order-code="credit_note.order.code"
         readonly
       />
     </div>

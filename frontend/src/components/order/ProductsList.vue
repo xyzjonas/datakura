@@ -19,6 +19,7 @@
           v-model:item="items[index]"
           :readonly="readonly"
           :currency="currency"
+          :order-code="orderCode"
           @remove-item="() => $emit('dissolveItem', item.product.code)"
         ></ProductRow>
       </ForegroundPanel>
@@ -43,7 +44,7 @@ defineEmits<{
   (e: 'dissolveItem', product_code: string): void
   (e: 'addItem'): void
 }>()
-defineProps<{ currency: string; readonly?: boolean }>()
+defineProps<{ currency: string; readonly?: boolean; orderCode: string }>()
 const items = defineModel<Array<InboundOrderItemSchema>>('items', { default: [] })
 const draggingIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)

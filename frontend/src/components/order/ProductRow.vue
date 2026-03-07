@@ -25,6 +25,8 @@
         standout
         class="max-w-28"
         label="Počet"
+        @update:model-value="update"
+        :debounce="500"
       >
         <template #append>
           <span class="text-xs">{{ item.product.unit }}</span>
@@ -37,6 +39,8 @@
         standout
         class="max-w-50"
         label="Nákupní cena"
+        @update:model-value="update"
+        :debounce="500"
       >
         <template #append>
           <span class="text-xs">{{ currency }} / {{ item.product.unit }}</span>
@@ -67,17 +71,45 @@
 </template>
 
 <script setup lang="ts">
-import type { InboundOrderItemSchema } from '@/client'
+import {
+  warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder,
+  type InboundOrderItemSchema,
+} from '@/client'
+import { useApi } from '@/composables/use-api'
+import { round } from '@/utils/round'
+import { useQuasar } from 'quasar'
 import { computed } from 'vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
-import { round } from '@/utils/round'
 
-defineProps<{ currency: string; readonly?: boolean }>()
-defineEmits(['dissolveItem'])
+const $q = useQuasar()
+const { onResponse } = useApi()
+
+const props = defineProps<{ currency: string; readonly?: boolean; orderCode: string }>()
+defineEmits<{ (e: 'dissolveItem'): void }>()
 
 const item = defineModel<InboundOrderItemSchema>('item', { required: true })
 
 const totalPrice = computed(() => round(item.value.unit_price * item.value.amount))
+
+const update = async () => {
+  const res = await warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder({
+    path: {
+      order_code: props.orderCode,
+    },
+    body: {
+      product_code: item.value.product.code,
+      product_name: item.value.product.name,
+      amount: item.value.amount,
+      unit_price: item.value.unit_price,
+    },
+  })
+
+  const data = onResponse(res)
+  if (data?.data) {
+    item.value = data.data
+    $q.notify({ type: 'positive', message: 'Položka aktualizována' })
+  }
+}
 </script>
 
 <style lang="scss" scoped></style>

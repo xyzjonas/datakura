@@ -98,6 +98,7 @@
         v-model:items="order.items"
         :currency="order.currency"
         :readonly="getInboundOrderStep(order) > 1"
+        :order-code="order.code"
         @remove-item="removeItem"
         @add-item="addItemDialog = true"
       />

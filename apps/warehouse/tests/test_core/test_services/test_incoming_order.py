@@ -3,6 +3,7 @@ from typing import cast
 
 import pytest
 
+from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.schemas.orders import (
     InboundOrderItemCreateSchema,
     InboundOrderCreateOrUpdateSchema,
@@ -45,6 +46,55 @@ def test_incoming_order_add_item(db):
     assert order.items.first().unit_price == 999
     assert order.items.first().stock_product.code == product.code
     assert order.items.first().stock_product.name == product.name
+
+
+def test_incoming_order_add_item_duplicate_product_fails(db):
+    product = cast(StockProduct, StockProductFactory())
+    order = cast(InboundOrder, InboundOrderFactory())
+
+    inbound_orders_service.add_item(
+        order.code,
+        InboundOrderItemCreateSchema(
+            product_code=product.code,
+            product_name=product.name,
+            unit_price=100,
+            amount=2,
+        ),
+    )
+
+    with pytest.raises(WarehouseItemBadRequestError):
+        inbound_orders_service.add_item(
+            order.code,
+            InboundOrderItemCreateSchema(
+                product_code=product.code,
+                product_name=product.name,
+                unit_price=300,
+                amount=5,
+            ),
+        )
+
+    assert order.items.count() == 1
+
+
+def test_incoming_order_update_item(db):
+    order = cast(InboundOrder, InboundOrderFactory())
+    item = cast(InboundOrderItem, InboundOrderItemFactory(order=order))
+
+    result = inbound_orders_service.update_item(
+        order.code,
+        InboundOrderItemCreateSchema(
+            product_code=item.stock_product.code,
+            product_name=item.stock_product.name,
+            unit_price=555,
+            amount=7,
+        ),
+    )
+
+    item.refresh_from_db()
+    assert item.amount == 7
+    assert item.unit_price == 555
+    assert result.amount == 7
+    assert result.unit_price == 555
 
 
 def test_incoming_order_remove_item(db):

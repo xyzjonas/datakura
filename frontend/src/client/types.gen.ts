@@ -2310,6 +2310,27 @@ export type WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses = {
 
 export type WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponse = WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses];
 
+export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderData = {
+    body: InboundOrderItemCreateSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/items';
+};
+
+export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: CreateInboundOrderItemResponse;
+};
+
+export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponse = WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses];
+
 export type WarehouseApiRoutesInboundOrdersTransitionInboundOrderData = {
     body: InboundOrderTransitionSchema;
     path: {

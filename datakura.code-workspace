@@ -9,5 +9,7 @@
       "path": "frontend",
     },
   ],
-  "settings": {},
+  "settings": {
+    ,
+  },
 }
