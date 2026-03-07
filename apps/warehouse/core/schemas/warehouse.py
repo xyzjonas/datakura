@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from ninja import Schema
 
+from .barcode import BarcodeSchema
 from .base import BaseResponse, BaseSchema, PaginatedResponse
 from .base_orders import InboundWarehouseOrderBaseSchema, InboundOrderBaseSchema
 from .credit_notes import CreditNoteSupplierSchema
@@ -13,12 +15,6 @@ from ...models.warehouse import InboundWarehouseOrderState, TrackingLevel
 
 if TYPE_CHECKING:
     pass
-
-
-class BarcodeSchema(BaseSchema):
-    code: str
-    barcode_type: str
-    is_primary: bool
 
 
 class WarehouseLocationSchema(BaseSchema):
@@ -54,9 +50,20 @@ class WarehouseItemSchema(BaseSchema):
     amount: float
     location: WarehouseLocationSchema
     tracking_level: TrackingLevel
+    inbound_order_code: str | None = None
     package: PackageSchema | None = None
     batch: BatchSchema | None = None
     primary_barcode: str | None = None
+
+
+class WarehouseMovementSchema(Schema):
+    moved_at: datetime
+    location_from_code: str | None = None
+    location_to_code: str | None = None
+    stock_product: ProductSchema
+    amount: float
+    item: WarehouseItemSchema | None = None
+    batch_id: int | None = None
 
 
 class ProductWarehouseAvailability(Schema):
@@ -97,7 +104,10 @@ class InboundWarehouseOrderItemSchema(BaseSchema):
 
 class InboundWarehouseOrderSchema(InboundWarehouseOrderBaseSchema):
     items: list[WarehouseItemSchema]
+    movements: list[WarehouseMovementSchema]
     completed_items_count: int
+    total_amount: float
+    remaining_amount: float
     order: InboundOrderBaseSchema
     credit_note: CreditNoteSupplierSchema | None = None
 
@@ -150,6 +160,10 @@ class GetWarehouseOrderResponse(BaseResponse):
     data: InboundWarehouseOrderSchema
 
 
+class GetWarehouseItemResponse(BaseResponse):
+    data: WarehouseItemSchema
+
+
 class GetWarehouseOrdersResponse(PaginatedResponse[InboundWarehouseOrderSchema]):
     ...
     # data: list[WarehouseOrderSchema]
@@ -170,4 +184,10 @@ class RemoveItemToCreditNoteRequest(Schema):
 
 
 class PutawayItemRequest(Schema):
+    new_location_code: str
+
+
+class CreateWarehouseMovementSchema(Schema):
+    item_id: int
+    warehouse_order_code: str
     new_location_code: str

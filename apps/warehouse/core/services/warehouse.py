@@ -30,6 +30,7 @@ from apps.warehouse.core.transformation import (
     product_orm_to_schema,
     package_orm_to_schema,
     location_orm_to_schema,
+    warehouse_item_orm_to_schema,
 )
 from apps.warehouse.models.orders import (
     InboundOrder,
@@ -44,6 +45,7 @@ from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrder,
     WarehouseItem,
+    WarehouseMovement,
     WarehouseLocation,
     InboundWarehouseOrderState,
     TrackingLevel,
@@ -152,6 +154,61 @@ movement_service = MovementService()
 
 class WarehouseService:
     @staticmethod
+    def get_warehouse_item(item_id: int) -> WarehouseItemSchema:
+        try:
+            item = WarehouseItem.objects.select_related(
+                "stock_product",
+                "stock_product__unit_of_measure",
+                "stock_product__type",
+                "stock_product__group",
+                "location",
+                "location__warehouse",
+                "order_in",
+                "package_type",
+                "package_type__unit_of_measure",
+                "batch",
+            ).get(pk=item_id)
+        except WarehouseItem.DoesNotExist as exc:
+            raise WarehouseItemNotFoundError(
+                f"Warehouse item with id '{item_id}' does not exist"
+            ) from exc
+
+        return warehouse_item_orm_to_schema(item)
+
+    @staticmethod
+    def create_warehouse_movement(
+        item_id: int, warehouse_order_code: str, new_location_code: str
+    ) -> None:
+        warehouse_order = InboundWarehouseOrder.objects.get(code=warehouse_order_code)
+        item = warehouse_order.items.get(pk=item_id)
+        new_location = WarehouseLocation.objects.get(code=new_location_code)
+
+        movement_data = dict(
+            location_from=item.location,
+            location_to=new_location,
+            inbound_order_code=warehouse_order,
+            stock_product=item.stock_product,
+            amount=item.amount,
+            item=None,
+            batch=None,
+        )
+
+        if item.tracking_level == TrackingLevel.FUNGIBLE:
+            movement_data["item"] = None
+            movement_data["batch"] = None
+        elif item.tracking_level == TrackingLevel.BATCH:
+            movement_data["item"] = None
+            movement_data["batch"] = item.batch
+        elif item.tracking_level in (
+            TrackingLevel.SERIALIZED_PIECE,
+            TrackingLevel.SERIALIZED_PACKAGE,
+        ):
+            movement_data["item"] = item
+            movement_data["batch"] = None
+
+        WarehouseMovement.objects.create(**movement_data)
+
+    @staticmethod
     def generate_next_inbound_order_code() -> str:
         now = timezone.now()
         dt_range = _get_month_range(now)
@@ -170,6 +227,11 @@ class WarehouseService:
                 "items",
                 "items__stock_product",
                 "items__stock_product__unit_of_measure",
+                "order__items",
+                "warehouse_movements",
+                "warehouse_movements__location_from",
+                "warehouse_movements__location_to",
+                "warehouse_movements__stock_product",
             )
             .select_related("order", "order__credit_note")
             .get(code=code)
@@ -531,32 +593,31 @@ class WarehouseService:
             )
 
     @staticmethod
-    def recalculate_average_purchase_price(item: WarehouseItem) -> None:
-        stock_product = item.stock_product
-        if not item.order_in:
-            raise ValueError
-        item_from_order = item.order_in.order.items.filter(
-            stock_product=stock_product
-        ).first()
-        if not item_from_order:
-            raise WarehouseGenericError(
-                f"Warehouse item lacks an appropriate order item ({stock_product.name} - {stock_product.code})"
-            )
-        unit_price = item_from_order.unit_price
+    def recalculate_average_purchase_price(
+        product_code: str, amount: Decimal, unit_price: Decimal
+    ) -> None:
+        stock_product = StockProduct.objects.get(code=product_code)
+        # item_from_order = item.order_in.order.items.filter(
+        #     stock_product=stock_product
+        # ).first()
+        # if not item_from_order:
+        #     raise WarehouseGenericError(
+        #         f"Warehouse item lacks an appropriate order item ({stock_product.name} - {stock_product.code})"
+        #     )
+        # unit_price = item_from_order.unit_price
         if not stock_product.purchase_price:
             stock_product.purchase_price = unit_price
-
         else:
-            total_items_amount = (
-                WarehouseItem.objects.filter(stock_product=stock_product)
-                .exclude(pk=item.pk)
-                .aggregate(total_amount=Sum("amount"))["total_amount"]
-                or 0
-            )
-            new_avg = (
-                total_items_amount * stock_product.purchase_price
-                + item.amount * unit_price
-            ) / (total_items_amount + item.amount)
+            total_items_amount = WarehouseItem.available.total_amount(product_code)
+            if not total_items_amount:
+                new_avg = unit_price
+            else:
+                total_price = (
+                    total_items_amount * stock_product.purchase_price
+                    + Decimal(amount) * Decimal(unit_price)
+                )
+                total_amount = total_items_amount + amount
+                new_avg = total_price / total_amount
             stock_product.purchase_price = new_avg
 
         stock_product.save()
@@ -586,6 +647,22 @@ class WarehouseService:
         new_location = WarehouseLocation.objects.get(code=new_location_code)
 
         with transaction.atomic():
+            amount = item.amount
+            if not item.order_in:
+                raise ValueError()
+            unit_price = item.order_in.order.items.get(
+                stock_product=item.stock_product
+            ).unit_price
+            cls.recalculate_average_purchase_price(
+                item.stock_product.code, amount, unit_price
+            )
+
+            cls.create_warehouse_movement(
+                item_id=item_id,
+                warehouse_order_code=warehouse_order_code,
+                new_location_code=new_location_code,
+            )
+
             movement_service.move_item(item, new_location)
 
             if warehouse_order.items.filter(location__is_putaway=True).count() == 0:

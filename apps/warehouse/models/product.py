@@ -3,6 +3,7 @@
 from django.db import models
 
 from .base import BaseModel
+from .barcode import BarcodeMixin
 from .currency import CURRENCY_CHOICES
 from .packaging import UnitOfMeasure
 
@@ -32,7 +33,7 @@ class ProductGroup(BaseModel):
         return self.name
 
 
-class StockProduct(BaseModel):
+class StockProduct(BaseModel, BarcodeMixin):
     name = models.CharField(max_length=255, null=False)
     code = models.CharField(max_length=255, null=False, unique=True)
     type = models.ForeignKey(ProductType, null=False, on_delete=models.PROTECT)

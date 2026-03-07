@@ -1,14 +1,17 @@
 <template>
   <div v-if="order" class="flex flex-col gap-2 flex-1">
-    <q-breadcrumbs class="mb-5">
-      <q-breadcrumbs-el label="Domů" :to="{ name: 'home' }" />
-      <q-breadcrumbs-el label="Vydané Objednávky" :to="{ name: 'orders' }" />
-      <q-breadcrumbs-el
-        :label="order.order.code"
-        :to="{ name: 'incomingOrderDetail', params: { code: order.order.code } }"
-      />
-      <q-breadcrumbs-el :label="order.code" />
-    </q-breadcrumbs>
+    <div class="flex justify-between">
+      <q-breadcrumbs class="mb-5">
+        <q-breadcrumbs-el label="Domů" :to="{ name: 'home' }" />
+        <q-breadcrumbs-el label="Vydané Objednávky" :to="{ name: 'orders' }" />
+        <q-breadcrumbs-el
+          :label="order.order.code"
+          :to="{ name: 'incomingOrderDetail', params: { code: order.order.code } }"
+        />
+        <q-breadcrumbs-el :label="order.code" />
+      </q-breadcrumbs>
+      <OrderProgress :order="order" class="max-w-xs" />
+    </div>
 
     <div class="mb-2 flex justify-between items-center">
       <div class="flex gap-2 items-center">
@@ -20,7 +23,9 @@
             <CopyToClipBoardButton v-if="order.code" :text="order.code" />
           </div>
         </div>
-        <InboundWarehouseOrderStateBadge :state="order.state" />
+        <div class="min-w-xs flex flex-col gap-2 items-start">
+          <InboundWarehouseOrderStateBadge :state="order.state" />
+        </div>
       </div>
       <div class="flex gap-2 items-center">
         <q-btn
@@ -61,14 +66,19 @@
     <LargeTabs
       v-model:tab="activeTabKey"
       :items="[
-        { key: 'todo', icon: 'sym_o_call_received', title: 'Neuzavřené' },
-        { key: 'outbound', icon: 'sym_o_call_made', title: 'Uzavřené' },
+        {
+          key: 'todo',
+          icon: 'sym_o_call_received',
+          title: `${todoItems.length} položky k naskladnění`,
+        },
+        { key: 'outbound', icon: 'sym_o_call_made', title: `${movements.length} Provedené Pohyby` },
       ]"
       class="my-5"
     />
-
+    <!-- REMAINING ITEMS -->
     <InboundWarehouseOrderItemsList
-      v-model:items="order.items"
+      v-if="activeTabKey === 'todo'"
+      :items="todoItems"
       :readonly="order.state !== 'draft'"
       :allow-move="order.state === 'pending' || order.state === 'started'"
       @packaged="updateOrderItems"
@@ -76,6 +86,22 @@
       @remove-item="removeItem"
       @moved="moveItem"
     ></InboundWarehouseOrderItemsList>
+
+    <!-- MOVEMENTS -->
+    <TransitionGroup v-if="activeTabKey === 'outbound'" name="list" tag="div" class="flex">
+      <WarehouseMovementItem
+        v-for="(movement, index) in movements"
+        :key="index"
+        :index="index + 1"
+        :movement="movement"
+      />
+      <q-item v-if="movements.length === 0">
+        <q-item-section>
+          <q-item-label caption>Žádné pohyby nebyly zaznamenány.</q-item-label>
+        </q-item-section>
+      </q-item>
+    </TransitionGroup>
+
     <ConfirmDialog
       v-model:show="confirmDialog"
       title="Potvrdit příjemku"
@@ -119,9 +145,11 @@ import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import LargeTabs from '@/components/LargeTabs.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
+import OrderProgress from '@/components/OrderProgress.vue'
 import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehouseOrderItemsList.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import InboundWarehouseOrderTimeline from '@/components/putaway/InboundWarehouseOrderTimeline.vue'
+import WarehouseMovementItem from '@/components/warehouse/WarehouseMovementItem.vue'
 import { useApi } from '@/composables/use-api'
 import { getInboundWarehouseOrderStep } from '@/constants/inbound-warehouse-order'
 import { useQuasar } from 'quasar'
@@ -143,6 +171,9 @@ const order = ref<InboundWarehouseOrderSchema>()
 if (data) {
   order.value = data.data
 }
+
+const todoItems = computed(() => (order.value?.items ?? []).filter((it) => it.location.is_putaway))
+const movements = computed(() => order.value?.movements ?? [])
 
 const step = computed(() => getInboundWarehouseOrderStep(order.value))
 

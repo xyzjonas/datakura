@@ -2,7 +2,7 @@
   <div>
     <div class="flex items-center min-h-20 py-1">
       <div class="flex flex-col gap-2">
-        <div class="flex justify-between gap-2">
+        <div class="flex items-center gap-2">
           <a
             @click="
               $router.push({
@@ -10,9 +10,19 @@
                 params: { productCode: item.product.code },
               })
             "
-            class="link mr-5"
+            class="link"
             >{{ item.product.name }}</a
           >
+          <q-btn
+            dense
+            flat
+            round
+            size="10px"
+            icon="sym_o_open_in_new"
+            :to="{ name: 'warehouseItemDetail', params: { itemId: item.id } }"
+          >
+            <q-tooltip :offset="[0, 10]">Detail skladové položky</q-tooltip>
+          </q-btn>
         </div>
         <div class="mb-2">
           <BarcodeElement
@@ -49,6 +59,17 @@
           dense
           round
           icon="delete"
+        >
+          <q-tooltip :offset="[0, 10]">Odstranit položku z příjemky do dobropisu</q-tooltip>
+        </q-btn>
+        <q-btn
+          v-if="isRemovable"
+          @click="dissolveDialog = true"
+          size="14px"
+          flat
+          dense
+          round
+          icon="close"
         >
           <q-tooltip :offset="[0, 10]">Zrušit evidenci položky ⤍ skladem volně</q-tooltip>
         </q-btn>
@@ -91,7 +112,7 @@
       @remove="(amount) => $emit('remove', amount)"
     />
     <ConfirmDialog
-      v-model:show="confirmDelete"
+      v-model:show="dissolveDialog"
       title="Zrušit balení/evidenci?"
       @confirm="$emit('dissolveItem')"
     >
@@ -122,7 +143,7 @@ import InboundWarehouseOrderRemoveItemDialog from './InboundWarehouseOrderRemove
 import LocationSelectionDialog from './LocationSelectionDialog.vue'
 import WarehouseItemTrackingLevelBadge from './WarehouseItemTrackingLevelBadge.vue'
 
-const props = defineProps<{ allowMove?: boolean; readonly?: boolean }>()
+const props = defineProps<{ item: WarehouseItemSchema; allowMove?: boolean; readonly?: boolean }>()
 defineEmits<{
   (e: 'dissolveItem'): void
   (e: 'remove', amount: number): void
@@ -130,24 +151,24 @@ defineEmits<{
   (e: 'moved', location: WarehouseLocationSchema): void
 }>()
 
-const item = defineModel<WarehouseItemSchema>('item', { required: true })
+// const item = defineModel<WarehouseItemSchema>('item', { required: true })
 
 const setItemTrackingDialog = ref(false)
 
 const trackingType = computed<TrackingType>(() => {
-  if (item.value.package?.type) {
+  if (props.item.package?.type) {
     return 'package'
   }
   return ''
 })
 
-const confirmDelete = ref(false)
+const dissolveDialog = ref(false)
 const removeItemDialog = ref(false)
 const moveDialog = ref(false)
 
-const isRemovable = computed(() => item.value.tracking_level !== 'FUNGIBLE' && !props.readonly)
+const isRemovable = computed(() => props.item.tracking_level !== 'FUNGIBLE' && !props.readonly)
 const isReadyToBeTracked = computed(
-  () => item.value.tracking_level === 'FUNGIBLE' && !props.readonly,
+  () => props.item.tracking_level === 'FUNGIBLE' && !props.readonly,
 )
 </script>
 

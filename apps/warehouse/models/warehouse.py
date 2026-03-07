@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Sum
 from django.utils.functional import cached_property
 
 from .barcode import BarcodeMixin
@@ -53,8 +55,23 @@ class Batch(BaseModel, BarcodeMixin):
     description = models.CharField(max_length=300, null=True, blank=True)
 
 
+class AvailableWarehouseItemManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(location__is_putaway=False)
+
+    def total_amount(self, product_code: str) -> Decimal:
+        return (
+            self.get_queryset()
+            .filter(stock_product__code=product_code)
+            .aggregate(total_amount=Sum("amount"))
+        ).get("total_amount") or Decimal("0")
+
+
 class WarehouseItem(BaseModel, BarcodeMixin):
     """Atomic unit of the inventory - uniquely identifiable and trackable item in a warehouse"""
+
+    objects = models.Manager()
+    available = AvailableWarehouseItemManager()
 
     stock_product = models.ForeignKey(
         StockProduct,
@@ -134,15 +151,16 @@ class WarehouseItem(BaseModel, BarcodeMixin):
         return None
 
 
-class WarehouseMovement(BaseModel):
+class WarehouseMovement(models.Model):
     """Traceability: Tracks the movement of a Load OR a single Item."""
 
+    moved_at = models.DateTimeField(auto_now=True)
     # Movement endpoints remain the same
     location_from = models.ForeignKey(
         WarehouseLocation,
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="movements_from",
     )
     location_to = models.ForeignKey(
@@ -152,13 +170,37 @@ class WarehouseMovement(BaseModel):
         on_delete=models.CASCADE,
         related_name="movements_to",
     )
-
-    # todo: bulk move? Boxes? Pallets?
-
-    item = models.ForeignKey(
-        WarehouseItem, null=True, on_delete=models.PROTECT, related_name="movements"
+    inbound_order_code = models.ForeignKey(
+        "InboundWarehouseOrder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="warehouse_movements",
+    )
+    outbound_order_code = models.ForeignKey(
+        "OutboundWarehouseOrder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="warehouse_movements",
     )
 
+    stock_product = models.ForeignKey(
+        StockProduct, on_delete=models.PROTECT, related_name="warehouse_movements"
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        help_text="Amount of the stock product in stock product UOM",
+    )
+    item = models.ForeignKey(
+        WarehouseItem,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="movements",
+        help_text="Track item ID for non-fungible items",
+    )
+    batch = models.ForeignKey(Batch, on_delete=models.SET_NULL, null=True, blank=True)
     worker = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
 

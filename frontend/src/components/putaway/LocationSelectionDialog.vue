@@ -86,7 +86,7 @@ import {
   type WarehouseLocationSchema,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
-import { onUpdated, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import EmptyPanel from '../EmptyPanel.vue'
 
 const { onResponse } = useApi()
@@ -108,7 +108,7 @@ const emit = defineEmits<{
 const loading = ref(false)
 
 const locationsWithTheSameProduct = ref<WarehouseLocationSchema[]>([])
-onUpdated(async () => {
+const fetchLocationsWithSameProduct = async () => {
   loading.value = true
   const result = await warehouseApiRoutesWarehouseGetWarehouseLocations({
     query: {
@@ -121,7 +121,7 @@ onUpdated(async () => {
     locationsWithTheSameProduct.value = data.data
   }
   setTimeout(() => (loading.value = false), 300)
-})
+}
 
 const fetchLocations = async () => {
   loading.value = true
@@ -140,13 +140,16 @@ const fetchLocations = async () => {
 }
 
 const debouncedSearch = () => {
+  console.info('Search term updated, fetching locations with search term:', search.value)
   page.value = 1
   fetchLocations()
 }
 
 watch(showDialog, (newValue) => {
-  if (newValue) {
+  if (newValue === true) {
+    console.info('Dialog opened, fetching locations')
     fetchLocations()
+    fetchLocationsWithSameProduct()
   }
 })
 

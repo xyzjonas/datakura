@@ -22,6 +22,8 @@ from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     WarehouseLocation,
     WarehouseItem,
+    WarehouseMovement,
+    Batch,
     InboundWarehouseOrder,
     InboundWarehouseOrderState,
     TrackingLevel,
@@ -36,7 +38,6 @@ from apps.warehouse.tests.factories.units import UnitOfMeasureFactory
 from apps.warehouse.tests.factories.warehouse import (
     WarehouseItemFactory,
     InboundWarehouseOrderFactory,
-    CompleteOrderFactory,
 )
 from apps.warehouse.tests.factories.warehouse import WarehouseLocationFactory
 
@@ -254,19 +255,19 @@ def test_dissolve_inbound_order_item_add(db):
 def test_remove_from_order_to_credit_note(db):
     amount = 100
     unit_price = 99
-    warehouse_order = CompleteOrderFactory(amount_and_unit_price=(amount, unit_price))
-    item = warehouse_order.items.first()
-    # product = StockProductFactory()
-    # item = WarehouseItemFactory(order_in=order, stock_product=product, amount=100, package_type=None)
+    w_order = InboundWarehouseOrderFactory.create_complete(
+        amount=amount, unit_price=unit_price
+    )
+    item = w_order.items.first()
 
     credited_amount = 10
     w_order = warehouse_service.remove_from_order_to_credit_note(
-        warehouse_order.code, item.pk, credited_amount
+        w_order.code, item.pk, credited_amount
     )
     credit_note = w_order.credit_note
     assert credit_note
     assert credit_note.state == CreditNoteState.DRAFT
-    assert credit_note.order.code == warehouse_order.order.code
+    assert credit_note.order.code == w_order.order.code
     assert len(credit_note.items) == 1
 
     credit_item = credit_note.items[0]
@@ -280,7 +281,9 @@ def test_remove_from_order_to_credit_note(db):
 
 def test_remove_from_order_to_credit_note_all_gone(db):
     amount = 100
-    warehouse_order = CompleteOrderFactory(amount_and_unit_price=(amount, 1))
+    warehouse_order = InboundWarehouseOrderFactory.create_complete(
+        amount=amount, unit_price=1
+    )
     item = warehouse_order.items.first()
 
     credited_amount = amount
@@ -297,16 +300,14 @@ def test_remove_from_order_to_credit_note_all_gone(db):
 
 
 def test_putaway_item_simple(db):
-    piece_uom = UnitOfMeasureFactory(name="KS")
-    stock_product = StockProductFactory(unit_of_measure=piece_uom)
     new_location = WarehouseLocationFactory()
-
-    war_order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING)
-    unpackaged = WarehouseItemFactory(
-        stock_product=stock_product, order_in=war_order, amount=10
+    war_order = InboundWarehouseOrderFactory.create_complete(
+        amount=10, state=InboundWarehouseOrderState.PENDING
     )
 
-    warehouse_service.putaway_item(unpackaged.pk, war_order.code, new_location.code)
+    warehouse_service.putaway_item(
+        war_order.items.first().pk, war_order.code, new_location.code
+    )
 
     loc = WarehouseLocation.objects.get(code=new_location.code)
     assert loc.items.count() == 1
@@ -329,6 +330,7 @@ def test_putaway_item_packaged(db):
         amount=100,
         package_type=box_100,
     )
+    InboundOrderItemFactory(order=war_order.order, stock_product=stock_product)
 
     warehouse_service.putaway_item(packaged.pk, war_order.code, new_location.code)
 
@@ -348,6 +350,7 @@ def test_putaway_item_unpackaged_merge(db):
     WarehouseItemFactory(stock_product=stock_product, amount=50, location=new_location)
 
     war_order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING)
+    InboundOrderItemFactory(order=war_order.order, stock_product=stock_product)
     unpackaged = WarehouseItemFactory(
         stock_product=stock_product, order_in=war_order, amount=10
     )
@@ -386,6 +389,7 @@ def test_start_inbound_order(db):
     putaway_location = WarehouseLocationFactory(is_putaway=True)
     order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING)
     to_be_moved = WarehouseItemFactory(order_in=order, location=putaway_location)
+    InboundOrderItemFactory(order=order.order, stock_product=to_be_moved.stock_product)
     WarehouseItemFactory.create_batch(9, order_in=order, location=putaway_location)
 
     new_location = WarehouseLocationFactory(is_putaway=False)
@@ -402,6 +406,13 @@ def test_complete_inbound_order(db):
     order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING)
     to_be_moved_1 = WarehouseItemFactory(order_in=order, location=putaway_location)
     to_be_moved_2 = WarehouseItemFactory(order_in=order, location=putaway_location)
+
+    InboundOrderItemFactory(
+        order=order.order, stock_product=to_be_moved_1.stock_product
+    )
+    InboundOrderItemFactory(
+        order=order.order, stock_product=to_be_moved_2.stock_product
+    )
 
     new_location = WarehouseLocationFactory(is_putaway=False)
 
@@ -433,14 +444,95 @@ def test_recalculate_average_purchase_price_existing_stock(
 ):
     product = StockProductFactory(purchase_price=price_pre)
     WarehouseItemFactory(stock_product=product, amount=amount_pre)
-    war_order = CompleteOrderFactory(
-        amount_and_unit_price=(amount_in, price_in, product)
+    w_order = InboundWarehouseOrderFactory.create_complete(
+        product=product,
+        amount=amount_in,
+        unit_price=price_in,
+        is_putaway=True,
+        state=InboundWarehouseOrderState.PENDING,
     )
 
-    assert WarehouseItem.objects.filter(order_in=war_order).count() == 1
-    item = WarehouseItem.objects.filter(order_in=war_order).first()
+    assert WarehouseItem.objects.filter(order_in=w_order).count() == 1
+    item = WarehouseItem.objects.filter(order_in=w_order).first()
 
-    warehouse_service.recalculate_average_purchase_price(item)
+    warehouse_service.recalculate_average_purchase_price(
+        product.code, item.amount, price_in
+    )
 
     product.refresh_from_db()
     assert product.purchase_price == Decimal(str(expected))
+
+
+def test_create_warehouse_movement_fungible_sets_item_and_batch_none(db):
+    order = InboundWarehouseOrderFactory()
+    source_location = WarehouseLocationFactory()
+    target_location = WarehouseLocationFactory()
+    item = WarehouseItemFactory(
+        order_in=order,
+        location=source_location,
+        tracking_level=TrackingLevel.FUNGIBLE,
+    )
+
+    warehouse_service.create_warehouse_movement(
+        item.pk, order.code, target_location.code
+    )
+
+    movement = WarehouseMovement.objects.filter(item__isnull=True).latest("id")
+    assert movement.location_from == source_location
+    assert movement.location_to == target_location
+    assert movement.inbound_order_code == order
+    assert movement.stock_product == item.stock_product
+    assert movement.amount == item.amount
+    assert movement.item is None
+    assert movement.batch is None
+
+
+def test_create_warehouse_movement_batch_sets_batch_only(db):
+    order = InboundWarehouseOrderFactory()
+    source_location = WarehouseLocationFactory()
+    target_location = WarehouseLocationFactory()
+    batch = Batch.objects.create(description="b-1")
+    item = WarehouseItemFactory(
+        order_in=order,
+        location=source_location,
+        tracking_level=TrackingLevel.BATCH,
+        batch=batch,
+    )
+
+    warehouse_service.create_warehouse_movement(
+        item.pk, order.code, target_location.code
+    )
+
+    movement = WarehouseMovement.objects.filter(inbound_order_code=order).latest("id")
+    assert movement.location_from == source_location
+    assert movement.location_to == target_location
+    assert movement.stock_product == item.stock_product
+    assert movement.amount == item.amount
+    assert movement.item is None
+    assert movement.batch == batch
+
+
+@pytest.mark.parametrize(
+    "tracking_level", [TrackingLevel.SERIALIZED_PIECE, TrackingLevel.SERIALIZED_PACKAGE]
+)
+def test_create_warehouse_movement_serialized_sets_item_only(db, tracking_level):
+    order = InboundWarehouseOrderFactory()
+    source_location = WarehouseLocationFactory()
+    target_location = WarehouseLocationFactory()
+    item = WarehouseItemFactory(
+        order_in=order,
+        location=source_location,
+        tracking_level=tracking_level,
+    )
+
+    warehouse_service.create_warehouse_movement(
+        item.pk, order.code, target_location.code
+    )
+
+    movement = WarehouseMovement.objects.filter(inbound_order_code=order).latest("id")
+    assert movement.location_from == source_location
+    assert movement.location_to == target_location
+    assert movement.stock_product == item.stock_product
+    assert movement.amount == item.amount
+    assert movement.item == item
+    assert movement.batch is None

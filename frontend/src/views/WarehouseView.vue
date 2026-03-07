@@ -55,6 +55,24 @@
           <span class="text-slate"> Sloučit podle typu balení </span>
         </q-toggle>
       </template>
+      <template #body-cell-code="props">
+        <q-td>
+          <a
+            @click="$router.push({ name: 'warehouseItemDetail', params: { itemId: props.row.id } })"
+            class="link"
+          >
+            {{ props.value }}
+          </a>
+          <BarcodeElement
+            v-if="props.value"
+            :barcode="props.value"
+            :width="1.6"
+            text-align="left"
+            :display-value="false"
+          />
+          <span v-else></span>
+        </q-td>
+      </template>
       <template #body-cell-name="props">
         <q-td>
           <a
@@ -104,6 +122,7 @@ import {
   type WarehouseLocationDetailSchema,
   type WarehouseLocationSchema,
 } from '@/client'
+import BarcodeElement from '@/components/BarcodeElement.vue'
 import EmptyPanel from '@/components/EmptyPanel.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import PackageTypeBadge from '@/components/PackageTypeBadge.vue'
@@ -220,7 +239,7 @@ const columns = computed<QTableColumn[]>(() => {
       },
       {
         field: (item: WarehouseItemSchema) => item.product.code,
-        name: 'code',
+        name: 'product_code',
         label: 'Kód produktu',
         align: 'left' as const,
         sortable: true,
@@ -258,7 +277,7 @@ const columns = computed<QTableColumn[]>(() => {
       },
       {
         field: (item: WarehouseItemSchema) => item.product.code,
-        name: 'code',
+        name: 'product_code',
         label: 'Kód produktu',
         align: 'left' as const,
         sortable: true,

@@ -21,7 +21,7 @@
         <span class="flex items-center gap-1 mb-3">
           <small class="text-gray-5">kód:</small>
           <h5>{{ product.code }}</h5>
-          <q-btn flat round size="8px" icon="content_copy"></q-btn>
+          <CopyToClipBoardButton :text="product.code" />
         </span>
 
         <div class="mt-2">
@@ -108,6 +108,7 @@
 
 <script setup lang="ts">
 import { warehouseApiRoutesProductGetProduct } from '@/client'
+import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'

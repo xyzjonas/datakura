@@ -1,18 +1,19 @@
 <template>
   <div v-if="items.length > 0" class="flex flex-col gap-2">
-    <q-list separator>
-      <q-item
+    <!-- <q-list separator> -->
+    <TransitionGroup name="list" tag="div" class="flex">
+      <div
         v-for="(item, index) in items"
         :key="item.id"
         clickable
-        class="w-full flex items-center gap-5"
+        class="w-full flex items-center gap-5 border-b light:border-grey-5 dark:border-b-dark-4 hover:bg-light-2 py-2"
       >
         <span
           class="font-mono text-lg border light:border-gray-3 dark:border-gray-5 aspect-ratio-square grid content-center justify-center rounded w-12"
           >{{ index + 1 }}</span
         >
         <WarehouseItemEditableRow
-          v-model:item="items[index]"
+          :item="item"
           :readonly="readonly"
           :allow-move="allowMove"
           @dissolve-item="() => $emit('dissolveItem', item.id)"
@@ -21,14 +22,14 @@
           @moved="(location) => $emit('moved', item.id, location)"
           class="flex-1"
         ></WarehouseItemEditableRow>
-      </q-item>
-    </q-list>
-    <!-- </ForegroundPanel> -->
+      </div>
+    </TransitionGroup>
+    <!-- </q-list> -->
   </div>
   <EmptyPanel v-else icon="sym_o_apps_outage">
     <div class="flex flex-col gap-2 items-start py-10">
       <h3 class="uppercase">Žádné položky</h3>
-      <span class="link uppercase" @click="$emit('addItem')">přidat položku</span>
+      <span v-if="!readonly" class="link uppercase" @click="$emit('addItem')">přidat položku</span>
     </div>
   </EmptyPanel>
 </template>
@@ -45,6 +46,9 @@ defineEmits<{
   (e: 'packaged', item: WarehouseItemSchema, items: WarehouseItemSchema[]): void
   (e: 'moved', itemId: number, location: WarehouseLocationSchema): void
 }>()
-defineProps<{ readonly?: boolean; allowMove?: boolean }>()
-const items = defineModel<Array<WarehouseItemSchema>>('items', { default: [] })
+defineProps<{
+  items: WarehouseItemSchema[]
+  readonly?: boolean
+  allowMove?: boolean
+}>()
 </script>

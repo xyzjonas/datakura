@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from ninja import Schema
 from pydantic import Field
 
 from .base import BaseSchema, BaseResponse, PaginatedResponse
+from .barcode import BarcodeSchema
 
 
 class ProductSchema(BaseSchema):
@@ -17,6 +19,8 @@ class ProductSchema(BaseSchema):
     currency: str
     customs_declaration_group: str | None = None
     attributes: dict[str, str] = Field(default_factory=dict)
+    barcodes: list[BarcodeSchema] = Field(default_factory=list)
+    primary_barcode: BarcodeSchema | None = None
 
 
 class GetProductResponse(BaseResponse):
@@ -24,3 +28,9 @@ class GetProductResponse(BaseResponse):
 
 
 class GetProductsResponse(PaginatedResponse[ProductSchema]): ...
+
+
+class ProductBarcodeCreateSchema(Schema):
+    code: str
+    barcode_type: str = "EAN13"
+    is_primary: bool = False

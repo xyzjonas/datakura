@@ -11,6 +11,7 @@ from apps.warehouse.api.pagination import StockProductPagination
 from apps.warehouse.core.schemas.product import (
     GetProductResponse,
     ProductSchema,
+    ProductBarcodeCreateSchema,
 )
 from apps.warehouse.core.schemas.warehouse import (
     GetProductWarehouseInfoResponse,
@@ -19,6 +20,7 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseLocationDetailSchema,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
+from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
     get_product_by_code,
     warehouse_item_orm_to_schema,
@@ -51,6 +53,15 @@ def get_product(request: HttpRequest, product_code: str):
     #     request, username=credentials.username, password=credentials.password
     # )
     return GetProductResponse(data=get_product_by_code(product_code))
+
+
+@routes.post("/{product_code}/barcodes", response={200: GetProductResponse})
+def add_product_barcode(
+    request: HttpRequest, product_code: str, body: ProductBarcodeCreateSchema
+):
+    return GetProductResponse(
+        data=stock_product_service.add_barcode(product_code, body)
+    )
 
 
 @routes.get(

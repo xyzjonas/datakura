@@ -25,12 +25,13 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,
     PackageSchema,
     InboundWarehouseOrderSchema,
+    WarehouseMovementSchema,
     WarehouseLocationSchema,
     WarehouseLocationDetailSchema,
     WarehouseLocationWithCountSchema,
     BatchSchema,
-    BarcodeSchema,
 )
+from apps.warehouse.core.schemas.barcode import BarcodeSchema
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import (
@@ -44,6 +45,7 @@ from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     WarehouseItem,
+    WarehouseMovement,
     InboundWarehouseOrder,
     WarehouseLocation,
     InboundWarehouseOrderState,
@@ -51,7 +53,9 @@ from apps.warehouse.models.warehouse import (
 )
 
 
-def barcode_orm_to_schema(barcode: Barcode) -> BarcodeSchema:
+def barcode_orm_to_schema(barcode: Barcode | None = None) -> BarcodeSchema | None:
+    if not barcode:
+        return None
     return BarcodeSchema(
         code=barcode.code,
         barcode_type=barcode.barcode_type,
@@ -152,6 +156,8 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         purchase_price=float(product.purchase_price),
         customs_declaration_group=product.customs_declaration_group,
         attributes=product.attributes,
+        barcodes=product.get_barcodes(),
+        primary_barcode=barcode_orm_to_schema(product.get_primary_barcode()),
     )
 
 
@@ -195,6 +201,7 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
         changed=item.changed,
         amount=float(amount or 0),
         location=location_orm_to_schema(item.location),
+        inbound_order_code=item.order_in.code if item.order_in else None,
         package=package_type,
         batch=batch_orm_to_schema(item.batch) if getattr(item, "batch") else None,  # type: ignore
         tracking_level=item.tracking_level,  # type: ignore
@@ -307,11 +314,21 @@ def credit_note_supplier_orm_to_schema(
 def warehouse_inbound_order_orm_to_schema(
     w_order: InboundWarehouseOrder,
 ) -> InboundWarehouseOrderSchema:
+    received_amount = sum(float(item.amount) for item in w_order.order.items.all())
+    remaining_amount = sum(
+        float(item.amount)
+        for item in w_order.items.filter(location__is_putaway=True).all()
+    )
+
     return InboundWarehouseOrderSchema(
         code=w_order.code,
         created=w_order.created,
         changed=w_order.changed,
         items=[warehouse_item_orm_to_schema(item) for item in w_order.items.all()],
+        movements=[
+            warehouse_movement_orm_to_schema(movement)
+            for movement in w_order.warehouse_movements.order_by("-moved_at")
+        ],
         completed_items_count=len(
             [
                 item
@@ -321,6 +338,8 @@ def warehouse_inbound_order_orm_to_schema(
                 if not item.location.is_putaway
             ]
         ),
+        total_amount=received_amount,
+        remaining_amount=remaining_amount,
         order_code=w_order.order.code,
         order=InboundOrderBaseSchema(
             code=w_order.order.code,
@@ -341,4 +360,20 @@ def warehouse_inbound_order_orm_to_schema(
         credit_note=credit_note_supplier_orm_to_schema(w_order.order.credit_note)
         if getattr(w_order.order, "credit_note", None)
         else None,
+    )
+
+
+def warehouse_movement_orm_to_schema(
+    movement: WarehouseMovement,
+) -> WarehouseMovementSchema:
+    return WarehouseMovementSchema(
+        moved_at=movement.moved_at,
+        location_from_code=movement.location_from.code
+        if movement.location_from
+        else None,
+        location_to_code=movement.location_to.code if movement.location_to else None,
+        stock_product=product_orm_to_schema(movement.stock_product),
+        amount=float(movement.amount),
+        item=warehouse_item_orm_to_schema(movement.item) if movement.item else None,
+        batch_id=movement.batch_id,
     )

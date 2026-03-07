@@ -12,6 +12,7 @@ from apps.warehouse.api.pagination import (
 from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.core.schemas.warehouse import (
     GetWarehouseLocationResponse,
+    GetWarehouseItemResponse,
     GetWarehouseOrderResponse,
     WarehouseOrderCreateSchema,
     InboundWarehouseOrderSchema,
@@ -102,6 +103,15 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
     return GetWarehouseLocationResponse(data=location_orm_to_detail_schema(location))
 
 
+@routes.get(
+    "items/{item_id}",
+    response={200: GetWarehouseItemResponse},
+)
+def get_warehouse_item(request: HttpRequest, item_id: int):
+    item = warehouse_service.get_warehouse_item(item_id)
+    return GetWarehouseItemResponse(data=item)
+
+
 @routes.post(
     "orders-incoming",
     response={200: GetWarehouseOrderResponse},
@@ -125,7 +135,15 @@ def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None =
     qs = cast(
         QuerySet[InboundWarehouseOrder],
         InboundWarehouseOrder.objects.select_related("order")
-        .prefetch_related("items")
+        .prefetch_related(
+            "items",
+            "order__items",
+            "warehouse_movements",
+            "warehouse_movements__location_from",
+            "warehouse_movements__location_to",
+            "warehouse_movements__stock_product",
+            "warehouse_movements__item",
+        )
         .exclude(order__state=InboundOrderState.CANCELLED),
     )
     if search_term:
@@ -198,6 +216,7 @@ def track_inbound_warehouse_order_item(
 @routes.delete(
     "orders-incoming/{code}/items/{item_id}",
     response={200: GetWarehouseOrderResponse},
+    auth=None,
 )
 def dissolve_inbound_warehouse_order_item(
     request: HttpRequest, code: str, item_id: int

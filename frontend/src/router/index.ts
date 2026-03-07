@@ -13,6 +13,7 @@ import ProductView from '@/views/ProductView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import WarehouseInboundOrdersView from '@/views/WarehouseInboundOrdersView.vue'
 import WarehouseInboundOrderView from '@/views/WarehouseInboundOrderView.vue'
+import WarehouseItemView from '@/views/WarehouseItemView.vue'
 import WarehouseView from '@/views/WarehouseView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -39,6 +40,12 @@ const router = createRouter({
       path: '/warehouses',
       name: 'warehouses',
       component: WarehouseView,
+    },
+    {
+      path: '/warehouse/warehouse-items/:itemId',
+      name: 'warehouseItemDetail',
+      component: WarehouseItemView,
+      props: true,
     },
     {
       path: '/products/:productCode',

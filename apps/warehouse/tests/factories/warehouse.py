@@ -1,7 +1,5 @@
 """Factory Boy factories for warehouse and stock models"""
 
-from typing import cast
-
 import factory
 from factory.django import DjangoModelFactory
 
@@ -35,6 +33,10 @@ class WarehouseLocationFactory(DjangoModelFactory):
     class Meta:
         model = WarehouseLocation
 
+    @classmethod
+    def _(cls, **kwargs) -> WarehouseLocation:
+        return cls(**kwargs)  # type: ignore
+
     code = factory.Sequence(lambda n: f"LOC-{chr(65 + (n // 100))}{n % 100:02d}")
     warehouse = factory.SubFactory(WarehouseFactory)
     is_putaway = False
@@ -57,10 +59,53 @@ class InboundWarehouseOrderFactory(DjangoModelFactory):
     order = factory.SubFactory(InboundOrderFactory)
     state = InboundWarehouseOrderState.DRAFT
 
+    @classmethod
+    def _(cls, **kwargs) -> InboundWarehouseOrder:
+        return cls(**kwargs)  # type: ignore
+
+    @classmethod
+    def create_complete(
+        cls,
+        product: StockProduct | StockProductFactory | str | None = None,
+        amount: float = 100,
+        unit_price: float = 1,
+        is_putaway: bool = False,
+        **kwargs,
+    ) -> InboundWarehouseOrder:
+        if not product:
+            product = StockProductFactory()
+        elif isinstance(product, str):
+            product = StockProductFactory(code=product)
+
+        inbound_order = InboundOrderFactory()
+
+        w_order = cls(order=inbound_order, **kwargs)
+        w_order.order = inbound_order  # type: ignore
+
+        WarehouseItemFactory(
+            order_in=w_order,
+            stock_product=product,
+            amount=amount,
+            location=WarehouseLocationFactory(is_putaway=is_putaway),
+        )
+
+        InboundOrderItemFactory(
+            order=inbound_order,
+            stock_product=product,
+            amount=amount,
+            unit_price=unit_price,
+        )
+
+        return w_order  # type: ignore
+
 
 class WarehouseItemFactory(DjangoModelFactory):
     class Meta:
         model = WarehouseItem
+
+    @classmethod
+    def _(cls, **kwargs) -> WarehouseItem:
+        return cls(**kwargs)  # type: ignore
 
     stock_product = factory.SubFactory(StockProductFactory)
     package_type = None
@@ -101,41 +146,3 @@ class WarehouseWithLocationsFactory(WarehouseFactory):
             WarehouseLocationFactory(
                 warehouse=obj, code=f"{obj.name}-{chr(65 + i)}{i:02d}"
             )
-
-
-class CompleteOrderFactory(InboundWarehouseOrderFactory):
-    """Creates a complete inbound order with warehouse order and items"""
-
-    class Params:
-        amount: float = 100
-        unit_price: float = 1
-
-    @factory.post_generation
-    def amount_and_unit_price(
-        obj, create, extracted: tuple[float, float, StockProduct | None], **kwargs
-    ):
-        if not create:
-            return
-
-        if len(extracted) == 3:
-            amount, unit_price, product = extracted
-        else:
-            amount, unit_price = extracted
-            product = None
-
-        product = product or cast(StockProduct, StockProductFactory())
-        inbound_order = InboundOrderFactory()
-        obj.order = inbound_order  # type: ignore
-
-        WarehouseItemFactory(
-            order_in=obj,
-            stock_product=product,
-            amount=amount,
-        )
-
-        InboundOrderItemFactory(
-            order=inbound_order,
-            stock_product=product,
-            amount=amount,
-            unit_price=unit_price,
-        )

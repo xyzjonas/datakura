@@ -78,6 +78,24 @@
           <WarehouseItemCountBadge :item="props.row" />
         </q-td>
       </template>
+      <template #body-cell-code="props">
+        <q-td>
+          <a
+            @click="$router.push({ name: 'warehouseItemDetail', params: { itemId: props.row.id } })"
+            class="link"
+          >
+            {{ props.value }}
+          </a>
+          <BarcodeElement
+            v-if="props.value"
+            :barcode="props.value"
+            :width="1.6"
+            text-align="left"
+            :display-value="false"
+          />
+          <span v-else></span>
+        </q-td>
+      </template>
     </q-table>
   </ForegroundPanel>
   <ForegroundPanel v-else class="flex-[5] grid content-center justify-center uppercase text-gray-5">
@@ -101,6 +119,7 @@ import { aggregatePackaging, type WarehouseItemSchemaWithCount } from '@/utils/a
 import WarehouseItemCountBadge from './WarehouseItemCountBadge.vue'
 import { useApi } from '@/composables/use-api'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
+import BarcodeElement from '../BarcodeElement.vue'
 
 const { onResponse } = useApi()
 

@@ -402,6 +402,11 @@ export type ProductSchema = {
     attributes?: {
         [key: string]: string;
     };
+    /**
+     * Barcodes
+     */
+    barcodes?: Array<BarcodeSchema>;
+    primary_barcode?: BarcodeSchema | null;
 };
 
 /**
@@ -437,6 +442,10 @@ export type WarehouseItemSchema = {
     amount: number;
     location: WarehouseLocationSchema;
     tracking_level: TrackingLevel;
+    /**
+     * Inbound Order Code
+     */
+    inbound_order_code?: string | null;
     package?: PackageSchema | null;
     batch?: BatchSchema | null;
     /**
@@ -473,6 +482,18 @@ export type WarehouseLocationDetailSchema = {
      * Items
      */
     items: Array<WarehouseItemSchema>;
+};
+
+/**
+ * GetWarehouseItemResponse
+ */
+export type GetWarehouseItemResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: WarehouseItemSchema;
 };
 
 /**
@@ -836,9 +857,21 @@ export type InboundWarehouseOrderSchema = {
      */
     items: Array<WarehouseItemSchema>;
     /**
+     * Movements
+     */
+    movements: Array<WarehouseMovementSchema>;
+    /**
      * Completed Items Count
      */
     completed_items_count: number;
+    /**
+     * Total Amount
+     */
+    total_amount: number;
+    /**
+     * Remaining Amount
+     */
+    remaining_amount: number;
     order: InboundOrderBaseSchema;
     credit_note?: CreditNoteSupplierSchema | null;
 };
@@ -847,6 +880,34 @@ export type InboundWarehouseOrderSchema = {
  * InboundWarehouseOrderState
  */
 export type InboundWarehouseOrderState = 'draft' | 'pending' | 'started' | 'completed' | 'cancelled';
+
+/**
+ * WarehouseMovementSchema
+ */
+export type WarehouseMovementSchema = {
+    /**
+     * Moved At
+     */
+    moved_at: string;
+    /**
+     * Location From Code
+     */
+    location_from_code?: string | null;
+    /**
+     * Location To Code
+     */
+    location_to_code?: string | null;
+    stock_product: ProductSchema;
+    /**
+     * Amount
+     */
+    amount: number;
+    item?: WarehouseItemSchema | null;
+    /**
+     * Batch Id
+     */
+    batch_id?: number | null;
+};
 
 /**
  * WarehouseOrderCreateSchema
@@ -988,6 +1049,24 @@ export type GetProductResponse = {
     success?: boolean;
     error?: ErrorInformation | null;
     data: ProductSchema;
+};
+
+/**
+ * ProductBarcodeCreateSchema
+ */
+export type ProductBarcodeCreateSchema = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Barcode Type
+     */
+    barcode_type?: string;
+    /**
+     * Is Primary
+     */
+    is_primary?: boolean;
 };
 
 /**
@@ -1659,6 +1738,27 @@ export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponses = {
 
 export type WarehouseApiRoutesWarehouseGetWarehouseLocationResponse = WarehouseApiRoutesWarehouseGetWarehouseLocationResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseLocationResponses];
 
+export type WarehouseApiRoutesWarehouseGetWarehouseItemData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: number;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/items/{item_id}';
+};
+
+export type WarehouseApiRoutesWarehouseGetWarehouseItemResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseItemResponse;
+};
+
+export type WarehouseApiRoutesWarehouseGetWarehouseItemResponse = WarehouseApiRoutesWarehouseGetWarehouseItemResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseItemResponses];
+
 export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData = {
     body?: never;
     path?: never;
@@ -1933,6 +2033,27 @@ export type WarehouseApiRoutesProductGetProductResponses = {
 };
 
 export type WarehouseApiRoutesProductGetProductResponse = WarehouseApiRoutesProductGetProductResponses[keyof WarehouseApiRoutesProductGetProductResponses];
+
+export type WarehouseApiRoutesProductAddProductBarcodeData = {
+    body: ProductBarcodeCreateSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/barcodes';
+};
+
+export type WarehouseApiRoutesProductAddProductBarcodeResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductAddProductBarcodeResponse = WarehouseApiRoutesProductAddProductBarcodeResponses[keyof WarehouseApiRoutesProductAddProductBarcodeResponses];
 
 export type WarehouseApiRoutesProductGetProductWarehouseInfoData = {
     body?: never;
@@ -2321,3 +2442,17 @@ export type WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses = {
 };
 
 export type WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponse = WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses[keyof WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses];
+
+export type WarehouseApiRoutesAnalyticsGetAnalyticsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/analytics/inventory-value';
+};
+
+export type WarehouseApiRoutesAnalyticsGetAnalyticsResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};

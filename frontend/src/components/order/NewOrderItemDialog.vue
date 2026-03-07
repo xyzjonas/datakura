@@ -6,6 +6,7 @@
           <span class="text-2xl uppercase">Přidat položku</span>
           <q-btn flat round icon="close" v-close-popup />
         </div>
+        <ProductAvailability v-if="product" :product-code="product.code" class="w-fit mb-3" />
         <q-form class="flex flex-col gap-2" @submit="addItem">
           <!-- <ItemSelectByName v-model="newItem" :rules="[rules.notEmpty]" class="flex-1" />
           <PlaceSelect v-show="manualSearchItem" v-model="newPlace" :rules="[rules.notEmpty]" /> -->
@@ -46,6 +47,7 @@ import type { InboundOrderItemCreateSchema, ProductSchema } from '@/client'
 import { rules } from '@/utils/rules'
 import { ref, watch } from 'vue'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
+import ProductAvailability from '../product/ProductAvailability.vue'
 
 const showDialog = defineModel('show', { default: false })
 

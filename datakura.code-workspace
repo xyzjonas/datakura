@@ -1,0 +1,13 @@
+{
+  "folders": [
+    {
+      "name": "datakura",
+      "path": ".",
+    },
+    {
+      "name": "frontend",
+      "path": "frontend",
+    },
+  ],
+  "settings": {},
+}

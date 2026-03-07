@@ -62,9 +62,10 @@
       </template>
       <template #body-cell-completedCount="props">
         <q-td>
-          <q-badge>
+          <!-- <q-badge>
             {{ props.row.completed_items_count }} / {{ props.row.items?.length ?? 0 }}
-          </q-badge>
+          </q-badge> -->
+          <OrderProgress :order="props.row" height="16px" />
         </q-td>
       </template>
     </q-table>
@@ -76,6 +77,7 @@ import {
   warehouseApiRoutesWarehouseGetInboundWarehouseOrders,
   type InboundWarehouseOrderSchema,
 } from '@/client'
+import OrderProgress from '@/components/OrderProgress.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
@@ -169,14 +171,15 @@ const columns: QTableColumn[] = [
   },
   {
     name: 'itemsCount',
-    field: (order: InboundWarehouseOrderSchema) => order.items?.length ?? 0,
-    label: 'Počet položek',
+    field: (order: InboundWarehouseOrderSchema) =>
+      (order.items ?? []).filter((it) => it.location.is_putaway).length ?? 0,
+    label: 'Zbývající položky',
     align: 'left',
   },
   {
     name: 'completedCount',
-    field: (order: InboundWarehouseOrderSchema) => order.completed_items_count,
-    label: 'Provedené pohyby',
+    field: (order: InboundWarehouseOrderSchema) => 1 - order.remaining_amount / order.total_amount,
+    label: 'Naskladněno',
     align: 'left',
   },
   {
@@ -186,23 +189,6 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
 ]
-
-// const { onResponse } = useApi()
-// const newOrderDialog = ref(false)
-// const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
-// const $q = useQuasar()
-// const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
-//   const response = await warehouseApiRoutesOrdersCreateInboundOrder({ body: params })
-//   const data = onResponse(response)
-//   if (data && newOrderDialogComponent.value) {
-//     newOrderDialogComponent.value.reset()
-//     $q.notify({
-//       type: 'positive',
-//       message: `Objednávka úspěšně vytvořena: ${data.data.code}`,
-//     })
-//     router.push({ name: 'incomingOrderDetail', params: { code: data.data.code } })
-//   }
-// }
 </script>
 
 <style lang="scss" scoped></style>

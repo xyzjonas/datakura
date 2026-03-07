@@ -5,6 +5,7 @@ from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.product import routes
 from apps.warehouse.core.schemas.product import ProductSchema, GetProductsResponse
+from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.product import StockProduct
 
 from apps.warehouse.tests.factories.product import StockProductFactory
@@ -132,3 +133,33 @@ def test_get_all_search_partial(db, client, attr):
     assert response.success
     found = [prod for prod in response.data if prod.code == product.code]
     assert len(found) == 1
+
+
+def test_add_product_barcode(db, client):
+    product = cast(StockProduct, StockProductFactory())
+
+    response = client.post(
+        f"/{product.code}/barcodes",
+        json={"code": "1234567890123", "is_primary": True},
+    )
+
+    assert response.status_code == 200
+    barcode = Barcode.objects.get(code="1234567890123")
+    assert barcode.is_primary is True
+    assert barcode.content_object == product
+
+
+def test_add_product_barcode_switches_primary(db, client):
+    product = cast(StockProduct, StockProductFactory())
+    product.attach_barcode(code="1111111111111", is_primary=True)
+
+    response = client.post(
+        f"/{product.code}/barcodes",
+        json={"code": "2222222222222", "is_primary": True},
+    )
+
+    assert response.status_code == 200
+    old_barcode = Barcode.objects.get(code="1111111111111")
+    new_barcode = Barcode.objects.get(code="2222222222222")
+    assert old_barcode.is_primary is False
+    assert new_barcode.is_primary is True
