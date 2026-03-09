@@ -7,6 +7,10 @@ class ErrorCode(enum.Enum):
     NOT_FOUND = ("NOT_FOUND_0001", "Not found")
 
     INVALID_CONVERSION = ("PACKAGING_0001", "Invalid conversion")
+    INVALID_BARCODE = (
+        "PACKAGING_0002",
+        "Invalid barcode: is not attached to the expected entity type",
+    )
 
     GENERIC_WAREHOUSE_ERROR = ("WAR_0000", "WarehouseItem: bad request")
     INVALID_WAREHOUSE_ITEM = ("WAR_0001", "WarehouseItem: bad request")

@@ -8,6 +8,7 @@ from apps.warehouse.core.schemas.packaging import (
     PackageTypeSchema,
     PutInPackageRequestSchema,
     PutInPackageResponse,
+    PutInBatchRequestSchema,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.models.packaging import PackageType
@@ -36,10 +37,22 @@ def get_package_types(request: HttpRequest, search_term: str | None = None):
     )
 
 
-@routes.post("/", response={200: PutInPackageResponse})
+@routes.post("/preview-package", response={200: PutInPackageResponse})
 def package_preview(request: HttpRequest, body: PutInPackageRequestSchema):
     return PutInPackageResponse(
         data=warehouse_service.preview_packaging(
             body.warehouse_item_id, body.product_code, body.package_name, body.amount
+        )
+    )
+
+
+@routes.post("/preview-batch", response={200: PutInPackageResponse})
+def batch_preview(request: HttpRequest, body: PutInBatchRequestSchema):
+    return PutInPackageResponse(
+        data=warehouse_service.preview_batching(
+            warehouse_item_id=body.warehouse_item_id,
+            product_code=body.product_code,
+            amount=body.amount,
+            batch_code=body.batch_code,
         )
     )

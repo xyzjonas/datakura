@@ -8,7 +8,7 @@
           :label="item.product.name"
           :to="{ name: 'productDetail', params: { productCode: item.product.code } }"
         />
-        <q-breadcrumbs-el :label="item.primary_barcode ?? `${item.id}`" />
+        <q-breadcrumbs-el :label="item.primary_barcode ?? `Skladová položka #${item.id}`" />
       </q-breadcrumbs>
       <div class="flex flex-col items-end gap-3 flex-1">
         <q-btn flat color="primary" icon-right="sym_o_query_stats" @click="auditDialog = true">
@@ -39,23 +39,34 @@
               <h5>{{ item.product.code }}</h5>
             </span>
           </div>
-          <div v-if="item.primary_barcode">
+          <div v-if="item.batch?.primary_barcode">
+            <BarcodeElement
+              :barcode="item.batch.primary_barcode.code"
+              :width="2"
+              :height="40"
+              text-align="right"
+            />
+          </div>
+          <div v-else-if="item.primary_barcode">
             <BarcodeElement
               :barcode="item.primary_barcode"
               :width="2"
-              :height="45"
-              text-align="left"
+              :height="40"
+              text-align="right"
             />
           </div>
+          <span
+            v-else
+            class="text-gray-5 h-10 font-mono text-xs bg-gray-2 px-5 rounded flex items-center"
+          >
+            Není evidováno
+          </span>
         </div>
         <q-list dense class="mt-2 mb-2" separator>
           <q-item>
             <q-item-section>Typ položky</q-item-section>
             <q-item-section avatar>
-              <div class="flex items-center gap-2">
-                <span class="text-gray-5 uppercase">{{ trackingLabel }}</span>
-                <PackageTypeBadge :package-type="item.package?.type" />
-              </div>
+              <warehouse-item-type-badge-group :item="item" />
             </q-item-section>
           </q-item>
           <q-item>
@@ -98,6 +109,12 @@
               <span v-else class="text-gray-5">-</span>
             </q-item-section>
           </q-item>
+          <q-item v-if="item.batch">
+            <q-item-section>Šarže</q-item-section>
+            <q-item-section avatar>
+              <span>{{ item.batch.primary_barcode?.code ?? `Šarže #${item.batch.id}` }}</span>
+            </q-item-section>
+          </q-item>
         </q-list>
       </ForegroundPanel>
     </div>
@@ -126,12 +143,12 @@
 import { warehouseApiRoutesWarehouseGetWarehouseItem } from '@/client'
 import BarcodeElement from '@/components/BarcodeElement.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import PackageTypeBadge from '@/components/PackageTypeBadge.vue'
 import RightSideDialog from '@/components/layout/RightSideDialog.vue'
-import WarehouseItemAuditTimeline from '@/components/warehouse/WarehouseItemAuditTimeline.vue'
 import WarehouseItemAmountBadge from '@/components/warehouse/WarehouseItemAmountBadge.vue'
+import WarehouseItemAuditTimeline from '@/components/warehouse/WarehouseItemAuditTimeline.vue'
+import WarehouseItemTypeBadgeGroup from '@/components/warehouse/WarehouseItemTypeBadgeGroup.vue'
 import { useApi } from '@/composables/use-api'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 const props = defineProps<{ itemId: string }>()
 
@@ -148,20 +165,4 @@ const inboundOrderCode =
   (item as { inbound_order_code?: string | null } | undefined)?.inbound_order_code ?? null
 
 const auditDialog = ref(false)
-
-const trackingLabel = computed(() => {
-  if (!item) {
-    return ''
-  }
-  if (item.tracking_level === 'FUNGIBLE') {
-    return 'volně skladem'
-  }
-  if (item.tracking_level === 'BATCH') {
-    return 'šarže'
-  }
-  if (item.tracking_level === 'SERIALIZED_PACKAGE') {
-    return 'balení'
-  }
-  return 'sériové'
-})
 </script>

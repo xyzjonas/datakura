@@ -18,6 +18,7 @@ from apps.warehouse.core.exceptions import (
     WarehouseGenericError,
 )
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
+from apps.warehouse.core.schemas.barcode import BarcodeSchema
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.warehouse import (
     AuditTimelineEntrySchema,
@@ -27,6 +28,7 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemDetailSchema,
     WarehouseItemSchema,
     InboundWarehouseOrderUpdateSchema,
+    BatchSchema,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
@@ -38,6 +40,7 @@ from apps.warehouse.core.transformation import (
     warehouse_item_orm_to_schema,
 )
 from apps.warehouse.models.audit import AuditAction
+from apps.warehouse.models.barcode import BarcodeType, Barcode
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderState,
@@ -55,6 +58,7 @@ from apps.warehouse.models.warehouse import (
     WarehouseLocation,
     InboundWarehouseOrderState,
     TrackingLevel,
+    Batch,
 )
 
 
@@ -77,6 +81,25 @@ def raise_if_readonly(order: InboundWarehouseOrder):
         raise WarehouseOrderNotEditableError(
             f"order '{order.code}' not in draft anymore ({order.state})"
         )
+
+
+def get_or_create_batch(batch_barcode: str) -> tuple[Batch, bool]:
+    barcode = (
+        Barcode.objects.select_related("content_type")
+        .filter(code=batch_barcode)
+        .first()
+    )
+    if barcode and barcode.content_type.model_class() is not Batch:
+        raise_by_code(
+            ErrorCode.INVALID_BARCODE,
+            f"Existing barcode type is invalid, {type(barcode.content_object)}, expected Batch",
+        )
+    if barcode:
+        return barcode.content_object, False  # type: ignore
+
+    batch = Batch.objects.create()
+    batch.attach_barcode(batch_barcode, is_primary=True)
+    return batch, True
 
 
 class MovementService:
@@ -478,10 +501,57 @@ class WarehouseService:
         return items
 
     @staticmethod
+    def preview_batching(
+        warehouse_item_id: int,
+        product_code: str,
+        amount: float,
+        batch_code: str | None = None,
+    ) -> list[WarehouseItemSchema]:
+        warehouse_item = WarehouseItem.objects.get(pk=warehouse_item_id)
+        product = StockProduct.objects.get(code=product_code)
+
+        if batch_code:
+            barcode = Barcode.objects.get(code=batch_code)
+            if barcode.content_type != "Batch":
+                raise_by_code(
+                    ErrorCode.INVALID_BARCODE,
+                    f"Invalid barcode type, {type(barcode.content_object)}, expected Batch",
+                )
+
+        items = [
+            WarehouseItemSchema(
+                id=-1,
+                tracking_level=TrackingLevel.BATCH,
+                product=product_orm_to_schema(product),
+                unit_of_measure=product.unit_of_measure.name,
+                amount=float(amount),
+                package=None,
+                batch=BatchSchema(
+                    id=-1,
+                    primary_barcode=BarcodeSchema(
+                        code=batch_code or "autogen-batch-01234",
+                        barcode_type=BarcodeType.EAN13,
+                        is_primary=True,
+                        changed=timezone.now(),
+                        created=timezone.now(),
+                    ),
+                    changed=timezone.now(),
+                    created=timezone.now(),
+                ),
+                location=location_orm_to_schema(warehouse_item.location),
+                created=timezone.now(),
+                changed=timezone.now(),
+            )
+        ]
+
+        return items
+
+    @staticmethod
     def add_or_remove_inbound_order_items(
         order_code: str,
         to_be_removed: list[WarehouseItemSchema],
         to_be_added: list[WarehouseItemSchema],
+        context: RequestContext,
     ) -> InboundWarehouseOrderSchema:
         order = InboundWarehouseOrder.objects.get(code=order_code)
 
@@ -492,7 +562,7 @@ class WarehouseService:
                 for item in to_be_removed:
                     order.items.get(pk=item.id).delete()
                 for item in to_be_added:
-                    WarehouseItem.objects.create(
+                    new_item = WarehouseItem.objects.create(
                         order_in=order,
                         package_type=PackageType.objects.get(name=item.package.type)
                         if item.package
@@ -500,6 +570,12 @@ class WarehouseService:
                         stock_product=StockProduct.objects.get(code=item.product.code),
                         amount=item.amount,
                         location=WarehouseLocation.objects.get(code=item.location.code),
+                    )
+                    audit_service.add_entry(
+                        new_item,
+                        action=AuditAction.CREATE,
+                        user=context.user_id,
+                        reason=order_code,
                     )
         except ObjectDoesNotExist as exc:
             raise WarehouseItemBadRequestError(str(exc))
@@ -513,6 +589,7 @@ class WarehouseService:
         order_code: str,
         stock_product_code: str,
         to_be_added: list[WarehouseItemSchema],
+        context: RequestContext,
     ) -> InboundWarehouseOrderSchema:
         """
         Setup tracking for a warehouse item.
@@ -537,12 +614,19 @@ class WarehouseService:
         try:
             with transaction.atomic():
                 for new_item in to_be_added:
+                    batch = None
+                    if new_item.batch and new_item.batch.primary_barcode:
+                        batch, _ = get_or_create_batch(
+                            new_item.batch.primary_barcode.code
+                        )
+
                     item = WarehouseItem.objects.create(
                         order_in=order,
                         package_type=PackageType.objects.get(name=new_item.package.type)
                         if new_item.package
                         else None,
-                        # code=generate_warehouse_item_code(),
+                        batch=batch,
+                        # todo: code=generate_warehouse_item_code(),
                         stock_product=StockProduct.objects.get(
                             code=new_item.product.code
                         ),
@@ -554,6 +638,12 @@ class WarehouseService:
                     )
                     item.attach_barcode(
                         code=generate_warehouse_item_code(), is_primary=True
+                    )
+                    audit_service.add_entry(
+                        item,
+                        action=AuditAction.CREATE,
+                        user=context.user_id,
+                        reason=f"{order_code}: setting up item tracking -> {new_item.tracking_level}",
                     )
                 if remaining_amount > 0:
                     untracked_item.amount = remaining_amount

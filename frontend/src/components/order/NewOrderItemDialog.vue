@@ -29,7 +29,7 @@
             label="Nákupní cena"
             hint="Nákupní cena za MJ"
             inputmode="numeric"
-            :rules="[rules.atLeastOne, rules.max9999]"
+            :rules="[rules.atLeastOne, rules.max99999]"
           >
             <template #append>
               <span class="text-sm">{{ currency }} / {{ productUom }}</span>

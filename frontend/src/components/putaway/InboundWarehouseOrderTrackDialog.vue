@@ -55,6 +55,16 @@
             v-if="trackingType.value == 'package'"
           />
 
+          <q-input
+            v-model="batchCode"
+            v-if="trackingType.value == 'batch'"
+            outlined
+            label="Kód šarže"
+            hint="Zadejte kód existující šarže, do které chcete položku přidat. Nechte pole prázdné pro vytvoření nové šarže."
+            :debounce="500"
+            class="mb-5"
+          />
+
           <div v-if="items.length > 0">
             <WarehouseItemPreviewRow :item="item" :index="0" :amount="amount" />
             <div class="flex w-full justify-center my-2">
@@ -73,7 +83,7 @@
             unelevated
             color="primary"
             :label="trackingType.value ? 'evidovat' : 'ne-evidovat'"
-            class="h-[3rem] mt-3"
+            class="h-[3rem] mt-2"
           />
         </q-form>
       </div>
@@ -83,6 +93,7 @@
 
 <script setup lang="ts">
 import {
+  warehouseApiRoutesPackagingBatchPreview,
   warehouseApiRoutesPackagingPackagePreview,
   type PackageTypeSchema,
   type WarehouseItemSchema,
@@ -142,11 +153,12 @@ const helpText = computed(() => helpTextMapping[trackingType.value.value])
 const amount = ref(props.item.amount)
 
 const selectedPackage = ref<PackageTypeSchema>()
+const batchCode = ref('')
 
 const showDialog = defineModel('show', { default: false })
 
 const items = ref<WarehouseItemSchema[]>([])
-const previewItems = async () => {
+const previewPackagingItems = async () => {
   if (!selectedPackage.value) {
     return
   }
@@ -164,9 +176,42 @@ const previewItems = async () => {
   }
 }
 
-watch([selectedPackage, amount], () => {
+const previewBatchingItems = async () => {
+  if (trackingType.value.value !== 'batch') {
+    return
+  }
+  const result = await warehouseApiRoutesPackagingBatchPreview({
+    body: {
+      warehouse_item_id: props.item.id,
+      amount: amount.value,
+      batch_code: batchCode.value,
+      product_code: props.item.product.code,
+    },
+  })
+  const data = onResponse(result)
+  if (data) {
+    items.value = data.data
+  }
+}
+
+watch([trackingType], () => {
+  if (trackingType.value.value !== 'package') {
+    selectedPackage.value = undefined
+  }
+
+  if (trackingType.value.value === 'batch') {
+    selectedPackage.value = undefined
+    previewBatchingItems()
+  } else {
+    items.value = []
+  }
+})
+
+watch([selectedPackage, amount, trackingType, batchCode], () => {
   if (selectedPackage.value) {
-    previewItems()
+    previewPackagingItems()
+  } else if (trackingType.value.value === 'batch') {
+    previewBatchingItems()
   } else {
     items.value = []
   }
@@ -187,6 +232,11 @@ const onSubmit = () => {
     return
   }
   if (trackingType.value.value === 'package') {
+    emit('packaged', items.value)
+    showDialog.value = false
+    return
+  }
+  if (trackingType.value.value === 'batch') {
     emit('packaged', items.value)
     showDialog.value = false
     return

@@ -8,13 +8,17 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseOrderCreateSchema,
     WarehouseItemSchema,
 )
-from apps.warehouse.core.services.warehouse import warehouse_service
+from apps.warehouse.core.services.warehouse import (
+    warehouse_service,
+    get_or_create_batch,
+)
 from apps.warehouse.core.transformation import (
     product_orm_to_schema,
     location_orm_to_schema,
     package_orm_to_schema,
     warehouse_item_orm_to_schema,
 )
+from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.orders import CreditNoteState
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.warehouse import (
@@ -77,7 +81,7 @@ def test_get_total_availability(db, items_amount, amount):
     assert result.available_amount == pytest.approx(items_amount * amount)
 
 
-def test_update_inbound_order_items(db):
+def test_update_inbound_order_items(db, context):
     order = InboundWarehouseOrderFactory()
     pkg: PackageType = PackageTypeFactory()  # type: ignore
     new_location: WarehouseLocation = WarehouseLocationFactory()  # type: ignore
@@ -101,7 +105,7 @@ def test_update_inbound_order_items(db):
     to_be_deleted = [warehouse_item_orm_to_schema(old_item)]
 
     result = warehouse_service.add_or_remove_inbound_order_items(
-        order.code, to_be_deleted, new_items
+        order.code, to_be_deleted, new_items, context=context
     )
     assert WarehouseItem.objects.filter(pk=old_item.pk).first() is None
     assert result.code == order.code
@@ -114,7 +118,7 @@ def test_update_inbound_order_items(db):
         assert item.product.code == old_item.stock_product.code
 
 
-def test_setup_tracking_for_inbound_order_item_total(db):
+def test_setup_tracking_for_inbound_order_item_total(db, context):
     order: InboundWarehouseOrder = InboundWarehouseOrderFactory()  # type: ignore
     pkg: PackageType = PackageTypeFactory()  # type: ignore
     new_location: WarehouseLocation = WarehouseLocationFactory()  # type: ignore
@@ -137,7 +141,7 @@ def test_setup_tracking_for_inbound_order_item_total(db):
     ]
 
     result = warehouse_service.setup_tracking_for_inbound_order_item(
-        order.code, old_item.stock_product.code, new_items
+        order.code, old_item.stock_product.code, new_items, context=context
     )
     assert WarehouseItem.objects.filter(pk=old_item.pk).first() is None
     assert result.code == order.code
@@ -150,7 +154,7 @@ def test_setup_tracking_for_inbound_order_item_total(db):
         assert item.product.code == old_item.stock_product.code
 
 
-def test_setup_tracking_for_inbound_order_item_remaining(db):
+def test_setup_tracking_for_inbound_order_item_remaining(db, context):
     order = InboundWarehouseOrderFactory()
     pkg = PackageTypeFactory()
     # new_location = WarehouseLocationFactory()
@@ -174,7 +178,7 @@ def test_setup_tracking_for_inbound_order_item_remaining(db):
     ]
 
     result = warehouse_service.setup_tracking_for_inbound_order_item(
-        order.code, old_item.stock_product.code, new_items
+        order.code, old_item.stock_product.code, new_items, context=context
     )
     old_item = WarehouseItem.objects.filter(pk=old_item.pk).first()
     assert old_item is not None
@@ -197,6 +201,28 @@ def test_setup_tracking_for_inbound_order_item_remaining(db):
         assert item.location.code == location.code
         assert item.package is None
         assert item.product.code == old_item.stock_product.code
+
+
+def test_get_or_create_batch_creates_new_batch_with_primary_barcode(db):
+    batch_barcode = "05BM0000983"
+
+    batch, created = get_or_create_batch(batch_barcode)
+
+    assert created is True
+    barcode = Barcode.objects.get(code=batch_barcode)
+    assert barcode.content_object == batch
+    assert barcode.is_primary is True
+
+
+def test_get_or_create_batch_returns_existing_batch_by_barcode(db):
+    batch_barcode = "05BM0000983"
+    existing_batch = Batch.objects.create()
+    existing_batch.attach_barcode(batch_barcode, is_primary=True)
+
+    batch, created = get_or_create_batch(batch_barcode)
+
+    assert created is False
+    assert batch.pk == existing_batch.pk
 
 
 def test_dissolve_inbound_order_item_create(db):

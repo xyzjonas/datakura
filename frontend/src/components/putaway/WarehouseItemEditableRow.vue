@@ -31,13 +31,9 @@
             :width="1.6"
             text-align="left"
           />
-          <!-- <BarcodeElement
-            v-else-if="item.product.primary_barcode"
-            :barcode="item.product.primary_barcode"
-            :width="1.6"
-            text-align="left"
-          /> -->
-          <div v-else class="h-[20px]"></div>
+          <span v-else class="text-gray-5 font-mono text-xs bg-gray-2 px-2 py-1 rounded">
+            Není evidováno
+          </span>
         </div>
         <div class="flex gap-2">
           <q-badge class="py-1" :color="item.location.is_putaway ? 'accent' : 'positive'">{{

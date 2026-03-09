@@ -1,117 +1,124 @@
 <template>
-  <ForegroundPanel class="min-w-[312px]">
-    <div class="flex flex-col items-start">
-      <SearchInput
-        v-model="locationSearch"
-        placeholder="Vyhledat skladové místo"
-        clearable
-        class="w-full"
-      />
-      <q-toggle v-model="showEmpty" size="sm"
-        ><span class="text-xs">Zobrazit prazdná místa</span></q-toggle
-      >
-    </div>
-    <q-separator></q-separator>
-    <q-tree :nodes="simple" node-key="label" selected-color="primary" ref="tree">
-      <template v-slot:default-header="prop">
-        <div
-          @click="setLocation(prop.node)"
-          :class="
-            prop.node.isPlace
-              ? 'flex items-center cursor-pointer light:hover:bg-gray-1 dark:hover:bg-dark px-2 pr-4 rounded'
-              : ''
-          "
-        >
-          <q-icon :name="prop.node.icon" class="mr-2" color="gray-5" size="18px" />
-          <span :class="{ 'font-bold text-primary': location === prop.node.label }">
-            {{ prop.node.label }}
-          </span>
-          <span v-if="prop.node.count" class="ml-1 text-gray-5">
-            - {{ prop.node.count }} {{ getProductsDeclention(prop.node.count) }}
-          </span>
-        </div>
-      </template>
-    </q-tree>
-  </ForegroundPanel>
-
-  <ForegroundPanel class="flex-[5]" v-if="warehouseLocation">
-    <div class="flex justify-start items-center mb-2 gap-3">
-      <h2>{{ warehouseLocation.code }}</h2>
-      <q-badge v-if="warehouseLocation.is_putaway" color="accent">příjem</q-badge>
-    </div>
-
-    <q-table
-      :rows="rows"
-      :columns="columns"
-      flat
-      :pagination="{ rowsPerPage: 20 }"
-      class="bg-transparent"
-    >
-      <template #top-right>
-        <SearchInput v-model="itemSearch" placeholder="Vyhledat položku" clearable></SearchInput>
-      </template>
-      <template #top-left>
-        <q-toggle v-model="aggregate">
-          <span class="text-slate"> Sloučit podle typu balení </span>
-        </q-toggle>
-      </template>
-      <template #body-cell-code="props">
-        <q-td>
-          <a
-            @click="$router.push({ name: 'warehouseItemDetail', params: { itemId: props.row.id } })"
-            class="link"
-          >
-            {{ props.value }}
-          </a>
-          <BarcodeElement
-            v-if="props.value"
-            :barcode="props.value"
-            :width="1.6"
-            text-align="left"
-            :display-value="false"
-          />
-          <span v-else></span>
-        </q-td>
-      </template>
-      <template #body-cell-name="props">
-        <q-td>
-          <a
-            @click="
-              $router.push({
-                name: 'productDetail',
-                params: { productCode: props.row.product.code },
-              })
-            "
-            class="link"
-            >{{ props.row.product.name }}</a
-          >
-        </q-td>
-      </template>
-      <template #body-cell-totalCount="props" v-if="aggregate">
-        <q-td auto-width> {{ props.row.itemsCount }} ks </q-td>
-      </template>
-      <template #body-cell-packaging="props">
-        <q-td auto-width>
-          <PackageTypeBadge :package-type="props.row.package?.type" />
-        </q-td>
-      </template>
-      <template #body-cell-remaining="props">
-        <q-td auto-width>
-          <WarehouseItemCountBadge :item="props.row" />
-        </q-td>
-      </template>
-      <template #no-data>
-        <EmptyPanel
-          text="Žádné skladové položky"
-          icon="sym_o_search_off"
-          class="w-full h-lg mt-2"
+  <div class="w-full flex gap-2">
+    <ForegroundPanel class="min-w-[312px]">
+      <div class="flex flex-col items-start">
+        <SearchInput
+          v-model="locationSearch"
+          placeholder="Vyhledat skladové místo"
+          clearable
+          class="w-full"
         />
-      </template>
-    </q-table>
-  </ForegroundPanel>
-  <ForegroundPanel v-else class="flex-[5] grid content-center justify-center uppercase text-gray-5">
-    Vyberte skladové místo
-  </ForegroundPanel>
+        <q-toggle v-model="showEmpty" size="sm"
+          ><span class="text-xs">Zobrazit prazdná místa</span></q-toggle
+        >
+      </div>
+      <q-separator></q-separator>
+      <q-tree :nodes="simple" node-key="label" selected-color="primary" ref="tree">
+        <template v-slot:default-header="prop">
+          <div
+            @click="setLocation(prop.node)"
+            :class="
+              prop.node.isPlace
+                ? 'flex items-center cursor-pointer light:hover:bg-gray-1 dark:hover:bg-dark px-2 pr-4 rounded'
+                : ''
+            "
+          >
+            <q-icon :name="prop.node.icon" class="mr-2" color="gray-5" size="18px" />
+            <span :class="{ 'font-bold text-primary': location === prop.node.label }">
+              {{ prop.node.label }}
+            </span>
+            <span v-if="prop.node.count" class="ml-1 text-gray-5">
+              - {{ prop.node.count }} {{ getProductsDeclention(prop.node.count) }}
+            </span>
+          </div>
+        </template>
+      </q-tree>
+    </ForegroundPanel>
+
+    <ForegroundPanel class="flex-[5]" v-if="warehouseLocation">
+      <div class="flex justify-start items-center mb-2 gap-3">
+        <h2>{{ warehouseLocation.code }}</h2>
+        <q-badge v-if="warehouseLocation.is_putaway" color="accent">příjem</q-badge>
+      </div>
+
+      <q-table
+        :rows="rows"
+        :columns="columns"
+        flat
+        :pagination="{ rowsPerPage: 20 }"
+        class="bg-transparent"
+      >
+        <template #top-right>
+          <SearchInput v-model="itemSearch" placeholder="Vyhledat položku" clearable></SearchInput>
+        </template>
+        <template #top-left>
+          <q-toggle v-model="aggregate">
+            <span class="text-slate"> Sloučit podle typu balení </span>
+          </q-toggle>
+        </template>
+        <template #body-cell-code="props">
+          <q-td>
+            <a
+              @click="
+                $router.push({ name: 'warehouseItemDetail', params: { itemId: props.row.id } })
+              "
+              class="link"
+            >
+              {{ props.value }}
+            </a>
+            <BarcodeElement
+              v-if="props.value"
+              :barcode="props.value"
+              :width="1.6"
+              text-align="left"
+              :display-value="false"
+            />
+            <span v-else></span>
+          </q-td>
+        </template>
+        <template #body-cell-name="props">
+          <q-td>
+            <a
+              @click="
+                $router.push({
+                  name: 'productDetail',
+                  params: { productCode: props.row.product.code },
+                })
+              "
+              class="link"
+              >{{ props.row.product.name }}</a
+            >
+          </q-td>
+        </template>
+        <template #body-cell-totalCount="props" v-if="aggregate">
+          <q-td auto-width> {{ props.row.itemsCount }} ks </q-td>
+        </template>
+        <template #body-cell-packaging="props">
+          <q-td auto-width>
+            <PackageTypeBadge :package-type="props.row.package?.type" />
+          </q-td>
+        </template>
+        <template #body-cell-remaining="props">
+          <q-td auto-width>
+            <WarehouseItemCountBadge :item="props.row" />
+          </q-td>
+        </template>
+        <template #no-data>
+          <EmptyPanel
+            text="Žádné skladové položky"
+            icon="sym_o_search_off"
+            class="w-full h-lg mt-2"
+          />
+        </template>
+      </q-table>
+    </ForegroundPanel>
+    <ForegroundPanel
+      v-else
+      class="flex-[5] grid content-center justify-center uppercase text-gray-5"
+    >
+      Vyberte skladové místo
+    </ForegroundPanel>
+  </div>
 </template>
 
 <script setup lang="ts">

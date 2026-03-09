@@ -24,5 +24,12 @@ class PutInPackageRequestSchema(Schema):
     amount: float
 
 
+class PutInBatchRequestSchema(Schema):
+    warehouse_item_id: int
+    product_code: str
+    amount: float
+    batch_code: str | None = None
+
+
 class PutInPackageResponse(BaseResponse):
     data: list[WarehouseItemSchema]

@@ -14,6 +14,17 @@
           {{ movement.stock_product.name }}
         </a>
         <span class="text-gray-5">{{ movement.stock_product.code }}</span>
+        <q-btn
+          v-if="movement.item"
+          dense
+          flat
+          round
+          size="10px"
+          icon="sym_o_open_in_new"
+          :to="{ name: 'warehouseItemDetail', params: { itemId: movement.item.id } }"
+        >
+          <q-tooltip :offset="[0, 10]">Detail skladové položky</q-tooltip>
+        </q-btn>
       </div>
       <div class="flex items-center gap-2 flex-wrap text-sm">
         <span

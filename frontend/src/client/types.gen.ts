@@ -1645,6 +1645,28 @@ export type PutInPackageRequestSchema = {
 };
 
 /**
+ * PutInBatchRequestSchema
+ */
+export type PutInBatchRequestSchema = {
+    /**
+     * Warehouse Item Id
+     */
+    warehouse_item_id: number;
+    /**
+     * Product Code
+     */
+    product_code: string;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Batch Code
+     */
+    batch_code?: string | null;
+};
+
+/**
  * PagedCreditNoteSupplierSchema
  */
 export type PagedCreditNoteSupplierSchema = {
@@ -2032,7 +2054,7 @@ export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData = {
         item_id: number;
     };
     query?: never;
-    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_id}';
+    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_id}/dissolve';
 };
 
 export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses = {
@@ -2571,7 +2593,7 @@ export type WarehouseApiRoutesPackagingPackagePreviewData = {
     body: PutInPackageRequestSchema;
     path?: never;
     query?: never;
-    url: '/api/v1/packaging/';
+    url: '/api/v1/packaging/preview-package';
 };
 
 export type WarehouseApiRoutesPackagingPackagePreviewResponses = {
@@ -2582,6 +2604,22 @@ export type WarehouseApiRoutesPackagingPackagePreviewResponses = {
 };
 
 export type WarehouseApiRoutesPackagingPackagePreviewResponse = WarehouseApiRoutesPackagingPackagePreviewResponses[keyof WarehouseApiRoutesPackagingPackagePreviewResponses];
+
+export type WarehouseApiRoutesPackagingBatchPreviewData = {
+    body: PutInBatchRequestSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/packaging/preview-batch';
+};
+
+export type WarehouseApiRoutesPackagingBatchPreviewResponses = {
+    /**
+     * OK
+     */
+    200: PutInPackageResponse;
+};
+
+export type WarehouseApiRoutesPackagingBatchPreviewResponse = WarehouseApiRoutesPackagingBatchPreviewResponses[keyof WarehouseApiRoutesPackagingBatchPreviewResponses];
 
 export type WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierData = {
     body?: never;
