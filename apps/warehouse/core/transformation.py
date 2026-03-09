@@ -215,6 +215,7 @@ def inbound_order_item_orm_to_schema(
         product=product_orm_to_schema(item.stock_product),
         amount=float(item.amount),
         unit_price=float(item.unit_price),
+        index=item.index,
         changed=item.changed,
         created=item.created,
     )

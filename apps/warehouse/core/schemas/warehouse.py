@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from ninja import Schema
 
+from .audit import AuditTimelineEntrySchema
 from .barcode import BarcodeSchema
 from .base import BaseResponse, BaseSchema, PaginatedResponse
 from .base_orders import InboundWarehouseOrderBaseSchema, InboundOrderBaseSchema
@@ -54,6 +55,10 @@ class WarehouseItemSchema(BaseSchema):
     package: PackageSchema | None = None
     batch: BatchSchema | None = None
     primary_barcode: str | None = None
+
+
+class WarehouseItemDetailSchema(WarehouseItemSchema):
+    audits: list[AuditTimelineEntrySchema]
 
 
 class WarehouseMovementSchema(Schema):
@@ -161,7 +166,7 @@ class GetWarehouseOrderResponse(BaseResponse):
 
 
 class GetWarehouseItemResponse(BaseResponse):
-    data: WarehouseItemSchema
+    data: WarehouseItemDetailSchema
 
 
 class GetWarehouseOrdersResponse(PaginatedResponse[InboundWarehouseOrderSchema]):

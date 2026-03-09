@@ -485,6 +485,46 @@ export type WarehouseLocationDetailSchema = {
 };
 
 /**
+ * AuditTimelineEntrySchema
+ */
+export type AuditTimelineEntrySchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Source
+     */
+    source: 'audit' | 'movement';
+    /**
+     * Happened At
+     */
+    happened_at: string;
+    /**
+     * Actor User
+     */
+    actor_user?: string | null;
+    /**
+     * Action
+     */
+    action?: string | null;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * Changes
+     */
+    changes?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Object Repr
+     */
+    object_repr?: string | null;
+};
+
+/**
  * GetWarehouseItemResponse
  */
 export type GetWarehouseItemResponse = {
@@ -493,7 +533,50 @@ export type GetWarehouseItemResponse = {
      */
     success?: boolean;
     error?: ErrorInformation | null;
-    data: WarehouseItemSchema;
+    data: WarehouseItemDetailSchema;
+};
+
+/**
+ * WarehouseItemDetailSchema
+ */
+export type WarehouseItemDetailSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    product: ProductSchema;
+    /**
+     * Unit Of Measure
+     */
+    unit_of_measure: string;
+    /**
+     * Amount
+     */
+    amount: number;
+    location: WarehouseLocationSchema;
+    tracking_level: TrackingLevel;
+    /**
+     * Inbound Order Code
+     */
+    inbound_order_code?: string | null;
+    package?: PackageSchema | null;
+    batch?: BatchSchema | null;
+    /**
+     * Primary Barcode
+     */
+    primary_barcode?: string | null;
+    /**
+     * Audits
+     */
+    audits: Array<AuditTimelineEntrySchema>;
 };
 
 /**
@@ -958,6 +1041,21 @@ export type InboundWarehouseOrderUpdateSchema = {
 };
 
 /**
+ * GetAuditTimelineResponse
+ */
+export type GetAuditTimelineResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<AuditTimelineEntrySchema>;
+};
+
+/**
  * UpdateWarehouseOrderDraftItemsRequest
  */
 export type UpdateWarehouseOrderDraftItemsRequest = {
@@ -1243,6 +1341,10 @@ export type InboundOrderItemSchema = {
      * Unit Price
      */
     unit_price: number;
+    /**
+     * Index
+     */
+    index: number;
 };
 
 /**
@@ -1432,6 +1534,10 @@ export type InboundOrderItemCreateSchema = {
      * Unit Price
      */
     unit_price: number;
+    /**
+     * Index
+     */
+    index?: number | null;
 };
 
 /**
@@ -1846,6 +1952,27 @@ export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses = {
 
 export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses];
 
+export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsData = {
+    body?: never;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}/audits';
+};
+
+export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsResponses = {
+    /**
+     * OK
+     */
+    200: GetAuditTimelineResponse;
+};
+
+export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsResponse = WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsResponses[keyof WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsResponses];
+
 export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData = {
     body: UpdateWarehouseOrderDraftItemsRequest;
     path: {
@@ -2033,6 +2160,27 @@ export type WarehouseApiRoutesProductGetProductResponses = {
 };
 
 export type WarehouseApiRoutesProductGetProductResponse = WarehouseApiRoutesProductGetProductResponses[keyof WarehouseApiRoutesProductGetProductResponses];
+
+export type WarehouseApiRoutesProductGetProductAuditsData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/audits';
+};
+
+export type WarehouseApiRoutesProductGetProductAuditsResponses = {
+    /**
+     * OK
+     */
+    200: GetAuditTimelineResponse;
+};
+
+export type WarehouseApiRoutesProductGetProductAuditsResponse = WarehouseApiRoutesProductGetProductAuditsResponses[keyof WarehouseApiRoutesProductGetProductAuditsResponses];
 
 export type WarehouseApiRoutesProductAddProductBarcodeData = {
     body: ProductBarcodeCreateSchema;
@@ -2250,6 +2398,27 @@ export type WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses = {
 };
 
 export type WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponse = WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses];
+
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/audits';
+};
+
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponses = {
+    /**
+     * OK
+     */
+    200: GetAuditTimelineResponse;
+};
+
+export type WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponse = WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponses[keyof WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponses];
 
 export type WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData = {
     body?: never;

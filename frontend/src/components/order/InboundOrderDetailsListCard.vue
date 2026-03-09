@@ -41,7 +41,9 @@
         <q-item-section avatar>{{ formatDateLong(order.cancelled_date) }}</q-item-section>
       </q-item>
       <q-item v-if="order.note">
-        <div class="description overflow-y-auto h-30 w-full">{{ order.note }}</div>
+        <div class="description overflow-y-auto overflow-x-hidden h-30 w-full">
+          {{ order.note }}
+        </div>
       </q-item>
     </q-list>
   </ForegroundPanel>

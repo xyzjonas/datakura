@@ -14,12 +14,14 @@ const props = withDefaults(
     barcode: string
     fontSize?: number
     width?: number
+    height?: number
     displayValue?: boolean
     textAlign?: 'left' | 'center' | 'right'
   }>(),
   {
     fontSize: 12,
     width: 1,
+    height: 15,
     displayValue: true,
     textAlign: 'center',
   },
@@ -37,7 +39,7 @@ onMounted(() => {
       ean128: false,
       marginBottom: 0,
       flat: true,
-      height: 15,
+      height: props.height,
       width: props.width,
       marginTop: 0,
       textPosition: 'bottom',

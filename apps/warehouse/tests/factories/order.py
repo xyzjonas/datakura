@@ -17,6 +17,10 @@ class InboundOrderItemFactory(DjangoModelFactory):
     class Meta:
         model = InboundOrderItem
 
+    @classmethod
+    def _(cls, **kwargs) -> InboundOrderItem:
+        return cls(**kwargs)  # type: ignore
+
     stock_product = factory.SubFactory(StockProductFactory)
     amount = factory.Faker("random_int", min=1, max=100, step=1)
     order = None
@@ -29,6 +33,10 @@ class InboundOrderFactory(DjangoModelFactory):
     class Meta:
         model = InboundOrder
         django_get_or_create = ("code",)
+
+    @classmethod
+    def it(cls, **kwargs) -> InboundOrder:
+        return cls(**kwargs)  # type: ignore
 
     code = factory.Sequence(lambda n: f"ORD-{n:04d}")
     external_code = factory.Sequence(lambda n: f"EXT-{n:12d}")

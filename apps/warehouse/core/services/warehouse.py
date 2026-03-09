@@ -3,6 +3,7 @@ from calendar import monthrange
 from datetime import datetime
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Sum
@@ -17,13 +18,17 @@ from apps.warehouse.core.exceptions import (
     WarehouseGenericError,
 )
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
+from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.warehouse import (
+    AuditTimelineEntrySchema,
     WarehouseOrderCreateSchema,
     InboundWarehouseOrderSchema,
     ProductWarehouseAvailability,
+    WarehouseItemDetailSchema,
     WarehouseItemSchema,
     InboundWarehouseOrderUpdateSchema,
 )
+from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
 from apps.warehouse.core.transformation import (
     warehouse_inbound_order_orm_to_schema,
@@ -32,6 +37,7 @@ from apps.warehouse.core.transformation import (
     location_orm_to_schema,
     warehouse_item_orm_to_schema,
 )
+from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderState,
@@ -77,22 +83,30 @@ class MovementService:
     @staticmethod
     def move_item(
         item: WarehouseItem,
+        context: RequestContext,
         new_location_or_code: WarehouseLocation | str,
         amount: Decimal | None = None,
     ) -> None:
+        location_from = item.location
         amount = amount or item.amount
         if isinstance(new_location_or_code, str):
             new_location = WarehouseLocation.objects.get(code=new_location_or_code)
         else:
             new_location = new_location_or_code
 
+        movement_item = None
+        movement_batch = None
+
         if item.tracking_level in (
             TrackingLevel.SERIALIZED_PACKAGE,
             TrackingLevel.SERIALIZED_PIECE,
         ):
             item.location = new_location
+            item.save()
+            movement_item = item
 
-        if item.tracking_level == TrackingLevel.BATCH:
+        elif item.tracking_level == TrackingLevel.BATCH:
+            movement_batch = item.batch
             existing_of_the_same_batch = new_location.items.filter(
                 batch=item.batch
             ).first()
@@ -101,23 +115,55 @@ class MovementService:
                 existing_of_the_same_batch.save()
                 if amount == item.amount:
                     item.delete()
+                    movement_item = existing_of_the_same_batch
                 else:
+                    old_amount = item.amount
                     item.amount -= amount
                     item.save()
+                    movement_item = item
+                    audit_service.add_entry(
+                        item,
+                        action=AuditAction.UPDATE,
+                        user=context.user_id,
+                        reason="Item partially moved",
+                        changes={
+                            "amount": {"old": str(old_amount), "new": str(item.amount)}
+                        },
+                    )
             else:
+                movement_item = item
                 if amount == item.amount:
                     item.location = new_location
                     item.save()
                 else:
+                    old_amount = item.amount
                     item.amount -= amount
                     item.save()
-                    WarehouseItem.objects.create(
+                    new_item = WarehouseItem.objects.create(
                         stock_product=item.stock_product,
                         tracking_level=item.tracking_level,
                         amount=amount,
                         location=new_location,
                         order_in=item.order_in,
                         batch=item.batch,
+                    )
+                    audit_service.add_entry(
+                        new_item,
+                        action=AuditAction.CREATE,
+                        user=context.user_id,
+                        reason="Created by partial move of a non-fungible item to a new location",
+                        changes={
+                            "amount": {"old": str(old_amount), "new": str(item.amount)}
+                        },
+                    )
+                    audit_service.add_entry(
+                        item,
+                        action=AuditAction.UPDATE,
+                        user=context.user_id,
+                        reason="Item partially moved",
+                        changes={
+                            "amount": {"old": str(old_amount), "new": str(item.amount)}
+                        },
                     )
 
         else:
@@ -129,24 +175,58 @@ class MovementService:
                 existing_of_the_same_type.save()
                 if amount == item.amount:
                     item.delete()
+                    movement_item = existing_of_the_same_type
                 else:
                     item.amount -= amount
                     item.save()
+                    movement_item = item
             else:
+                movement_item = item
                 if amount == item.amount:
                     item.location = new_location
                     item.save()
                 else:
+                    old_amount = item.amount
                     item.amount -= amount
                     item.save()
-                    WarehouseItem.objects.create(
+                    new_item = WarehouseItem.objects.create(
                         stock_product=item.stock_product,
                         tracking_level=item.tracking_level,
                         amount=amount,
                         location=new_location,
                     )
+                    audit_service.add_entry(
+                        new_item,
+                        action=AuditAction.CREATE,
+                        user=context.user_id,
+                        reason="Created by partial move of a non-fungible item to a new location",
+                        changes={
+                            "amount": {"old": str(old_amount), "new": str(item.amount)}
+                        },
+                    )
+                    audit_service.add_entry(
+                        item,
+                        action=AuditAction.UPDATE,
+                        user=context.user_id,
+                        reason="Item partially moved",
+                        changes={
+                            "amount": {"old": str(old_amount), "new": str(item.amount)}
+                        },
+                    )
 
-        # todo: audit
+        if movement_item:
+            WarehouseMovement.objects.create(
+                location_from=location_from,
+                location_to=new_location,
+                inbound_order_code=item.order_in,
+                stock_product=item.stock_product,
+                amount=amount,
+                item=movement_item,
+                batch=movement_batch,
+                worker=User.objects.get(pk=context.user_id)
+                if context.user_id
+                else None,
+            )
 
 
 movement_service = MovementService()
@@ -174,6 +254,37 @@ class WarehouseService:
             ) from exc
 
         return warehouse_item_orm_to_schema(item)
+
+    @staticmethod
+    def get_warehouse_item_detail(item_id: int) -> WarehouseItemDetailSchema:
+        try:
+            item = WarehouseItem.objects.select_related(
+                "stock_product",
+                "stock_product__unit_of_measure",
+                "stock_product__type",
+                "stock_product__group",
+                "location",
+                "location__warehouse",
+                "order_in",
+                "package_type",
+                "package_type__unit_of_measure",
+                "batch",
+            ).get(pk=item_id)
+        except WarehouseItem.DoesNotExist as exc:
+            raise WarehouseItemNotFoundError(
+                f"Warehouse item with id '{item_id}' does not exist"
+            ) from exc
+
+        item_schema = warehouse_item_orm_to_schema(item)
+        audit_entries = audit_service.get_timeline_for_object(item)
+
+        return WarehouseItemDetailSchema(
+            **item_schema.model_dump(),
+            audits=[
+                AuditTimelineEntrySchema(**entry.model_dump())
+                for entry in audit_entries
+            ],
+        )
 
     @staticmethod
     def create_warehouse_movement(
@@ -240,7 +351,7 @@ class WarehouseService:
 
     @staticmethod
     def create_inbound_order(
-        params: WarehouseOrderCreateSchema,
+        params: WarehouseOrderCreateSchema, context: RequestContext
     ) -> InboundWarehouseOrderSchema:
         purchase_order = InboundOrder.objects.get(code=params.purchase_order_code)
         location = WarehouseLocation.objects.get(code=params.location_code)
@@ -251,17 +362,29 @@ class WarehouseService:
             warehouse_order = InboundWarehouseOrder.objects.create(
                 code=code, order=purchase_order
             )
-            for item in purchase_order.items.all():
-                WarehouseItem.objects.create(
-                    stock_product=item.stock_product,
+            audit_service.add_entry(
+                warehouse_order,
+                action=AuditAction.CREATE,
+                user=context.user_id,
+                reason=f"Bound to order '{params.purchase_order_code}'",
+            )
+            for purchase_item in purchase_order.items.all():
+                item = WarehouseItem.objects.create(
+                    stock_product=purchase_item.stock_product,
                     tracking_level=TrackingLevel.FUNGIBLE,
-                    amount=item.amount,
+                    amount=purchase_item.amount,
                     order_in=warehouse_order,
                     location=location,
                 )
+                audit_service.add_entry(
+                    item,
+                    action=AuditAction.CREATE,
+                    user=context.user_id,
+                    reason=warehouse_order.code,
+                )
 
             inbound_orders_service.transition_order(
-                purchase_order.code, InboundOrderState.RECEIVING
+                purchase_order.code, InboundOrderState.RECEIVING, context=context
             )
 
         warehouse_order.refresh_from_db()
@@ -488,18 +611,49 @@ class WarehouseService:
 
     @staticmethod
     def update_inbound_order(
-        code: str, body: InboundWarehouseOrderUpdateSchema
+        code: str,
+        body: InboundWarehouseOrderUpdateSchema,
+        context: RequestContext,
+        no_audit: bool = False,
     ) -> None:
-        order = InboundWarehouseOrder.objects.get(code=code)
-        order.state = body.state
-        order.save()
+        with transaction.atomic():
+            order = InboundWarehouseOrder.objects.get(code=code)
+            old_state = order.state
+            order.state = body.state
+            order.save()
+            if not no_audit:
+                audit_service.add_entry(
+                    order,
+                    user=context.user_id,
+                    action=AuditAction.UPDATE,
+                    reason="Warehouse order updated",
+                    changes={"state": {"old": old_state, "new": body.state}},
+                )
         return None
 
     @classmethod
-    def transition_order(cls, code: str, state: InboundWarehouseOrderState) -> None:
-        return cls.update_inbound_order(
-            code, InboundWarehouseOrderUpdateSchema(state=state)
+    def transition_order(
+        cls, code: str, state: InboundWarehouseOrderState, context: RequestContext
+    ) -> None:
+        order = InboundWarehouseOrder.objects.get(code=code)
+        old_state = order.state
+        cls.update_inbound_order(
+            code,
+            InboundWarehouseOrderUpdateSchema(state=state),
+            context=context,
+            no_audit=True,
         )
+
+        if old_state != state:
+            audit_service.add_entry(
+                order,
+                user=context.user_id,
+                action=AuditAction.TRANSITION,
+                reason=f"Warehouse order state changed from '{old_state}' to '{state}'",
+                changes={"state": {"old": old_state, "new": state}},
+            )
+
+        return None
 
     @classmethod
     def remove_from_order_to_credit_note(
@@ -507,6 +661,7 @@ class WarehouseService:
         warehouse_order_code: str,
         warehouse_item_id: int,
         amount: float | Decimal,
+        context: RequestContext,
     ) -> InboundWarehouseOrderSchema:
         amount = Decimal(amount)
         warehouse_item = WarehouseItem.objects.prefetch_related("stock_product").get(
@@ -530,7 +685,9 @@ class WarehouseService:
                     f"Requested amount ({amount}) exceeds item amount: {warehouse_item.amount} ({warehouse_item.stock_product.name})"
                 )
 
-            note, _ = inbound_orders_service.get_or_create_credit_note(order.code)
+            note, created = inbound_orders_service.get_or_create_credit_note(
+                order.code, context
+            )
             if note.state != CreditNoteState.DRAFT:
                 raise WarehouseGenericError(
                     f"Credit Note '{note.code}' is already confirmed and read-only"
@@ -556,47 +713,70 @@ class WarehouseService:
                 warehouse_item.amount -= amount
                 warehouse_item.save()
 
+            if created:
+                audit_service.add_entry(
+                    warehouse_order,
+                    user=context.user_id,
+                    action=AuditAction.CREATE,
+                    reason="Credit note created",
+                    changes={"credit_note": {"new": note.code}},
+                )
+            audit_service.add_entry(
+                warehouse_order,
+                user=context.user_id,
+                action=AuditAction.OTHER,
+                reason="Item discarded to credit note",
+                changes={
+                    "credit_note": note.code,
+                    "stock_product": stock_product.name,
+                    "amount": str(amount),
+                },
+            )
+
         return cls.get_inbound_warehouse_order(warehouse_order_code)
 
     @classmethod
-    def confirm_draft(cls, code: str) -> None:
+    def confirm_draft(cls, code: str, context: RequestContext) -> None:
         w_order = cls.get_inbound_warehouse_order(code)
         if w_order.state != InboundWarehouseOrderState.DRAFT:
             raise WarehouseGenericError(
                 f"Warehouse order '{code}' (state={w_order.state}) has to be in draft state in order to be confirmed."
             )
-        cls.transition_order(code, InboundWarehouseOrderState.PENDING)
+        cls.transition_order(code, InboundWarehouseOrderState.PENDING, context)
         inbound_order = InboundOrder.objects.get(warehouse_order__code=code)
         inbound_orders_service.transition_order(
-            inbound_order.code, InboundOrderState.PUTAWAY
+            inbound_order.code, InboundOrderState.PUTAWAY, context=context
         )
         if credit_note := getattr(inbound_order, "credit_note", None):
             inbound_orders_service.transition_credit_note(
-                credit_note.code, CreditNoteState.CONFIRMED
+                credit_note.code,
+                CreditNoteState.CONFIRMED,
+                context=context,
             )
 
     @classmethod
-    def reset_to_draft(cls, code: str) -> None:
+    def reset_to_draft(cls, code: str, context: RequestContext) -> None:
         w_order = cls.get_inbound_warehouse_order(code)
         if w_order.state != InboundWarehouseOrderState.PENDING:
             raise WarehouseGenericError(
                 f"Warehouse order ${code}, state={w_order.state} has to be in pending state in order to be reset to draft."
             )
-        cls.transition_order(code, InboundWarehouseOrderState.DRAFT)
+        cls.transition_order(code, InboundWarehouseOrderState.DRAFT, context)
         inbound_order = InboundOrder.objects.get(warehouse_order__code=code)
         inbound_orders_service.transition_order(
-            inbound_order.code, InboundOrderState.RECEIVING
+            inbound_order.code, InboundOrderState.RECEIVING, context=context
         )
         if credit_note := getattr(inbound_order, "credit_note", None):
             inbound_orders_service.transition_credit_note(
-                credit_note.code, CreditNoteState.DRAFT
+                credit_note.code, CreditNoteState.DRAFT, context=context
             )
 
     @staticmethod
     def recalculate_average_purchase_price(
-        product_code: str, amount: Decimal, unit_price: Decimal
+        product_code: str, amount: Decimal, unit_price: Decimal, context: RequestContext
     ) -> None:
         stock_product = StockProduct.objects.get(code=product_code)
+        old_purchase_price = stock_product.purchase_price
         # item_from_order = item.order_in.order.items.filter(
         #     stock_product=stock_product
         # ).first()
@@ -605,6 +785,7 @@ class WarehouseService:
         #         f"Warehouse item lacks an appropriate order item ({stock_product.name} - {stock_product.code})"
         #     )
         # unit_price = item_from_order.unit_price
+        total_items_amount = Decimal("0.0")
         if not stock_product.purchase_price:
             stock_product.purchase_price = unit_price
         else:
@@ -622,9 +803,34 @@ class WarehouseService:
 
         stock_product.save()
 
+        audit_service.add_entry(
+            stock_product,
+            user=context.user_id,
+            action=AuditAction.UPDATE,
+            reason="Average purchase price recalculated",
+            changes={
+                "purchase_price": {
+                    "old": str(old_purchase_price)
+                    if old_purchase_price is not None
+                    else None,
+                    "new": str(stock_product.purchase_price)
+                    if stock_product.purchase_price is not None
+                    else None,
+                },
+                "amount": {
+                    "old": str(total_items_amount),
+                    "new": str(total_items_amount + amount),
+                },
+            },
+        )
+
     @classmethod
     def putaway_item(
-        cls, item_id: int, warehouse_order_code: str, new_location_code: str
+        cls,
+        item_id: int,
+        warehouse_order_code: str,
+        new_location_code: str,
+        context: RequestContext,
     ) -> None:
         """
         Putaway an item while processing an inbound order.
@@ -654,27 +860,27 @@ class WarehouseService:
                 stock_product=item.stock_product
             ).unit_price
             cls.recalculate_average_purchase_price(
-                item.stock_product.code, amount, unit_price
+                item.stock_product.code, amount, unit_price, context=context
             )
 
-            cls.create_warehouse_movement(
-                item_id=item_id,
-                warehouse_order_code=warehouse_order_code,
-                new_location_code=new_location_code,
-            )
-
-            movement_service.move_item(item, new_location)
+            movement_service.move_item(item, context, new_location)
 
             if warehouse_order.items.filter(location__is_putaway=True).count() == 0:
                 cls.transition_order(
-                    warehouse_order_code, InboundWarehouseOrderState.COMPLETED
+                    warehouse_order_code,
+                    InboundWarehouseOrderState.COMPLETED,
+                    context=context,
                 )
                 inbound_orders_service.transition_order(
-                    warehouse_order.order.code, InboundOrderState.COMPLETED
+                    warehouse_order.order.code,
+                    InboundOrderState.COMPLETED,
+                    context=context,
                 )
             else:
                 cls.transition_order(
-                    warehouse_order_code, InboundWarehouseOrderState.STARTED
+                    warehouse_order_code,
+                    InboundWarehouseOrderState.STARTED,
+                    context=context,
                 )
 
     # @staticmethod

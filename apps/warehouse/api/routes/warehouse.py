@@ -9,7 +9,9 @@ from apps.warehouse.api.pagination import (
     IncomingWarehouseOrdersPagination,
     WarehouseLocationsPagination,
 )
+from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
 from apps.warehouse.core.exceptions import WarehouseGenericError
+from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.warehouse import (
     GetWarehouseLocationResponse,
     GetWarehouseItemResponse,
@@ -26,6 +28,7 @@ from apps.warehouse.core.schemas.warehouse import (
     GetWarehousesWithCountsResponse,
     WarehouseWithCountsSchema,
 )
+from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
     location_orm_to_detail_schema,
@@ -108,7 +111,7 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
     response={200: GetWarehouseItemResponse},
 )
 def get_warehouse_item(request: HttpRequest, item_id: int):
-    item = warehouse_service.get_warehouse_item(item_id)
+    item = warehouse_service.get_warehouse_item_detail(item_id)
     return GetWarehouseItemResponse(data=item)
 
 
@@ -122,7 +125,9 @@ def create_inbound_warehouse_order(
     # user = authenticate(
     #     request, username=credentials.username, password=credentials.password
     # )
-    warehouse_order = warehouse_service.create_inbound_order(body)
+    warehouse_order = warehouse_service.create_inbound_order(
+        body, context=RequestContext.from_django_request(request)
+    )
     return GetWarehouseOrderResponse(data=warehouse_order)
 
 
@@ -144,7 +149,8 @@ def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None =
             "warehouse_movements__stock_product",
             "warehouse_movements__item",
         )
-        .exclude(order__state=InboundOrderState.CANCELLED),
+        .exclude(order__state=InboundOrderState.CANCELLED)
+        .exclude(order__state=InboundOrderState.COMPLETED),
     )
     if search_term:
         search_term = search_term.lower()
@@ -168,6 +174,15 @@ def get_inbound_warehouse_order(request: HttpRequest, code: str):
     return GetWarehouseOrderResponse(data=order)
 
 
+@routes.get(
+    "orders-incoming/{code}/audits",
+    response={200: GetAuditTimelineResponse},
+)
+def get_inbound_warehouse_order_audits(request: HttpRequest, code: str):
+    order = InboundWarehouseOrder.objects.get(code=code)
+    return GetAuditTimelineResponse(data=audit_service.get_timeline_for_object(order))
+
+
 @routes.put(
     "orders-incoming/{code}",
     response={200: GetWarehouseOrderResponse},
@@ -175,7 +190,9 @@ def get_inbound_warehouse_order(request: HttpRequest, code: str):
 def update_inbound_warehouse_order(
     request: HttpRequest, code: str, body: InboundWarehouseOrderUpdateSchema
 ):
-    warehouse_service.update_inbound_order(code, body)
+    warehouse_service.update_inbound_order(
+        code, body, context=RequestContext.from_django_request(request)
+    )
     return GetWarehouseOrderResponse(
         data=warehouse_service.get_inbound_warehouse_order(code)
     )
@@ -236,7 +253,10 @@ def remove_from_order_to_credit_note(
     request: HttpRequest, code: str, body: RemoveItemToCreditNoteRequest
 ):
     order = warehouse_service.remove_from_order_to_credit_note(
-        code, body.item_id, body.amount
+        code,
+        body.item_id,
+        body.amount,
+        context=RequestContext.from_django_request(request),
     )
     return GetWarehouseOrderResponse(data=order)
 
@@ -249,9 +269,13 @@ def transition_inbound_warehouse_order(
     request: HttpRequest, code: str, body: InboundWarehouseOrderSetStateSchema
 ):
     if body.state == InboundWarehouseOrderState.DRAFT:
-        warehouse_service.reset_to_draft(code)
+        warehouse_service.reset_to_draft(
+            code, context=RequestContext.from_django_request(request)
+        )
     elif body.state == InboundWarehouseOrderState.PENDING:
-        warehouse_service.confirm_draft(code)
+        warehouse_service.confirm_draft(
+            code, context=RequestContext.from_django_request(request)
+        )
     else:
         raise WarehouseGenericError(f"Unsupported state transition '{body.state}'")
 
@@ -274,6 +298,7 @@ def putaway_inbound_warehouse_order_item(
         item_id=item_id,
         warehouse_order_code=code,
         new_location_code=body.new_location_code,
+        context=RequestContext.from_django_request(request),
     )
     order = warehouse_service.get_inbound_warehouse_order(code)
     return GetWarehouseOrderResponse(data=order)

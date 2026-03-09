@@ -1,31 +1,59 @@
 <template>
   <div v-if="item" class="flex flex-col gap-2 flex-1">
+    <div class="flex justify-between flex-wrap">
+      <q-breadcrumbs class="mb-5 flex-[3]">
+        <q-breadcrumbs-el label="Domů" :to="{ name: 'home' }" />
+        <q-breadcrumbs-el label="Produkty" :to="{ name: 'products' }" />
+        <q-breadcrumbs-el
+          :label="item.product.name"
+          :to="{ name: 'productDetail', params: { productCode: item.product.code } }"
+        />
+        <q-breadcrumbs-el :label="item.primary_barcode ?? `${item.id}`" />
+      </q-breadcrumbs>
+      <div class="flex flex-col items-end gap-3 flex-1">
+        <q-btn flat color="primary" icon-right="sym_o_query_stats" @click="auditDialog = true">
+          <q-tooltip :offset="[0, 10]">Zobrazit historii</q-tooltip>
+        </q-btn>
+      </div>
+    </div>
+
     <div class="flex gap-2">
       <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
-        <span class="text-gray-5 flex items-center gap-1 mb-1">SKLADOVÁ POLOŽKA</span>
-        <h1 class="text-primary mb-1">
-          <a
-            @click="
-              $router.push({
-                name: 'productDetail',
-                params: { productCode: item.product.code },
-              })
-            "
-            class="link"
-            >{{ item.product.name }}</a
-          >
-        </h1>
-        <span class="flex items-center gap-1 mb-3">
-          <small class="text-gray-5">kód produktu:</small>
-          <h5>{{ item.product.code }}</h5>
-        </span>
-
-        <q-list dense class="mt-2 mb-2">
+        <div class="flex justify-between">
+          <div>
+            <span class="text-gray-5 flex items-center gap-1 mb-1">SKLADOVÁ POLOŽKA</span>
+            <h1 class="text-primary mb-1">
+              <a
+                @click="
+                  $router.push({
+                    name: 'productDetail',
+                    params: { productCode: item.product.code },
+                  })
+                "
+                class="link"
+                >{{ item.product.name }}</a
+              >
+            </h1>
+            <span class="flex items-center gap-1 mb-3">
+              <small class="text-gray-5">kód produktu:</small>
+              <h5>{{ item.product.code }}</h5>
+            </span>
+          </div>
+          <div v-if="item.primary_barcode">
+            <BarcodeElement
+              :barcode="item.primary_barcode"
+              :width="2"
+              :height="45"
+              text-align="left"
+            />
+          </div>
+        </div>
+        <q-list dense class="mt-2 mb-2" separator>
           <q-item>
             <q-item-section>Typ položky</q-item-section>
             <q-item-section avatar>
               <div class="flex items-center gap-2">
-                <span class="text-gray-5">{{ trackingLabel }}</span>
+                <span class="text-gray-5 uppercase">{{ trackingLabel }}</span>
                 <PackageTypeBadge :package-type="item.package?.type" />
               </div>
             </q-item-section>
@@ -71,12 +99,22 @@
             </q-item-section>
           </q-item>
         </q-list>
-
-        <div v-if="item.primary_barcode" class="mt-2">
-          <BarcodeElement :barcode="item.primary_barcode" :width="1.6" text-align="left" />
-        </div>
       </ForegroundPanel>
     </div>
+
+    <RightSideDialog
+      v-model:show="auditDialog"
+      title="Historie skladové položky"
+      panel-class="w-[min(100vw,780px)]"
+    >
+      <WarehouseItemAuditTimeline :entries="item.audits ?? []" class="p-5" />
+
+      <template #footer>
+        <div class="flex justify-end">
+          <q-btn flat color="primary" label="Zavřít" @click="auditDialog = false" />
+        </div>
+      </template>
+    </RightSideDialog>
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
@@ -89,9 +127,11 @@ import { warehouseApiRoutesWarehouseGetWarehouseItem } from '@/client'
 import BarcodeElement from '@/components/BarcodeElement.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import PackageTypeBadge from '@/components/PackageTypeBadge.vue'
+import RightSideDialog from '@/components/layout/RightSideDialog.vue'
+import WarehouseItemAuditTimeline from '@/components/warehouse/WarehouseItemAuditTimeline.vue'
 import WarehouseItemAmountBadge from '@/components/warehouse/WarehouseItemAmountBadge.vue'
 import { useApi } from '@/composables/use-api'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{ itemId: string }>()
 
@@ -107,16 +147,21 @@ const item = data?.data
 const inboundOrderCode =
   (item as { inbound_order_code?: string | null } | undefined)?.inbound_order_code ?? null
 
+const auditDialog = ref(false)
+
 const trackingLabel = computed(() => {
   if (!item) {
     return ''
   }
   if (item.tracking_level === 'FUNGIBLE') {
-    return 'fungible'
+    return 'volně skladem'
   }
   if (item.tracking_level === 'BATCH') {
-    return 'batch'
+    return 'šarže'
   }
-  return 'serial'
+  if (item.tracking_level === 'SERIALIZED_PACKAGE') {
+    return 'balení'
+  }
+  return 'sériové'
 })
 </script>

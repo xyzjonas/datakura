@@ -77,8 +77,8 @@ def test_incoming_order_add_item_duplicate_product_fails(db):
 
 
 def test_incoming_order_update_item(db):
-    order = cast(InboundOrder, InboundOrderFactory())
-    item = cast(InboundOrderItem, InboundOrderItemFactory(order=order))
+    order = InboundOrderFactory.it()
+    item = InboundOrderItemFactory._(order=order)
 
     result = inbound_orders_service.update_item(
         order.code,
@@ -95,6 +95,59 @@ def test_incoming_order_update_item(db):
     assert item.unit_price == 555
     assert result.amount == 7
     assert result.unit_price == 555
+
+
+def test_incoming_order_add_item_assigns_next_index(db):
+    order = InboundOrderFactory.it()
+    first_product = StockProductFactory.it()
+    second_product = StockProductFactory.it()
+
+    assert order.items.count() == 0
+
+    inbound_orders_service.add_item(
+        order.code,
+        InboundOrderItemCreateSchema(
+            product_code=first_product.code,
+            product_name=first_product.name,
+            unit_price=100,
+            amount=1,
+        ),
+    )
+
+    order.refresh_from_db()
+    assert order.items.count() == 1
+
+    created = inbound_orders_service.add_item(
+        order.code,
+        InboundOrderItemCreateSchema(
+            product_code=second_product.code,
+            product_name=second_product.name,
+            unit_price=200,
+            amount=2,
+        ),
+    )
+
+    assert created.index == 1
+
+
+def test_incoming_order_update_item_can_change_index(db):
+    order = InboundOrderFactory.it()
+    item = InboundOrderItemFactory._(order=order, index=5)
+
+    result = inbound_orders_service.update_item(
+        order.code,
+        InboundOrderItemCreateSchema(
+            product_code=item.stock_product.code,
+            product_name=item.stock_product.name,
+            unit_price=555,
+            amount=7,
+            index=2,
+        ),
+    )
+
+    item.refresh_from_db()
+    assert item.index == 2
+    assert result.index == 2
 
 
 def test_incoming_order_remove_item(db):
@@ -133,7 +186,7 @@ def test_generate_next_incoming_order_code_100(db):
     assert code == f"OV{now.year}{now.month:02d}0100"
 
 
-def test_create_empty_incoming(db):
+def test_create_empty_incoming(db, context):
     customer = CustomerFactoryMinimal()
     incoming_order = inbound_orders_service.update_or_create_incoming(
         InboundOrderCreateOrUpdateSchema(
@@ -142,7 +195,8 @@ def test_create_empty_incoming(db):
             external_code="12345",
             supplier_code=customer.code,
             supplier_name=customer.name,
-        )
+        ),
+        context=context,
     )
     assert incoming_order.code is not None
     assert incoming_order.description == "foobar"
@@ -153,7 +207,7 @@ def test_create_empty_incoming(db):
     assert incoming_order.items == []
 
 
-def test_edit_incoming(db):
+def test_edit_incoming(db, context):
     order = InboundOrderFactory(currency="CZK")
     InboundOrderItemFactory.create_batch(10, order=order)
 
@@ -167,6 +221,7 @@ def test_edit_incoming(db):
             supplier_name=new_customer.name,
         ),
         code=order.code,
+        context=context,
     )
     assert incoming_order.code == order.code
     assert incoming_order.currency == "EUR"
@@ -178,12 +233,14 @@ def test_edit_incoming(db):
     assert len(incoming_order.items) == 10
 
 
-def test_transition_order(db):
+def test_transition_order(db, context):
     order = InboundOrderFactory(state=InboundOrderState.DRAFT)
     assert order.state == InboundOrderState.DRAFT
 
     result = inbound_orders_service.transition_order(
-        order.code, InboundOrderState.COMPLETED
+        code=order.code,
+        new_state=InboundOrderState.COMPLETED,
+        context=context,
     )
     order_db = InboundOrder.objects.get(code=order.code)
     assert order_db.state == InboundOrderState.COMPLETED
@@ -191,23 +248,27 @@ def test_transition_order(db):
     assert result == inbound_order_orm_to_schema(order_db)
 
 
-def test_create_credit_note(db):
+def test_create_credit_note(db, context):
     order = InboundOrderFactory(state=InboundOrderState.DRAFT)
 
-    result, created = inbound_orders_service.get_or_create_credit_note(order.code)
+    result, created = inbound_orders_service.get_or_create_credit_note(
+        order_code=order.code, context=context
+    )
     assert created
     assert len(result.items) == 0
 
 
-def test_create_credit_note_no_order(db):
+def test_create_credit_note_no_order(db, context):
     with pytest.raises(InboundOrder.DoesNotExist):
-        inbound_orders_service.get_or_create_credit_note("foobar")
+        inbound_orders_service.get_or_create_credit_note("foobar", context=context)
 
 
-def test_create_credit_note_exist(db):
+def test_create_credit_note_exist(db, context):
     note = CreditNoteSupplierFactory()
 
-    result, created = inbound_orders_service.get_or_create_credit_note(note.order.code)
+    result, created = inbound_orders_service.get_or_create_credit_note(
+        note.order.code, context=context
+    )
     assert not created
     assert CreditNoteToSupplier.objects.count() == 1
     assert len(result.items) == 0
@@ -219,7 +280,9 @@ def test_create_credit_note_exist(db):
         unit_price=1.0,
     )
 
-    result, created = inbound_orders_service.get_or_create_credit_note(note.order.code)
+    result, created = inbound_orders_service.get_or_create_credit_note(
+        note.order.code, context=context
+    )
     assert not created
     assert CreditNoteToSupplier.objects.count() == 1
     assert len(result.items) == 1

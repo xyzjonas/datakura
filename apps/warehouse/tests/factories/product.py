@@ -36,6 +36,10 @@ class StockProductFactory(DjangoModelFactory):
         model = StockProduct
         django_get_or_create = ("code",)
 
+    @classmethod
+    def it(cls, **kwargs) -> StockProduct:
+        return cls(**kwargs)  # type: ignore
+
     name = factory.Sequence(lambda n: f"Product {n}")
     code = factory.Sequence(lambda n: f"PRD-{n:05d}")
     type = factory.SubFactory(ProductTypeFactory)

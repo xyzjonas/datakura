@@ -1,5 +1,6 @@
 <template>
-  <div class="flex w-full justify-between">
+  <div class="flex w-full justify-between items-center gap-5">
+    <IndexRectangle v-if="index" :index="index" />
     <div>
       <a
         @click="
@@ -15,14 +16,14 @@
       <span class="text-xs text-gray-5">{{ item.product.code }}</span>
     </div>
     <div
-      class="flex gap-2 flex-1 items-center justify-start lg:justify-end flex-nowrap min-w-[670px]"
+      class="flex gap-3 flex-1 items-center justify-start lg:justify-end flex-nowrap min-w-[670px]"
     >
       <ProductAvailability :product-code="item.product.code" class="mr-5" />
       <q-input
         v-model.number="item.amount"
         :readonly="readonly"
         dense
-        standout
+        outlined
         class="max-w-28"
         label="Počet"
         @update:model-value="update"
@@ -36,7 +37,7 @@
         v-model.number="item.unit_price"
         :readonly="readonly"
         dense
-        standout
+        outlined
         class="max-w-50"
         label="Nákupní cena"
         @update:model-value="update"
@@ -50,7 +51,7 @@
         readonly
         :model-value="totalPrice"
         dense
-        standout
+        outlined
         class="max-w-40"
         label="Celková cena"
       >
@@ -73,12 +74,14 @@
 <script setup lang="ts">
 import {
   warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder,
+  type CreditNoteSupplierItemSchema,
   type InboundOrderItemSchema,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
 import { round } from '@/utils/round'
 import { useQuasar } from 'quasar'
 import { computed } from 'vue'
+import IndexRectangle from '../IndexRectangle.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 
 const $q = useQuasar()
@@ -87,9 +90,19 @@ const { onResponse } = useApi()
 const props = defineProps<{ currency: string; readonly?: boolean; orderCode: string }>()
 defineEmits<{ (e: 'dissolveItem'): void }>()
 
-const item = defineModel<InboundOrderItemSchema>('item', { required: true })
+const item = defineModel<InboundOrderItemSchema | CreditNoteSupplierItemSchema>('item', {
+  required: true,
+})
 
 const totalPrice = computed(() => round(item.value.unit_price * item.value.amount))
+
+const index = computed(() => (isInboundOrderItem(item.value) ? item.value.index + 1 : undefined))
+
+const isInboundOrderItem = (
+  item: InboundOrderItemSchema | CreditNoteSupplierItemSchema,
+): item is InboundOrderItemSchema => {
+  return 'index' in item
+}
 
 const update = async () => {
   const res = await warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder({
@@ -101,6 +114,7 @@ const update = async () => {
       product_name: item.value.product.name,
       amount: item.value.amount,
       unit_price: item.value.unit_price,
+      index: index.value,
     },
   })
 

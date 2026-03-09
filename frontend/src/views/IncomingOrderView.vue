@@ -1,10 +1,15 @@
 <template>
   <div v-if="order" class="w-full flex flex-col gap-2">
-    <q-breadcrumbs class="mb-5">
-      <q-breadcrumbs-el label="Home" :to="{ name: 'home' }" />
-      <q-breadcrumbs-el label="Vydané Objednávky" :to="{ name: 'incomingOrders' }" />
-      <q-breadcrumbs-el :label="order.code" />
-    </q-breadcrumbs>
+    <div class="flex justify-between">
+      <q-breadcrumbs class="mb-5">
+        <q-breadcrumbs-el label="Home" :to="{ name: 'home' }" />
+        <q-breadcrumbs-el label="Vydané Objednávky" :to="{ name: 'incomingOrders' }" />
+        <q-breadcrumbs-el :label="order.code" />
+      </q-breadcrumbs>
+      <q-btn flat dense color="primary" icon="sym_o_query_stats" @click="auditDialog = true">
+        <q-tooltip :offset="[0, 10]">Zobrazit historii</q-tooltip>
+      </q-btn>
+    </div>
 
     <div class="mb-2 flex justify-between items-center">
       <div class="flex gap-2 items-center">
@@ -99,7 +104,8 @@
         :currency="order.currency"
         :readonly="getInboundOrderStep(order) > 1"
         :order-code="order.code"
-        @remove-item="removeItem"
+        @dissolve-item="removeItem"
+        @reorder-items="reorderItems"
         @add-item="addItemDialog = true"
       />
     </div>
@@ -136,6 +142,12 @@
       v-model:show="createWarehouseOrderDialog"
       @confirm="createWarehouseOrder"
     />
+    <AuditLogDialog
+      v-model:show="auditDialog"
+      source="inbound-order"
+      :code="order.code"
+      title="Historie změn objednávky"
+    />
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
@@ -151,6 +163,7 @@ import {
   warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder,
   warehouseApiRoutesInboundOrdersTransitionInboundOrder,
   warehouseApiRoutesInboundOrdersUpdateInboundOrder,
+  warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder,
   warehouseApiRoutesWarehouseCreateInboundWarehouseOrder,
   type InboundOrderCreateOrUpdateSchema,
   type InboundOrderItemCreateSchema,
@@ -160,6 +173,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import InboundOrderDetailsListCard from '@/components/order/InboundOrderDetailsListCard.vue'
 import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDialog.vue'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
@@ -191,6 +205,7 @@ if (data) {
 }
 
 const addItemDialog = ref(false)
+const auditDialog = ref(false)
 const addItemDialogComponent = ref<InstanceType<typeof NewOrderItemDialog>>()
 const addItem = async (item: InboundOrderItemCreateSchema) => {
   if (!order.value) {
@@ -220,6 +235,45 @@ const removeItem = async (product_code: string) => {
   const data = onResponse(result)
   if (data) {
     order.value.items = order.value.items?.filter((it) => it.product.code !== product_code)
+  }
+}
+
+const reorderItems = async (items: NonNullable<InboundOrderSchema['items']>) => {
+  if (!order.value) {
+    return
+  }
+
+  const indexedItems = items.map((it, index) => ({ ...it, index }))
+  order.value.items = indexedItems
+
+  let hasError = false
+  await Promise.all(
+    indexedItems.map(async (item) => {
+      const res = await warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder({
+        path: { order_code: order.value!.code },
+        body: {
+          product_code: item.product.code,
+          product_name: item.product.name,
+          amount: item.amount,
+          unit_price: item.unit_price,
+          index: item.index,
+        },
+      })
+      const data = onResponse(res)
+      if (!data?.data) {
+        hasError = true
+      }
+    }),
+  )
+
+  if (hasError) {
+    const refreshResponse = await warehouseApiRoutesInboundOrdersGetInboundOrder({
+      path: { order_code: order.value.code },
+    })
+    const refreshData = onResponse(refreshResponse)
+    if (refreshData?.data) {
+      order.value = refreshData.data
+    }
   }
 }
 

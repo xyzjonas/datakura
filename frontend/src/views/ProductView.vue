@@ -1,5 +1,18 @@
 <template>
   <div v-if="product" class="flex flex-col gap-2 flex-1">
+    <div class="flex justify-between flex-wrap">
+      <q-breadcrumbs class="mb-5 flex-[3]">
+        <q-breadcrumbs-el label="Domů" :to="{ name: 'home' }" />
+        <q-breadcrumbs-el label="Produkty" :to="{ name: 'products' }" />
+        <q-breadcrumbs-el :label="product.name" />
+      </q-breadcrumbs>
+      <div class="flex flex-col items-end gap-3 flex-1">
+        <q-btn flat color="primary" icon-right="sym_o_query_stats" @click="auditDialog = true">
+          <q-tooltip :offset="[0, 10]">Zobrazit historii</q-tooltip>
+        </q-btn>
+      </div>
+    </div>
+
     <div class="flex justify-between gap-2">
       <div class="flex items-center gap-2">
         <ProductAvailability :product-code="product.code" />
@@ -99,6 +112,13 @@
     <div class="flex gap-2 flex-1">
       <WarehouseCard :product-code="product.code" :product-unit="product.unit" />
     </div>
+
+    <AuditLogDialog
+      v-model:show="auditDialog"
+      source="product"
+      :code="product.code"
+      title="Historie změn produktu"
+    />
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
@@ -113,6 +133,7 @@ import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import WarehouseCard from '@/components/product/WarehouseCard.vue'
+import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import type { QTableColumn } from 'quasar'
 import { computed, ref } from 'vue'
@@ -129,6 +150,7 @@ const result = await warehouseApiRoutesProductGetProduct({
 const data = onResponse(result)
 
 const product = ref(data?.data)
+const auditDialog = ref(false)
 
 // const prices = [
 //   {

@@ -1,7 +1,7 @@
 <template>
   <div v-if="order" class="flex flex-col gap-2 flex-1">
-    <div class="flex justify-between">
-      <q-breadcrumbs class="mb-5">
+    <div class="flex justify-between flex-wrap">
+      <q-breadcrumbs class="mb-5 flex-[3]">
         <q-breadcrumbs-el label="Domů" :to="{ name: 'home' }" />
         <q-breadcrumbs-el label="Vydané Objednávky" :to="{ name: 'orders' }" />
         <q-breadcrumbs-el
@@ -10,10 +10,15 @@
         />
         <q-breadcrumbs-el :label="order.code" />
       </q-breadcrumbs>
-      <OrderProgress :order="order" class="max-w-xs" />
+      <div class="flex flex-col items-end gap-3 flex-1">
+        <OrderProgress :order="order" class="flex-1 h-6 w-full" />
+        <q-btn flat color="primary" icon-right="sym_o_query_stats" @click="auditDialog = true">
+          <q-tooltip :offset="[0, 10]">Zobrazit historii</q-tooltip>
+        </q-btn>
+      </div>
     </div>
 
-    <div class="mb-2 flex justify-between items-center">
+    <div class="mb-2 flex gap-2 justify-between items-center">
       <div class="flex gap-2 items-center">
         <div>
           <span class="text-gray-5 flex items-center gap-1">PŘÍJEMKA</span>
@@ -37,25 +42,32 @@
           @click="confirmDialog = true"
           class="ml-auto"
         />
-        <q-btn
+        <MissingMarker
           v-if="step === 2"
-          unelevated
-          color="primary"
-          icon="sym_o_restart_alt"
-          label="editovat"
-          @click="resetDialog = true"
-          class="ml-auto"
-        />
+          text="#TODO: změna tam a zpět? Přepočet ceny by měl proběhnout zde."
+          class="text-nowrap"
+        >
+          <q-btn
+            v-if="step === 2"
+            unelevated
+            color="primary"
+            icon="sym_o_restart_alt"
+            label="editovat"
+            @click="resetDialog = true"
+            class="ml-auto"
+          />
+        </MissingMarker>
       </div>
     </div>
     <div class="flex gap-2">
-      <CustomerCard :customer="order.order.supplier" title="Dodavatel" class="flex-1" />
+      <CustomerCard :customer="order.order.supplier" title="Dodavatel" class="flex-[3]" />
       <LinkedEntitiesCard
         show-inbound-order
         :inbound-order="order.order"
         show-invoice
         show-credit-note
         :credit-note="order.credit_note"
+        class="flex-1"
       />
     </div>
 
@@ -124,6 +136,12 @@
         >
       </span>
     </ConfirmDialog>
+    <AuditLogDialog
+      v-model:show="auditDialog"
+      source="warehouse-inbound-order"
+      :code="order.code"
+      title="Historie stavu příjemky"
+    />
   </div>
 </template>
 
@@ -144,11 +162,13 @@ import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import LargeTabs from '@/components/LargeTabs.vue'
+import MissingMarker from '@/components/MissingMarker.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
 import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehouseOrderItemsList.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import InboundWarehouseOrderTimeline from '@/components/putaway/InboundWarehouseOrderTimeline.vue'
+import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import WarehouseMovementItem from '@/components/warehouse/WarehouseMovementItem.vue'
 import { useApi } from '@/composables/use-api'
 import { getInboundWarehouseOrderStep } from '@/constants/inbound-warehouse-order'
@@ -198,6 +218,7 @@ const updateOrderItems = async (item: WarehouseItemSchema, toBeAdded: WarehouseI
 
 const confirmDialog = ref(false)
 const resetDialog = ref(false)
+const auditDialog = ref(false)
 const transitionOrder = async (state: 'pending' | 'draft') => {
   if (!order.value) {
     return

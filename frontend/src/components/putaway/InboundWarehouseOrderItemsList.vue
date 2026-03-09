@@ -8,10 +8,7 @@
         clickable
         class="w-full flex items-center gap-5 border-b light:border-grey-5 dark:border-b-dark-4 hover:bg-light-2 py-2"
       >
-        <span
-          class="font-mono text-lg border light:border-gray-3 dark:border-gray-5 aspect-ratio-square grid content-center justify-center rounded w-12"
-          >{{ index + 1 }}</span
-        >
+        <IndexRectangle :index="index + 1" />
         <WarehouseItemEditableRow
           :item="item"
           :readonly="readonly"
@@ -38,6 +35,7 @@
 import type { WarehouseItemSchema, WarehouseLocationSchema } from '@/client'
 import EmptyPanel from '../EmptyPanel.vue'
 import WarehouseItemEditableRow from './WarehouseItemEditableRow.vue'
+import IndexRectangle from '../IndexRectangle.vue'
 
 defineEmits<{
   (e: 'dissolveItem', itemId: number): void

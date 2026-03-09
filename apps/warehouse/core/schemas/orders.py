@@ -21,12 +21,14 @@ class InboundOrderItemCreateSchema(Schema):
     product_name: str
     amount: float
     unit_price: float
+    index: int | None = None
 
 
 class InboundOrderItemSchema(BaseSchema):
     product: ProductSchema
     amount: float
     unit_price: float
+    index: int
 
 
 class InboundOrderCreateOrUpdateSchema(Schema):

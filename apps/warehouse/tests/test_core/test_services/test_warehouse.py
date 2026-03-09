@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import cast
 
 import pytest
 from django.utils import timezone
@@ -18,7 +17,6 @@ from apps.warehouse.core.transformation import (
 )
 from apps.warehouse.models.orders import CreditNoteState
 from apps.warehouse.models.packaging import PackageType
-from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     WarehouseLocation,
     WarehouseItem,
@@ -42,19 +40,16 @@ from apps.warehouse.tests.factories.warehouse import (
 from apps.warehouse.tests.factories.warehouse import WarehouseLocationFactory
 
 
-@pytest.fixture
-def putaway(db) -> WarehouseLocation:
-    return cast(WarehouseLocation, WarehouseLocationFactory(is_putaway=True))
-
-
-def test_create_warehouse_inbound_order(putaway):
+def test_create_warehouse_inbound_order(context):
+    putaway = WarehouseLocationFactory.it(is_putaway=True)
     order = InboundOrderFactory()
     InboundOrderItemFactory.create_batch(10, order=order)
 
     result = warehouse_service.create_inbound_order(
         WarehouseOrderCreateSchema(
             purchase_order_code=order.code, location_code=putaway.code
-        )
+        ),
+        context=context,
     )
 
     assert len(result.items) == 10
@@ -62,7 +57,7 @@ def test_create_warehouse_inbound_order(putaway):
 
 @pytest.mark.parametrize("items_amount, amount", [(3, 99), (0, 10), (3, 1.2)])
 def test_get_warehouse_availability(db, items_amount, amount):
-    product = cast(StockProduct, StockProductFactory())
+    product = StockProductFactory.it()
     WarehouseItemFactory.create_batch(
         items_amount, amount=amount, stock_product=product
     )
@@ -73,7 +68,7 @@ def test_get_warehouse_availability(db, items_amount, amount):
 
 @pytest.mark.parametrize("items_amount, amount", [(10, 10), (0, 10), (3, 1.2)])
 def test_get_total_availability(db, items_amount, amount):
-    product: StockProduct = StockProductFactory()  # type: ignore
+    product = StockProductFactory.it()
     WarehouseItemFactory.create_batch(
         items_amount, amount=amount, stock_product=product
     )
@@ -252,7 +247,7 @@ def test_dissolve_inbound_order_item_add(db):
         WarehouseItem.objects.get(pk=packaged_item.pk)
 
 
-def test_remove_from_order_to_credit_note(db):
+def test_remove_from_order_to_credit_note(db, context):
     amount = 100
     unit_price = 99
     w_order = InboundWarehouseOrderFactory.create_complete(
@@ -262,7 +257,7 @@ def test_remove_from_order_to_credit_note(db):
 
     credited_amount = 10
     w_order = warehouse_service.remove_from_order_to_credit_note(
-        w_order.code, item.pk, credited_amount
+        w_order.code, item.pk, credited_amount, context=context
     )
     credit_note = w_order.credit_note
     assert credit_note
@@ -279,7 +274,7 @@ def test_remove_from_order_to_credit_note(db):
     assert war_item.amount == amount - credited_amount
 
 
-def test_remove_from_order_to_credit_note_all_gone(db):
+def test_remove_from_order_to_credit_note_all_gone(db, context):
     amount = 100
     warehouse_order = InboundWarehouseOrderFactory.create_complete(
         amount=amount, unit_price=1
@@ -288,7 +283,7 @@ def test_remove_from_order_to_credit_note_all_gone(db):
 
     credited_amount = amount
     w_order = warehouse_service.remove_from_order_to_credit_note(
-        warehouse_order.code, item.pk, credited_amount
+        warehouse_order.code, item.pk, credited_amount, context=context
     )
     assert len(w_order.credit_note.items) == 1
 
@@ -299,14 +294,14 @@ def test_remove_from_order_to_credit_note_all_gone(db):
     assert not WarehouseItem.objects.filter(pk=item.pk).exists()
 
 
-def test_putaway_item_simple(db):
+def test_putaway_item_simple(db, context):
     new_location = WarehouseLocationFactory()
     war_order = InboundWarehouseOrderFactory.create_complete(
         amount=10, state=InboundWarehouseOrderState.PENDING
     )
 
     warehouse_service.putaway_item(
-        war_order.items.first().pk, war_order.code, new_location.code
+        war_order.items.first().pk, war_order.code, new_location.code, context=context
     )
 
     loc = WarehouseLocation.objects.get(code=new_location.code)
@@ -317,7 +312,7 @@ def test_putaway_item_simple(db):
     assert item.package_type is None
 
 
-def test_putaway_item_packaged(db):
+def test_putaway_item_packaged(db, context):
     piece_uom = UnitOfMeasureFactory(name="KS")
     box_100 = PackageTypeFactory(name="B0100", unit_of_measure=piece_uom)
     stock_product = StockProductFactory(unit_of_measure=piece_uom)
@@ -332,7 +327,9 @@ def test_putaway_item_packaged(db):
     )
     InboundOrderItemFactory(order=war_order.order, stock_product=stock_product)
 
-    warehouse_service.putaway_item(packaged.pk, war_order.code, new_location.code)
+    warehouse_service.putaway_item(
+        packaged.pk, war_order.code, new_location.code, context=context
+    )
 
     loc = WarehouseLocation.objects.get(code=new_location.code)
     assert loc.items.count() == 1
@@ -341,7 +338,7 @@ def test_putaway_item_packaged(db):
     assert item.package_type == box_100
 
 
-def test_putaway_item_unpackaged_merge(db):
+def test_putaway_item_unpackaged_merge(db, context):
     piece_uom = UnitOfMeasureFactory(name="KS")
     stock_product = StockProductFactory(unit_of_measure=piece_uom)
     new_location = WarehouseLocationFactory()
@@ -356,7 +353,9 @@ def test_putaway_item_unpackaged_merge(db):
     )
     old_pk = unpackaged.pk
 
-    warehouse_service.putaway_item(unpackaged.pk, war_order.code, new_location.code)
+    warehouse_service.putaway_item(
+        unpackaged.pk, war_order.code, new_location.code, context=context
+    )
 
     loc = WarehouseLocation.objects.get(code=new_location.code)
     assert loc.items.count() == 1
@@ -376,16 +375,18 @@ def test_putaway_item_unpackaged_merge(db):
         InboundWarehouseOrderState.CANCELLED,
     ],
 )
-def test_putaway_item_invalid_order_state(db, state):
+def test_putaway_item_invalid_order_state(db, state, context):
     new_location = WarehouseLocationFactory()
     war_order = InboundWarehouseOrderFactory(state=state)
     unpackaged = WarehouseItemFactory(order_in=war_order)
 
     with pytest.raises(WarehouseGenericError):
-        warehouse_service.putaway_item(unpackaged.pk, war_order.code, new_location.code)
+        warehouse_service.putaway_item(
+            unpackaged.pk, war_order.code, new_location.code, context=context
+        )
 
 
-def test_start_inbound_order(db):
+def test_start_inbound_order(db, context):
     putaway_location = WarehouseLocationFactory(is_putaway=True)
     order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING)
     to_be_moved = WarehouseItemFactory(order_in=order, location=putaway_location)
@@ -394,18 +395,20 @@ def test_start_inbound_order(db):
 
     new_location = WarehouseLocationFactory(is_putaway=False)
 
-    warehouse_service.putaway_item(to_be_moved.pk, order.code, new_location.code)
+    warehouse_service.putaway_item(
+        to_be_moved.pk, order.code, new_location.code, context=context
+    )
 
     order.refresh_from_db()
     assert order.state == InboundWarehouseOrderState.STARTED
     assert order.items.filter(location__is_putaway=True).count() == 9
 
 
-def test_complete_inbound_order(db):
+def test_complete_inbound_order(db, context):
     putaway_location = WarehouseLocationFactory(is_putaway=True)
-    order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING)
-    to_be_moved_1 = WarehouseItemFactory(order_in=order, location=putaway_location)
-    to_be_moved_2 = WarehouseItemFactory(order_in=order, location=putaway_location)
+    order = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.PENDING)
+    to_be_moved_1 = WarehouseItemFactory.it(order_in=order, location=putaway_location)
+    to_be_moved_2 = WarehouseItemFactory.it(order_in=order, location=putaway_location)
 
     InboundOrderItemFactory(
         order=order.order, stock_product=to_be_moved_1.stock_product
@@ -416,11 +419,21 @@ def test_complete_inbound_order(db):
 
     new_location = WarehouseLocationFactory(is_putaway=False)
 
-    warehouse_service.putaway_item(to_be_moved_1.pk, order.code, new_location.code)
+    warehouse_service.putaway_item(
+        item_id=to_be_moved_1.pk,
+        warehouse_order_code=order.code,
+        new_location_code=new_location.code,
+        context=context,
+    )
     order.refresh_from_db()
     assert order.state == InboundWarehouseOrderState.STARTED
 
-    warehouse_service.putaway_item(to_be_moved_2.pk, order.code, new_location.code)
+    warehouse_service.putaway_item(
+        item_id=to_be_moved_2.pk,
+        warehouse_order_code=order.code,
+        new_location_code=new_location.code,
+        context=context,
+    )
     order.refresh_from_db()
     assert order.state == InboundWarehouseOrderState.COMPLETED
 
@@ -440,9 +453,9 @@ def test_complete_inbound_order(db):
     ],
 )
 def test_recalculate_average_purchase_price_existing_stock(
-    db, price_in, price_pre, amount_pre, amount_in, expected
+    db, price_in, price_pre, amount_pre, amount_in, expected, context
 ):
-    product = StockProductFactory(purchase_price=price_pre)
+    product = StockProductFactory.it(purchase_price=price_pre)
     WarehouseItemFactory(stock_product=product, amount=amount_pre)
     w_order = InboundWarehouseOrderFactory.create_complete(
         product=product,
@@ -456,7 +469,7 @@ def test_recalculate_average_purchase_price_existing_stock(
     item = WarehouseItem.objects.filter(order_in=w_order).first()
 
     warehouse_service.recalculate_average_purchase_price(
-        product.code, item.amount, price_in
+        product.code, item.amount, price_in, context=context
     )
 
     product.refresh_from_db()

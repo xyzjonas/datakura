@@ -34,7 +34,7 @@ class WarehouseLocationFactory(DjangoModelFactory):
         model = WarehouseLocation
 
     @classmethod
-    def _(cls, **kwargs) -> WarehouseLocation:
+    def it(cls, **kwargs) -> WarehouseLocation:
         return cls(**kwargs)  # type: ignore
 
     code = factory.Sequence(lambda n: f"LOC-{chr(65 + (n // 100))}{n % 100:02d}")
@@ -60,7 +60,7 @@ class InboundWarehouseOrderFactory(DjangoModelFactory):
     state = InboundWarehouseOrderState.DRAFT
 
     @classmethod
-    def _(cls, **kwargs) -> InboundWarehouseOrder:
+    def it(cls, **kwargs) -> InboundWarehouseOrder:
         return cls(**kwargs)  # type: ignore
 
     @classmethod
@@ -104,7 +104,7 @@ class WarehouseItemFactory(DjangoModelFactory):
         model = WarehouseItem
 
     @classmethod
-    def _(cls, **kwargs) -> WarehouseItem:
+    def it(cls, **kwargs) -> WarehouseItem:
         return cls(**kwargs)  # type: ignore
 
     stock_product = factory.SubFactory(StockProductFactory)

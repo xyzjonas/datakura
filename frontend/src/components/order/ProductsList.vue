@@ -5,22 +5,25 @@
         v-for="(item, index) in items"
         :key="item.product.code"
         :class="{ dragging: draggingIndex === index, 'drag-over': dragOverIndex === index }"
-        draggable="true"
+        :draggable="!props.readonly"
         @dragstart="handleDragStart($event, index)"
         @dragend="handleDragEnd"
         @dragover="handleDragOver($event, index)"
         @dragleave="handleDragLeave"
         @drop="handleDrop($event, index)"
       >
-        <div :class="!readonly ? 'drag-handle' : ''">
-          <q-icon :name="readonly ? 'sym_o_check_small' : 'sym_o_drag_indicator'" size="1rem" />
+        <div :class="!props.readonly ? 'drag-handle' : ''">
+          <q-icon
+            :name="props.readonly ? 'sym_o_check_small' : 'sym_o_drag_indicator'"
+            size="1rem"
+          />
         </div>
         <ProductRow
           v-model:item="items[index]"
-          :readonly="readonly"
-          :currency="currency"
-          :order-code="orderCode"
-          @remove-item="() => $emit('dissolveItem', item.product.code)"
+          :readonly="props.readonly"
+          :currency="props.currency"
+          :order-code="props.orderCode"
+          @dissolve-item="() => emit('dissolveItem', item.product.code)"
         ></ProductRow>
       </ForegroundPanel>
     </TransitionGroup>
@@ -36,30 +39,27 @@
 <script setup lang="ts">
 import type { InboundOrderItemSchema } from '@/client'
 import { ref } from 'vue'
-import ProductRow from './ProductRow.vue'
-import ForegroundPanel from '../ForegroundPanel.vue'
 import EmptyPanel from '../EmptyPanel.vue'
+import ForegroundPanel from '../ForegroundPanel.vue'
+import ProductRow from './ProductRow.vue'
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'dissolveItem', product_code: string): void
   (e: 'addItem'): void
+  (e: 'reorderItems', items: Array<InboundOrderItemSchema>): void
 }>()
-defineProps<{ currency: string; readonly?: boolean; orderCode: string }>()
-const items = defineModel<Array<InboundOrderItemSchema>>('items', { default: [] })
+const props = defineProps<{ currency: string; readonly?: boolean; orderCode: string }>()
+const items = defineModel<Array<InboundOrderItemSchema>>('items', {
+  default: [],
+})
 const draggingIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
-// Watch for external changes to items
-// watch(
-//   items,
-//   (newItems) => {
-//     items.value = [...newItems]
-//   },
-//   { deep: true },
-// )
-
 // eslint-disable-next-line
 const handleDragStart = (event: any, index: number) => {
+  if (props.readonly) {
+    return
+  }
   if (!event.dataTransfer || !event.target) {
     return
   }
@@ -80,6 +80,9 @@ const handleDragEnd = (event: any) => {
 
 // eslint-disable-next-line
 const handleDragOver = (event: any, index: number | null) => {
+  if (props.readonly) {
+    return
+  }
   event.preventDefault()
   event.dataTransfer.dropEffect = 'move'
 
@@ -93,6 +96,9 @@ const handleDragLeave = () => {
 }
 
 const handleDrop = (event: Event, dropIndex: number) => {
+  if (props.readonly) {
+    return
+  }
   event.preventDefault()
 
   if (draggingIndex.value === null || draggingIndex.value === dropIndex) {
@@ -110,9 +116,7 @@ const handleDrop = (event: Event, dropIndex: number) => {
 
   items.value = newItems
   dragOverIndex.value = null
-
-  // Emit the updated order
-  // emit('update:items', newItems)
+  emit('reorderItems', newItems)
 }
 </script>
 

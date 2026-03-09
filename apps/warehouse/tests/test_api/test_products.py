@@ -1,10 +1,14 @@
 from typing import cast
+from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.product import routes
 from apps.warehouse.core.schemas.product import ProductSchema, GetProductsResponse
+from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.product import StockProduct
 
@@ -163,3 +167,31 @@ def test_add_product_barcode_switches_primary(db, client):
     new_barcode = Barcode.objects.get(code="2222222222222")
     assert old_barcode.is_primary is False
     assert new_barcode.is_primary is True
+
+
+def test_get_product_audits(db, client) -> None:
+    product = cast(StockProduct, StockProductFactory())
+
+    older_log = audit_service.add_entry(
+        product,
+        action=AuditAction.CREATE,
+        reason="Product created",
+    )
+    newer_log = audit_service.add_entry(
+        product,
+        action=AuditAction.UPDATE,
+        reason="Product updated",
+    )
+
+    now = timezone.now()
+    AuditLog.objects.filter(pk=older_log.pk).update(created=now - timedelta(minutes=10))  # type: ignore
+    AuditLog.objects.filter(pk=newer_log.pk).update(created=now)  # type: ignore
+
+    res = client.get(f"/{product.code}/audits")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert len(data) == 2
+    assert data[0]["source"] == "audit"
+    assert data[0]["action"] == AuditAction.UPDATE
+    assert data[1]["action"] == AuditAction.CREATE

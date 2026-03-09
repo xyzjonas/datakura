@@ -7,13 +7,15 @@ from django.utils import timezone
 from loguru import logger
 
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
+from apps.warehouse.core.schemas.context import RequestContext
+from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.orders import (
     InboundOrderItemCreateSchema,
     InboundOrderItemSchema,
     InboundOrderCreateOrUpdateSchema,
     InboundOrderSchema,
 )
-from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
+from apps.warehouse.core.services import audit_service
 from apps.warehouse.core.services.pdf import print_html_to_pdf
 from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
@@ -21,6 +23,7 @@ from apps.warehouse.core.transformation import (
     inbound_order_orm_to_schema,
     credit_note_supplier_orm_to_schema,
 )
+from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import (
     InboundOrder,
@@ -61,11 +64,18 @@ class OrdersService:
 
     @staticmethod
     def update_or_create_incoming(
-        params: InboundOrderCreateOrUpdateSchema, code: str | None = None
+        params: InboundOrderCreateOrUpdateSchema,
+        context: RequestContext,
+        code: str | None = None,
     ) -> InboundOrderSchema:
         if code is None:
             # todo: create code only after transitioning from 'draft'
             code = OrdersService.generate_next_incoming_order_code()
+
+        previous_order_schema = None
+        existing_order = InboundOrder.objects.filter(code=code).first()
+        if existing_order:
+            previous_order_schema = inbound_order_orm_to_schema(existing_order)
 
         supplier = Customer.objects.get(code=params.supplier_code)
         with transaction.atomic():
@@ -80,6 +90,33 @@ class OrdersService:
                     requested_delivery_date=params.requested_delivery_date,
                 ),
             )
+            if created:
+                audit_service.add_entry(
+                    order,
+                    action=AuditAction.CREATE,
+                    user=context.user_id,
+                    reason="New inbound order created",
+                )
+            else:
+                if previous_order_schema:
+                    new_order = inbound_order_orm_to_schema(order).model_dump()
+                    final_diff = {}
+                    for key, value in previous_order_schema.model_dump().items():
+                        if key in ("created", "changed"):
+                            continue
+                        if value != new_order[key]:
+                            final_diff[key] = {
+                                "old": str(value),
+                                "new": str(new_order[key]),
+                            }
+
+                    audit_service.add_entry(
+                        order,
+                        user=context.user_id,
+                        action=AuditAction.UPDATE,
+                        reason="Warehouse order updated",
+                        changes=final_diff,
+                    )
 
         return inbound_order_orm_to_schema(order)
 
@@ -98,11 +135,13 @@ class OrdersService:
             )
 
         with transaction.atomic():
+            next_index = order.items.count()
             item_model = InboundOrderItem.objects.create(
                 stock_product=stock_product,
                 amount=item.amount,
                 order=order,
                 unit_price=item.unit_price,
+                index=item.index if item.index is not None else next_index,
             )
 
         return inbound_order_item_orm_to_schema(item_model)
@@ -119,6 +158,8 @@ class OrdersService:
         with transaction.atomic():
             item_model.amount = item.amount
             item_model.unit_price = item.unit_price
+            if item.index is not None:
+                item_model.index = item.index
             item_model.save()
 
         return inbound_order_item_orm_to_schema(item_model)
@@ -135,8 +176,9 @@ class OrdersService:
         return True
 
     @staticmethod
-    def transition_order(code: str, new_state: InboundOrderState) -> InboundOrderSchema:
-        # todo: audit log
+    def transition_order(
+        code: str, new_state: InboundOrderState, context: RequestContext
+    ) -> InboundOrderSchema:
         order = InboundOrder.objects.get(code=code)
         with transaction.atomic():
             old_state = order.state
@@ -152,12 +194,20 @@ class OrdersService:
             logger.info(
                 f"Inboud order '{order.code}' transitioned: {old_state} -> {new_state}"
             )
+            audit_service.add_entry(
+                order,
+                action=AuditAction.TRANSITION,
+                user=context.user_id,
+                reason=f"Inbound order state changed from '{old_state}' to '{new_state}'",
+                changes={"state": {"old": old_state, "new": new_state}},
+            )
 
         return inbound_order_orm_to_schema(order)
 
     @staticmethod
-    def transition_credit_note(code: str, new_state: CreditNoteState) -> None:
-        # todo: audit log
+    def transition_credit_note(
+        code: str, new_state: CreditNoteState, context: RequestContext
+    ) -> None:
         note = CreditNoteToSupplier.objects.get(code=code)
         with transaction.atomic():
             old_state = note.state
@@ -167,13 +217,20 @@ class OrdersService:
             logger.info(
                 f"Credit note '{note.code}' transitioned: {old_state} -> {new_state}"
             )
+            audit_service.add_entry(
+                note,
+                user=context.user_id,
+                action=AuditAction.TRANSITION,
+                reason=f"Credit note state changed from '{old_state}' to '{new_state}'",
+                changes={"state": {"old": old_state, "new": new_state}},
+            )
 
         return None
 
     @classmethod
-    def accept_inbound_order(cls, order_code: str):
+    def accept_inbound_order(cls, order_code: str, context: RequestContext):
         order = InboundOrder.objects.get(code=order_code)
-        cls.transition_order(order_code, InboundOrderState.RECEIVING)
+        cls.transition_order(order_code, InboundOrderState.RECEIVING, context=context)
         for item in order.items.all():
             stock_product_service.update_pricing(item.stock_product.code)
 
@@ -192,7 +249,7 @@ class OrdersService:
 
     @classmethod
     def get_or_create_credit_note(
-        cls, order_code: str
+        cls, order_code: str, context: RequestContext
     ) -> tuple[CreditNoteSupplierSchema, bool]:
         if not CreditNoteToSupplier.objects.filter(order__code=order_code).exists():
             order = InboundOrder.objects.get(code=order_code)
@@ -203,6 +260,13 @@ class OrdersService:
             )
 
             result = credit_note_supplier_orm_to_schema(note)
+            audit_service.add_entry(
+                order,
+                user=context.user_id,
+                action=AuditAction.CREATE,
+                reason=f"Credit note '{note.code}' created for inbound order",
+                changes={"credit_note": {"created": note.code}},
+            )
         else:
             order = InboundOrder.objects.get(code=order_code)
             created = False

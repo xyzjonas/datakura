@@ -11,8 +11,8 @@
   >
     <q-step
       :name="1"
-      title="Kontrola"
-      caption="Probíhá validace objednávky"
+      :title="$q.screen.gt.xs ? 'Kontrola' : ''"
+      :caption="$q.screen.gt.xs ? 'Probíhá validace objednávky' : ''"
       icon="sym_o_search"
       active-icon="sym_o_search"
       active-color="accent"
@@ -25,8 +25,8 @@
 
     <q-step
       :name="2"
-      title="Připraveno"
-      caption="Zboží čeká na příjmu"
+      :title="$q.screen.gt.xs ? 'Připraveno' : ''"
+      :caption="$q.screen.gt.xs ? 'Zboží čeká na příjmu' : ''"
       icon="sym_o_pallet"
       active-icon="sym_o_pallet"
       active-color="accent"
@@ -39,8 +39,8 @@
 
     <q-step
       :name="3"
-      title="Příjem zahájen"
-      caption="Probíhá příjem"
+      :title="$q.screen.gt.xs ? 'Příjem zahájen' : ''"
+      :caption="$q.screen.gt.xs ? 'Probíhá příjem' : ''"
       icon="sym_o_input"
       active-icon="sym_o_input"
       active-color="accent"
@@ -53,8 +53,8 @@
 
     <q-step
       :name="50"
-      title="Přijato"
-      caption="Naskladněno"
+      :title="$q.screen.gt.xs ? 'Přijato' : ''"
+      :caption="$q.screen.gt.xs ? 'Naskladněno' : ''"
       icon="warehouse"
       active-icon="warehouse"
       active-color="accent"

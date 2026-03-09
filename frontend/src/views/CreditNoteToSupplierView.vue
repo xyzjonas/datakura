@@ -45,11 +45,11 @@
       />
     </div>
     <div>
-      <ProductsList
+      <CreditNoteItemsList
         v-model:items="credit_note.items"
+        :readonly="true"
         :currency="credit_note.order.currency"
         :order-code="credit_note.order.code"
-        readonly
       />
     </div>
   </div>
@@ -66,12 +66,12 @@ import {
   type CreditNoteSupplierSchema,
 } from '@/client'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
+import CreditNoteItemsList from '@/components/credit/CreditNoteItemsList.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import GenericStateBadge from '@/components/GenericStateBadge.vue'
 import MissingMarker from '@/components/MissingMarker.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
-import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import PrintDropdownButton from '@/components/PrintDropdownButton.vue'
 import { useApi } from '@/composables/use-api'

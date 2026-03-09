@@ -1,5 +1,5 @@
-from typing import cast
 from datetime import timedelta
+from typing import cast
 
 import pytest
 from django.utils import timezone
@@ -10,20 +10,21 @@ from apps.warehouse.core.exceptions import (
     WarehouseGenericError,
     WarehouseItemNotFoundError,
 )
+from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.warehouse import warehouse_service
+from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrderState,
     WarehouseItem,
     WarehouseMovement,
-    WarehouseLocation,
 )
+from apps.warehouse.tests.factories.order import InboundOrderItemFactory
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
     WarehouseItemFactory,
     WarehouseLocationFactory,
 )
-from apps.warehouse.tests.factories.order import InboundOrderItemFactory
 
 
 @pytest.fixture
@@ -103,7 +104,24 @@ def test_get_locations_filter_by_stock_product(db, client) -> None:
 
 
 def test_get_warehouse_item_detail(db, client) -> None:
-    item = cast(WarehouseItem, WarehouseItemFactory())
+    item = WarehouseItemFactory.it()
+    destination = WarehouseLocationFactory.it()
+
+    created_log = audit_service.add_entry(
+        obj=item,
+        action=AuditAction.UPDATE,
+        reason="Corrected quantity",
+    )
+    movement = WarehouseMovement.objects.create(
+        location_from=item.location,
+        location_to=destination,
+        stock_product=item.stock_product,
+        amount=item.amount,
+        item=item,
+    )
+    now = timezone.now()
+    WarehouseMovement.objects.filter(pk=movement.pk).update(moved_at=now)
+    AuditLog.objects.filter(pk=created_log.pk).update(created=now - timedelta(hours=1))  # type: ignore
 
     res = client.get(f"items/{item.pk}")
 
@@ -112,6 +130,11 @@ def test_get_warehouse_item_detail(db, client) -> None:
     assert data["id"] == item.pk
     assert data["product"]["code"] == item.stock_product.code
     assert data["location"]["code"] == item.location.code
+    assert len(data["audits"]) == 2
+    assert data["audits"][0]["source"] == "movement"
+    assert data["audits"][0]["action"] == AuditAction.TRANSITION
+    assert data["audits"][1]["source"] == "audit"
+    assert data["audits"][1]["action"] == AuditAction.UPDATE
 
 
 def test_get_warehouse_item_detail_not_found(db, client) -> None:
@@ -125,8 +148,8 @@ def test_get_inbound_warehouse_order_includes_movements_desc(db, client) -> None
     )
     item = order.items.first()
     assert item
-    location_a = cast(WarehouseLocation, WarehouseLocationFactory())
-    location_b = cast(WarehouseLocation, WarehouseLocationFactory())
+    location_a = WarehouseLocationFactory.it()
+    location_b = WarehouseLocationFactory.it()
 
     older = WarehouseMovement.objects.create(
         location_from=location_a,
@@ -164,21 +187,53 @@ def test_get_inbound_warehouse_order_includes_movements_desc(db, client) -> None
     assert movements[0]["location_to_code"] == location_a.code
 
 
+def test_get_inbound_warehouse_order_audits(db, client) -> None:
+    order = InboundWarehouseOrderFactory.create_complete(
+        state=InboundWarehouseOrderState.PENDING
+    )
+    item = order.items.first()
+    assert item
+    location_a = WarehouseLocationFactory.it()
+    location_b = WarehouseLocationFactory.it()
+
+    audit_log = audit_service.add_entry(
+        order,
+        action=AuditAction.UPDATE,
+        reason="Warehouse order adjusted",
+    )
+    movement = WarehouseMovement.objects.create(
+        location_from=location_a,
+        location_to=location_b,
+        inbound_order_code=order,
+        stock_product=item.stock_product,
+        amount=1,
+        item=item,
+    )
+
+    now = timezone.now()
+    AuditLog.objects.filter(pk=audit_log.pk).update(created=now - timedelta(hours=1))  # type: ignore
+    WarehouseMovement.objects.filter(pk=movement.pk).update(moved_at=now)
+
+    res = client.get(f"orders-incoming/{order.code}/audits")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert len(data) == 2
+    assert data[0]["source"] == "movement"
+    assert data[0]["action"] == AuditAction.TRANSITION
+    assert data[1]["source"] == "audit"
+    assert data[1]["action"] == AuditAction.UPDATE
+
+
 def test_get_inbound_warehouse_order_includes_total_and_remaining_amount(
-    db, client
+    db, client, context
 ) -> None:
-    # order = InboundWarehouseOrderFactory.create_complete(
-    #     state=InboundWarehouseOrderState.PENDING,
-    #     amount=100,
-    #     is_putaway=True
-    # )
-    # item: WarehouseItem = order.items.first()
     putaway_location = WarehouseLocationFactory(is_putaway=True)
-    order = InboundWarehouseOrderFactory._(state=InboundWarehouseOrderState.PENDING)
-    to_be_moved_1 = WarehouseItemFactory._(
+    order = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.PENDING)
+    to_be_moved_1 = WarehouseItemFactory.it(
         order_in=order, location=putaway_location, amount=10
     )
-    to_be_moved_2 = WarehouseItemFactory._(
+    to_be_moved_2 = WarehouseItemFactory.it(
         order_in=order, location=putaway_location, amount=10
     )
 
@@ -188,7 +243,7 @@ def test_get_inbound_warehouse_order_includes_total_and_remaining_amount(
     InboundOrderItemFactory(
         order=order.order, stock_product=to_be_moved_2.stock_product, amount=10
     )
-    new_location = WarehouseLocationFactory._(is_putaway=False)
+    new_location = WarehouseLocationFactory.it(is_putaway=False)
 
     res = client.get(f"orders-incoming/{order.code}")
 
@@ -197,7 +252,12 @@ def test_get_inbound_warehouse_order_includes_total_and_remaining_amount(
     assert data["total_amount"] == 20.0
     assert data["remaining_amount"] == 20.0
 
-    warehouse_service.putaway_item(to_be_moved_1.pk, order.code, new_location.code)
+    warehouse_service.putaway_item(
+        item_id=to_be_moved_1.pk,
+        warehouse_order_code=order.code,
+        new_location_code=new_location.code,
+        context=context,
+    )
 
     res = client.get(f"orders-incoming/{order.code}")
 
@@ -213,8 +273,8 @@ def test_get_inbound_warehouse_orders_list_includes_movements(db, client) -> Non
     )
     item = order.items.first()
     assert item
-    src = WarehouseLocationFactory._()
-    dst = WarehouseLocationFactory._()
+    src = WarehouseLocationFactory.it()
+    dst = WarehouseLocationFactory.it()
 
     WarehouseMovement.objects.create(
         location_from=src,

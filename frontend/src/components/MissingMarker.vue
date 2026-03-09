@@ -1,12 +1,14 @@
 <template>
   <div class="relative">
-    <span class="absolute z-1 top-[-8px] right-[-8px] bg-amber px-2 rounded-lg shadow text-dark"
-      >#TODO</span
-    >
+    <span class="absolute z-1 top-[-8px] right-[-8px] bg-amber px-2 rounded-lg shadow text-dark">{{
+      text ?? '#TODO'
+    }}</span>
     <slot></slot>
   </div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+defineProps<{ text?: string }>()
+</script>
 
 <style lang="scss" scoped></style>

@@ -8,11 +8,13 @@ from ninja import Router
 from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import StockProductPagination
+from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
 from apps.warehouse.core.schemas.product import (
     GetProductResponse,
     ProductSchema,
     ProductBarcodeCreateSchema,
 )
+from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.schemas.warehouse import (
     GetProductWarehouseInfoResponse,
     WarehouseExpandedSchema,
@@ -53,6 +55,12 @@ def get_product(request: HttpRequest, product_code: str):
     #     request, username=credentials.username, password=credentials.password
     # )
     return GetProductResponse(data=get_product_by_code(product_code))
+
+
+@routes.get("/{product_code}/audits", response={200: GetAuditTimelineResponse})
+def get_product_audits(request: HttpRequest, product_code: str):
+    product = StockProduct.objects.get(code=product_code)
+    return GetAuditTimelineResponse(data=audit_service.get_timeline_for_object(product))
 
 
 @routes.post("/{product_code}/barcodes", response={200: GetProductResponse})
