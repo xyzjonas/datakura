@@ -9,6 +9,7 @@ from apps.warehouse.core.schemas.packaging import (
     PutInPackageRequestSchema,
     PutInPackageResponse,
     PutInBatchRequestSchema,
+    PutInSerialRequestSchema,
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.models.packaging import PackageType
@@ -54,5 +55,16 @@ def batch_preview(request: HttpRequest, body: PutInBatchRequestSchema):
             product_code=body.product_code,
             amount=body.amount,
             batch_code=body.batch_code,
+        )
+    )
+
+
+@routes.post("/preview-serial", response={200: PutInPackageResponse})
+def serial_preview(request: HttpRequest, body: PutInSerialRequestSchema):
+    return PutInPackageResponse(
+        data=warehouse_service.preview_serial_tracking(
+            warehouse_item_id=body.warehouse_item_id,
+            product_code=body.product_code,
+            amount=body.amount,
         )
     )

@@ -1667,6 +1667,24 @@ export type PutInBatchRequestSchema = {
 };
 
 /**
+ * PutInSerialRequestSchema
+ */
+export type PutInSerialRequestSchema = {
+    /**
+     * Warehouse Item Id
+     */
+    warehouse_item_id: number;
+    /**
+     * Product Code
+     */
+    product_code: string;
+    /**
+     * Amount
+     */
+    amount: number;
+};
+
+/**
  * PagedCreditNoteSupplierSchema
  */
 export type PagedCreditNoteSupplierSchema = {
@@ -2620,6 +2638,22 @@ export type WarehouseApiRoutesPackagingBatchPreviewResponses = {
 };
 
 export type WarehouseApiRoutesPackagingBatchPreviewResponse = WarehouseApiRoutesPackagingBatchPreviewResponses[keyof WarehouseApiRoutesPackagingBatchPreviewResponses];
+
+export type WarehouseApiRoutesPackagingSerialPreviewData = {
+    body: PutInSerialRequestSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/packaging/preview-serial';
+};
+
+export type WarehouseApiRoutesPackagingSerialPreviewResponses = {
+    /**
+     * OK
+     */
+    200: PutInPackageResponse;
+};
+
+export type WarehouseApiRoutesPackagingSerialPreviewResponse = WarehouseApiRoutesPackagingSerialPreviewResponses[keyof WarehouseApiRoutesPackagingSerialPreviewResponses];
 
 export type WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierData = {
     body?: never;

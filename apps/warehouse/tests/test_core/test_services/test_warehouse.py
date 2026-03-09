@@ -3,7 +3,11 @@ from decimal import Decimal
 import pytest
 from django.utils import timezone
 
-from apps.warehouse.core.exceptions import WarehouseGenericError
+from apps.warehouse.core.exceptions import (
+    WarehouseGenericError,
+    ApiBaseException,
+    ErrorCode,
+)
 from apps.warehouse.core.schemas.warehouse import (
     WarehouseOrderCreateSchema,
     WarehouseItemSchema,
@@ -223,6 +227,41 @@ def test_get_or_create_batch_returns_existing_batch_by_barcode(db):
 
     assert created is False
     assert batch.pk == existing_batch.pk
+
+
+def test_preview_serial_tracking_creates_one_item_per_amount(db):
+    warehouse_item = WarehouseItemFactory.it(amount=10)
+
+    result = warehouse_service.preview_serial_tracking(
+        warehouse_item_id=warehouse_item.pk,
+        product_code=warehouse_item.stock_product.code,
+        amount=3,
+    )
+
+    assert len(result) == 3
+    for item in result:
+        assert item.tracking_level == TrackingLevel.SERIALIZED_PIECE
+        assert item.amount == 1.0
+        assert item.package is None
+        assert item.batch is None
+        assert item.location.code == warehouse_item.location.code
+        assert item.product.code == warehouse_item.stock_product.code
+        assert item.primary_barcode is not None
+        assert len(item.primary_barcode) == 13
+
+
+@pytest.mark.parametrize("amount", [0, -1, 1.5])
+def test_preview_serial_tracking_requires_positive_whole_amount(db, amount):
+    warehouse_item = WarehouseItemFactory.it(amount=10)
+
+    with pytest.raises(ApiBaseException) as exc:
+        warehouse_service.preview_serial_tracking(
+            warehouse_item_id=warehouse_item.pk,
+            product_code=warehouse_item.stock_product.code,
+            amount=amount,
+        )
+
+    assert exc.value.code == ErrorCode.INVALID_CONVERSION
 
 
 def test_dissolve_inbound_order_item_create(db):

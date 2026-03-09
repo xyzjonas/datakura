@@ -24,9 +24,11 @@ const label = computed(() => {
 const color = computed(() => {
   switch (props.level) {
     case 'SERIALIZED_PACKAGE':
-    case 'BATCH':
-    case 'SERIALIZED_PIECE':
       return 'primary'
+    case 'BATCH':
+      return 'purple'
+    case 'SERIALIZED_PIECE':
+      return 'green'
     default:
       return 'gray'
   }
@@ -38,7 +40,7 @@ const icon = computed(() => {
     case 'BATCH':
       return 'sym_o_barcode'
     case 'SERIALIZED_PIECE':
-      return 'sym_o_number_1'
+      return 'sym_o_fingerprint'
     default:
       return 'sym_o_crop_free'
   }

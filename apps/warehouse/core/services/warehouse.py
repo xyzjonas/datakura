@@ -547,6 +547,43 @@ class WarehouseService:
         return items
 
     @staticmethod
+    def preview_serial_tracking(
+        warehouse_item_id: int,
+        product_code: str,
+        amount: float,
+    ) -> list[WarehouseItemSchema]:
+        warehouse_item = WarehouseItem.objects.get(pk=warehouse_item_id)
+        product = StockProduct.objects.get(code=product_code)
+
+        requested_amount = Decimal(str(amount))
+        if requested_amount <= 0 or requested_amount % 1 != 0:
+            raise_by_code(
+                ErrorCode.INVALID_CONVERSION,
+                f"Amount '{amount}' ({product.unit_of_measure.name}) must be a positive whole number for serial tracking preview.",
+            )
+
+        num_of_items = int(requested_amount)
+
+        items = [
+            WarehouseItemSchema(
+                id=-1,
+                tracking_level=TrackingLevel.SERIALIZED_PIECE,
+                product=product_orm_to_schema(product),
+                unit_of_measure=product.unit_of_measure.name,
+                amount=1.0,
+                package=None,
+                batch=None,
+                primary_barcode=generate_warehouse_item_code(),
+                location=location_orm_to_schema(warehouse_item.location),
+                created=timezone.now(),
+                changed=timezone.now(),
+            )
+            for _ in range(num_of_items)
+        ]
+
+        return items
+
+    @staticmethod
     def add_or_remove_inbound_order_items(
         order_code: str,
         to_be_removed: list[WarehouseItemSchema],

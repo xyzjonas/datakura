@@ -95,6 +95,7 @@
 import {
   warehouseApiRoutesPackagingBatchPreview,
   warehouseApiRoutesPackagingPackagePreview,
+  warehouseApiRoutesPackagingSerialPreview,
   type PackageTypeSchema,
   type WarehouseItemSchema,
 } from '@/client'
@@ -194,6 +195,23 @@ const previewBatchingItems = async () => {
   }
 }
 
+const previewSerialItems = async () => {
+  if (trackingType.value.value !== 'piece') {
+    return
+  }
+  const result = await warehouseApiRoutesPackagingSerialPreview({
+    body: {
+      warehouse_item_id: props.item.id,
+      amount: amount.value,
+      product_code: props.item.product.code,
+    },
+  })
+  const data = onResponse(result)
+  if (data) {
+    items.value = data.data
+  }
+}
+
 watch([trackingType], () => {
   if (trackingType.value.value !== 'package') {
     selectedPackage.value = undefined
@@ -202,6 +220,9 @@ watch([trackingType], () => {
   if (trackingType.value.value === 'batch') {
     selectedPackage.value = undefined
     previewBatchingItems()
+  } else if (trackingType.value.value === 'piece') {
+    selectedPackage.value = undefined
+    previewSerialItems()
   } else {
     items.value = []
   }
@@ -212,6 +233,8 @@ watch([selectedPackage, amount, trackingType, batchCode], () => {
     previewPackagingItems()
   } else if (trackingType.value.value === 'batch') {
     previewBatchingItems()
+  } else if (trackingType.value.value === 'piece') {
+    previewSerialItems()
   } else {
     items.value = []
   }
@@ -237,6 +260,11 @@ const onSubmit = () => {
     return
   }
   if (trackingType.value.value === 'batch') {
+    emit('packaged', items.value)
+    showDialog.value = false
+    return
+  }
+  if (trackingType.value.value === 'piece') {
     emit('packaged', items.value)
     showDialog.value = false
     return

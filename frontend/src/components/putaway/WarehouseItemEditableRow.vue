@@ -42,8 +42,7 @@
           <q-badge class="py-1" :color="item.location.is_putaway ? 'gray' : 'positive'">{{
             item.location.code
           }}</q-badge>
-          <WarehouseItemTrackingLevelBadge :level="item.tracking_level" />
-          <PackageTypeBadge v-if="item.package?.type" :package-type="item.package.type" />
+          <WarehouseItemTypeBadgeGroup :item="item" />
         </div>
       </div>
       <div class="light:text-gray-5 dark:text-gray-3 q-gutter-xs ml-auto">
@@ -127,17 +126,17 @@
 
 <script setup lang="ts">
 import type { WarehouseItemSchema, WarehouseLocationSchema } from '@/client'
+import { computed, ref } from 'vue'
+import BarcodeElement from '../BarcodeElement.vue'
+import ConfirmDialog from '../ConfirmDialog.vue'
+import PackageTypeBadge from '../PackageTypeBadge.vue'
+import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
+import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGroup.vue'
+import InboundWarehouseOrderRemoveItemDialog from './InboundWarehouseOrderRemoveItemDialog.vue'
 import InboundWarehouseOrderTrackDialog, {
   type TrackingType,
 } from './InboundWarehouseOrderTrackDialog.vue'
-import { computed, ref } from 'vue'
-import BarcodeElement from '../BarcodeElement.vue'
-import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
-import PackageTypeBadge from '../PackageTypeBadge.vue'
-import ConfirmDialog from '../ConfirmDialog.vue'
-import InboundWarehouseOrderRemoveItemDialog from './InboundWarehouseOrderRemoveItemDialog.vue'
 import LocationSelectionDialog from './LocationSelectionDialog.vue'
-import WarehouseItemTrackingLevelBadge from './WarehouseItemTrackingLevelBadge.vue'
 
 const props = defineProps<{ item: WarehouseItemSchema; allowMove?: boolean; readonly?: boolean }>()
 defineEmits<{

@@ -56,6 +56,11 @@
             <span class="text-slate"> Sloučit podle typu balení </span>
           </q-toggle>
         </template>
+        <template #body-cell-tracking="props">
+          <q-td>
+            <TrackingLevelBadge :level="props.row.tracking_level" />
+          </q-td>
+        </template>
         <template #body-cell-code="props">
           <q-td>
             <a
@@ -66,14 +71,6 @@
             >
               {{ props.value }}
             </a>
-            <BarcodeElement
-              v-if="props.value"
-              :barcode="props.value"
-              :width="1.6"
-              text-align="left"
-              :display-value="false"
-            />
-            <span v-else></span>
           </q-td>
         </template>
         <template #body-cell-name="props">
@@ -129,17 +126,17 @@ import {
   type WarehouseLocationDetailSchema,
   type WarehouseLocationSchema,
 } from '@/client'
-import BarcodeElement from '@/components/BarcodeElement.vue'
 import EmptyPanel from '@/components/EmptyPanel.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import PackageTypeBadge from '@/components/PackageTypeBadge.vue'
 import WarehouseItemCountBadge from '@/components/product/WarehouseItemCountBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
+import TrackingLevelBadge from '@/components/warehouse/TrackingLevelBadge.vue'
 import { useQueryWarehouse } from '@/composables/query/use-warehouse-query'
 import { useApi } from '@/composables/use-api'
 import { aggregatePackaging } from '@/utils/aggregatePackaging'
 import { useLocalStorage, useWindowScroll } from '@vueuse/core'
-import { QTree, type QTable, type QTableColumn } from 'quasar'
+import { QTree, type QTableColumn } from 'quasar'
 import { computed, onMounted, ref, watch } from 'vue'
 
 const { onResponse } = useApi()
@@ -252,6 +249,13 @@ const columns = computed<QTableColumn[]>(() => {
         sortable: true,
       },
       {
+        field: (item: WarehouseItemSchema) => item.tracking_level,
+        name: 'tracking',
+        label: 'Evidence',
+        align: 'left' as const,
+        sortable: true,
+      },
+      {
         field: (item: WarehouseItemSchema) => item.unit_of_measure,
         name: 'packaging',
         label: 'Balení',
@@ -292,7 +296,14 @@ const columns = computed<QTableColumn[]>(() => {
       {
         field: (item: WarehouseItemSchema) => item.primary_barcode,
         name: 'code',
-        label: 'EAN skladové položky',
+        label: 'Skladová položka',
+        align: 'left' as const,
+        sortable: true,
+      },
+      {
+        field: (item: WarehouseItemSchema) => item.tracking_level,
+        name: 'tracking',
+        label: 'Evidence',
         align: 'left' as const,
         sortable: true,
       },

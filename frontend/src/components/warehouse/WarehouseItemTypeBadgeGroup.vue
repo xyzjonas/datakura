@@ -2,6 +2,7 @@
   <div class="flex items-center gap-1">
     <TrackingLevelBadge :level="item.tracking_level" />
     <BatchBadge v-if="item.batch" :batch-code="item.batch.primary_barcode?.code" />
+    <div v-else-if="item.tracking_level === 'SERIALIZED_PIECE'"></div>
     <PackageTypeBadge v-else :package-type="item.package?.type" />
   </div>
 </template>

@@ -2,12 +2,7 @@
   <div v-if="items.length > 0" class="flex flex-col gap-2">
     <!-- <q-list separator> -->
     <TransitionGroup name="list" tag="div" class="flex">
-      <div
-        v-for="(item, index) in items"
-        :key="item.id"
-        clickable
-        class="w-full flex items-center gap-5 border-b light:border-grey-5 dark:border-b-dark-4 hover:bg-light-2 py-2"
-      >
+      <div v-for="(item, index) in items" :key="item.id" clickable class="simple_list_item">
         <IndexRectangle :index="index + 1" />
         <WarehouseItemEditableRow
           :item="item"
