@@ -93,7 +93,7 @@
         </q-btn>
       </div>
       <q-separator vertical class="mx-8" inset />
-      <WarehouseItemAmountBadge :item="item" />
+      <WarehouseItemAmountBadge :item="item" class="min-w-30" />
     </div>
     <InboundWarehouseOrderTrackDialog
       v-model:show="setItemTrackingDialog"

@@ -73,6 +73,11 @@
           <PackageTypeBadge :package-type="props.value" />
         </q-td>
       </template>
+      <template #body-cell-tracking="props">
+        <q-td auto-width>
+          <TrackingLevelBadge :level="props.row.tracking_level" />
+        </q-td>
+      </template>
       <template #body-cell-remaining="props">
         <q-td auto-width>
           <WarehouseItemCountBadge :item="props.row" />
@@ -120,6 +125,7 @@ import WarehouseItemCountBadge from './WarehouseItemCountBadge.vue'
 import { useApi } from '@/composables/use-api'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import BarcodeElement from '../BarcodeElement.vue'
+import TrackingLevelBadge from '../warehouse/TrackingLevelBadge.vue'
 
 const { onResponse } = useApi()
 
@@ -213,6 +219,13 @@ watch(
     if (value) {
       columns.value = [
         {
+          field: (item: WarehouseItemSchema) => item.tracking_level,
+          name: 'tracking',
+          label: 'Evidence',
+          align: 'left' as const,
+          sortable: true,
+        },
+        {
           field: (item: WarehouseItemSchema) => item.package?.type,
           name: 'packaging',
           label: 'Balení',
@@ -245,6 +258,13 @@ watch(
       ] as QTableColumn[]
     } else {
       columns.value = [
+        {
+          field: (item: WarehouseItemSchema) => item.tracking_level,
+          name: 'tracking',
+          label: 'Evidence',
+          align: 'left' as const,
+          sortable: true,
+        },
         {
           field: (item: WarehouseItemSchema) => item.package?.type,
           name: 'packaging',

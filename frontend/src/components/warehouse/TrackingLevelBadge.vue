@@ -40,7 +40,7 @@ const icon = computed(() => {
     case 'BATCH':
       return 'sym_o_barcode'
     case 'SERIALIZED_PIECE':
-      return 'sym_o_fingerprint'
+      return 'sym_o_looks_one'
     default:
       return 'sym_o_crop_free'
   }
