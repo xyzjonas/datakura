@@ -67,10 +67,13 @@ def test_create_warehouse_inbound_order(context):
 def test_get_warehouse_availability(db, items_amount, amount):
     product = StockProductFactory.it()
     WarehouseItemFactory.create_batch(
-        items_amount, amount=amount, stock_product=product
+        items_amount,
+        amount=amount,
+        stock_product=product,
+        order_in=InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING),
     )
     assert warehouse_service.get_warehouse_availability(product.code) == pytest.approx(
-        items_amount * amount
+        Decimal(items_amount * amount)
     )
 
 
@@ -78,11 +81,14 @@ def test_get_warehouse_availability(db, items_amount, amount):
 def test_get_total_availability(db, items_amount, amount):
     product = StockProductFactory.it()
     WarehouseItemFactory.create_batch(
-        items_amount, amount=amount, stock_product=product
+        items_amount,
+        amount=amount,
+        stock_product=product,
+        order_in=InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING),
     )
     result = warehouse_service.get_total_availability(product.code)
-    assert result.total_amount == pytest.approx(items_amount * amount)
-    assert result.available_amount == pytest.approx(items_amount * amount)
+    assert result.total_amount == pytest.approx(Decimal(items_amount * amount))
+    assert result.available_amount == pytest.approx(Decimal(items_amount * amount))
 
 
 def test_update_inbound_order_items(db, context):
@@ -521,13 +527,19 @@ def test_recalculate_average_purchase_price_existing_stock(
     db, price_in, price_pre, amount_pre, amount_in, expected, context
 ):
     product = StockProductFactory.it(purchase_price=price_pre)
-    WarehouseItemFactory(stock_product=product, amount=amount_pre)
+    WarehouseItemFactory(
+        stock_product=product,
+        amount=amount_pre,
+        order_in=InboundWarehouseOrderFactory(
+            state=InboundWarehouseOrderState.COMPLETED
+        ),
+    )
     w_order = InboundWarehouseOrderFactory.create_complete(
         product=product,
         amount=amount_in,
         unit_price=price_in,
         is_putaway=True,
-        state=InboundWarehouseOrderState.PENDING,
+        state=InboundWarehouseOrderState.DRAFT,
     )
 
     assert WarehouseItem.objects.filter(order_in=w_order).count() == 1
@@ -538,7 +550,7 @@ def test_recalculate_average_purchase_price_existing_stock(
     )
 
     product.refresh_from_db()
-    assert product.purchase_price == Decimal(str(expected))
+    assert product.purchase_price == pytest.approx(Decimal(expected))
 
 
 def test_create_warehouse_movement_fungible_sets_item_and_batch_none(db):

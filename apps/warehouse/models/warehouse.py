@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Any, cast
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -55,16 +56,33 @@ class Batch(BaseModel, BarcodeMixin):
     description = models.CharField(max_length=300, null=True, blank=True)
 
 
-class AvailableWarehouseItemManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().filter(location__is_putaway=False)
+class AvailableWarehouseItemQuerySet(models.QuerySet["WarehouseItem"]):
+    def total_amount(self, product_code: str | None = None) -> Decimal:
+        queryset = self
+        if product_code is not None:
+            queryset = queryset.filter(stock_product__code=product_code)
 
-    def total_amount(self, product_code: str) -> Decimal:
-        return (
-            self.get_queryset()
-            .filter(stock_product__code=product_code)
-            .aggregate(total_amount=Sum("amount"))
-        ).get("total_amount") or Decimal("0")
+        return queryset.aggregate(total_amount=Sum("amount")).get(
+            "total_amount"
+        ) or Decimal("0")
+
+
+class AvailableWarehouseItemManager(
+    models.Manager.from_queryset(AvailableWarehouseItemQuerySet)  # type: ignore
+):
+    def get_queryset(self) -> AvailableWarehouseItemQuerySet:
+        return cast(
+            AvailableWarehouseItemQuerySet,
+            super()
+            .get_queryset()
+            .exclude(order_in__state=InboundWarehouseOrderState.DRAFT),
+        )
+
+    def filter(self, *args: Any, **kwargs: Any) -> AvailableWarehouseItemQuerySet:
+        return cast(AvailableWarehouseItemQuerySet, super().filter(*args, **kwargs))
+
+    def total_amount(self, product_code: str | None = None) -> Decimal:
+        return self.get_queryset().total_amount(product_code=product_code)
 
 
 class WarehouseItem(BaseModel, BarcodeMixin):

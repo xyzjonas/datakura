@@ -6,7 +6,6 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.db.models import Sum
 from django.utils import timezone
 
 from apps.warehouse.core.exceptions import (
@@ -414,27 +413,30 @@ class WarehouseService:
         return warehouse_inbound_order_orm_to_schema(warehouse_order)
 
     @staticmethod
-    def get_warehouse_availability(stock_product_code: str) -> float:
-        return float(
-            WarehouseItem.objects.filter(stock_product__code=stock_product_code)
-            .aggregate(total_amount=Sum("amount"))
-            .get("total_amount")
-            or 0.0
-        )
+    def get_warehouse_availability(stock_product_code: str) -> Decimal:
+        return WarehouseItem.available.filter(
+            stock_product__code=stock_product_code
+        ).total_amount()
+        # .aggregate(total_amount=Sum("amount"))
+        # .get("total_amount")
+        # or 0.0
 
-    @staticmethod
-    def get_total_availability(stock_product_code: str) -> ProductWarehouseAvailability:
-        warehouse_amount = float(
-            WarehouseItem.objects.filter(
-                stock_product__code=stock_product_code, location__is_putaway=False
-            )
-            .aggregate(total_amount=Sum("amount"))
-            .get("total_amount")
-            or 0.0
-        )
+    @classmethod
+    def get_total_availability(
+        cls, stock_product_code: str
+    ) -> ProductWarehouseAvailability:
+        warehouse_amount = cls.get_warehouse_availability(stock_product_code)
+        # warehouse_amount = float(
+        #     WarehouseItem.objects.filter(
+        #         stock_product__code=stock_product_code, location__is_putaway=False
+        #     )
+        #     .aggregate(total_amount=Sum("amount"))
+        #     .get("total_amount")
+        #     or 0.0
+        # )
 
         # todo: pending outcoming orders
-        out_amount = 0
+        out_amount = Decimal("0")
 
         return ProductWarehouseAvailability(
             total_amount=warehouse_amount,

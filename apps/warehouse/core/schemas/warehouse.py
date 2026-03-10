@@ -74,8 +74,8 @@ class WarehouseMovementSchema(Schema):
 class ProductWarehouseAvailability(Schema):
     """Summary of item's availability in the warehouse"""
 
-    total_amount: float
-    available_amount: float
+    total_amount: Decimal
+    available_amount: Decimal
 
 
 class WarehouseLocationDetailSchema(WarehouseLocationSchema):
