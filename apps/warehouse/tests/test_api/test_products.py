@@ -11,8 +11,15 @@ from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.product import StockProduct
+from apps.warehouse.models.product import StockProductPrice
 
 from apps.warehouse.tests.factories.product import StockProductFactory
+from apps.warehouse.tests.factories.product import (
+    PriceGroupFactory,
+    StockProductPriceFactory,
+    StockProductPriceCustomerFactory,
+)
+from apps.warehouse.tests.factories.customer import CustomerFactory
 
 
 @pytest.fixture
@@ -130,6 +137,7 @@ def test_get_all_search_partial(db, client, attr):
     StockProductFactory.create_batch(item_count)
 
     product = StockProduct.objects.first()
+    assert product is not None
 
     response = client.get(f"?search_term={getattr(product, attr)[-5:]}")
     assert response.status_code == 200
@@ -195,3 +203,108 @@ def test_get_product_audits(db, client) -> None:
     assert data[0]["source"] == "audit"
     assert data[0]["action"] == AuditAction.UPDATE
     assert data[1]["action"] == AuditAction.CREATE
+
+
+def test_get_product_returns_dynamic_prices(db, client):
+    product = cast(StockProduct, StockProductFactory())
+    group = PriceGroupFactory(name="Group A")
+    StockProductPriceFactory(product=product, group=group, discount_percent=5)
+    customer_price = StockProductPriceCustomerFactory(
+        product=product, discount_percent=10
+    )
+
+    response = client.get(f"/{product.code}")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data["dynamic_prices"]) == 2
+
+    group_price = next(
+        item
+        for item in data["dynamic_prices"]
+        if item["price_type"] == "GROUP_DISCOUNT"
+    )
+    assert group_price["group"] == "Group A"
+    assert group_price["customer"] is None
+
+    customer_specific = next(
+        item
+        for item in data["dynamic_prices"]
+        if item["price_type"] == "CUSTOMER_DISCOUNT"
+    )
+    assert customer_specific["customer"]["code"] == customer_price.customer.code
+    assert customer_specific["customer"]["name"] == customer_price.customer.name
+
+
+def test_add_group_dynamic_price(db, client):
+    product = cast(StockProduct, StockProductFactory())
+
+    response = client.post(
+        f"/{product.code}/prices",
+        json={
+            "price_type": "GROUP_DISCOUNT",
+            "discount_percent": 7.5,
+            "group_name": "Group B",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    added = next(
+        item
+        for item in data["dynamic_prices"]
+        if item["price_type"] == "GROUP_DISCOUNT"
+    )
+    assert added["group"] == "Group B"
+
+
+def test_add_customer_dynamic_price(db, client):
+    product = cast(StockProduct, StockProductFactory())
+    customer = CustomerFactory()
+
+    response = client.post(
+        f"/{product.code}/prices",
+        json={
+            "price_type": "CUSTOMER_DISCOUNT",
+            "discount_percent": 12,
+            "customer_code": customer.code,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    added = next(
+        item
+        for item in data["dynamic_prices"]
+        if item["price_type"] == "CUSTOMER_DISCOUNT"
+    )
+    assert added["customer"]["code"] == customer.code
+    assert added["customer"]["name"] == customer.name
+
+
+def test_update_dynamic_price(db, client):
+    product = cast(StockProduct, StockProductFactory())
+    price = StockProductPriceFactory(product=product, discount_percent=5)
+
+    response = client.patch(
+        f"/{product.code}/prices/{price.id}",
+        json={
+            "discount_percent": 15,
+            "group_name": "VIP",
+        },
+    )
+
+    assert response.status_code == 200
+    price.refresh_from_db()
+    assert float(price.discount_percent) == 15
+    assert price.group.name == "VIP"
+
+
+def test_delete_dynamic_price(db, client):
+    product = cast(StockProduct, StockProductFactory())
+    price = StockProductPriceFactory(product=product, discount_percent=5)
+
+    response = client.delete(f"/{product.code}/prices/{price.id}")
+
+    assert response.status_code == 200
+    assert StockProductPrice.objects.filter(id=price.id).exists() is False

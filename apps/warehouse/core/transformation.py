@@ -20,7 +20,11 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderItemSchema,
 )
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
-from apps.warehouse.core.schemas.product import ProductSchema
+from apps.warehouse.core.schemas.product import (
+    ProductSchema,
+    DynamicProductPriceSchema,
+    DynamicProductPriceCustomerSchema,
+)
 from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,
     PackageSchema,
@@ -42,7 +46,7 @@ from apps.warehouse.models.orders import (
     CreditNoteState,
 )
 from apps.warehouse.models.packaging import PackageType
-from apps.warehouse.models.product import StockProduct
+from apps.warehouse.models.product import StockProduct, StockProductPrice
 from apps.warehouse.models.warehouse import (
     WarehouseItem,
     WarehouseMovement,
@@ -142,6 +146,11 @@ def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
 
 
 def product_orm_to_schema(product: StockProduct) -> ProductSchema:
+    dynamic_prices = [
+        dynamic_product_price_orm_to_schema(dynamic_price)
+        for dynamic_price in product.dynamic_prices.all()
+    ]
+
     return ProductSchema(
         name=product.name,
         code=product.code,
@@ -158,14 +167,38 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         attributes=product.attributes,
         barcodes=product.get_barcodes(),
         primary_barcode=barcode_orm_to_schema(product.get_primary_barcode()),
+        dynamic_prices=dynamic_prices,
     )
 
 
 def get_product_by_code(product_code: str) -> ProductSchema:
     product = StockProduct.objects.prefetch_related(
-        "unit_of_measure", "type", "group"
+        "unit_of_measure",
+        "type",
+        "group",
+        "dynamic_prices__group",
+        "dynamic_prices__customer",
     ).get(code=product_code)
     return product_orm_to_schema(product)
+
+
+def dynamic_product_price_orm_to_schema(
+    dynamic_price: StockProductPrice,
+) -> DynamicProductPriceSchema:
+    return DynamicProductPriceSchema(
+        price_id=dynamic_price.pk,
+        created=dynamic_price.created,
+        changed=dynamic_price.changed,
+        price_type=dynamic_price.price_type,
+        discount_percent=float(dynamic_price.discount_percent),
+        group=dynamic_price.group.name if dynamic_price.group else None,
+        customer=DynamicProductPriceCustomerSchema(
+            code=dynamic_price.customer.code,
+            name=dynamic_price.customer.name,
+        )
+        if dynamic_price.customer
+        else None,
+    )
 
 
 def package_orm_to_schema(package_type: PackageType | None) -> PackageSchema | None:

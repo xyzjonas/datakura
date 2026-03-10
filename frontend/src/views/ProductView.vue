@@ -57,9 +57,16 @@
           </q-item>
           <q-item>
             <q-item-section>Průměrná nákupní cena</q-item-section>
-            <q-item-section avatar
-              >{{ product.purchase_price }}&hairsp;{{ product.currency }}</q-item-section
-            >
+            <q-item-section avatar>
+              <span class="flex border px-2 rounded-xl py-1 shadow-sm">
+                <q-icon name="sym_o_autorenew" size="xs" class="mr-1" />
+                {{ product.purchase_price }}&hairsp;{{ product.currency }}
+                <q-tooltip class="max-w-xs"
+                  >Průměrná nákupní cena je průběžně automaticky přepočítávána kdykoliv dojde ke
+                  změně skladových zásob.</q-tooltip
+                >
+              </span>
+            </q-item-section>
           </q-item>
           <q-item>
             <q-item-section>Celní nomenklatura</q-item-section>
@@ -86,28 +93,7 @@
           </q-item>
         </q-list>
       </ForegroundPanel>
-      <ForegroundPanel class="flex-[2] flex flex-col">
-        <h2 class="mb-4">Ceník</h2>
-        <q-table
-          :rows="prices"
-          :columns="columns"
-          flat
-          hide-pagination
-          :pagination="{ rowsPerPage: -1 }"
-          class="bg-transparent"
-          no-data-label="Prodejní cena není nastavena!"
-        >
-          <template #body-cell-price="props">
-            <q-td v-if="props.row.price">
-              {{ props.row.price }}
-              {{ props.row.currency }}
-            </q-td>
-          </template>
-        </q-table>
-        <div class="flex flex-row-reverse mt-auto">
-          <q-btn outline color="primary" icon="attach_money" label="přidat cenu" disable></q-btn>
-        </div>
-      </ForegroundPanel>
+      <ProductPricingCard v-model="product" class="flex-[2]" />
     </div>
     <div class="flex gap-2 flex-1">
       <WarehouseCard :product-code="product.code" :product-unit="product.unit" />
@@ -131,12 +117,12 @@ import { warehouseApiRoutesProductGetProduct } from '@/client'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
+import ProductPricingCard from '@/components/product/ProductPricingCard.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import WarehouseCard from '@/components/product/WarehouseCard.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
-import type { QTableColumn } from 'quasar'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 const { onResponse } = useApi()
 
@@ -151,83 +137,6 @@ const data = onResponse(result)
 
 const product = ref(data?.data)
 const auditDialog = ref(false)
-
-// const prices = [
-//   {
-//     type: 'Prodejní',
-//     customer: 'AKROS, s.r.o.',
-//     minimum: 0,
-//     maximum: 100,
-//     currency: 'CZK',
-//     unit: '100ks',
-//     amount: 1,
-//     price: 777.77,
-//   },
-// ]
-
-const prices = computed(() => {
-  if (product.value && product.value.base_price) {
-    return [
-      {
-        type: 'základní',
-        customer: undefined,
-        minimum: undefined,
-        maximum: undefined,
-        currency: product.value.currency,
-        unit: product.value.unit,
-        amount: 1,
-        price: product.value.base_price,
-      },
-    ]
-  }
-  return []
-})
-
-const columns: QTableColumn[] = [
-  {
-    name: 'type',
-    label: 'Typ ceny',
-    field: 'type',
-    align: 'left',
-  },
-  {
-    name: 'customer',
-    label: 'Zákazník',
-    field: 'customer',
-    align: 'left',
-  },
-  {
-    name: 'minimum',
-    label: 'Minimální počet',
-    field: 'minimum',
-    align: 'left',
-  },
-  {
-    name: 'maximum',
-    label: 'Maximální počet',
-    field: 'maximum',
-    align: 'left',
-  },
-  {
-    name: 'unit',
-    label: 'Jednotka',
-    field: 'unit',
-    align: 'left',
-  },
-  {
-    name: 'amount',
-    label: 'Počet jednotek',
-    field: 'amount',
-    align: 'left',
-  },
-  {
-    name: 'price',
-    label: 'Cena',
-    field: 'price',
-    align: 'left',
-    classes: 'text-primary font-bold',
-  },
-]
 </script>
 
 <style></style>

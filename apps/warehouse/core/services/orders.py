@@ -17,7 +17,6 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.services import audit_service
 from apps.warehouse.core.services.pdf import print_html_to_pdf
-from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
     inbound_order_item_orm_to_schema,
     inbound_order_orm_to_schema,
@@ -229,10 +228,10 @@ class OrdersService:
 
     @classmethod
     def accept_inbound_order(cls, order_code: str, context: RequestContext):
-        order = InboundOrder.objects.get(code=order_code)
+        # order = InboundOrder.objects.get(code=order_code)
         cls.transition_order(order_code, InboundOrderState.RECEIVING, context=context)
-        for item in order.items.all():
-            stock_product_service.update_pricing(item.stock_product.code)
+        # for item in order.items.all():
+        #     stock_product_service.update_pricing(item.stock_product.code)
 
     @staticmethod
     def get_html(code: str) -> str:

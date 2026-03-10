@@ -37,8 +37,8 @@ const fetch = async () => {
   })
   const data = onResponse(response)
   if (data) {
-    totalAmount.value = data.data.total_amount
-    availableAmount.value = data.data.available_amount
+    totalAmount.value = +data.data.total_amount
+    availableAmount.value = +data.data.available_amount
   }
   loading.value = false
 }

@@ -6,4 +6,5 @@ export const rules = {
   atLeastOne: (val: number) => val > 0 || 'Pole musí být číslo větší než 0',
   max9999: (val: number) => val < 9999 || 'Pole nesmí být číslo větší než 9999',
   max99999: (val: number) => val < 99999 || 'Pole nesmí být číslo větší než 99999',
+  isPercentage: (val: number) => (val >= 0 && val <= 100) || 'Pole musí být procento mezi 0 a 100',
 }

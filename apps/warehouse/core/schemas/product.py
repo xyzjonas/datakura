@@ -7,6 +7,33 @@ from .base import BaseSchema, BaseResponse, PaginatedResponse
 from .barcode import BarcodeSchema
 
 
+class DynamicProductPriceCustomerSchema(Schema):
+    code: str
+    name: str
+
+
+class DynamicProductPriceSchema(BaseSchema):
+    price_id: int
+    price_type: str
+    discount_percent: float
+    group: str | None = None
+    customer: DynamicProductPriceCustomerSchema | None = None
+
+
+class DynamicProductPriceCreateSchema(Schema):
+    price_type: str
+    discount_percent: float
+    group_name: str | None = None
+    customer_code: str | None = None
+
+
+class DynamicProductPriceUpdateSchema(Schema):
+    price_type: str | None = None
+    discount_percent: float | None = None
+    group_name: str | None = None
+    customer_code: str | None = None
+
+
 class ProductSchema(BaseSchema):
     name: str
     code: str
@@ -21,6 +48,7 @@ class ProductSchema(BaseSchema):
     attributes: dict[str, str] = Field(default_factory=dict)
     barcodes: list[BarcodeSchema] = Field(default_factory=list)
     primary_barcode: BarcodeSchema | None = None
+    dynamic_prices: list[DynamicProductPriceSchema] = Field(default_factory=list)
 
 
 class GetProductResponse(BaseResponse):

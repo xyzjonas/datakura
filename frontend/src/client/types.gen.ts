@@ -303,6 +303,44 @@ export type BatchSchema = {
 };
 
 /**
+ * DynamicProductPriceSchema
+ */
+export type DynamicProductPriceSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Price Id
+     */
+    price_id: number;
+    /**
+     * Price Type
+     */
+    price_type: string;
+    /**
+     * Discount Percent
+     */
+    discount_percent: number;
+    /**
+     * Group
+     */
+    group?: string | null;
+    /**
+     * Customer Code
+     */
+    customer_code?: string | null;
+    /**
+     * Customer Name
+     */
+    customer_name?: string | null;
+};
+
+/**
  * GetWarehouseLocationResponse
  */
 export type GetWarehouseLocationResponse = {
@@ -407,6 +445,10 @@ export type ProductSchema = {
      */
     barcodes?: Array<BarcodeSchema>;
     primary_barcode?: BarcodeSchema | null;
+    /**
+     * Dynamic Prices
+     */
+    dynamic_prices?: Array<DynamicProductPriceSchema>;
 };
 
 /**
@@ -1168,6 +1210,50 @@ export type ProductBarcodeCreateSchema = {
 };
 
 /**
+ * DynamicProductPriceCreateSchema
+ */
+export type DynamicProductPriceCreateSchema = {
+    /**
+     * Price Type
+     */
+    price_type: string;
+    /**
+     * Discount Percent
+     */
+    discount_percent: number;
+    /**
+     * Group Name
+     */
+    group_name?: string | null;
+    /**
+     * Customer Code
+     */
+    customer_code?: string | null;
+};
+
+/**
+ * DynamicProductPriceUpdateSchema
+ */
+export type DynamicProductPriceUpdateSchema = {
+    /**
+     * Price Type
+     */
+    price_type?: string | null;
+    /**
+     * Discount Percent
+     */
+    discount_percent?: number | null;
+    /**
+     * Group Name
+     */
+    group_name?: string | null;
+    /**
+     * Customer Code
+     */
+    customer_code?: string | null;
+};
+
+/**
  * GetProductWarehouseInfoResponse
  */
 export type GetProductWarehouseInfoResponse = {
@@ -1228,11 +1314,11 @@ export type ProductWarehouseAvailability = {
     /**
      * Total Amount
      */
-    total_amount: number;
+    total_amount: string;
     /**
      * Available Amount
      */
-    available_amount: number;
+    available_amount: string;
 };
 
 /**
@@ -2242,6 +2328,77 @@ export type WarehouseApiRoutesProductAddProductBarcodeResponses = {
 };
 
 export type WarehouseApiRoutesProductAddProductBarcodeResponse = WarehouseApiRoutesProductAddProductBarcodeResponses[keyof WarehouseApiRoutesProductAddProductBarcodeResponses];
+
+export type WarehouseApiRoutesProductAddProductDynamicPriceData = {
+    body: DynamicProductPriceCreateSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/prices';
+};
+
+export type WarehouseApiRoutesProductAddProductDynamicPriceResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductAddProductDynamicPriceResponse = WarehouseApiRoutesProductAddProductDynamicPriceResponses[keyof WarehouseApiRoutesProductAddProductDynamicPriceResponses];
+
+export type WarehouseApiRoutesProductDeleteProductDynamicPriceData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+        /**
+         * Price Id
+         */
+        price_id: number;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/prices/{price_id}';
+};
+
+export type WarehouseApiRoutesProductDeleteProductDynamicPriceResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductDeleteProductDynamicPriceResponse = WarehouseApiRoutesProductDeleteProductDynamicPriceResponses[keyof WarehouseApiRoutesProductDeleteProductDynamicPriceResponses];
+
+export type WarehouseApiRoutesProductUpdateProductDynamicPriceData = {
+    body: DynamicProductPriceUpdateSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+        /**
+         * Price Id
+         */
+        price_id: number;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/prices/{price_id}';
+};
+
+export type WarehouseApiRoutesProductUpdateProductDynamicPriceResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductUpdateProductDynamicPriceResponse = WarehouseApiRoutesProductUpdateProductDynamicPriceResponses[keyof WarehouseApiRoutesProductUpdateProductDynamicPriceResponses];
 
 export type WarehouseApiRoutesProductGetProductWarehouseInfoData = {
     body?: never;

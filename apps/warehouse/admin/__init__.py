@@ -8,6 +8,8 @@ from apps.warehouse.models.product import (
     UnitOfMeasure,
     ProductType,
     ProductGroup,
+    PriceGroup,
+    StockProductPrice,
 )
 from apps.warehouse.models.warehouse import (
     WarehouseItem,
@@ -56,9 +58,33 @@ admin.site.register(ProductType)
 admin.site.register(ProductGroup)
 admin.site.register(UnitOfMeasure)
 
+
+@admin.register(PriceGroup)
+class PriceGroupAdmin(admin.ModelAdmin):
+    search_fields = ("name",)
+
+
+@admin.register(StockProductPrice)
+class StockProductPriceAdmin(admin.ModelAdmin):
+    autocomplete_fields = ["product", "group", "customer"]
+    list_display = [
+        "id",
+        "product",
+        "price_type",
+        "discount_percent",
+        "group",
+        "customer",
+    ]
+
+
 admin.site.register(ContactPerson)
 admin.site.register(CustomerGroup)
-admin.site.register(Customer)
+
+
+@admin.register(Customer)
+class CustomerAdmin(admin.ModelAdmin):
+    search_fields = ("code", "name")
+
 
 admin.site.register(InboundOrder)
 admin.site.register(InboundOrderItem)

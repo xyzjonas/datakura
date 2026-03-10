@@ -13,6 +13,8 @@ from apps.warehouse.core.schemas.product import (
     GetProductResponse,
     ProductSchema,
     ProductBarcodeCreateSchema,
+    DynamicProductPriceCreateSchema,
+    DynamicProductPriceUpdateSchema,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.schemas.warehouse import (
@@ -37,7 +39,13 @@ routes = Router(tags=["product"])
 @routes.get("", response={200: list[ProductSchema]})
 @paginate(StockProductPagination)
 def get_products(request: HttpRequest, search_term: str | None = None):
-    qs = cast(QuerySet[StockProduct], StockProduct.objects)
+    qs = cast(
+        QuerySet[StockProduct],
+        StockProduct.objects.prefetch_related(
+            "dynamic_prices__group",
+            "dynamic_prices__customer",
+        ),
+    )
     if search_term:
         search_term = search_term.lower()
         qs = qs.filter(
@@ -69,6 +77,40 @@ def add_product_barcode(
 ):
     return GetProductResponse(
         data=stock_product_service.add_barcode(product_code, body)
+    )
+
+
+@routes.post("/{product_code}/prices", response={200: GetProductResponse})
+def add_product_dynamic_price(
+    request: HttpRequest,
+    product_code: str,
+    body: DynamicProductPriceCreateSchema,
+):
+    return GetProductResponse(
+        data=stock_product_service.add_dynamic_price(product_code, body)
+    )
+
+
+@routes.patch("/{product_code}/prices/{price_id}", response={200: GetProductResponse})
+def update_product_dynamic_price(
+    request: HttpRequest,
+    product_code: str,
+    price_id: int,
+    body: DynamicProductPriceUpdateSchema,
+):
+    return GetProductResponse(
+        data=stock_product_service.update_dynamic_price(product_code, price_id, body)
+    )
+
+
+@routes.delete("/{product_code}/prices/{price_id}", response={200: GetProductResponse})
+def delete_product_dynamic_price(
+    request: HttpRequest,
+    product_code: str,
+    price_id: int,
+):
+    return GetProductResponse(
+        data=stock_product_service.delete_dynamic_price(product_code, price_id)
     )
 
 
