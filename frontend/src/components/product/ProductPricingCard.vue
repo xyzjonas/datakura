@@ -267,7 +267,7 @@ const columns: QTableColumn[] = [
   },
   {
     name: 'price',
-    label: 'Cena',
+    label: 'Cena / MJ',
     field: (row: DynamicProductPriceSchema) =>
       round(product.value.base_price! - (row.discount_percent / 100) * product.value.base_price!),
     align: 'left',

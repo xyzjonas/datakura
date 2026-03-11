@@ -58,9 +58,13 @@
           <q-item>
             <q-item-section>Průměrná nákupní cena</q-item-section>
             <q-item-section avatar>
-              <span class="flex border px-2 rounded-xl py-1 shadow-sm">
+              <span
+                class="flex border px-2 rounded-xl py-1 shadow-sm text-primary translate-x-3 cursor-help"
+              >
                 <q-icon name="sym_o_autorenew" size="xs" class="mr-1" />
-                {{ product.purchase_price }}&hairsp;{{ product.currency }}
+                <span class="font-bold">
+                  {{ product.purchase_price }}&hairsp;{{ product.currency }}
+                </span>
                 <q-tooltip class="max-w-xs"
                   >Průměrná nákupní cena je průběžně automaticky přepočítávána kdykoliv dojde ke
                   změně skladových zásob.</q-tooltip
