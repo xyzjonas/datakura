@@ -75,7 +75,12 @@ class AvailableWarehouseItemManager(
             AvailableWarehouseItemQuerySet,
             super()
             .get_queryset()
-            .exclude(order_in__state=InboundWarehouseOrderState.DRAFT),
+            .exclude(
+                order_in__state__in=(
+                    InboundWarehouseOrderState.DRAFT,
+                    InboundWarehouseOrderState.IN_TRANSIT,
+                )
+            ),
         )
 
     def filter(self, *args: Any, **kwargs: Any) -> AvailableWarehouseItemQuerySet:
@@ -228,6 +233,7 @@ class WarehouseMovement(models.Model):
 
 
 class InboundWarehouseOrderState(models.TextChoices):
+    IN_TRANSIT = "in transit", "In Transit"
     DRAFT = "draft", "Draft"
     PENDING = "pending", "Pending"
     STARTED = "started", "Started"
@@ -259,6 +265,14 @@ class InboundWarehouseOrder(BaseModel):
         choices=InboundWarehouseOrderState,
         default=InboundWarehouseOrderState.DRAFT,
         max_length=30,
+    )
+    primary_order = models.ForeignKey(
+        "InboundWarehouseOrder",
+        on_delete=models.CASCADE,
+        related_name="derived_orders",
+        help_text="Primary order that this order is derived from",
+        null=True,
+        blank=True,
     )
 
     class Meta:

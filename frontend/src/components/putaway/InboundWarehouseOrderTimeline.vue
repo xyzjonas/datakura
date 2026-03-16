@@ -10,6 +10,19 @@
     done-color="positive"
   >
     <q-step
+      :name="0"
+      :title="$q.screen.gt.xs ? 'Potvrzeno' : ''"
+      :caption="$q.screen.gt.xs ? 'Zboží je na cestě' : ''"
+      icon="sym_o_delivery_truck_speed"
+      active-icon="sym_o_delivery_truck_speed"
+      active-color="accent"
+      :done="step > 0"
+      :header-nav="step > 0"
+      :error="step >= CANCELLED"
+      error-color="negative"
+    >
+    </q-step>
+    <q-step
       :name="1"
       :title="$q.screen.gt.xs ? 'Kontrola' : ''"
       :caption="$q.screen.gt.xs ? 'Probíhá validace objednávky' : ''"

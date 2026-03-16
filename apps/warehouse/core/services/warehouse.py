@@ -19,6 +19,7 @@ from apps.warehouse.core.exceptions import (
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
 from apps.warehouse.core.schemas.barcode import BarcodeSchema
 from apps.warehouse.core.schemas.context import RequestContext
+from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.schemas.warehouse import (
     AuditTimelineEntrySchema,
     WarehouseOrderCreateSchema,
@@ -147,7 +148,7 @@ class MovementService:
                         item,
                         action=AuditAction.UPDATE,
                         user=context.user_id,
-                        reason="Item partially moved",
+                        reason=AuditMessages.ITEM_PARTIALLY_MOVED.CS,
                         changes={
                             "amount": {"old": str(old_amount), "new": str(item.amount)}
                         },
@@ -173,7 +174,7 @@ class MovementService:
                         new_item,
                         action=AuditAction.CREATE,
                         user=context.user_id,
-                        reason="Created by partial move of a non-fungible item to a new location",
+                        reason=AuditMessages.ITEM_CREATED_BY_PARTIAL_MOVE.CS,
                         changes={
                             "amount": {"old": str(old_amount), "new": str(item.amount)}
                         },
@@ -182,7 +183,7 @@ class MovementService:
                         item,
                         action=AuditAction.UPDATE,
                         user=context.user_id,
-                        reason="Item partially moved",
+                        reason=AuditMessages.ITEM_PARTIALLY_MOVED.CS,
                         changes={
                             "amount": {"old": str(old_amount), "new": str(item.amount)}
                         },
@@ -221,7 +222,7 @@ class MovementService:
                         new_item,
                         action=AuditAction.CREATE,
                         user=context.user_id,
-                        reason="Created by partial move of a non-fungible item to a new location",
+                        reason=AuditMessages.ITEM_CREATED_BY_PARTIAL_MOVE.CS,
                         changes={
                             "amount": {"old": str(old_amount), "new": str(item.amount)}
                         },
@@ -230,7 +231,7 @@ class MovementService:
                         item,
                         action=AuditAction.UPDATE,
                         user=context.user_id,
-                        reason="Item partially moved",
+                        reason=AuditMessages.ITEM_PARTIALLY_MOVED.CS,
                         changes={
                             "amount": {"old": str(old_amount), "new": str(item.amount)}
                         },
@@ -388,7 +389,9 @@ class WarehouseService:
                 warehouse_order,
                 action=AuditAction.CREATE,
                 user=context.user_id,
-                reason=f"Bound to order '{params.purchase_order_code}'",
+                reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
+                    purchase_order_code=params.purchase_order_code
+                ),
             )
             for purchase_item in purchase_order.items.all():
                 item = WarehouseItem.objects.create(
@@ -402,7 +405,9 @@ class WarehouseService:
                     item,
                     action=AuditAction.CREATE,
                     user=context.user_id,
-                    reason=warehouse_order.code,
+                    reason=AuditMessages.ORDER_CODE_REFERENCE.CS.format(
+                        order_code=warehouse_order.code
+                    ),
                 )
 
             inbound_orders_service.transition_order(
@@ -614,7 +619,9 @@ class WarehouseService:
                         new_item,
                         action=AuditAction.CREATE,
                         user=context.user_id,
-                        reason=order_code,
+                        reason=AuditMessages.ORDER_CODE_REFERENCE.CS.format(
+                            order_code=order_code
+                        ),
                     )
         except ObjectDoesNotExist as exc:
             raise WarehouseItemBadRequestError(str(exc))
@@ -682,7 +689,10 @@ class WarehouseService:
                         item,
                         action=AuditAction.CREATE,
                         user=context.user_id,
-                        reason=f"{order_code}: setting up item tracking -> {new_item.tracking_level}",
+                        reason=AuditMessages.TRACKING_SETUP.CS.format(
+                            order_code=order_code,
+                            tracking_level=new_item.tracking_level,
+                        ),
                     )
                 if remaining_amount > 0:
                     untracked_item.amount = remaining_amount
@@ -755,7 +765,7 @@ class WarehouseService:
                     order,
                     user=context.user_id,
                     action=AuditAction.UPDATE,
-                    reason="Warehouse order updated",
+                    reason=AuditMessages.WAREHOUSE_ORDER_UPDATED.CS,
                     changes={"state": {"old": old_state, "new": body.state}},
                 )
         return None
@@ -778,7 +788,9 @@ class WarehouseService:
                 order,
                 user=context.user_id,
                 action=AuditAction.TRANSITION,
-                reason=f"Warehouse order state changed from '{old_state}' to '{state}'",
+                reason=AuditMessages.WAREHOUSE_ORDER_STATE_CHANGED.CS.format(
+                    old_state=old_state, new_state=state
+                ),
                 changes={"state": {"old": old_state, "new": state}},
             )
 
@@ -847,14 +859,14 @@ class WarehouseService:
                     warehouse_order,
                     user=context.user_id,
                     action=AuditAction.CREATE,
-                    reason="Credit note created",
+                    reason=AuditMessages.CREDIT_NOTE_CREATED.CS,
                     changes={"credit_note": {"new": note.code}},
                 )
             audit_service.add_entry(
                 warehouse_order,
                 user=context.user_id,
                 action=AuditAction.OTHER,
-                reason="Item discarded to credit note",
+                reason=AuditMessages.ITEM_DISCARDED_TO_CREDIT_NOTE.CS,
                 changes={
                     "credit_note": note.code,
                     "stock_product": stock_product.name,
@@ -936,7 +948,7 @@ class WarehouseService:
             stock_product,
             user=context.user_id,
             action=AuditAction.UPDATE,
-            reason="Average purchase price recalculated",
+            reason=AuditMessages.AVERAGE_PURCHASE_PRICE_RECALCULATED.CS,
             changes={
                 "purchase_price": {
                     "old": str(old_purchase_price)

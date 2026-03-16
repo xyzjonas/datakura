@@ -15,6 +15,7 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderCreateOrUpdateSchema,
     InboundOrderSchema,
 )
+from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services import audit_service
 from apps.warehouse.core.services.pdf import print_html_to_pdf
 from apps.warehouse.core.transformation import (
@@ -94,7 +95,7 @@ class OrdersService:
                     order,
                     action=AuditAction.CREATE,
                     user=context.user_id,
-                    reason="New inbound order created",
+                    reason=AuditMessages.NEW_INBOUND_ORDER_CREATED.CS,
                 )
             else:
                 if previous_order_schema:
@@ -113,7 +114,7 @@ class OrdersService:
                         order,
                         user=context.user_id,
                         action=AuditAction.UPDATE,
-                        reason="Warehouse order updated",
+                        reason=AuditMessages.WAREHOUSE_ORDER_UPDATED.CS,
                         changes=final_diff,
                     )
 
@@ -197,7 +198,9 @@ class OrdersService:
                 order,
                 action=AuditAction.TRANSITION,
                 user=context.user_id,
-                reason=f"Inbound order state changed from '{old_state}' to '{new_state}'",
+                reason=AuditMessages.INBOUND_ORDER_STATE_CHANGED.CS.format(
+                    old_state=old_state, new_state=new_state
+                ),
                 changes={"state": {"old": old_state, "new": new_state}},
             )
 
@@ -220,7 +223,9 @@ class OrdersService:
                 note,
                 user=context.user_id,
                 action=AuditAction.TRANSITION,
-                reason=f"Credit note state changed from '{old_state}' to '{new_state}'",
+                reason=AuditMessages.CREDIT_NOTE_STATE_CHANGED.CS.format(
+                    old_state=old_state, new_state=new_state
+                ),
                 changes={"state": {"old": old_state, "new": new_state}},
             )
 
@@ -263,7 +268,9 @@ class OrdersService:
                 order,
                 user=context.user_id,
                 action=AuditAction.CREATE,
-                reason=f"Credit note '{note.code}' created for inbound order",
+                reason=AuditMessages.CREDIT_NOTE_CREATED_FOR_INBOUND_ORDER.CS.format(
+                    credit_note_code=note.code
+                ),
                 changes={"credit_note": {"created": note.code}},
             )
         else:

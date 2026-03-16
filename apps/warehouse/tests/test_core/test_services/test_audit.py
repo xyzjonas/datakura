@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog, create_audit_log
 from apps.warehouse.models.warehouse import WarehouseMovement
@@ -21,7 +22,7 @@ def test_create_audit_log_helper_and_queryset(db):
         action=AuditAction.UPDATE,
         user=user,
         changes={"amount": {"old": "1", "new": "2"}},
-        reason="Manual correction",
+        reason=AuditMessages.MANUAL_CORRECTION.CS,
     )
 
     object_logs = AuditLog.objects.for_object(item)
@@ -41,7 +42,7 @@ def test_timeline_includes_related_movements_and_is_ordered(db):
         obj=item,
         action=AuditAction.CREATE,
         user=user,
-        reason="Initial stock registration",
+        reason=AuditMessages.INITIAL_STOCK_REGISTRATION.CS,
     )
     movement = WarehouseMovement.objects.create(
         location_from=item.location,

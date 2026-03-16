@@ -4,6 +4,7 @@ from django.utils import timezone
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.inbound_orders import routes
+from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.tests.factories.order import InboundOrderFactory
@@ -16,12 +17,12 @@ def test_get_inbound_order_audits(db) -> None:
     older_log = audit_service.add_entry(
         order,
         action=AuditAction.CREATE,
-        reason="Order created",
+        reason=AuditMessages.ORDER_CREATED.CS,
     )
     newer_log = audit_service.add_entry(
         order,
         action=AuditAction.UPDATE,
-        reason="Order updated",
+        reason=AuditMessages.ORDER_UPDATED.CS,
     )
 
     now = timezone.now()

@@ -42,7 +42,7 @@
     <q-step
       :name="3"
       title="Příjem"
-      caption="Zboží je na příjmu"
+      caption="Zboží čeká na příjem"
       icon="sym_o_fact_check"
       active-icon="sym_o_fact_check"
       active-color="accent"

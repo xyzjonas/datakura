@@ -10,6 +10,7 @@ from apps.warehouse.core.exceptions import (
     WarehouseGenericError,
     WarehouseItemNotFoundError,
 )
+from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
@@ -110,7 +111,7 @@ def test_get_warehouse_item_detail(db, client) -> None:
     created_log = audit_service.add_entry(
         obj=item,
         action=AuditAction.UPDATE,
-        reason="Corrected quantity",
+        reason=AuditMessages.CORRECTED_QUANTITY.CS,
     )
     movement = WarehouseMovement.objects.create(
         location_from=item.location,
@@ -199,7 +200,7 @@ def test_get_inbound_warehouse_order_audits(db, client) -> None:
     audit_log = audit_service.add_entry(
         order,
         action=AuditAction.UPDATE,
-        reason="Warehouse order adjusted",
+        reason=AuditMessages.WAREHOUSE_ORDER_ADJUSTED.CS,
     )
     movement = WarehouseMovement.objects.create(
         location_from=location_a,
