@@ -1,0 +1,40 @@
+services:
+  web:
+    image: scotch3840/datakura:latest
+    container_name: datakura-web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_SETTINGS_MODULE: conf.settings
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env}
+      DEBUG: ${DEBUG:-False}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      SQLITE_PATH: /app/data/db.sqlite3
+    command: >
+      sh -c "
+      uv run manage.py migrate &&
+      uv run manage.py collectstatic --noinput &&
+      uv run python -m gunicorn --bind 0.0.0.0:8000 conf.wsgi:application
+      "
+    volumes:
+      - datakura_db:/app/data
+      - datakura_static:/app/staticfiles
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1', 8000)); s.close()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  datakura_db:
+  datakura_static:

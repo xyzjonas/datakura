@@ -7,7 +7,7 @@ install:
     cd frontend && npm i
 
 dev:
-    uv run manage.py runserver
+    uv run manage.py runserver 0.0.0.0:8000
 
 preview:
     cd frontend && npm run build
@@ -82,6 +82,10 @@ ci-js: eslint ts-check test-js
 
 [parallel]
 ci-python: lint format-check type-check test
+
+docker:
+    docker build -t scotch3840/datakura .
+    docker push scotch3840/datakura
 
 docker-build:
     docker build -t datakura .

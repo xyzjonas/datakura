@@ -13,8 +13,50 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import json
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from decouple import config
+
+
+def _csv_env(name: str, default: str = "") -> list[str]:
+    value = str(config(name, default=default))
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _normalize_allowed_host(value: str) -> str:
+    item = value.strip()
+    if not item:
+        return ""
+    if item == "*":
+        return item
+
+    parsed = urlsplit(item if "://" in item else f"//{item}")
+    hostname = (parsed.hostname or item).strip().strip(".").lower()
+    return hostname
+
+
+def _normalize_csrf_origin(value: str) -> str:
+    item = value.strip()
+    if not item:
+        return ""
+    if "://" in item:
+        parsed = urlsplit(item)
+        if parsed.scheme and parsed.hostname:
+            port = f":{parsed.port}" if parsed.port else ""
+            return f"{parsed.scheme}://{parsed.hostname.lower()}{port}"
+        return ""
+    return f"https://{item.lower()}"
+
+
+def _allowed_hosts_env(name: str, default: str = "") -> list[str]:
+    hosts = [_normalize_allowed_host(item) for item in _csv_env(name, default)]
+    return [host for host in hosts if host]
+
+
+def _csrf_trusted_origins_env(name: str, default: str = "") -> list[str]:
+    origins = [_normalize_csrf_origin(item) for item in _csv_env(name, default)]
+    return [origin for origin in origins if origin]
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -29,7 +71,11 @@ sys.path.append(APPS_DIR)
 
 SECRET_KEY = config("SECRET_KEY")
 
-ALLOWED_HOSTS: list[str] = ["localhost", "127.0.0.1"]
+DEBUG = config("DEBUG", default=False, cast=bool)
+
+ALLOWED_HOSTS: list[str] = _allowed_hosts_env("ALLOWED_HOSTS", "localhost,127.0.0.1")
+
+CSRF_TRUSTED_ORIGINS: list[str] = _csrf_trusted_origins_env("CSRF_TRUSTED_ORIGINS")
 
 
 # Application definition
@@ -91,7 +137,7 @@ WSGI_APPLICATION = "conf.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": config("SQLITE_PATH", default=str(BASE_DIR / "db.sqlite3")),
     }
 }
 

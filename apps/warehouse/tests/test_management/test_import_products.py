@@ -1,6 +1,6 @@
 import pytest
 
-from apps.warehouse.management.commands.import_products_csv import ProductRow
+from apps.warehouse.core.services.product_import import ProductRow
 
 
 @pytest.mark.parametrize(
