@@ -1858,6 +1858,89 @@ export type PackageTypeSchema = {
 };
 
 /**
+ * PagedUnitOfMeasureSchema
+ */
+export type PagedUnitOfMeasureSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<UnitOfMeasureSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * UnitOfMeasureSchema
+ */
+export type UnitOfMeasureSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Amount Of Base Uom
+     */
+    amount_of_base_uom?: number | null;
+    /**
+     * Base Uom
+     */
+    base_uom?: string | null;
+};
+
+/**
+ * GetUnitOfMeasureResponse
+ */
+export type GetUnitOfMeasureResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: UnitOfMeasureSchema;
+};
+
+/**
+ * UnitOfMeasureCreateOrUpdateSchema
+ */
+export type UnitOfMeasureCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Amount Of Base Uom
+     */
+    amount_of_base_uom?: number | null;
+    /**
+     * Base Uom
+     */
+    base_uom?: string | null;
+};
+
+/**
  * PutInPackageResponse
  */
 export type PutInPackageResponse = {
@@ -3026,6 +3109,72 @@ export type WarehouseApiRoutesPackagingGetPackageTypesResponses = {
 };
 
 export type WarehouseApiRoutesPackagingGetPackageTypesResponse = WarehouseApiRoutesPackagingGetPackageTypesResponses[keyof WarehouseApiRoutesPackagingGetPackageTypesResponses];
+
+export type WarehouseApiRoutesPackagingGetUnitsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/packaging/units';
+};
+
+export type WarehouseApiRoutesPackagingGetUnitsResponses = {
+    /**
+     * OK
+     */
+    200: PagedUnitOfMeasureSchema;
+};
+
+export type WarehouseApiRoutesPackagingGetUnitsResponse = WarehouseApiRoutesPackagingGetUnitsResponses[keyof WarehouseApiRoutesPackagingGetUnitsResponses];
+
+export type WarehouseApiRoutesPackagingCreateUnitData = {
+    body: UnitOfMeasureCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/packaging/units';
+};
+
+export type WarehouseApiRoutesPackagingCreateUnitResponses = {
+    /**
+     * OK
+     */
+    200: GetUnitOfMeasureResponse;
+};
+
+export type WarehouseApiRoutesPackagingCreateUnitResponse = WarehouseApiRoutesPackagingCreateUnitResponses[keyof WarehouseApiRoutesPackagingCreateUnitResponses];
+
+export type WarehouseApiRoutesPackagingUpdateUnitData = {
+    body: UnitOfMeasureCreateOrUpdateSchema;
+    path: {
+        /**
+         * Unit Name
+         */
+        unit_name: string;
+    };
+    query?: never;
+    url: '/api/v1/packaging/units/{unit_name}';
+};
+
+export type WarehouseApiRoutesPackagingUpdateUnitResponses = {
+    /**
+     * OK
+     */
+    200: GetUnitOfMeasureResponse;
+};
+
+export type WarehouseApiRoutesPackagingUpdateUnitResponse = WarehouseApiRoutesPackagingUpdateUnitResponses[keyof WarehouseApiRoutesPackagingUpdateUnitResponses];
 
 export type WarehouseApiRoutesPackagingPackagePreviewData = {
     body: PutInPackageRequestSchema;

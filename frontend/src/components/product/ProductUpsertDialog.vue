@@ -60,20 +60,8 @@
             <q-list bordered separator class="rounded">
               <q-item v-for="(row, index) in attributeRows" :key="index" class="px-2">
                 <div class="w-full flex items-center justify-between gap-2">
-                  <q-input
-                    v-model.trim="row.key"
-                    dense
-                    outlined
-                    class="flex-1"
-                    label="Atribut"
-                  />
-                  <q-input
-                    v-model.trim="row.value"
-                    dense
-                    outlined
-                    class="flex-1"
-                    label="Hodnota"
-                  />
+                  <q-input v-model.trim="row.key" dense outlined class="flex-1" label="Atribut" />
+                  <q-input v-model.trim="row.value" dense outlined class="flex-1" label="Hodnota" />
                   <q-btn
                     flat
                     dense

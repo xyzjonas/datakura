@@ -13,6 +13,10 @@ from apps.warehouse.core.schemas.group import (
     GetProductGroupsResponse,
 )
 from apps.warehouse.core.schemas.orders import GetInboundOrdersResponse
+from apps.warehouse.core.schemas.packaging import (
+    GetUnitOfMeasuresResponse,
+    UnitOfMeasureSchema,
+)
 from apps.warehouse.core.schemas.product import (
     GetProductsResponse,
 )
@@ -32,6 +36,7 @@ from apps.warehouse.core.transformation import (
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import InboundOrder, CreditNoteToSupplier
 from apps.warehouse.models.product import StockProduct, ProductGroup
+from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.warehouse import InboundWarehouseOrder, WarehouseLocation
 
 
@@ -239,6 +244,47 @@ class ProductGroupPagination(PaginationBase):
 
         return {
             "data": [product_group_orm_to_schema(group) for group in items],
+            "count": count,
+            "next": pagination.page + 1
+            if offset + pagination.page_size < count
+            else None,
+            "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
+
+
+class UnitOfMeasurePagination(PaginationBase):
+    items_attribute: str = "data"
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 20
+
+    class Output(GetUnitOfMeasuresResponse): ...
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[UnitOfMeasure],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        offset = (pagination.page - 1) * pagination.page_size
+        items = queryset[offset : offset + pagination.page_size]
+        count = queryset.count()
+
+        return {
+            "data": [
+                UnitOfMeasureSchema(
+                    created=item.created,
+                    changed=item.changed,
+                    name=item.name,
+                    amount_of_base_uom=float(item.amount_of_base_uom)
+                    if item.amount_of_base_uom is not None
+                    else None,
+                    base_uom=item.base_uom.name if item.base_uom else None,
+                )
+                for item in items
+            ],
             "count": count,
             "next": pagination.page + 1
             if offset + pagination.page_size < count
