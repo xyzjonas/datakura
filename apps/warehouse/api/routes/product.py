@@ -12,6 +12,8 @@ from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
 from apps.warehouse.core.schemas.product import (
     GetProductResponse,
     ProductSchema,
+    ProductCreateOrUpdateSchema,
+    ProductDuplicateSchema,
     ProductBarcodeCreateSchema,
     DynamicProductPriceCreateSchema,
     DynamicProductPriceUpdateSchema,
@@ -57,12 +59,39 @@ def get_products(request: HttpRequest, search_term: str | None = None):
     return qs.all()
 
 
+@routes.post("", response={200: GetProductResponse})
+def create_product(request: HttpRequest, body: ProductCreateOrUpdateSchema):
+    return GetProductResponse(data=stock_product_service.create_product(body))
+
+
 @routes.get("/{product_code}", response={200: GetProductResponse})
 def get_product(request: HttpRequest, product_code: str):
     # user = authenticate(
     #     request, username=credentials.username, password=credentials.password
     # )
     return GetProductResponse(data=get_product_by_code(product_code))
+
+
+@routes.put("/{product_code}", response={200: GetProductResponse})
+def update_product(
+    request: HttpRequest,
+    product_code: str,
+    body: ProductCreateOrUpdateSchema,
+):
+    return GetProductResponse(
+        data=stock_product_service.update_product(product_code, body)
+    )
+
+
+@routes.post("/{product_code}/duplicate", response={200: GetProductResponse})
+def duplicate_product(
+    request: HttpRequest,
+    product_code: str,
+    body: ProductDuplicateSchema,
+):
+    return GetProductResponse(
+        data=stock_product_service.duplicate_product(product_code, body)
+    )
 
 
 @routes.get("/{product_code}/audits", response={200: GetAuditTimelineResponse})

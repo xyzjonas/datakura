@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { WarehouseApiRoutesAnalyticsGetAnalyticsData, WarehouseApiRoutesAnalyticsGetAnalyticsResponses, WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthSwitchSiteData, WarehouseApiRoutesAuthSwitchSiteErrors, WarehouseApiRoutesAuthSwitchSiteResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierData, WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierResponses, WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierData, WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderData, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesInboundOrdersCreateInboundOrderData, WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsData, WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrdersData, WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesInboundOrdersTransitionInboundOrderData, WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses, WarehouseApiRoutesInboundOrdersUpdateInboundOrderData, WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses, WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderData, WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses, WarehouseApiRoutesPackagingBatchPreviewData, WarehouseApiRoutesPackagingBatchPreviewResponses, WarehouseApiRoutesPackagingGetPackageTypesData, WarehouseApiRoutesPackagingGetPackageTypesResponses, WarehouseApiRoutesPackagingPackagePreviewData, WarehouseApiRoutesPackagingPackagePreviewResponses, WarehouseApiRoutesPackagingSerialPreviewData, WarehouseApiRoutesPackagingSerialPreviewResponses, WarehouseApiRoutesProductAddProductBarcodeData, WarehouseApiRoutesProductAddProductBarcodeResponses, WarehouseApiRoutesProductAddProductDynamicPriceData, WarehouseApiRoutesProductAddProductDynamicPriceResponses, WarehouseApiRoutesProductDeleteProductDynamicPriceData, WarehouseApiRoutesProductDeleteProductDynamicPriceResponses, WarehouseApiRoutesProductGetProductAuditsData, WarehouseApiRoutesProductGetProductAuditsResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesProductUpdateProductDynamicPriceData, WarehouseApiRoutesProductUpdateProductDynamicPriceResponses, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses, WarehouseApiRoutesWarehouseGetWarehouseItemData, WarehouseApiRoutesWarehouseGetWarehouseItemResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationsData, WarehouseApiRoutesWarehouseGetWarehouseLocationsResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses, WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemData, WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteData, WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderData, WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses } from './types.gen';
+import type { WarehouseApiRoutesAnalyticsGetAnalyticsData, WarehouseApiRoutesAnalyticsGetAnalyticsResponses, WarehouseApiRoutesAuthLoginUserData, WarehouseApiRoutesAuthLoginUserErrors, WarehouseApiRoutesAuthLoginUserResponses, WarehouseApiRoutesAuthLogoutUserData, WarehouseApiRoutesAuthLogoutUserResponses, WarehouseApiRoutesAuthWhoamiData, WarehouseApiRoutesAuthWhoamiErrors, WarehouseApiRoutesAuthWhoamiResponses, WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierData, WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierResponses, WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierData, WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses, WarehouseApiRoutesCustomerGetCustomerData, WarehouseApiRoutesCustomerGetCustomerResponses, WarehouseApiRoutesCustomerGetCustomersData, WarehouseApiRoutesCustomerGetCustomersErrors, WarehouseApiRoutesCustomerGetCustomersResponses, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderData, WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses, WarehouseApiRoutesInboundOrdersCreateInboundOrderData, WarehouseApiRoutesInboundOrdersCreateInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsData, WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlData, WarehouseApiRoutesInboundOrdersGetInboundOrderHtmlResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData, WarehouseApiRoutesInboundOrdersGetInboundOrderPdfResponses, WarehouseApiRoutesInboundOrdersGetInboundOrderResponses, WarehouseApiRoutesInboundOrdersGetInboundOrdersData, WarehouseApiRoutesInboundOrdersGetInboundOrdersResponses, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData, WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses, WarehouseApiRoutesInboundOrdersTransitionInboundOrderData, WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses, WarehouseApiRoutesInboundOrdersUpdateInboundOrderData, WarehouseApiRoutesInboundOrdersUpdateInboundOrderResponses, WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderData, WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses, WarehouseApiRoutesPackagingBatchPreviewData, WarehouseApiRoutesPackagingBatchPreviewResponses, WarehouseApiRoutesPackagingGetPackageTypesData, WarehouseApiRoutesPackagingGetPackageTypesResponses, WarehouseApiRoutesPackagingPackagePreviewData, WarehouseApiRoutesPackagingPackagePreviewResponses, WarehouseApiRoutesPackagingSerialPreviewData, WarehouseApiRoutesPackagingSerialPreviewResponses, WarehouseApiRoutesProductAddProductBarcodeData, WarehouseApiRoutesProductAddProductBarcodeResponses, WarehouseApiRoutesProductAddProductDynamicPriceData, WarehouseApiRoutesProductAddProductDynamicPriceResponses, WarehouseApiRoutesProductCreateProductData, WarehouseApiRoutesProductCreateProductResponses, WarehouseApiRoutesProductDeleteProductDynamicPriceData, WarehouseApiRoutesProductDeleteProductDynamicPriceResponses, WarehouseApiRoutesProductDuplicateProductData, WarehouseApiRoutesProductDuplicateProductResponses, WarehouseApiRoutesProductGetProductAuditsData, WarehouseApiRoutesProductGetProductAuditsResponses, WarehouseApiRoutesProductGetProductData, WarehouseApiRoutesProductGetProductResponses, WarehouseApiRoutesProductGetProductsData, WarehouseApiRoutesProductGetProductsResponses, WarehouseApiRoutesProductGetProductWarehouseAvailabilityData, WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses, WarehouseApiRoutesProductGetProductWarehouseInfoData, WarehouseApiRoutesProductGetProductWarehouseInfoResponses, WarehouseApiRoutesProductUpdateProductData, WarehouseApiRoutesProductUpdateProductDynamicPriceData, WarehouseApiRoutesProductUpdateProductDynamicPriceResponses, WarehouseApiRoutesProductUpdateProductResponses, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData, WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersResponses, WarehouseApiRoutesWarehouseGetWarehouseItemData, WarehouseApiRoutesWarehouseGetWarehouseItemResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationData, WarehouseApiRoutesWarehouseGetWarehouseLocationResponses, WarehouseApiRoutesWarehouseGetWarehouseLocationsData, WarehouseApiRoutesWarehouseGetWarehouseLocationsResponses, WarehouseApiRoutesWarehouseGetWarehousesData, WarehouseApiRoutesWarehouseGetWarehousesResponses, WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemData, WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteData, WarehouseApiRoutesWarehouseRemoveFromOrderToCreditNoteResponses, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData, WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses, WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderData, WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses, WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -63,27 +63,6 @@ export const warehouseApiRoutesAuthWhoami = <ThrowOnError extends boolean = fals
         ],
         url: '/api/v1/auth/whoami',
         ...options
-    });
-};
-
-/**
- * Switch Site
- */
-export const warehouseApiRoutesAuthSwitchSite = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesAuthSwitchSiteData, ThrowOnError>) => {
-    return (options.client ?? client).put<WarehouseApiRoutesAuthSwitchSiteResponses, WarehouseApiRoutesAuthSwitchSiteErrors, ThrowOnError>({
-        security: [
-            {
-                in: 'cookie',
-                name: 'sessionid',
-                type: 'apiKey'
-            }
-        ],
-        url: '/api/v1/auth/whoami/site',
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-        }
     });
 };
 
@@ -388,6 +367,27 @@ export const warehouseApiRoutesProductGetProducts = <ThrowOnError extends boolea
 };
 
 /**
+ * Create Product
+ */
+export const warehouseApiRoutesProductCreateProduct = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesProductCreateProductData, ThrowOnError>) => {
+    return (options.client ?? client).post<WarehouseApiRoutesProductCreateProductResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
+        url: '/api/v1/products',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+};
+
+/**
  * Get Product
  */
 export const warehouseApiRoutesProductGetProduct = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesProductGetProductData, ThrowOnError>) => {
@@ -401,6 +401,48 @@ export const warehouseApiRoutesProductGetProduct = <ThrowOnError extends boolean
         ],
         url: '/api/v1/products/{product_code}',
         ...options
+    });
+};
+
+/**
+ * Update Product
+ */
+export const warehouseApiRoutesProductUpdateProduct = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesProductUpdateProductData, ThrowOnError>) => {
+    return (options.client ?? client).put<WarehouseApiRoutesProductUpdateProductResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
+        url: '/api/v1/products/{product_code}',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+};
+
+/**
+ * Duplicate Product
+ */
+export const warehouseApiRoutesProductDuplicateProduct = <ThrowOnError extends boolean = false>(options: Options<WarehouseApiRoutesProductDuplicateProductData, ThrowOnError>) => {
+    return (options.client ?? client).post<WarehouseApiRoutesProductDuplicateProductResponses, unknown, ThrowOnError>({
+        security: [
+            {
+                in: 'cookie',
+                name: 'sessionid',
+                type: 'apiKey'
+            }
+        ],
+        url: '/api/v1/products/{product_code}/duplicate',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
     });
 };
 

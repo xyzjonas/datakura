@@ -16,7 +16,6 @@ class AuthData(BaseModel):
     user_id: int
     username: str
     group: str | None = None
-    active_site: str | None = None
     expiry_date: datetime
 
 
@@ -32,7 +31,3 @@ class WhoamiResponse(BaseResponse):
 
 class SignoutResponse(BaseResponse):
     data: None = None
-
-
-class SwitchSiteBody(BaseModel):
-    site_code: str | None

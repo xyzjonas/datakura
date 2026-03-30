@@ -5,7 +5,7 @@
         <h1>Přehled Produktů</h1>
         <h5 class="text-gray-5 mt-2">Správa evidovaných produktů</h5>
       </div>
-      <q-btn color="primary" unelevated label="vytvořit" icon="sym_o_add" disable />
+      <q-btn color="primary" unelevated label="vytvořit" icon="sym_o_add" @click="openCreateForm" />
     </div>
     <q-table
       :rows="products"
@@ -50,19 +50,36 @@
         </q-td>
       </template>
     </q-table>
+
+    <ProductUpsertDialog
+      v-model:show="showCreateDialog"
+      v-model="productForm"
+      title="Vytvořit produkt"
+      submit-label="vytvořit"
+      :loading="creating"
+      @submit="createProduct"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesProductGetProducts, type ProductSchema } from '@/client'
+import {
+  warehouseApiRoutesProductCreateProduct,
+  warehouseApiRoutesProductGetProducts,
+  type ProductCreateOrUpdateSchema,
+  type ProductSchema,
+} from '@/client'
+import ProductUpsertDialog from '@/components/product/ProductUpsertDialog.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
+import { useApi } from '@/composables/use-api'
 import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const { page, pageSize, search } = useQueryProducts()
+const { onResponse } = useApi()
 
 const pagination = ref<NonNullable<QTableProps['pagination']>>({
   rowsPerPage: pageSize.value,
@@ -71,6 +88,44 @@ const pagination = ref<NonNullable<QTableProps['pagination']>>({
 })
 
 const products = ref<ProductSchema[]>([])
+const creating = ref(false)
+const showCreateDialog = ref(false)
+
+const createDefaultForm = (): ProductCreateOrUpdateSchema => ({
+  name: '',
+  code: '',
+  type: '',
+  unit: 'KS',
+  group: '',
+  unit_weight: 0,
+  base_price: 0,
+  purchase_price: 0,
+  currency: 'CZK',
+  customs_declaration_group: '',
+  attributes: {},
+})
+
+const productForm = ref<ProductCreateOrUpdateSchema>(createDefaultForm())
+
+const openCreateForm = () => {
+  productForm.value = createDefaultForm()
+  showCreateDialog.value = true
+}
+
+const createProduct = async (body: ProductCreateOrUpdateSchema) => {
+  creating.value = true
+  try {
+    const result = await warehouseApiRoutesProductCreateProduct({ body })
+    const response = onResponse(result)
+    if (response?.data) {
+      showCreateDialog.value = false
+      await fetchProducts()
+    }
+  } finally {
+    creating.value = false
+  }
+}
+
 const loading = ref(false)
 const fetchProducts = async () => {
   loading.value = true

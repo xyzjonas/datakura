@@ -4,7 +4,6 @@
       <q-toolbar class="flex gap-5 p-3 items-center">
         <SearchInput v-model="search" class="w-[512px]" />
         <div class="ml-auto flex items-center gap-10">
-          <CurrentSiteInfo />
           <LoginInfo />
         </div>
       </q-toolbar>
@@ -147,11 +146,10 @@ import { useGlobalLoading } from '@/composables/use-global-loading'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLogo from '../AppLogo.vue'
-import LoginInfo from './LoginInfo.vue'
 import MenuList from '../MenuList.vue'
 import SearchInput from '../SearchInput.vue'
 import BackToTopFab from './BackToTopFab.vue'
-import CurrentSiteInfo from './CurrentSiteInfo.vue'
+import LoginInfo from './LoginInfo.vue'
 
 const search = ref('')
 const { isDark, toggle } = useDarkmode()

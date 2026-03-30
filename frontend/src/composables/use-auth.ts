@@ -1,6 +1,5 @@
 import {
   warehouseApiRoutesAuthLoginUser,
-  warehouseApiRoutesAuthSwitchSite,
   warehouseApiRoutesAuthWhoami,
   type AuthData,
 } from '@/client'
@@ -68,18 +67,6 @@ export const useAuth = () => {
     return undefined
   }
 
-  const switchSite = async (siteName?: string) => {
-    const result = await warehouseApiRoutesAuthSwitchSite({
-      body: {
-        site_code: siteName ?? null,
-      },
-    })
-    const data = onResponse(result)
-    if (data) {
-      user.value = data.data
-    }
-  }
-
   const router = useRouter()
   const signout = async () => {
     try {
@@ -107,6 +94,5 @@ export const useAuth = () => {
     signin,
     signout,
     whoami,
-    switchSite,
   }
 }

@@ -21,10 +21,6 @@ export type AuthData = {
      */
     group?: string | null;
     /**
-     * Active Site
-     */
-    active_site?: string | null;
-    /**
      * Expiry Date
      */
     expiry_date: string;
@@ -103,16 +99,6 @@ export type WhoamiResponse = {
     success?: boolean;
     error?: ErrorInformation | null;
     data: AuthData;
-};
-
-/**
- * SwitchSiteBody
- */
-export type SwitchSiteBody = {
-    /**
-     * Site Code
-     */
-    site_code: string | null;
 };
 
 /**
@@ -303,6 +289,20 @@ export type BatchSchema = {
 };
 
 /**
+ * DynamicProductPriceCustomerSchema
+ */
+export type DynamicProductPriceCustomerSchema = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * DynamicProductPriceSchema
  */
 export type DynamicProductPriceSchema = {
@@ -330,14 +330,7 @@ export type DynamicProductPriceSchema = {
      * Group
      */
     group?: string | null;
-    /**
-     * Customer Code
-     */
-    customer_code?: string | null;
-    /**
-     * Customer Name
-     */
-    customer_name?: string | null;
+    customer?: DynamicProductPriceCustomerSchema | null;
 };
 
 /**
@@ -1004,7 +997,7 @@ export type InboundWarehouseOrderSchema = {
 /**
  * InboundWarehouseOrderState
  */
-export type InboundWarehouseOrderState = 'draft' | 'pending' | 'started' | 'completed' | 'cancelled';
+export type InboundWarehouseOrderState = 'in transit' | 'draft' | 'pending' | 'started' | 'completed' | 'cancelled';
 
 /**
  * WarehouseMovementSchema
@@ -1189,6 +1182,110 @@ export type GetProductResponse = {
     success?: boolean;
     error?: ErrorInformation | null;
     data: ProductSchema;
+};
+
+/**
+ * ProductCreateOrUpdateSchema
+ */
+export type ProductCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Unit
+     */
+    unit: string;
+    /**
+     * Group
+     */
+    group?: string | null;
+    /**
+     * Unit Weight
+     */
+    unit_weight?: number;
+    /**
+     * Base Price
+     */
+    base_price?: number;
+    /**
+     * Purchase Price
+     */
+    purchase_price?: number;
+    /**
+     * Currency
+     */
+    currency?: string;
+    /**
+     * Customs Declaration Group
+     */
+    customs_declaration_group?: string | null;
+    /**
+     * Attributes
+     */
+    attributes?: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * ProductDuplicateSchema
+ */
+export type ProductDuplicateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Unit
+     */
+    unit: string;
+    /**
+     * Group
+     */
+    group?: string | null;
+    /**
+     * Unit Weight
+     */
+    unit_weight?: number;
+    /**
+     * Base Price
+     */
+    base_price?: number;
+    /**
+     * Purchase Price
+     */
+    purchase_price?: number;
+    /**
+     * Currency
+     */
+    currency?: string;
+    /**
+     * Customs Declaration Group
+     */
+    customs_declaration_group?: string | null;
+    /**
+     * Attributes
+     */
+    attributes?: {
+        [key: string]: string;
+    };
 };
 
 /**
@@ -1875,31 +1972,6 @@ export type WarehouseApiRoutesAuthWhoamiResponses = {
 
 export type WarehouseApiRoutesAuthWhoamiResponse = WarehouseApiRoutesAuthWhoamiResponses[keyof WarehouseApiRoutesAuthWhoamiResponses];
 
-export type WarehouseApiRoutesAuthSwitchSiteData = {
-    body: SwitchSiteBody;
-    path?: never;
-    query?: never;
-    url: '/api/v1/auth/whoami/site';
-};
-
-export type WarehouseApiRoutesAuthSwitchSiteErrors = {
-    /**
-     * Unauthorized
-     */
-    401: SigninResponse;
-};
-
-export type WarehouseApiRoutesAuthSwitchSiteError = WarehouseApiRoutesAuthSwitchSiteErrors[keyof WarehouseApiRoutesAuthSwitchSiteErrors];
-
-export type WarehouseApiRoutesAuthSwitchSiteResponses = {
-    /**
-     * OK
-     */
-    200: WhoamiResponse;
-};
-
-export type WarehouseApiRoutesAuthSwitchSiteResponse = WarehouseApiRoutesAuthSwitchSiteResponses[keyof WarehouseApiRoutesAuthSwitchSiteResponses];
-
 export type WarehouseApiRoutesWarehouseGetWarehousesData = {
     body?: never;
     path?: never;
@@ -2266,6 +2338,22 @@ export type WarehouseApiRoutesProductGetProductsResponses = {
 
 export type WarehouseApiRoutesProductGetProductsResponse = WarehouseApiRoutesProductGetProductsResponses[keyof WarehouseApiRoutesProductGetProductsResponses];
 
+export type WarehouseApiRoutesProductCreateProductData = {
+    body: ProductCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/products';
+};
+
+export type WarehouseApiRoutesProductCreateProductResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductCreateProductResponse = WarehouseApiRoutesProductCreateProductResponses[keyof WarehouseApiRoutesProductCreateProductResponses];
+
 export type WarehouseApiRoutesProductGetProductData = {
     body?: never;
     path: {
@@ -2286,6 +2374,48 @@ export type WarehouseApiRoutesProductGetProductResponses = {
 };
 
 export type WarehouseApiRoutesProductGetProductResponse = WarehouseApiRoutesProductGetProductResponses[keyof WarehouseApiRoutesProductGetProductResponses];
+
+export type WarehouseApiRoutesProductUpdateProductData = {
+    body: ProductCreateOrUpdateSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}';
+};
+
+export type WarehouseApiRoutesProductUpdateProductResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductUpdateProductResponse = WarehouseApiRoutesProductUpdateProductResponses[keyof WarehouseApiRoutesProductUpdateProductResponses];
+
+export type WarehouseApiRoutesProductDuplicateProductData = {
+    body: ProductDuplicateSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/duplicate';
+};
+
+export type WarehouseApiRoutesProductDuplicateProductResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductDuplicateProductResponse = WarehouseApiRoutesProductDuplicateProductResponses[keyof WarehouseApiRoutesProductDuplicateProductResponses];
 
 export type WarehouseApiRoutesProductGetProductAuditsData = {
     body?: never;

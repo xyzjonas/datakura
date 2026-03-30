@@ -7,21 +7,115 @@ from django.db import IntegrityError, transaction
 from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.core.schemas.product import (
     ProductBarcodeCreateSchema,
+    ProductCreateOrUpdateSchema,
+    ProductDuplicateSchema,
     DynamicProductPriceCreateSchema,
     DynamicProductPriceUpdateSchema,
 )
+from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.audit_messages import AuditMessages
+from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.core.transformation import get_product_by_code
 from apps.warehouse.models.barcode import BarcodeType
 from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.product import (
     StockProduct,
     DynamicPriceType,
     PriceGroup,
+    ProductType,
+    ProductGroup,
     StockProductPrice,
 )
 
 
 class StockProductsService:
+    @staticmethod
+    def _build_product_defaults(params: ProductCreateOrUpdateSchema):
+        product_type, _ = ProductType.objects.get_or_create(name=params.type)
+        unit_of_measure, _ = UnitOfMeasure.objects.get_or_create(name=params.unit)
+        product_group = None
+        if params.group and params.group.strip():
+            product_group, _ = ProductGroup.objects.get_or_create(name=params.group)
+
+        return {
+            "name": params.name,
+            "type": product_type,
+            "group": product_group,
+            "unit_of_measure": unit_of_measure,
+            "unit_weight": Decimal(str(params.unit_weight or 0)),
+            "currency": params.currency,
+            "purchase_price": Decimal(str(params.purchase_price or 0)),
+            "base_price": Decimal(str(params.base_price or 0)),
+            "customs_declaration_group": params.customs_declaration_group,
+            "attributes": params.attributes,
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def create_product(params: ProductCreateOrUpdateSchema):
+        defaults = StockProductsService._build_product_defaults(params)
+        product = StockProduct.objects.create(code=params.code, **defaults)
+        audit_service.add_entry(
+            product,
+            action=AuditAction.CREATE,
+            reason=AuditMessages.PRODUCT_CREATED.CS,
+        )
+        return get_product_by_code(product.code)
+
+    @staticmethod
+    @transaction.atomic
+    def update_product(product_code: str, params: ProductCreateOrUpdateSchema):
+        product = StockProduct.objects.get(code=product_code)
+        previous = get_product_by_code(product_code)
+
+        product.code = params.code
+        defaults = StockProductsService._build_product_defaults(params)
+        for field, value in defaults.items():
+            setattr(product, field, value)
+        product.save()
+
+        current = get_product_by_code(product.code)
+        changes: dict[str, dict[str, str]] = {}
+        prev_dump = previous.model_dump()
+        curr_dump = current.model_dump()
+        for key, old_value in prev_dump.items():
+            if key in (
+                "created",
+                "changed",
+                "barcodes",
+                "primary_barcode",
+                "dynamic_prices",
+            ):
+                continue
+            if old_value != curr_dump.get(key):
+                changes[key] = {
+                    "old": str(old_value),
+                    "new": str(curr_dump.get(key)),
+                }
+
+        audit_service.add_entry(
+            product,
+            action=AuditAction.UPDATE,
+            reason=AuditMessages.PRODUCT_UPDATED.CS,
+            changes=changes,
+        )
+
+        return current
+
+    @staticmethod
+    @transaction.atomic
+    def duplicate_product(product_code: str, params: ProductDuplicateSchema):
+        if params.code == product_code:
+            raise WarehouseGenericError(
+                "Duplicated product code must be different from source product code"
+            )
+
+        StockProduct.objects.get(code=product_code)
+        return StockProductsService.create_product(
+            ProductCreateOrUpdateSchema(**params.model_dump())
+        )
+
     @staticmethod
     def _validate_discount(discount_percent: Decimal) -> None:
         if discount_percent < 0 or discount_percent > 100:

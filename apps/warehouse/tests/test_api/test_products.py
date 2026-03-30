@@ -13,6 +13,7 @@ from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.product import StockProductPrice
+from apps.warehouse.models.packaging import UnitOfMeasure
 
 from apps.warehouse.tests.factories.product import StockProductFactory
 from apps.warehouse.tests.factories.product import (
@@ -160,6 +161,100 @@ def test_add_product_barcode(db, client):
     barcode = Barcode.objects.get(code="1234567890123")
     assert barcode.is_primary is True
     assert barcode.content_object == product
+
+
+def test_create_product(db, client):
+    response = client.post(
+        "/",
+        json={
+            "name": "Test Product",
+            "code": "PRD-NEW-001",
+            "type": "Finished Good",
+            "unit": "KS",
+            "group": "Main Group",
+            "unit_weight": 123.45,
+            "base_price": 100,
+            "purchase_price": 80,
+            "currency": "CZK",
+            "customs_declaration_group": "ABC123",
+            "attributes": {"color": "blue"},
+        },
+    )
+
+    assert response.status_code == 200
+    product = StockProduct.objects.get(code="PRD-NEW-001")
+    assert product.name == "Test Product"
+    assert product.type.name == "Finished Good"
+    assert product.group.name == "Main Group"
+    assert product.unit_of_measure.name == "KS"
+    assert float(product.unit_weight) == 123.45
+    assert float(product.base_price) == 100
+    assert float(product.purchase_price) == 80
+    assert product.currency == "CZK"
+    assert product.customs_declaration_group == "ABC123"
+    assert product.attributes == {"color": "blue"}
+
+
+def test_update_product(db, client):
+    product = cast(StockProduct, StockProductFactory(code="PRD-UPDATE-001"))
+    UnitOfMeasure.objects.get_or_create(name="kg")
+
+    response = client.put(
+        f"/{product.code}",
+        json={
+            "name": "Updated Product",
+            "code": "PRD-UPDATE-002",
+            "type": "Raw Material",
+            "unit": "kg",
+            "group": "Updated Group",
+            "unit_weight": 12,
+            "base_price": 110,
+            "purchase_price": 90,
+            "currency": "CZK",
+            "customs_declaration_group": "DEF456",
+            "attributes": {"size": "L"},
+        },
+    )
+
+    assert response.status_code == 200
+    product.refresh_from_db()
+    assert product.code == "PRD-UPDATE-002"
+    assert product.name == "Updated Product"
+    assert product.type.name == "Raw Material"
+    assert product.group.name == "Updated Group"
+    assert product.unit_of_measure.name == "kg"
+    assert float(product.base_price) == 110
+    assert float(product.purchase_price) == 90
+    assert product.customs_declaration_group == "DEF456"
+    assert product.attributes == {"size": "L"}
+
+
+def test_duplicate_product(db, client):
+    source = cast(StockProduct, StockProductFactory(code="PRD-SOURCE-001"))
+
+    response = client.post(
+        f"/{source.code}/duplicate",
+        json={
+            "name": "Duplicated Product",
+            "code": "PRD-DUP-001",
+            "type": source.type.name,
+            "unit": source.unit_of_measure.name,
+            "group": source.group.name if source.group else None,
+            "unit_weight": float(source.unit_weight),
+            "base_price": float(source.base_price),
+            "purchase_price": float(source.purchase_price),
+            "currency": source.currency,
+            "customs_declaration_group": source.customs_declaration_group,
+            "attributes": source.attributes,
+        },
+    )
+
+    assert response.status_code == 200
+    duplicated = StockProduct.objects.get(code="PRD-DUP-001")
+    assert duplicated.pk != source.pk
+    assert duplicated.name == "Duplicated Product"
+    assert duplicated.type.name == source.type.name
+    assert duplicated.unit_of_measure.name == source.unit_of_measure.name
 
 
 def test_add_product_barcode_switches_primary(db, client):

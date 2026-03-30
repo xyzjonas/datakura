@@ -18,8 +18,8 @@
         <ProductAvailability :product-code="product.code" />
       </div>
       <div class="flex items-center gap-2">
-        <q-btn color="primary" icon="edit" label="upravit" disable></q-btn>
-        <q-btn color="primary" icon="content_copy" label="duplikovat" disable></q-btn>
+        <q-btn color="primary" icon="edit" label="upravit" @click="openEditDialog" />
+        <q-btn color="primary" icon="content_copy" label="duplikovat" @click="openDuplicateDialog" />
       </div>
     </div>
     <div class="flex gap-2">
@@ -109,6 +109,24 @@
       :code="product.code"
       title="Historie změn produktu"
     />
+
+    <ProductUpsertDialog
+      v-model:show="showEditDialog"
+      v-model="editForm"
+      title="Upravit produkt"
+      submit-label="uložit"
+      :loading="savingEdit"
+      @submit="updateProduct"
+    />
+
+    <ProductUpsertDialog
+      v-model:show="showDuplicateDialog"
+      v-model="duplicateForm"
+      title="Duplikovat produkt"
+      submit-label="duplikovat"
+      :loading="savingDuplicate"
+      @submit="duplicateProduct"
+    />
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
@@ -117,16 +135,25 @@
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesProductGetProduct } from '@/client'
+import {
+  warehouseApiRoutesProductDuplicateProduct,
+  warehouseApiRoutesProductGetProduct,
+  warehouseApiRoutesProductUpdateProduct,
+  type ProductCreateOrUpdateSchema,
+  type ProductDuplicateSchema,
+  type ProductSchema,
+} from '@/client'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductPricingCard from '@/components/product/ProductPricingCard.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
+import ProductUpsertDialog from '@/components/product/ProductUpsertDialog.vue'
 import WarehouseCard from '@/components/product/WarehouseCard.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const { onResponse } = useApi()
 
@@ -134,13 +161,117 @@ const props = defineProps<{
   productCode: string
 }>()
 
+const router = useRouter()
+
 const result = await warehouseApiRoutesProductGetProduct({
   path: { product_code: props.productCode },
 })
 const data = onResponse(result)
 
-const product = ref(data?.data)
+const product = ref<ProductSchema | undefined>(data?.data)
 const auditDialog = ref(false)
+
+const showEditDialog = ref(false)
+const showDuplicateDialog = ref(false)
+const savingEdit = ref(false)
+const savingDuplicate = ref(false)
+
+const toFormSchema = (item: ProductSchema): ProductCreateOrUpdateSchema => ({
+  name: item.name,
+  code: item.code,
+  type: item.type,
+  unit: item.unit,
+  group: item.group ?? '',
+  unit_weight: item.unit_weight,
+  base_price: item.base_price,
+  purchase_price: item.purchase_price,
+  currency: item.currency,
+  customs_declaration_group: item.customs_declaration_group ?? '',
+  attributes: item.attributes ?? {},
+})
+
+const editForm = ref<ProductCreateOrUpdateSchema>({
+  name: '',
+  code: '',
+  type: '',
+  unit: 'KS',
+  group: '',
+  unit_weight: 0,
+  base_price: 0,
+  purchase_price: 0,
+  currency: 'CZK',
+  customs_declaration_group: '',
+  attributes: {},
+})
+
+const duplicateForm = ref<ProductCreateOrUpdateSchema>({ ...editForm.value })
+
+const openEditDialog = () => {
+  if (!product.value) {
+    return
+  }
+  editForm.value = toFormSchema(product.value)
+  showEditDialog.value = true
+}
+
+const openDuplicateDialog = () => {
+  if (!product.value) {
+    return
+  }
+  duplicateForm.value = {
+    ...toFormSchema(product.value),
+    code: `${product.value.code}-COPY`,
+    name: `${product.value.name} (kopie)`,
+  }
+  showDuplicateDialog.value = true
+}
+
+const updateProduct = async (body: ProductCreateOrUpdateSchema) => {
+  if (!product.value) {
+    return
+  }
+
+  savingEdit.value = true
+  try {
+    const oldCode = product.value.code
+    const result = await warehouseApiRoutesProductUpdateProduct({
+      path: { product_code: oldCode },
+      body,
+    })
+    const response = onResponse(result)
+    if (response?.data) {
+      product.value = response.data
+      showEditDialog.value = false
+      if (response.data.code !== oldCode) {
+        await router.replace({ name: 'productDetail', params: { productCode: response.data.code } })
+      }
+    }
+  } finally {
+    savingEdit.value = false
+  }
+}
+
+const duplicateProduct = async (body: ProductCreateOrUpdateSchema) => {
+  if (!product.value) {
+    return
+  }
+
+  savingDuplicate.value = true
+  try {
+    const payload: ProductDuplicateSchema = { ...body }
+    const result = await warehouseApiRoutesProductDuplicateProduct({
+      path: { product_code: product.value.code },
+      body: payload,
+    })
+    const response = onResponse(result)
+    if (response?.data) {
+      showDuplicateDialog.value = false
+      await router.push({ name: 'productDetail', params: { productCode: response.data.code } })
+    }
+  } finally {
+    savingDuplicate.value = false
+  }
+}
 </script>
 
 <style></style>
