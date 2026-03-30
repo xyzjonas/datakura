@@ -20,6 +20,7 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderItemSchema,
 )
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
+from apps.warehouse.core.schemas.group import ProductGroupSchema
 from apps.warehouse.core.schemas.product import (
     ProductSchema,
     DynamicProductPriceSchema,
@@ -46,7 +47,7 @@ from apps.warehouse.models.orders import (
     CreditNoteState,
 )
 from apps.warehouse.models.packaging import PackageType
-from apps.warehouse.models.product import StockProduct, StockProductPrice
+from apps.warehouse.models.product import StockProduct, StockProductPrice, ProductGroup
 from apps.warehouse.models.warehouse import (
     WarehouseItem,
     WarehouseMovement,
@@ -55,6 +56,14 @@ from apps.warehouse.models.warehouse import (
     InboundWarehouseOrderState,
     Batch,
 )
+
+
+def product_group_orm_to_schema(group: ProductGroup) -> ProductGroupSchema:
+    return ProductGroupSchema(
+        name=group.name,
+        created=group.created,
+        changed=group.changed,
+    )
 
 
 def barcode_orm_to_schema(barcode: Barcode | None = None) -> BarcodeSchema | None:

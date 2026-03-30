@@ -7,6 +7,7 @@ from apps.warehouse.core.schemas.base import BaseResponse, ErrorInformation
 from .routes.auth import routes as auth_routes
 from .routes.warehouse import routes as warehouse_routes
 from .routes.product import routes as product_routes
+from .routes.group import routes as group_routes
 from .routes.customer import routes as customer_routes
 from .routes.inbound_orders import routes as orders_routes
 from .routes.packaging import routes as packaging_routes
@@ -25,6 +26,7 @@ api = NinjaAPI(
 api.add_router(router=auth_routes, prefix="auth")
 api.add_router(router=warehouse_routes, prefix="warehouse")
 api.add_router(router=product_routes, prefix="products")
+api.add_router(router=group_routes, prefix="groups")
 api.add_router(router=customer_routes, prefix="customers")
 api.add_router(router=orders_routes, prefix="orders")
 api.add_router(router=packaging_routes, prefix="packaging")

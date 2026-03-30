@@ -9,6 +9,9 @@ from apps.warehouse.core.schemas.credit_notes import GetCreditNotesToSupplierRes
 from apps.warehouse.core.schemas.customer import (
     GetCustomersResponse,
 )
+from apps.warehouse.core.schemas.group import (
+    GetProductGroupsResponse,
+)
 from apps.warehouse.core.schemas.orders import GetInboundOrdersResponse
 from apps.warehouse.core.schemas.product import (
     GetProductsResponse,
@@ -20,6 +23,7 @@ from apps.warehouse.core.schemas.warehouse import (
 from apps.warehouse.core.transformation import (
     customer_orm_to_schema,
     product_orm_to_schema,
+    product_group_orm_to_schema,
     inbound_order_orm_to_schema,
     warehouse_inbound_order_orm_to_schema,
     credit_note_supplier_orm_to_schema,
@@ -27,7 +31,7 @@ from apps.warehouse.core.transformation import (
 )
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import InboundOrder, CreditNoteToSupplier
-from apps.warehouse.models.product import StockProduct
+from apps.warehouse.models.product import StockProduct, ProductGroup
 from apps.warehouse.models.warehouse import InboundWarehouseOrder, WarehouseLocation
 
 
@@ -205,6 +209,36 @@ class WarehouseLocationsPagination(PaginationBase):
 
         return {
             "data": [location_orm_to_schema(location) for location in items],
+            "count": count,
+            "next": pagination.page + 1
+            if offset + pagination.page_size < count
+            else None,
+            "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
+
+
+class ProductGroupPagination(PaginationBase):
+    items_attribute: str = "data"
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 20
+
+    class Output(GetProductGroupsResponse): ...
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[ProductGroup],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        offset = (pagination.page - 1) * pagination.page_size
+        items = queryset[offset : offset + pagination.page_size]
+        count = queryset.count()
+
+        return {
+            "data": [product_group_orm_to_schema(group) for group in items],
             "count": count,
             "next": pagination.page + 1
             if offset + pagination.page_size < count

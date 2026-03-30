@@ -4,6 +4,7 @@ import CreditNotesView from '@/views/CreditNotesView.vue'
 import CreditNoteToSupplierView from '@/views/CreditNoteToSupplierView.vue'
 import CustomersView from '@/views/CustomersView.vue'
 import CustomerView from '@/views/CustomerView.vue'
+import GroupsView from '@/views/GroupsView.vue'
 import HomeView from '@/views/HomeView.vue'
 import IncomingOrderView from '@/views/IncomingOrderView.vue'
 import LoginView from '@/views/LoginView.vue'
@@ -57,6 +58,11 @@ const router = createRouter({
       path: '/products',
       name: 'products',
       component: ProductsView,
+    },
+    {
+      path: '/groups',
+      name: 'productGroups',
+      component: GroupsView,
     },
     {
       path: '/customers',

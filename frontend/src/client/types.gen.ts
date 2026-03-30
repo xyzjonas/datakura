@@ -1419,6 +1419,73 @@ export type ProductWarehouseAvailability = {
 };
 
 /**
+ * PagedProductGroupSchema
+ */
+export type PagedProductGroupSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<ProductGroupSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * ProductGroupSchema
+ */
+export type ProductGroupSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * GetProductGroupResponse
+ */
+export type GetProductGroupResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: ProductGroupSchema;
+};
+
+/**
+ * ProductGroupCreateOrUpdateSchema
+ */
+export type ProductGroupCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * PagedCustomerSchema
  */
 export type PagedCustomerSchema = {
@@ -2571,6 +2638,72 @@ export type WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses = 
 };
 
 export type WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponse = WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses[keyof WarehouseApiRoutesProductGetProductWarehouseAvailabilityResponses];
+
+export type WarehouseApiRoutesGroupGetGroupsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/groups';
+};
+
+export type WarehouseApiRoutesGroupGetGroupsResponses = {
+    /**
+     * OK
+     */
+    200: PagedProductGroupSchema;
+};
+
+export type WarehouseApiRoutesGroupGetGroupsResponse = WarehouseApiRoutesGroupGetGroupsResponses[keyof WarehouseApiRoutesGroupGetGroupsResponses];
+
+export type WarehouseApiRoutesGroupCreateGroupData = {
+    body: ProductGroupCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/groups';
+};
+
+export type WarehouseApiRoutesGroupCreateGroupResponses = {
+    /**
+     * OK
+     */
+    200: GetProductGroupResponse;
+};
+
+export type WarehouseApiRoutesGroupCreateGroupResponse = WarehouseApiRoutesGroupCreateGroupResponses[keyof WarehouseApiRoutesGroupCreateGroupResponses];
+
+export type WarehouseApiRoutesGroupUpdateGroupData = {
+    body: ProductGroupCreateOrUpdateSchema;
+    path: {
+        /**
+         * Group Name
+         */
+        group_name: string;
+    };
+    query?: never;
+    url: '/api/v1/groups/{group_name}';
+};
+
+export type WarehouseApiRoutesGroupUpdateGroupResponses = {
+    /**
+     * OK
+     */
+    200: GetProductGroupResponse;
+};
+
+export type WarehouseApiRoutesGroupUpdateGroupResponse = WarehouseApiRoutesGroupUpdateGroupResponses[keyof WarehouseApiRoutesGroupUpdateGroupResponses];
 
 export type WarehouseApiRoutesCustomerGetCustomersData = {
     body?: never;
