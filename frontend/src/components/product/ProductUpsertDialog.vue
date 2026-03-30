@@ -12,7 +12,7 @@
           <q-input v-model.trim="form.code" outlined label="Kód" :rules="[rules.notEmpty]" />
 
           <q-input v-model.trim="form.type" outlined label="Typ zboží" :rules="[rules.notEmpty]" />
-          <q-input v-model.trim="form.group" outlined label="Skupina" hint="Volitelné" />
+          <ProductGroupSelect v-model="form.group" />
 
           <q-input v-model.trim="form.unit" outlined label="Jednotka" :rules="[rules.notEmpty]" />
           <q-input
@@ -49,15 +49,48 @@
             hint="Volitelné"
           />
 
-          <q-input
-            v-model="attributesJson"
-            class="md:col-span-2"
-            type="textarea"
-            autogrow
-            outlined
-            label="Atributy (JSON)"
-            hint='Volitelné, například {"barva": "modrá"}'
-          />
+          <div class="mt-2">
+            <div class="mb-1 flex items-center justify-between">
+              <span class="text-sm text-gray-7">Atributy</span>
+              <q-btn flat dense round size="sm" icon="add" @click="addAttributeRow">
+                <q-tooltip>Přidat atribut</q-tooltip>
+              </q-btn>
+            </div>
+
+            <q-list bordered separator class="rounded">
+              <q-item v-for="(row, index) in attributeRows" :key="index" class="px-2">
+                <div class="w-full flex items-center justify-between gap-2">
+                  <q-input
+                    v-model.trim="row.key"
+                    dense
+                    outlined
+                    class="flex-1"
+                    label="Atribut"
+                  />
+                  <q-input
+                    v-model.trim="row.value"
+                    dense
+                    outlined
+                    class="flex-1"
+                    label="Hodnota"
+                  />
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    size="sm"
+                    color="negative"
+                    icon="delete"
+                    @click="removeAttributeRow(index)"
+                  />
+                </div>
+              </q-item>
+
+              <q-item v-if="!attributeRows.length">
+                <q-item-section class="text-gray-5">Žádné atributy</q-item-section>
+              </q-item>
+            </q-list>
+          </div>
 
           <div class="md:col-span-2 mt-2 flex justify-end">
             <q-btn
@@ -77,9 +110,9 @@
 
 <script setup lang="ts">
 import type { ProductCreateOrUpdateSchema } from '@/client'
+import ProductGroupSelect from '@/components/selects/ProductGroupSelect.vue'
 import { rules } from '@/utils/rules'
-import { useQuasar } from 'quasar'
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 const showDialog = defineModel<boolean>('show', { default: false })
 const form = defineModel<ProductCreateOrUpdateSchema>({ required: true })
@@ -101,27 +134,27 @@ const emit = defineEmits<{
   (e: 'submit', body: ProductCreateOrUpdateSchema): void
 }>()
 
-const $q = useQuasar()
+type AttributeRow = {
+  key: string
+  value: string
+}
 
-const attributesJson = ref('{}')
+const attributeRows = ref<AttributeRow[]>([])
 
-const normalizedAttributes = computed(() => {
-  const value = attributesJson.value.trim()
-  if (!value) {
-    return {}
-  }
+const addAttributeRow = () => {
+  attributeRows.value.push({ key: '', value: '' })
+}
 
-  const parsed = JSON.parse(value)
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new Error('Atributy musí být JSON objekt')
-  }
-
-  return Object.fromEntries(Object.entries(parsed).map(([key, val]) => [key, String(val)]))
-})
+const removeAttributeRow = (index: number) => {
+  attributeRows.value.splice(index, 1)
+}
 
 const syncAttributesFromForm = () => {
   const attrs = form.value.attributes ?? {}
-  attributesJson.value = Object.keys(attrs).length > 0 ? JSON.stringify(attrs, null, 2) : '{}'
+  attributeRows.value = Object.entries(attrs).map(([key, value]) => ({
+    key,
+    value: String(value),
+  }))
 }
 
 watch(showDialog, (visible) => {
@@ -131,15 +164,11 @@ watch(showDialog, (visible) => {
 })
 
 const onSubmit = () => {
-  try {
-    form.value.attributes = normalizedAttributes.value
-  } catch {
-    $q.notify({
-      type: 'warning',
-      message: 'Pole atributy obsahuje neplatný JSON objekt.',
-    })
-    return
-  }
+  form.value.attributes = Object.fromEntries(
+    attributeRows.value
+      .filter((row) => row.key.trim())
+      .map((row) => [row.key.trim(), row.value.trim()]),
+  )
 
   emit('submit', { ...form.value })
 }
