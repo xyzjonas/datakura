@@ -7,8 +7,13 @@ from django.http import HttpRequest
 from ninja import Router
 from ninja.pagination import paginate
 
-from apps.warehouse.api.pagination import StockProductPagination
+from apps.warehouse.api.pagination import ProductTypePagination, StockProductPagination
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
+from apps.warehouse.core.schemas.type import (
+    GetProductTypeResponse,
+    ProductTypeCreateOrUpdateSchema,
+    ProductTypeSchema,
+)
 from apps.warehouse.core.schemas.product import (
     GetProductResponse,
     ProductSchema,
@@ -29,13 +34,43 @@ from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
     get_product_by_code,
+    product_type_orm_to_schema,
     warehouse_item_orm_to_schema,
     location_orm_to_schema,
 )
-from apps.warehouse.models.product import StockProduct
+from apps.warehouse.models.product import ProductType, StockProduct
 from apps.warehouse.models.warehouse import WarehouseItem, InboundWarehouseOrderState
 
 routes = Router(tags=["product"])
+
+
+@routes.get("/types", response={200: list[ProductTypeSchema]})
+@paginate(ProductTypePagination)
+def get_types(request: HttpRequest, search_term: str | None = None):
+    qs = cast(QuerySet[ProductType], ProductType.objects.all())
+    if search_term:
+        search_term = search_term.lower()
+        qs = qs.filter(name__icontains=search_term)
+
+    return qs.all()
+
+
+@routes.post("/types", response={200: GetProductTypeResponse})
+def create_type(request: HttpRequest, body: ProductTypeCreateOrUpdateSchema):
+    product_type, _ = ProductType.objects.get_or_create(name=body.name)
+    return GetProductTypeResponse(data=product_type_orm_to_schema(product_type))
+
+
+@routes.put("/types/{type_name}", response={200: GetProductTypeResponse})
+def update_type(
+    request: HttpRequest,
+    type_name: str,
+    body: ProductTypeCreateOrUpdateSchema,
+):
+    product_type = ProductType.objects.get(name=type_name)
+    product_type.name = body.name
+    product_type.save()
+    return GetProductTypeResponse(data=product_type_orm_to_schema(product_type))
 
 
 @routes.get("", response={200: list[ProductSchema]})

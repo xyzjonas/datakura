@@ -7,14 +7,26 @@
           <q-btn flat round icon="close" v-close-popup class="ml-auto" />
         </div>
 
-        <q-form class="flex flex-col gap-1" @submit="onSubmit">
-          <q-input v-model.trim="form.name" outlined label="Název" :rules="[rules.notEmpty]" />
-          <q-input v-model.trim="form.code" outlined label="Kód" :rules="[rules.notEmpty]" />
+        <q-form class="flex flex-col gap-2" @submit="onSubmit">
+          <q-input
+            v-model.trim="form.name"
+            outlined
+            label="Název"
+            hint="Interní název produktu"
+            :rules="[rules.notEmpty]"
+          />
+          <q-input
+            v-model.trim="form.code"
+            outlined
+            label="Kód"
+            hint="Jedinečný identifikátor produktu"
+            :rules="[rules.notEmpty]"
+          />
 
-          <q-input v-model.trim="form.type" outlined label="Typ zboží" :rules="[rules.notEmpty]" />
+          <ProductTypeSelect v-model="form.type" />
           <ProductGroupSelect v-model="form.group" />
 
-          <q-input v-model.trim="form.unit" outlined label="Jednotka" :rules="[rules.notEmpty]" />
+          <UnitOfMeasureSelect v-model="form.unit" />
           <q-input
             v-model.number="form.unit_weight"
             outlined
@@ -22,6 +34,8 @@
             min="0"
             step="0.01"
             label="Váha jednotky (g)"
+            hint="Hmotnost jedné jednotky v gramech"
+            :rules="[rules.notEmpty, rules.atLeastZero]"
           />
 
           <q-input
@@ -31,6 +45,7 @@
             min="0"
             step="0.01"
             label="Nákupní cena"
+            hint="Cena, za kterou produkt nakupujete (automaticky přepočítáváno )"
           />
           <q-input
             v-model.number="form.base_price"
@@ -39,20 +54,28 @@
             min="0"
             step="0.01"
             label="Prodejní cena"
+            hint="Základní cena pro prodej"
           />
 
-          <q-input v-model.trim="form.currency" outlined label="Měna" :rules="[rules.notEmpty]" />
+          <q-input
+            v-model.trim="form.currency"
+            outlined
+            label="Měna"
+            hint="Měna použitá pro nákupní a prodejní cenu"
+            :rules="[rules.notEmpty]"
+            readonly
+          />
           <q-input
             v-model.trim="form.customs_declaration_group"
             outlined
             label="Celní nomenklatura"
-            hint="Volitelné"
+            hint="Kód celní nomenklatury pro tento produkt (např. pro exportní dokumentaci)"
           />
 
-          <div class="mt-2">
+          <div class="mt-ě">
             <div class="mb-1 flex items-center justify-between">
               <span class="text-sm text-gray-7">Atributy</span>
-              <q-btn flat dense round size="sm" icon="add" @click="addAttributeRow">
+              <q-btn flat dense round icon="add" @click="addAttributeRow">
                 <q-tooltip>Přidat atribut</q-tooltip>
               </q-btn>
             </div>
@@ -66,7 +89,6 @@
                     flat
                     dense
                     round
-                    size="sm"
                     color="negative"
                     icon="delete"
                     @click="removeAttributeRow(index)"
@@ -99,6 +121,8 @@
 <script setup lang="ts">
 import type { ProductCreateOrUpdateSchema } from '@/client'
 import ProductGroupSelect from '@/components/selects/ProductGroupSelect.vue'
+import ProductTypeSelect from '@/components/selects/ProductTypeSelect.vue'
+import UnitOfMeasureSelect from '@/components/selects/UnitOfMeasureSelect.vue'
 import { rules } from '@/utils/rules'
 import { ref, watch } from 'vue'
 

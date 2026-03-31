@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import MissingSettingsTab from '@/components/settings/MissingSettingsTab.vue'
 import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue'
+import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
 import { useLocalStorage } from '@vueuse/core'
 import { shallowRef, watch, type Component } from 'vue'
 
@@ -49,6 +50,8 @@ watch(
   (value: string) => {
     if (value === 'packaging') {
       selectedTabComponent.value = PackagingSettingsTab
+    } else if (value === 'products') {
+      selectedTabComponent.value = ProductSettingsTab
     } else {
       selectedTabComponent.value = MissingSettingsTab
     }
@@ -66,6 +69,11 @@ const items = [
     key: 'packaging',
     label: 'balení',
     icon: 'sym_o_package_2',
+  },
+  {
+    key: 'products',
+    label: 'produkty',
+    icon: 'sym_o_shopping_cart',
   },
   {
     key: 'users',

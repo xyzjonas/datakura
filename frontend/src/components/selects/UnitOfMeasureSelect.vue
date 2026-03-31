@@ -12,21 +12,22 @@
     :options="options"
     option-label="label"
     option-value="value"
-    label="Skupina"
-    hint="Skupina, do které je produkt zařazen pro lepší organizaci a filtrování produktů"
+    label="Měrná jednotka"
+    hint="Jednotka, ve které se produkt skladuje (např. ks, kg, m)"
     input-debounce="250"
+    hide-selected
     @filter="onFilter"
   >
     <template #no-option>
       <q-item>
-        <q-item-section class="text-grey">Žádné skupiny</q-item-section>
+        <q-item-section class="text-grey">Žádné jednotky</q-item-section>
       </q-item>
     </template>
   </q-select>
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesGroupGetGroups, type ProductGroupSchema } from '@/client'
+import { warehouseApiRoutesPackagingGetUnits, type UnitOfMeasureSchema } from '@/client'
 import { ref } from 'vue'
 
 const modelValue = defineModel<string | null | undefined>()
@@ -38,15 +39,15 @@ type SelectOption = {
 
 const options = ref<SelectOption[]>([])
 
-const toOptions = (groups: ProductGroupSchema[]): SelectOption[] => {
-  return groups.map((group) => ({
-    label: group.name,
-    value: group.name,
+const toOptions = (units: UnitOfMeasureSchema[]): SelectOption[] => {
+  return units.map((unit) => ({
+    label: unit.name,
+    value: unit.name,
   }))
 }
 
-const fetchGroups = async (searchTerm?: string) => {
-  const result = await warehouseApiRoutesGroupGetGroups({
+const fetchUnits = async (searchTerm?: string) => {
+  const result = await warehouseApiRoutesPackagingGetUnits({
     query: {
       page: 1,
       page_size: 20,
@@ -69,14 +70,14 @@ const onFilter = async (
   const term = val.trim()
 
   if (!term) {
-    await fetchGroups()
+    await fetchUnits()
     update(() => {
       options.value = [...options.value]
     })
     return
   }
 
-  await fetchGroups(term)
+  await fetchUnits(term)
   if (!options.value.length) {
     abort()
     return
@@ -87,7 +88,7 @@ const onFilter = async (
   })
 }
 
-await fetchGroups()
+await fetchUnits()
 </script>
 
 <style scoped></style>

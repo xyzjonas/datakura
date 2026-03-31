@@ -1146,6 +1146,73 @@ export type PutawayItemRequest = {
 };
 
 /**
+ * PagedProductTypeSchema
+ */
+export type PagedProductTypeSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<ProductTypeSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * ProductTypeSchema
+ */
+export type ProductTypeSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * GetProductTypeResponse
+ */
+export type GetProductTypeResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: ProductTypeSchema;
+};
+
+/**
+ * ProductTypeCreateOrUpdateSchema
+ */
+export type ProductTypeCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * PagedProductSchema
  */
 export type PagedProductSchema = {
@@ -2458,6 +2525,72 @@ export type WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses
 };
 
 export type WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses];
+
+export type WarehouseApiRoutesProductGetTypesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/products/types';
+};
+
+export type WarehouseApiRoutesProductGetTypesResponses = {
+    /**
+     * OK
+     */
+    200: PagedProductTypeSchema;
+};
+
+export type WarehouseApiRoutesProductGetTypesResponse = WarehouseApiRoutesProductGetTypesResponses[keyof WarehouseApiRoutesProductGetTypesResponses];
+
+export type WarehouseApiRoutesProductCreateTypeData = {
+    body: ProductTypeCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/products/types';
+};
+
+export type WarehouseApiRoutesProductCreateTypeResponses = {
+    /**
+     * OK
+     */
+    200: GetProductTypeResponse;
+};
+
+export type WarehouseApiRoutesProductCreateTypeResponse = WarehouseApiRoutesProductCreateTypeResponses[keyof WarehouseApiRoutesProductCreateTypeResponses];
+
+export type WarehouseApiRoutesProductUpdateTypeData = {
+    body: ProductTypeCreateOrUpdateSchema;
+    path: {
+        /**
+         * Type Name
+         */
+        type_name: string;
+    };
+    query?: never;
+    url: '/api/v1/products/types/{type_name}';
+};
+
+export type WarehouseApiRoutesProductUpdateTypeResponses = {
+    /**
+     * OK
+     */
+    200: GetProductTypeResponse;
+};
+
+export type WarehouseApiRoutesProductUpdateTypeResponse = WarehouseApiRoutesProductUpdateTypeResponses[keyof WarehouseApiRoutesProductUpdateTypeResponses];
 
 export type WarehouseApiRoutesProductGetProductsData = {
     body?: never;

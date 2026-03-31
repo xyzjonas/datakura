@@ -5,28 +5,29 @@
     use-input
     fill-input
     clearable
-    clear-icon="sym_o_close_small"
-    hide-dropdown-icon
     emit-value
     map-options
+    clear-icon="sym_o_close_small"
+    hide-dropdown-icon
+    hide-selected
     :options="options"
     option-label="label"
     option-value="value"
-    label="Skupina"
-    hint="Skupina, do které je produkt zařazen pro lepší organizaci a filtrování produktů"
+    label="Typ zboží"
+    hint="Typ zboží, který určuje kategorii produktu pro lepší organizaci a filtrování produktů"
     input-debounce="250"
     @filter="onFilter"
   >
     <template #no-option>
       <q-item>
-        <q-item-section class="text-grey">Žádné skupiny</q-item-section>
+        <q-item-section class="text-grey">Žádné typy zboží</q-item-section>
       </q-item>
     </template>
   </q-select>
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesGroupGetGroups, type ProductGroupSchema } from '@/client'
+import { warehouseApiRoutesProductGetTypes, type ProductTypeSchema } from '@/client'
 import { ref } from 'vue'
 
 const modelValue = defineModel<string | null | undefined>()
@@ -38,15 +39,15 @@ type SelectOption = {
 
 const options = ref<SelectOption[]>([])
 
-const toOptions = (groups: ProductGroupSchema[]): SelectOption[] => {
-  return groups.map((group) => ({
-    label: group.name,
-    value: group.name,
+const toOptions = (types: ProductTypeSchema[]): SelectOption[] => {
+  return types.map((type) => ({
+    label: type.name,
+    value: type.name,
   }))
 }
 
-const fetchGroups = async (searchTerm?: string) => {
-  const result = await warehouseApiRoutesGroupGetGroups({
+const fetchTypes = async (searchTerm?: string) => {
+  const result = await warehouseApiRoutesProductGetTypes({
     query: {
       page: 1,
       page_size: 20,
@@ -69,14 +70,14 @@ const onFilter = async (
   const term = val.trim()
 
   if (!term) {
-    await fetchGroups()
+    await fetchTypes()
     update(() => {
       options.value = [...options.value]
     })
     return
   }
 
-  await fetchGroups(term)
+  await fetchTypes(term)
   if (!options.value.length) {
     abort()
     return
@@ -87,7 +88,7 @@ const onFilter = async (
   })
 }
 
-await fetchGroups()
+await fetchTypes()
 </script>
 
 <style scoped></style>

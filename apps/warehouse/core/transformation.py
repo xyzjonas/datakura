@@ -21,6 +21,7 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.group import ProductGroupSchema
+from apps.warehouse.core.schemas.type import ProductTypeSchema
 from apps.warehouse.core.schemas.product import (
     ProductSchema,
     DynamicProductPriceSchema,
@@ -47,7 +48,12 @@ from apps.warehouse.models.orders import (
     CreditNoteState,
 )
 from apps.warehouse.models.packaging import PackageType
-from apps.warehouse.models.product import StockProduct, StockProductPrice, ProductGroup
+from apps.warehouse.models.product import (
+    StockProduct,
+    StockProductPrice,
+    ProductGroup,
+    ProductType,
+)
 from apps.warehouse.models.warehouse import (
     WarehouseItem,
     WarehouseMovement,
@@ -63,6 +69,14 @@ def product_group_orm_to_schema(group: ProductGroup) -> ProductGroupSchema:
         name=group.name,
         created=group.created,
         changed=group.changed,
+    )
+
+
+def product_type_orm_to_schema(product_type: ProductType) -> ProductTypeSchema:
+    return ProductTypeSchema(
+        name=product_type.name,
+        created=product_type.created,
+        changed=product_type.changed,
     )
 
 
