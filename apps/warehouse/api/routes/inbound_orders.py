@@ -1,6 +1,6 @@
 from typing import cast
 
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
 from ninja import Router
 from ninja.pagination import paginate
@@ -20,31 +20,28 @@ from apps.warehouse.core.schemas.orders import (
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
 from apps.warehouse.core.transformation import inbound_order_orm_to_schema
-from apps.warehouse.models.orders import InboundOrder, InboundOrderState
+from apps.warehouse.models.orders import InboundOrder
 
 routes = Router(tags=["inbound_order"])
 
 
 @routes.get("", response={200: list[InboundOrderSchema]})
 @paginate(IncomingOrdersPagination)
-def get_inbound_orders(request: HttpRequest, search_term: str | None = None):
+def get_inbound_orders(
+    request: HttpRequest,
+    search_term: str | None = None,
+    stock_product_code: str | None = None,
+):
     """
     List incoming orders, optionally filtered by code or supplier name.
     """
     qs = cast(
         QuerySet[InboundOrder],
-        InboundOrder.objects.select_related("supplier").exclude(
-            state__in=[InboundOrderState.CANCELLED, InboundOrderState.COMPLETED]
+        inbound_orders_service.get_inbound_orders(
+            search_term=search_term,
+            stock_product_code=stock_product_code,
         ),
     )
-    if search_term:
-        search_term = search_term.lower()
-        qs = qs.filter(
-            Q(code__iexact=search_term)
-            | Q(code__icontains=search_term)
-            | Q(supplier__name__icontains=search_term)
-        )
-
     return qs.all()
 
 

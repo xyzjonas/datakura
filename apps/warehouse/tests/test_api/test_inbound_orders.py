@@ -8,6 +8,8 @@ from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.tests.factories.order import InboundOrderFactory
+from apps.warehouse.tests.factories.order import InboundOrderItemFactory
+from apps.warehouse.tests.factories.product import StockProductFactory
 
 
 def test_get_inbound_order_audits(db) -> None:
@@ -37,3 +39,49 @@ def test_get_inbound_order_audits(db) -> None:
     assert data[0]["source"] == "audit"
     assert data[0]["action"] == AuditAction.UPDATE
     assert data[1]["action"] == AuditAction.CREATE
+
+
+def test_get_inbound_orders_filter_by_stock_product_code(db) -> None:
+    client = TestClient(routes)
+    shared_product = StockProductFactory()
+    other_product = StockProductFactory()
+
+    matching_order = InboundOrderFactory.it(code="ORD-MATCH-0001")
+    non_matching_order = InboundOrderFactory.it(code="ORD-OTHER-0001")
+
+    InboundOrderItemFactory(order=matching_order, stock_product=shared_product)
+    InboundOrderItemFactory(order=non_matching_order, stock_product=other_product)
+
+    res = client.get(f"/?stock_product_code={shared_product.code}")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert len(data) == 1
+    assert data[0]["code"] == matching_order.code
+
+
+def test_get_inbound_orders_filter_by_stock_product_code_and_search_term(db) -> None:
+    client = TestClient(routes)
+    shared_product = StockProductFactory()
+    secondary_product = StockProductFactory()
+
+    matching_order = InboundOrderFactory.it(code="ORD-MATCH-0002")
+    same_product_different_search = InboundOrderFactory.it(code="ORD-DIFF-0002")
+    same_search_different_product = InboundOrderFactory.it(code="ORD-MATCH-0999")
+
+    InboundOrderItemFactory(order=matching_order, stock_product=shared_product)
+    InboundOrderItemFactory(
+        order=same_product_different_search, stock_product=shared_product
+    )
+    InboundOrderItemFactory(
+        order=same_search_different_product, stock_product=secondary_product
+    )
+
+    res = client.get(
+        f"/?stock_product_code={shared_product.code}&search_term=match-0002"
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert len(data) == 1
+    assert data[0]["code"] == matching_order.code

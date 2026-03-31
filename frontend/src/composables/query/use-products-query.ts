@@ -100,11 +100,31 @@ export function useQueryProducts() {
     },
   })
 
+  const stockProductCode = computed<string | null>({
+    get() {
+      const raw = route.query.stock_product_code
+      if (raw) {
+        return `${raw}`
+      }
+      return null
+    },
+    set(val: string | null) {
+      const query = { ...route.query }
+      if (val) {
+        query.stock_product_code = val
+      } else {
+        delete query.stock_product_code
+      }
+      router.push({ query })
+    },
+  })
+
   return {
     search,
     page,
     pageSize,
     productType,
     productGroup,
+    stockProductCode,
   }
 }

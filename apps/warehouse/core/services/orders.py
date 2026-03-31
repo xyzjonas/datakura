@@ -2,6 +2,7 @@ from calendar import monthrange
 from datetime import datetime
 
 from django.db import transaction
+from django.db.models import Q, QuerySet
 from django.template.loader import get_template
 from django.utils import timezone
 from loguru import logger
@@ -46,6 +47,28 @@ def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
 
 
 class OrdersService:
+    @staticmethod
+    def get_inbound_orders(
+        search_term: str | None = None,
+        stock_product_code: str | None = None,
+    ) -> QuerySet[InboundOrder]:
+        qs = InboundOrder.objects.select_related("supplier").exclude(
+            state__in=[InboundOrderState.CANCELLED, InboundOrderState.COMPLETED]
+        )
+
+        if search_term:
+            search_term = search_term.lower()
+            qs = qs.filter(
+                Q(code__iexact=search_term)
+                | Q(code__icontains=search_term)
+                | Q(supplier__name__icontains=search_term)
+            )
+
+        if stock_product_code:
+            qs = qs.filter(items__stock_product__code=stock_product_code).distinct()
+
+        return qs
+
     @staticmethod
     def generate_next_incoming_order_code() -> str:
         now = timezone.now()

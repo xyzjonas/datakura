@@ -93,7 +93,7 @@ import { ref, type Ref } from 'vue'
 import OrdersBaseTable, { type Pagination } from './OrdersBaseTable.vue'
 
 const { onResponse } = useApi()
-const { page, pageSize, search } = useQueryProducts()
+const { page, pageSize, search, stockProductCode } = useQueryProducts()
 
 // const pagination = ref<NonNullable<QTableProps['pagination']>>({
 //   rowsPerPage: pageSize.value,
@@ -111,6 +111,7 @@ const fetchOrders = async (pagination: Ref<Pagination>, loading: Ref<boolean>) =
         page: page.value,
         page_size: pageSize.value,
         search_term: search.value,
+        stock_product_code: stockProductCode.value ?? undefined,
       },
     })
     const data = onResponse(res)

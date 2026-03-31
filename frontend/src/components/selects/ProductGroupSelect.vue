@@ -32,7 +32,7 @@ const modelValue = defineModel<string | null | undefined>()
 
 withDefaults(
   defineProps<{
-    hint?: string | undefined
+    hint?: string | undefined | null
     label?: string
   }>(),
   {

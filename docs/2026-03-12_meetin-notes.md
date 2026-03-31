@@ -15,8 +15,8 @@
 
 ### Produkt
 
-- duplikovat produkt
-- minule objednavky (table/search) v karte produktu
+✅ - duplikovat produkt
+✅ - minule objednavky (table/search) v karte produktu
 
 ### Sklad
 

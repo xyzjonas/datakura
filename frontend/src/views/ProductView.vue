@@ -19,10 +19,15 @@
       </div>
       <div class="flex items-center gap-2">
         <q-btn color="primary" icon="edit" label="upravit" @click="openEditDialog" />
-        <q-btn color="primary" icon="content_copy" label="duplikovat" @click="openDuplicateDialog" />
+        <q-btn
+          color="primary"
+          icon="content_copy"
+          label="duplikovat"
+          @click="openDuplicateDialog"
+        />
       </div>
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-2 flex-wrap">
       <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
         <span class="text-gray-5 flex items-center gap-1 mb-1">
           <span>
@@ -97,8 +102,9 @@
           </q-item>
         </q-list>
       </ForegroundPanel>
-      <ProductPricingCard v-model="product" class="flex-[2]" />
+      <ProductPricingCard v-model="product" class="min-w-[340px] flex-1" />
     </div>
+    <ProductInboundOrdersWidget :product-code="product.code" class="min-w-[340px] flex-1" />
     <div class="flex gap-2 flex-1">
       <WarehouseCard :product-code="product.code" :product-unit="product.unit" />
     </div>
@@ -146,6 +152,7 @@ import {
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
+import ProductInboundOrdersWidget from '@/components/product/ProductInboundOrdersWidget.vue'
 import ProductPricingCard from '@/components/product/ProductPricingCard.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import ProductUpsertDialog from '@/components/product/ProductUpsertDialog.vue'

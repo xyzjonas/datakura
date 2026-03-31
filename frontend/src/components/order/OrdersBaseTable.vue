@@ -13,12 +13,21 @@
       class="bg-transparent"
     >
       <template #top-left>
-        <SearchInput
-          v-model="search"
-          placeholder="Vyhledat objednávku"
-          clearable
-          :debounce="300"
-        ></SearchInput>
+        <div class="flex gap-2 items-start flex-wrap">
+          <SearchInput
+            v-model="search"
+            placeholder="Vyhledat objednávku"
+            clearable
+            :debounce="300"
+            class="min-w-[260px]"
+          ></SearchInput>
+          <StockProductSearchSelect
+            v-model="stockProductCode"
+            label="Produkt v objednávce"
+            hint=""
+            class="min-w-[300px]"
+          />
+        </div>
       </template>
       <!-- <template #top-right>
         <q-btn color="gray" unelevated label="vytvořit" disable @click="newOrderDialog = true" />
@@ -77,6 +86,7 @@ import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vu
 import NewOrderDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
+import StockProductSearchSelect from '@/components/selects/StockProductSearchSelect.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'
 import router from '@/router'
@@ -86,7 +96,7 @@ import { onMounted, ref, watch, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const { onResponse } = useApi()
-const { page, pageSize, search } = useQueryProducts()
+const { page, pageSize, search, stockProductCode } = useQueryProducts()
 
 export type Pagination = NonNullable<QTableProps['pagination']>
 
@@ -156,6 +166,7 @@ watch(currentRoute, () => {
 })
 
 watch(search, fetch)
+watch(stockProductCode, fetch)
 
 const columns: QTableColumn[] = [
   {
