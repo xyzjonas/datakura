@@ -75,7 +75,12 @@ def update_type(
 
 @routes.get("", response={200: list[ProductSchema]})
 @paginate(StockProductPagination)
-def get_products(request: HttpRequest, search_term: str | None = None):
+def get_products(
+    request: HttpRequest,
+    search_term: str | None = None,
+    product_type: str | None = None,
+    product_group: str | None = None,
+):
     qs = cast(
         QuerySet[StockProduct],
         StockProduct.objects.prefetch_related(
@@ -90,6 +95,12 @@ def get_products(request: HttpRequest, search_term: str | None = None):
             | Q(code__icontains=search_term)
             | Q(name__icontains=search_term)
         )
+
+    if product_type:
+        qs = qs.filter(type__name=product_type)
+
+    if product_group:
+        qs = qs.filter(group__name=product_group)
 
     return qs.all()
 

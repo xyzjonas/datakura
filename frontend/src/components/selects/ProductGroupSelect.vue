@@ -12,8 +12,7 @@
     :options="options"
     option-label="label"
     option-value="value"
-    label="Skupina"
-    hint="Skupina, do které je produkt zařazen pro lepší organizaci a filtrování produktů"
+    :label="label"
     input-debounce="250"
     @filter="onFilter"
   >
@@ -30,6 +29,17 @@ import { warehouseApiRoutesGroupGetGroups, type ProductGroupSchema } from '@/cli
 import { ref } from 'vue'
 
 const modelValue = defineModel<string | null | undefined>()
+
+withDefaults(
+  defineProps<{
+    hint?: string | undefined
+    label?: string
+  }>(),
+  {
+    hint: 'Skupina, do které je produkt zařazen pro lepší organizaci a filtrování produktů',
+    label: 'Skupina',
+  },
+)
 
 type SelectOption = {
   label: string

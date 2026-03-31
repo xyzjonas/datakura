@@ -20,12 +20,16 @@
       class="bg-transparent"
     >
       <template #top-left>
-        <SearchInput
-          v-model="search"
-          placeholder="Vyhledat položku"
-          clearable
-          :debounce="300"
-        ></SearchInput>
+        <div class="flex gap-2">
+          <SearchInput
+            v-model="search"
+            placeholder="Vyhledat položku"
+            clearable
+            :debounce="300"
+          ></SearchInput>
+          <ProductGroupSelect dense v-model="productGroup" label="Filtrovat podle skupiny" />
+          <ProductTypeSelect dense v-model="productType" label="Filtrovat podle typy zboží" />
+        </div>
       </template>
       <template #body-cell-name="props">
         <q-td>
@@ -71,6 +75,8 @@ import {
 } from '@/client'
 import ProductUpsertDialog from '@/components/product/ProductUpsertDialog.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
+import ProductTypeSelect from '@/components/selects/ProductTypeSelect.vue'
+import ProductGroupSelect from '@/components/selects/ProductGroupSelect.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'
@@ -78,7 +84,7 @@ import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-const { page, pageSize, search } = useQueryProducts()
+const { page, pageSize, search, productType, productGroup } = useQueryProducts()
 const { onResponse } = useApi()
 
 const pagination = ref<NonNullable<QTableProps['pagination']>>({
@@ -135,6 +141,8 @@ const fetchProducts = async () => {
         page: page.value,
         page_size: pageSize.value,
         search_term: search.value,
+        product_type: productType.value ?? undefined,
+        product_group: productGroup.value ?? undefined,
       },
     })
     if (res.data?.data) {
@@ -173,6 +181,8 @@ watch(currentRoute, () => {
 })
 
 watch(search, fetchProducts)
+watch(productType, fetchProducts)
+watch(productGroup, fetchProducts)
 
 const columns: QTableColumn[] = [
   {

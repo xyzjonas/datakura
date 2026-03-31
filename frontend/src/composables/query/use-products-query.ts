@@ -62,9 +62,49 @@ export function useQueryProducts() {
     },
   })
 
+  const productType = computed<string | null>({
+    get() {
+      const raw = route.query.product_type
+      if (raw) {
+        return `${raw}`
+      }
+      return null
+    },
+    set(val: string | null) {
+      const query = { ...route.query }
+      if (val) {
+        query.product_type = val
+      } else {
+        delete query.product_type
+      }
+      router.push({ query })
+    },
+  })
+
+  const productGroup = computed<string | null>({
+    get() {
+      const raw = route.query.product_group
+      if (raw) {
+        return `${raw}`
+      }
+      return null
+    },
+    set(val: string | null) {
+      const query = { ...route.query }
+      if (val) {
+        query.product_group = val
+      } else {
+        delete query.product_group
+      }
+      router.push({ query })
+    },
+  })
+
   return {
     search,
     page,
     pageSize,
+    productType,
+    productGroup,
   }
 }

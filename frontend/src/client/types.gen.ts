@@ -2601,6 +2601,14 @@ export type WarehouseApiRoutesProductGetProductsData = {
          */
         search_term?: string | null;
         /**
+         * Product Type
+         */
+        product_type?: string | null;
+        /**
+         * Product Group
+         */
+        product_group?: string | null;
+        /**
          * Page
          */
         page?: number;

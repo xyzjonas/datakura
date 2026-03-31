@@ -13,8 +13,7 @@
     :options="options"
     option-label="label"
     option-value="value"
-    label="Typ zboží"
-    hint="Typ zboží, který určuje kategorii produktu pro lepší organizaci a filtrování produktů"
+    :label="label"
     input-debounce="250"
     @filter="onFilter"
   >
@@ -31,6 +30,17 @@ import { warehouseApiRoutesProductGetTypes, type ProductTypeSchema } from '@/cli
 import { ref } from 'vue'
 
 const modelValue = defineModel<string | null | undefined>()
+
+withDefaults(
+  defineProps<{
+    label?: string
+    hint?: string | undefined | null
+  }>(),
+  {
+    label: 'Typ zboží',
+    hint: 'Typ zboží, který určuje kategorii produktu pro lepší organizaci a filtrování produktů',
+  },
+)
 
 type SelectOption = {
   label: string

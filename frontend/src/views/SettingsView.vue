@@ -3,7 +3,7 @@
     <div class="flex flex-col h-full min-w-xs">
       <q-scroll-area class="flex-1 p-2">
         <h1 class="mb-5 text-lg">NASTAVENÍ</h1>
-        <q-list class="flex flex-col gap-1" separator>
+        <q-list class="flex flex-col gap-1">
           <q-item
             v-for="item in items"
             :key="item.key"
@@ -39,15 +39,36 @@
 import MissingSettingsTab from '@/components/settings/MissingSettingsTab.vue'
 import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue'
 import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
-import { useLocalStorage } from '@vueuse/core'
-import { shallowRef, watch, type Component } from 'vue'
+import { computed, shallowRef, watch, type Component } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-const selectedTab = useLocalStorage('settings-selected-tab', 'packaging')
+const route = useRoute()
+const router = useRouter()
 const selectedTabComponent = shallowRef<Component>()
+
+const validTabs = new Set(['location', 'packaging', 'products', 'users'])
+
+const selectedTab = computed<string>({
+  get() {
+    const raw = route.query.tab
+    if (typeof raw === 'string' && validTabs.has(raw)) {
+      return raw
+    }
+    return 'packaging'
+  },
+  set(value: string) {
+    const query = { ...route.query, tab: value }
+    router.push({ query })
+  },
+})
 
 watch(
   selectedTab,
   (value: string) => {
+    if (route.query.tab !== value) {
+      router.replace({ query: { ...route.query, tab: value } })
+    }
+
     if (value === 'packaging') {
       selectedTabComponent.value = PackagingSettingsTab
     } else if (value === 'products') {
