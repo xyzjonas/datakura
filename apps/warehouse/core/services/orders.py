@@ -1,5 +1,6 @@
 from calendar import monthrange
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
@@ -47,6 +48,14 @@ def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
 
 
 class OrdersService:
+    @staticmethod
+    def _compute_unit_price(amount: Decimal, total_price: Decimal) -> Decimal:
+        if amount <= 0:
+            return Decimal("0")
+        return (total_price / amount).quantize(
+            Decimal("0.0001"), rounding=ROUND_HALF_UP
+        )
+
     @staticmethod
     def get_inbound_orders(
         search_term: str | None = None,
@@ -159,11 +168,14 @@ class OrdersService:
 
         with transaction.atomic():
             next_index = order.items.count()
+            amount = Decimal(str(item.amount))
+            total_price = Decimal(str(item.total_price))
             item_model = InboundOrderItem.objects.create(
                 stock_product=stock_product,
-                amount=item.amount,
+                amount=amount,
                 order=order,
-                unit_price=item.unit_price,
+                total_price=total_price,
+                unit_price=OrdersService._compute_unit_price(amount, total_price),
                 index=item.index if item.index is not None else next_index,
             )
 
@@ -179,8 +191,13 @@ class OrdersService:
         )
 
         with transaction.atomic():
-            item_model.amount = item.amount
-            item_model.unit_price = item.unit_price
+            amount = Decimal(str(item.amount))
+            total_price = Decimal(str(item.total_price))
+            item_model.amount = amount
+            item_model.total_price = total_price
+            item_model.unit_price = OrdersService._compute_unit_price(
+                amount, total_price
+            )
             if item.index is not None:
                 item_model.index = item.index
             item_model.save()

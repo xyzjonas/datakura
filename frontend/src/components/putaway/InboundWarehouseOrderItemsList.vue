@@ -8,10 +8,12 @@
           :item="item"
           :readonly="readonly"
           :allow-move="allowMove"
+          :warehouse-order-code="warehouseOrderCode"
           @dissolve-item="() => $emit('dissolveItem', item.id)"
           @packaged="(items) => $emit('packaged', item, items)"
           @remove="(amount) => $emit('removeItem', item.id, amount)"
           @moved="(location) => $emit('moved', item.id, location)"
+          @offloaded="$emit('offloaded')"
           class="flex-1"
         ></WarehouseItemEditableRow>
       </div>
@@ -38,10 +40,12 @@ defineEmits<{
   (e: 'addItem'): void
   (e: 'packaged', item: WarehouseItemSchema, items: WarehouseItemSchema[]): void
   (e: 'moved', itemId: number, location: WarehouseLocationSchema): void
+  (e: 'offloaded'): void
 }>()
 defineProps<{
   items: WarehouseItemSchema[]
   readonly?: boolean
   allowMove?: boolean
+  warehouseOrderCode?: string
 }>()
 </script>

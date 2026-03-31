@@ -27,6 +27,7 @@ from apps.warehouse.core.schemas.warehouse import (
     PutawayItemRequest,
     GetWarehousesWithCountsResponse,
     WarehouseWithCountsSchema,
+    OffloadItemsToChildOrderRequest,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.warehouse import warehouse_service
@@ -303,4 +304,24 @@ def putaway_inbound_warehouse_order_item(
         context=RequestContext.from_django_request(request),
     )
     order = warehouse_service.get_inbound_warehouse_order(code)
+    return GetWarehouseOrderResponse(data=order)
+
+
+@routes.post(
+    "orders-incoming/{code}/offload",
+    response={200: GetWarehouseOrderResponse},
+)
+def offload_items_to_child_order(
+    request: HttpRequest,
+    code: str,
+    body: OffloadItemsToChildOrderRequest,
+):
+    from decimal import Decimal
+
+    items = [(item.item_id, Decimal(str(item.amount))) for item in body.items]
+    order = warehouse_service.offload_items_to_child_order(
+        parent_code=code,
+        items=items,
+        context=RequestContext.from_django_request(request),
+    )
     return GetWarehouseOrderResponse(data=order)

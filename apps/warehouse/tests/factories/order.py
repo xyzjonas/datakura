@@ -25,6 +25,7 @@ class InboundOrderItemFactory(DjangoModelFactory):
     amount = factory.Faker("random_int", min=1, max=100, step=1)
     order = None
     unit_price = factory.Faker("random_int", min=1, max=200, step=1)
+    total_price = factory.LazyAttribute(lambda o: o.amount * o.unit_price)
 
 
 class InboundOrderFactory(DjangoModelFactory):

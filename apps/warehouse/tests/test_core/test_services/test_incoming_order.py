@@ -36,14 +36,15 @@ def test_incoming_order_add_item(db):
         InboundOrderItemCreateSchema(
             product_code=product.code,
             product_name=product.name,
-            unit_price=999,
+            total_price=999,
             amount=121,
         ),
     )
 
     assert order.items.count() == 1
     assert order.items.first().amount == 121
-    assert order.items.first().unit_price == 999
+    assert order.items.first().total_price == 999
+    assert float(order.items.first().unit_price) == pytest.approx(999 / 121)
     assert order.items.first().stock_product.code == product.code
     assert order.items.first().stock_product.name == product.name
 
@@ -57,7 +58,7 @@ def test_incoming_order_add_item_duplicate_product_fails(db):
         InboundOrderItemCreateSchema(
             product_code=product.code,
             product_name=product.name,
-            unit_price=100,
+            total_price=100,
             amount=2,
         ),
     )
@@ -68,7 +69,7 @@ def test_incoming_order_add_item_duplicate_product_fails(db):
             InboundOrderItemCreateSchema(
                 product_code=product.code,
                 product_name=product.name,
-                unit_price=300,
+                total_price=300,
                 amount=5,
             ),
         )
@@ -85,16 +86,18 @@ def test_incoming_order_update_item(db):
         InboundOrderItemCreateSchema(
             product_code=item.stock_product.code,
             product_name=item.stock_product.name,
-            unit_price=555,
+            total_price=555,
             amount=7,
         ),
     )
 
     item.refresh_from_db()
     assert item.amount == 7
-    assert item.unit_price == 555
+    assert item.total_price == 555
+    assert float(item.unit_price) == pytest.approx(555 / 7)
     assert result.amount == 7
-    assert result.unit_price == 555
+    assert result.total_price == 555
+    assert float(result.unit_price) == pytest.approx(555 / 7)
 
 
 def test_incoming_order_add_item_assigns_next_index(db):
@@ -109,7 +112,7 @@ def test_incoming_order_add_item_assigns_next_index(db):
         InboundOrderItemCreateSchema(
             product_code=first_product.code,
             product_name=first_product.name,
-            unit_price=100,
+            total_price=100,
             amount=1,
         ),
     )
@@ -122,7 +125,7 @@ def test_incoming_order_add_item_assigns_next_index(db):
         InboundOrderItemCreateSchema(
             product_code=second_product.code,
             product_name=second_product.name,
-            unit_price=200,
+            total_price=200,
             amount=2,
         ),
     )
@@ -139,7 +142,7 @@ def test_incoming_order_update_item_can_change_index(db):
         InboundOrderItemCreateSchema(
             product_code=item.stock_product.code,
             product_name=item.stock_product.name,
-            unit_price=555,
+            total_price=555,
             amount=7,
             index=2,
         ),

@@ -21,7 +21,7 @@ class InboundOrderBaseSchema(BaseSchema):
     supplier: CustomerSchema
     currency: str
     state: InboundOrderState
-    warehouse_order_code: str | None = None
+    warehouse_order_codes: list[str] = []
     requested_delivery_date: datetime | None = None
     cancelled_date: datetime | None = None
     received_date: datetime | None = None
@@ -31,6 +31,8 @@ class InboundWarehouseOrderBaseSchema(BaseSchema):
     code: str
     order_code: str
     state: InboundWarehouseOrderState
+    parent_order: "InboundWarehouseOrderBaseSchema | None" = None
+    child_orders: list["InboundWarehouseOrderBaseSchema"] = []
 
 
 class CreditNoteBaseSchema(BaseSchema):

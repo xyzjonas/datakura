@@ -884,7 +884,7 @@ class WarehouseService:
                 f"Warehouse order '{code}' (state={w_order.state}) has to be in draft state in order to be confirmed."
             )
         cls.transition_order(code, InboundWarehouseOrderState.PENDING, context)
-        inbound_order = InboundOrder.objects.get(warehouse_order__code=code)
+        inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
         inbound_orders_service.transition_order(
             inbound_order.code, InboundOrderState.PUTAWAY, context=context
         )
@@ -903,7 +903,7 @@ class WarehouseService:
                 f"Warehouse order ${code}, state={w_order.state} has to be in pending state in order to be reset to draft."
             )
         cls.transition_order(code, InboundWarehouseOrderState.DRAFT, context)
-        inbound_order = InboundOrder.objects.get(warehouse_order__code=code)
+        inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
         inbound_orders_service.transition_order(
             inbound_order.code, InboundOrderState.RECEIVING, context=context
         )
@@ -1012,11 +1012,17 @@ class WarehouseService:
                     InboundWarehouseOrderState.COMPLETED,
                     context=context,
                 )
-                inbound_orders_service.transition_order(
-                    warehouse_order.order.code,
-                    InboundOrderState.COMPLETED,
-                    context=context,
-                )
+                if (
+                    warehouse_order.order.warehouse_orders.exclude(
+                        state=InboundWarehouseOrderState.COMPLETED
+                    ).count()
+                    == 0
+                ):
+                    inbound_orders_service.transition_order(
+                        warehouse_order.order.code,
+                        InboundOrderState.COMPLETED,
+                        context=context,
+                    )
             else:
                 cls.transition_order(
                     warehouse_order_code,
@@ -1029,6 +1035,128 @@ class WarehouseService:
     #     item_code: str, location_code: str | None = None, amount: float = None
     # ) -> None:
     #     pass
+
+    @classmethod
+    def create_child_warehouse_order(
+        cls,
+        parent_code: str,
+        context: RequestContext,
+    ) -> InboundWarehouseOrder:
+        parent_order = InboundWarehouseOrder.objects.select_related("order").get(
+            code=parent_code
+        )
+        child_code = cls.generate_next_inbound_order_code()
+        with transaction.atomic():
+            child_order = InboundWarehouseOrder.objects.create(
+                code=child_code,
+                order=parent_order.order,
+                primary_order=parent_order,
+                state=InboundWarehouseOrderState.DRAFT,
+            )
+            audit_service.add_entry(
+                child_order,
+                action=AuditAction.CREATE,
+                user=context.user_id,
+                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
+                    child_code=child_code,
+                    parent_code=parent_code,
+                ),
+                changes={"parent_order": parent_code},
+            )
+            audit_service.add_entry(
+                parent_order,
+                action=AuditAction.OTHER,
+                user=context.user_id,
+                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
+                    child_code=child_code,
+                    parent_code=parent_code,
+                ),
+                changes={"child_order": child_code},
+            )
+        return child_order
+
+    @classmethod
+    def offload_items_to_child_order(
+        cls,
+        parent_code: str,
+        items: list[tuple[int, Decimal]],
+        context: RequestContext,
+    ) -> InboundWarehouseOrderSchema:
+        """
+        Move a list of (item_id, amount) pairs from the parent warehouse order
+        into a child order.  A new child order is created automatically if none
+        exists yet.
+        """
+        parent_order = InboundWarehouseOrder.objects.select_related("order").get(
+            code=parent_code
+        )
+
+        existing_child = parent_order.derived_orders.filter(
+            state=InboundWarehouseOrderState.DRAFT
+        ).first()
+        child_order = existing_child or cls.create_child_warehouse_order(
+            parent_code, context
+        )
+
+        with transaction.atomic():
+            for item_id, amount in items:
+                amount = Decimal(str(amount))
+                item = parent_order.items.select_related(
+                    "stock_product", "location", "batch", "package_type"
+                ).get(pk=item_id)
+
+                if amount > item.amount:
+                    raise WarehouseGenericError(
+                        f"Requested offload amount ({amount}) exceeds item amount "
+                        f"({item.amount}) for item id={item_id}."
+                    )
+
+                if amount == item.amount:
+                    item.order_in = child_order
+                    item.save()
+                    offloaded_item = item
+                else:
+                    item.amount -= amount
+                    item.save()
+                    offloaded_item = WarehouseItem.objects.create(
+                        stock_product=item.stock_product,
+                        tracking_level=item.tracking_level,
+                        amount=amount,
+                        location=item.location,
+                        order_in=child_order,
+                        batch=item.batch,
+                        package_type=item.package_type,
+                    )
+
+                audit_service.add_entry(
+                    offloaded_item,
+                    action=AuditAction.UPDATE,
+                    user=context.user_id,
+                    reason=AuditMessages.ITEM_OFFLOADED_TO_CHILD_ORDER.CS.format(
+                        amount=amount,
+                        child_code=child_order.code,
+                    ),
+                    changes={
+                        "order_in": {"old": parent_code, "new": child_order.code},
+                        "amount": str(amount),
+                    },
+                )
+                audit_service.add_entry(
+                    parent_order,
+                    action=AuditAction.OTHER,
+                    user=context.user_id,
+                    reason=AuditMessages.ITEM_OFFLOADED_TO_CHILD_ORDER.CS.format(
+                        amount=amount,
+                        child_code=child_order.code,
+                    ),
+                    changes={
+                        "item_id": item_id,
+                        "amount": str(amount),
+                        "child_order": child_order.code,
+                    },
+                )
+
+        return cls.get_inbound_warehouse_order(parent_code)
 
 
 warehouse_service = WarehouseService()

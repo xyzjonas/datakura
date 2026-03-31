@@ -196,3 +196,12 @@ class CreateWarehouseMovementSchema(Schema):
     item_id: int
     warehouse_order_code: str
     new_location_code: str
+
+
+class OffloadItemSchema(Schema):
+    item_id: int
+    amount: float
+
+
+class OffloadItemsToChildOrderRequest(Schema):
+    items: list[OffloadItemSchema]

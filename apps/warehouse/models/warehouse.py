@@ -255,10 +255,10 @@ class InboundWarehouseOrder(BaseModel):
     """Warehouse work item - supply - move in the warehouse"""
 
     code = models.CharField(max_length=50, unique=True, null=False)
-    order = models.OneToOneField(
+    order = models.ForeignKey(
         InboundOrder,
         on_delete=models.PROTECT,
-        related_name="warehouse_order",
+        related_name="warehouse_orders",
     )
     items: QuerySet[WarehouseItem]
     state = models.CharField(

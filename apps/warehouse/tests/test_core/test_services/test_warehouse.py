@@ -23,7 +23,7 @@ from apps.warehouse.core.transformation import (
     warehouse_item_orm_to_schema,
 )
 from apps.warehouse.models.barcode import Barcode
-from apps.warehouse.models.orders import CreditNoteState
+from apps.warehouse.models.orders import CreditNoteState, InboundOrderState
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.warehouse import (
     WarehouseLocation,
@@ -507,6 +507,100 @@ def test_complete_inbound_order(db, context):
     )
     order.refresh_from_db()
     assert order.state == InboundWarehouseOrderState.COMPLETED
+
+
+def test_complete_inbound_order_only_after_last_child_order_closed(db, context):
+    """
+    Scenario:
+    1 inbound order -> 1st warehouse order -> offload to 2nd -> offload to 3rd.
+
+    Base inbound order must be marked COMPLETED only after the last warehouse
+    order in the chain is completed.
+    """
+    putaway_location = WarehouseLocationFactory(is_putaway=True)
+    final_location = WarehouseLocationFactory(is_putaway=False)
+
+    inbound_order = InboundOrderFactory(state=InboundOrderState.PUTAWAY)
+    first_order = InboundWarehouseOrderFactory(
+        order=inbound_order,
+        state=InboundWarehouseOrderState.PENDING,
+    )
+
+    item_in_first = WarehouseItemFactory(
+        order_in=first_order,
+        location=putaway_location,
+        amount=Decimal("4"),
+    )
+    InboundOrderItemFactory(
+        order=inbound_order,
+        stock_product=item_in_first.stock_product,
+        amount=Decimal("4"),
+        unit_price=Decimal("10"),
+    )
+
+    # 1st -> 2nd (move part of item, keep some in 1st)
+    warehouse_service.offload_items_to_child_order(
+        parent_code=first_order.code,
+        items=[(item_in_first.pk, Decimal("2"))],
+        context=context,
+    )
+    second_order = first_order.derived_orders.get()
+    item_in_second = second_order.items.get()
+
+    # 2nd -> 3rd (move part of item, keep some in 2nd)
+    warehouse_service.offload_items_to_child_order(
+        parent_code=second_order.code,
+        items=[(item_in_second.pk, Decimal("1"))],
+        context=context,
+    )
+    third_order = second_order.derived_orders.get()
+
+    # Child orders must be confirmed before putaway can happen.
+    warehouse_service.transition_order(
+        second_order.code, InboundWarehouseOrderState.PENDING, context=context
+    )
+    warehouse_service.transition_order(
+        third_order.code, InboundWarehouseOrderState.PENDING, context=context
+    )
+
+    # Complete 1st order -> base inbound order must stay open.
+    item_in_first.refresh_from_db()
+    warehouse_service.putaway_item(
+        item_id=item_in_first.pk,
+        warehouse_order_code=first_order.code,
+        new_location_code=final_location.code,
+        context=context,
+    )
+    inbound_order.refresh_from_db()
+    first_order.refresh_from_db()
+    assert first_order.state == InboundWarehouseOrderState.COMPLETED
+    assert inbound_order.state != InboundOrderState.COMPLETED
+
+    # Complete 2nd order -> base inbound order must still stay open.
+    item_in_second.refresh_from_db()
+    warehouse_service.putaway_item(
+        item_id=item_in_second.pk,
+        warehouse_order_code=second_order.code,
+        new_location_code=final_location.code,
+        context=context,
+    )
+    inbound_order.refresh_from_db()
+    second_order.refresh_from_db()
+    assert second_order.state == InboundWarehouseOrderState.COMPLETED
+    assert inbound_order.state != InboundOrderState.COMPLETED
+
+    # Complete 3rd (last) order -> now base inbound order must be completed.
+    item_in_third = third_order.items.get()
+    warehouse_service.putaway_item(
+        item_id=item_in_third.pk,
+        warehouse_order_code=third_order.code,
+        new_location_code=final_location.code,
+        context=context,
+    )
+    inbound_order.refresh_from_db()
+    third_order.refresh_from_db()
+    assert third_order.state == InboundWarehouseOrderState.COMPLETED
+    assert inbound_order.state == InboundOrderState.COMPLETED
 
 
 @pytest.mark.parametrize(

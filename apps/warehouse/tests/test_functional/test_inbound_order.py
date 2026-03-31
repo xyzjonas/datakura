@@ -58,7 +58,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
         "product_code": product_1.code,
         "product_name": product_1.name,
         "amount": 100,
-        "unit_price": 10.5,
+        "total_price": 1050,
     }
     res = order_client.post(f"/{order_code}/items", json=item_1_data)
     assert res.status_code == 200
@@ -70,7 +70,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
         "product_code": product_2.code,
         "product_name": product_2.name,
         "amount": 50,
-        "unit_price": 25.0,
+        "total_price": 1250,
     }
     res = order_client.post(f"/{order_code}/items", json=item_2_data)
     assert res.status_code == 200
@@ -109,7 +109,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     w_order_db = InboundWarehouseOrder.objects.get(code=w_order_code)
     assert w_order_db.state == InboundWarehouseOrderState.DRAFT
     assert order_db.state == InboundOrderState.RECEIVING
-    assert order_db.warehouse_order.code == w_order_code
+    assert order_db.warehouse_orders.filter(code=w_order_code).exists()
 
     # 5. Create Credit Note
     item_to_return = next(

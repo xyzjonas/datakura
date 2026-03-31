@@ -64,9 +64,12 @@
       <LinkedEntitiesCard
         show-inbound-order
         :inbound-order="order.order"
-        show-invoice
         show-credit-note
         :credit-note="order.credit_note"
+        show-parent-warehouse-order
+        :parent-warehouse-order="order.parent_order"
+        show-child-warehouse-orders
+        :child-warehouse-orders="order.child_orders"
         class="flex-1"
       />
     </div>
@@ -93,10 +96,12 @@
       :items="todoItems"
       :readonly="order.state !== 'draft'"
       :allow-move="order.state === 'pending' || order.state === 'started'"
+      :warehouse-order-code="order.code"
       @packaged="updateOrderItems"
       @dissolve-item="dissolveItem"
       @remove-item="removeItem"
       @moved="moveItem"
+      @offloaded="fetchOrder"
     ></InboundWarehouseOrderItemsList>
 
     <!-- MOVEMENTS -->
@@ -306,6 +311,17 @@ const moveItem = async (itemCode: number, location: WarehouseLocationSchema) => 
     message: `Položka úspěšně přesunuta`,
     caption: `'${itemCode}' se nyní nachází na skladovém místě ${location.code}`,
   })
+}
+
+const fetchOrder = async () => {
+  if (!order.value) return
+  const res = await warehouseApiRoutesWarehouseGetInboundWarehouseOrder({
+    path: { code: order.value.code },
+  })
+  const data = onResponse(res)
+  if (data) {
+    order.value = data.data
+  }
 }
 </script>
 

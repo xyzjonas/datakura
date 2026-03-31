@@ -157,3 +157,15 @@ class AuditMessages:
             AuditLanguage.CS: "Skladová objednávka byla upravena",
         }
     )
+    CHILD_WAREHOUSE_ORDER_CREATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Child warehouse order '{child_code}' created from '{parent_code}'",
+            AuditLanguage.CS: "Podřízená příjemka/výdejka '{child_code}' vytvořena z '{parent_code}'",
+        }
+    )
+    ITEM_OFFLOADED_TO_CHILD_ORDER = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Item offloaded (amount={amount}) to child order '{child_code}'",
+            AuditLanguage.CS: "Položka přesunuta (množství={amount}) do podřízené objednávky '{child_code}'",
+        }
+    )

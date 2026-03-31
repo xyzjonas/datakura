@@ -19,6 +19,7 @@ type Props = {
     items?: {
       amount: number
       unit_price: number
+      total_price?: number
     }[]
   }
 }
@@ -30,7 +31,10 @@ const totalPrice = computed(() => {
   if (!props.order) {
     return 0
   }
-  return (props.order.items ?? []).reduce((sum, item) => sum + item.amount * item.unit_price, 0)
+  return (props.order.items ?? []).reduce(
+    (sum, item) => sum + (item.total_price ?? item.amount * item.unit_price),
+    0,
+  )
 })
 </script>
 

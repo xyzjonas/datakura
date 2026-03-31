@@ -183,7 +183,7 @@ const columns: QTableColumn[] = [
   },
   {
     name: 'warehouseOrder',
-    field: (order: InboundOrderSchema) => order.warehouse_order_code,
+    field: (order: InboundOrderSchema) => order.warehouse_order_codes?.join(', '),
     label: 'Příjemka',
     align: 'left',
   },

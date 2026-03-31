@@ -11,7 +11,7 @@ from .customer import Customer
 from .product import StockProduct
 
 if TYPE_CHECKING:
-    from .warehouse import InboundWarehouseOrder
+    from .warehouse import InboundWarehouseOrder  # noqa: F401
 
 
 class InboundOrderState(models.TextChoices):
@@ -52,7 +52,7 @@ class InboundOrder(BaseModel):
         default=InboundOrderState.DRAFT,
     )
 
-    warehouse_order: InboundWarehouseOrder | None
+    warehouse_orders: "QuerySet[InboundWarehouseOrder]"
     credit_note: "CreditNoteToSupplier"
 
     requested_delivery_date = models.DateTimeField(null=True, blank=True)
@@ -88,6 +88,7 @@ class InboundOrderItem(BaseModel):
     )
     index = models.PositiveIntegerField(default=0)
     unit_price = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    total_price = models.DecimalField(max_digits=12, decimal_places=4, default=0)
 
     class Meta:
         ordering = ["index", "created"]

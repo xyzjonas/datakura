@@ -39,7 +39,7 @@
       <!-- <CurrencyDropdown v-model="credit_note.currency" /> -->
       <h2>Položky dobropisu</h2>
       <TotalPrice
-        :order="{ items: credit_note.items, currency: credit_note.order.currency }"
+        :order="{ items: creditNotePriceItems, currency: credit_note.order.currency }"
         negative
         class="ml-auto"
       />
@@ -75,7 +75,7 @@ import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import PrintDropdownButton from '@/components/PrintDropdownButton.vue'
 import { useApi } from '@/composables/use-api'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{ code: string }>()
 const credit_note = ref<CreditNoteSupplierSchema>()
@@ -89,6 +89,14 @@ const data = onResponse(response)
 if (data) {
   credit_note.value = data.data
 }
+
+const creditNotePriceItems = computed(() =>
+  (credit_note.value?.items ?? []).map((item) => ({
+    amount: item.amount,
+    unit_price: item.unit_price,
+    total_price: item.amount * item.unit_price,
+  })),
+)
 
 const openPdf = async () => {
   const resonse = await warehouseApiRoutesInboundOrdersGetInboundOrderPdf({

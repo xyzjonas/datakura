@@ -927,9 +927,9 @@ export type InboundOrderBaseSchema = {
     currency: string;
     state: InboundOrderState;
     /**
-     * Warehouse Order Code
+     * Warehouse Order Codes
      */
-    warehouse_order_code?: string | null;
+    warehouse_order_codes?: Array<string>;
     /**
      * Requested Delivery Date
      */
@@ -948,6 +948,34 @@ export type InboundOrderBaseSchema = {
  * InboundOrderState
  */
 export type InboundOrderState = 'draft' | 'submitted' | 'receiving' | 'putaway' | 'completed' | 'cancelled';
+
+/**
+ * InboundWarehouseOrderBaseSchema
+ */
+export type InboundWarehouseOrderBaseSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Order Code
+     */
+    order_code: string;
+    state: InboundWarehouseOrderState;
+    parent_order?: InboundWarehouseOrderBaseSchema | null;
+    /**
+     * Child Orders
+     */
+    child_orders?: Array<InboundWarehouseOrderBaseSchema>;
+};
 
 /**
  * InboundWarehouseOrderSchema
@@ -970,6 +998,11 @@ export type InboundWarehouseOrderSchema = {
      */
     order_code: string;
     state: InboundWarehouseOrderState;
+    parent_order?: InboundWarehouseOrderBaseSchema | null;
+    /**
+     * Child Orders
+     */
+    child_orders?: Array<InboundWarehouseOrderBaseSchema>;
     /**
      * Items
      */
@@ -1143,6 +1176,30 @@ export type PutawayItemRequest = {
      * New Location Code
      */
     new_location_code: string;
+};
+
+/**
+ * OffloadItemSchema
+ */
+export type OffloadItemSchema = {
+    /**
+     * Item Id
+     */
+    item_id: number;
+    /**
+     * Amount
+     */
+    amount: number;
+};
+
+/**
+ * OffloadItemsToChildOrderRequest
+ */
+export type OffloadItemsToChildOrderRequest = {
+    /**
+     * Items
+     */
+    items: Array<OffloadItemSchema>;
 };
 
 /**
@@ -1659,6 +1716,10 @@ export type InboundOrderItemSchema = {
      */
     unit_price: number;
     /**
+     * Total Price
+     */
+    total_price: number;
+    /**
      * Index
      */
     index: number;
@@ -1699,9 +1760,9 @@ export type InboundOrderSchema = {
     currency: string;
     state: InboundOrderState;
     /**
-     * Warehouse Order Code
+     * Warehouse Order Codes
      */
-    warehouse_order_code?: string | null;
+    warehouse_order_codes?: Array<string>;
     /**
      * Requested Delivery Date
      */
@@ -1718,31 +1779,11 @@ export type InboundOrderSchema = {
      * Items
      */
     items?: Array<InboundOrderItemSchema>;
-    warehouse_order?: InboundWarehouseOrderBaseSchema | null;
+    /**
+     * Warehouse Orders
+     */
+    warehouse_orders?: Array<InboundWarehouseOrderBaseSchema>;
     credit_note?: CreditNoteBaseSchema | null;
-};
-
-/**
- * InboundWarehouseOrderBaseSchema
- */
-export type InboundWarehouseOrderBaseSchema = {
-    /**
-     * Created
-     */
-    created: string;
-    /**
-     * Changed
-     */
-    changed: string;
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Order Code
-     */
-    order_code: string;
-    state: InboundWarehouseOrderState;
 };
 
 /**
@@ -1848,9 +1889,13 @@ export type InboundOrderItemCreateSchema = {
      */
     amount: number;
     /**
+     * Total Price
+     */
+    total_price: number;
+    /**
      * Unit Price
      */
-    unit_price: number;
+    unit_price?: number | null;
     /**
      * Index
      */
@@ -2525,6 +2570,27 @@ export type WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses
 };
 
 export type WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehousePutawayInboundWarehouseOrderItemResponses];
+
+export type WarehouseApiRoutesWarehouseOffloadItemsToChildOrderData = {
+    body: OffloadItemsToChildOrderRequest;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-incoming/{code}/offload';
+};
+
+export type WarehouseApiRoutesWarehouseOffloadItemsToChildOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseOffloadItemsToChildOrderResponse = WarehouseApiRoutesWarehouseOffloadItemsToChildOrderResponses[keyof WarehouseApiRoutesWarehouseOffloadItemsToChildOrderResponses];
 
 export type WarehouseApiRoutesProductGetTypesData = {
     body?: never;

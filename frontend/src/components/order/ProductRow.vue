@@ -34,26 +34,26 @@
         </template>
       </q-input>
       <q-input
-        v-model.number="item.unit_price"
-        :readonly="readonly"
+        :model-value="derivedUnitPrice"
+        readonly
         dense
         outlined
         class="max-w-50"
         label="Nákupní cena"
-        @update:model-value="update"
-        :debounce="500"
       >
         <template #append>
           <span class="text-xs">{{ currency }} / {{ item.product.unit }}</span>
         </template>
       </q-input>
       <q-input
-        readonly
-        :model-value="totalPrice"
+        :readonly="readonly"
+        v-model.number="totalPrice"
+        @update:model-value="update"
         dense
         outlined
         class="max-w-40"
         label="Celková cena"
+        :debounce="500"
       >
         <template #append>
           <span class="text-xs">{{ currency }}</span>
@@ -80,7 +80,7 @@ import {
 import { useApi } from '@/composables/use-api'
 import { round } from '@/utils/round'
 import { useQuasar } from 'quasar'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import IndexRectangle from '../IndexRectangle.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 
@@ -94,7 +94,13 @@ const item = defineModel<InboundOrderItemSchema | CreditNoteSupplierItemSchema>(
   required: true,
 })
 
-const totalPrice = computed(() => round(item.value.unit_price * item.value.amount))
+const totalPrice = ref(round(item.value.unit_price * item.value.amount))
+const derivedUnitPrice = computed(() => {
+  if (!item.value.amount) {
+    return 0
+  }
+  return round(totalPrice.value / item.value.amount)
+})
 
 const index = computed(() => (isInboundOrderItem(item.value) ? item.value.index + 1 : undefined))
 
@@ -113,7 +119,8 @@ const update = async () => {
       product_code: item.value.product.code,
       product_name: item.value.product.name,
       amount: item.value.amount,
-      unit_price: item.value.unit_price,
+      total_price: totalPrice.value,
+      unit_price: derivedUnitPrice.value,
       index: index.value,
     },
   })
@@ -121,6 +128,7 @@ const update = async () => {
   const data = onResponse(res)
   if (data?.data) {
     item.value = data.data
+    totalPrice.value = data.data.total_price
     $q.notify({ type: 'positive', message: 'Položka aktualizována' })
   }
 }

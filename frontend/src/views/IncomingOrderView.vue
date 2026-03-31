@@ -73,8 +73,7 @@
       <CustomerCard :customer="order.supplier" title="DODAVATEL" class="flex-1" />
       <LinkedEntitiesCard
         show-warehouse-order
-        :warehouse-order="order.warehouse_order"
-        show-invoice
+        :warehouse-orders="order.warehouse_orders"
         show-credit-note
         :credit-note="order.credit_note"
       />
@@ -255,6 +254,7 @@ const reorderItems = async (items: NonNullable<InboundOrderSchema['items']>) => 
           product_code: item.product.code,
           product_name: item.product.name,
           amount: item.amount,
+          total_price: item.total_price,
           unit_price: item.unit_price,
           index: item.index,
         },

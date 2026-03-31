@@ -91,6 +91,17 @@
         >
           <q-tooltip :offset="[0, 10]">Přesunout položku</q-tooltip>
         </q-btn>
+        <q-btn
+          v-if="!props.readonly"
+          @click="offloadDialog = true"
+          size="14px"
+          flat
+          dense
+          round
+          icon="sym_o_move_down"
+        >
+          <q-tooltip :offset="[0, 10]">Přesunout do podřízené objednávky</q-tooltip>
+        </q-btn>
       </div>
       <q-separator vertical class="mx-8" inset />
       <WarehouseItemAmountBadge :item="item" class="min-w-30" />
@@ -121,11 +132,18 @@
       :item="item"
       @confirm="(location) => $emit('moved', location)"
     />
+    <OffloadItemToChildOrderDialog
+      v-model:show="offloadDialog"
+      :item="item"
+      :loading="offloadLoading"
+      @confirm="onOffload"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import type { WarehouseItemSchema, WarehouseLocationSchema } from '@/client'
+import { warehouseApiRoutesWarehouseOffloadItemsToChildOrder } from '@/client'
 import { computed, ref } from 'vue'
 import BarcodeElement from '../BarcodeElement.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
@@ -137,13 +155,13 @@ import InboundWarehouseOrderTrackDialog, {
   type TrackingType,
 } from './InboundWarehouseOrderTrackDialog.vue'
 import LocationSelectionDialog from './LocationSelectionDialog.vue'
+import OffloadItemToChildOrderDialog from './OffloadItemToChildOrderDialog.vue'
 
-const props = defineProps<{ item: WarehouseItemSchema; allowMove?: boolean; readonly?: boolean }>()
-defineEmits<{
-  (e: 'dissolveItem'): void
-  (e: 'remove', amount: number): void
-  (e: 'packaged', items: WarehouseItemSchema[]): void
-  (e: 'moved', location: WarehouseLocationSchema): void
+const props = defineProps<{
+  item: WarehouseItemSchema
+  allowMove?: boolean
+  readonly?: boolean
+  warehouseOrderCode?: string
 }>()
 
 // const item = defineModel<WarehouseItemSchema>('item', { required: true })
@@ -160,6 +178,30 @@ const trackingType = computed<TrackingType>(() => {
 const dissolveDialog = ref(false)
 const removeItemDialog = ref(false)
 const moveDialog = ref(false)
+const offloadDialog = ref(false)
+const offloadLoading = ref(false)
+
+const emit = defineEmits<{
+  (e: 'dissolveItem'): void
+  (e: 'remove', amount: number): void
+  (e: 'packaged', items: WarehouseItemSchema[]): void
+  (e: 'moved', location: WarehouseLocationSchema): void
+  (e: 'offloaded'): void
+}>()
+
+const onOffload = async (itemId: number, amount: number) => {
+  if (!props.warehouseOrderCode) return
+  offloadLoading.value = true
+  try {
+    await warehouseApiRoutesWarehouseOffloadItemsToChildOrder({
+      path: { code: props.warehouseOrderCode },
+      body: { items: [{ item_id: itemId, amount }] },
+    })
+    emit('offloaded')
+  } finally {
+    offloadLoading.value = false
+  }
+}
 
 const isRemovable = computed(() => props.item.tracking_level !== 'FUNGIBLE' && !props.readonly)
 const isReadyToBeTracked = computed(

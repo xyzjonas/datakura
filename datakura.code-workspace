@@ -10,6 +10,10 @@
     },
   ],
   "settings": {
-    ,
+    "chat.tools.terminal.autoApprove": {
+      "just": true,
+      "uv": true,
+      "npm run type-check": true,
+    },
   },
 }

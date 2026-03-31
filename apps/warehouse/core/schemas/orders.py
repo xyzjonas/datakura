@@ -20,7 +20,8 @@ class InboundOrderItemCreateSchema(Schema):
     product_code: str
     product_name: str
     amount: float
-    unit_price: float
+    total_price: float
+    unit_price: float | None = None
     index: int | None = None
 
 
@@ -28,6 +29,7 @@ class InboundOrderItemSchema(BaseSchema):
     product: ProductSchema
     amount: float
     unit_price: float
+    total_price: float
     index: int
 
 
@@ -49,7 +51,9 @@ class InboundOrderTransitionSchema(Schema):
 class InboundOrderSchema(InboundOrderBaseSchema):
     items: list[InboundOrderItemSchema] = Field(default_factory=list)
     state: InboundOrderState
-    warehouse_order: InboundWarehouseOrderBaseSchema | None = None
+    warehouse_orders: list[InboundWarehouseOrderBaseSchema] = Field(
+        default_factory=list
+    )
     credit_note: CreditNoteBaseSchema | None = None
 
 

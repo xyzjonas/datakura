@@ -24,15 +24,27 @@
             </template>
           </q-input>
           <q-input
-            v-model.number="item.unit_price"
+            :model-value="derivedUnitPrice"
+            readonly
             outlined
             label="Nákupní cena"
             hint="Nákupní cena za MJ"
             inputmode="numeric"
-            :rules="[rules.atLeastOne, rules.max99999]"
           >
             <template #append>
               <span class="text-sm">{{ currency }} / {{ productUom }}</span>
+            </template>
+          </q-input>
+          <q-input
+            v-model.number="item.total_price"
+            outlined
+            label="Celková cena"
+            hint="Celková cena položky"
+            inputmode="numeric"
+            :rules="[rules.atLeastOne, rules.max99999]"
+          >
+            <template #append>
+              <span class="text-sm">{{ currency }}</span>
             </template>
           </q-input>
           <q-btn type="submit" unelevated color="primary" label="přidat" class="h-[3rem] mt-3" />
@@ -45,7 +57,7 @@
 <script setup lang="ts">
 import type { InboundOrderItemCreateSchema, ProductSchema } from '@/client'
 import { rules } from '@/utils/rules'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 
@@ -66,7 +78,15 @@ const item = ref<InboundOrderItemCreateSchema>({
   product_code: '',
   product_name: '',
   amount: 0,
+  total_price: 0,
   unit_price: 0,
+})
+
+const derivedUnitPrice = computed(() => {
+  if (!item.value.amount) {
+    return 0
+  }
+  return item.value.total_price / item.value.amount
 })
 
 const product = ref<ProductSchema>()
@@ -77,6 +97,7 @@ watch(product, (newValue: ProductSchema | undefined) => {
     item.value.product_code = newValue.code
     item.value.product_name = newValue.name
     item.value.unit_price = newValue.purchase_price ?? 0
+    item.value.total_price = (newValue.purchase_price ?? 0) * item.value.amount
     productUom.value = newValue.unit
   } else {
     item.value.product_code = ''
@@ -97,6 +118,7 @@ const reset = () => {
     product_code: '',
     product_name: '',
     amount: 0,
+    total_price: 0,
     unit_price: 0,
   }
   product.value = undefined
