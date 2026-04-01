@@ -8,7 +8,12 @@ from django.urls import path, reverse
 
 from apps.warehouse.core.services.product_import import ProductCsvImportService
 from apps.warehouse.models.customer import ContactPerson, Customer, CustomerGroup
-from apps.warehouse.models.orders import InboundOrder, InboundOrderItem
+from apps.warehouse.models.orders import (
+    InboundOrder,
+    InboundOrderItem,
+    Invoice,
+    InvoicePaymentMethod,
+)
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import (
     StockProduct,
@@ -99,6 +104,8 @@ class CustomerAdmin(admin.ModelAdmin):
 
 admin.site.register(InboundOrder)
 admin.site.register(InboundOrderItem)
+admin.site.register(Invoice)
+admin.site.register(InvoicePaymentMethod)
 
 
 @admin.register(InboundWarehouseOrder)

@@ -6,6 +6,8 @@ from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
     CreditNoteToSupplier,
+    Invoice,
+    InvoicePaymentMethod,
 )
 from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
@@ -46,6 +48,7 @@ class InboundOrderFactory(DjangoModelFactory):
 
     supplier = factory.SubFactory(CustomerFactory)
     currency = CURRENCY_CHOICES[0][0]
+    invoice = None
 
 
 class CreditNoteSupplierFactory(DjangoModelFactory):
@@ -60,3 +63,37 @@ class CreditNoteSupplierFactory(DjangoModelFactory):
     note = factory.Faker("text", max_nb_chars=200)
 
     order = factory.SubFactory(InboundOrderFactory)
+
+
+class InvoicePaymentMethodFactory(DjangoModelFactory):
+    class Meta:
+        model = InvoicePaymentMethod
+        django_get_or_create = ("name",)
+
+    @classmethod
+    def it(cls, **kwargs) -> InvoicePaymentMethod:
+        return cls(**kwargs)  # type: ignore
+
+    name = factory.Sequence(lambda n: f"Payment Method {n:04d}")
+
+
+class InvoiceFactory(DjangoModelFactory):
+    class Meta:
+        model = Invoice
+        django_get_or_create = ("code",)
+
+    @classmethod
+    def it(cls, **kwargs) -> Invoice:
+        return cls(**kwargs)  # type: ignore
+
+    customer = factory.SubFactory(CustomerFactory)
+    supplier = factory.SubFactory(CustomerFactory)
+    code = factory.Sequence(lambda n: f"INV-{n:04d}")
+    issued_date = factory.Faker("date_object")
+    due_date = factory.Faker("date_object")
+    payment_method = factory.SubFactory(InvoicePaymentMethodFactory)
+    external_code = factory.Sequence(lambda n: f"EINV-{n:04d}")
+    taxable_supply_date = factory.Faker("date_object")
+    paid_date = None
+    currency = CURRENCY_CHOICES[0][0]
+    note = factory.Faker("text", max_nb_chars=200)

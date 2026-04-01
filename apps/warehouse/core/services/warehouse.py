@@ -377,13 +377,14 @@ class WarehouseService:
         params: WarehouseOrderCreateSchema, context: RequestContext
     ) -> InboundWarehouseOrderSchema:
         purchase_order = InboundOrder.objects.get(code=params.purchase_order_code)
-        location = WarehouseLocation.objects.get(code=params.location_code)
 
         code = WarehouseService.generate_next_inbound_order_code()
 
         with transaction.atomic():
             warehouse_order = InboundWarehouseOrder.objects.create(
-                code=code, order=purchase_order
+                code=code,
+                order=purchase_order,
+                state=InboundWarehouseOrderState.IN_TRANSIT,
             )
             audit_service.add_entry(
                 warehouse_order,
@@ -393,22 +394,6 @@ class WarehouseService:
                     purchase_order_code=params.purchase_order_code
                 ),
             )
-            for purchase_item in purchase_order.items.all():
-                item = WarehouseItem.objects.create(
-                    stock_product=purchase_item.stock_product,
-                    tracking_level=TrackingLevel.FUNGIBLE,
-                    amount=purchase_item.amount,
-                    order_in=warehouse_order,
-                    location=location,
-                )
-                audit_service.add_entry(
-                    item,
-                    action=AuditAction.CREATE,
-                    user=context.user_id,
-                    reason=AuditMessages.ORDER_CODE_REFERENCE.CS.format(
-                        order_code=warehouse_order.code
-                    ),
-                )
 
             inbound_orders_service.transition_order(
                 purchase_order.code, InboundOrderState.RECEIVING, context=context
@@ -416,6 +401,38 @@ class WarehouseService:
 
         warehouse_order.refresh_from_db()
         return warehouse_inbound_order_orm_to_schema(warehouse_order)
+
+    @classmethod
+    def confirm_arrival(
+        cls, code: str, location_code: str, context: RequestContext
+    ) -> None:
+        w_order = InboundWarehouseOrder.objects.select_related("order").get(code=code)
+        if w_order.state != InboundWarehouseOrderState.IN_TRANSIT:
+            raise WarehouseGenericError(
+                f"Warehouse order '{code}' (state={w_order.state}) has to be in transit in order to confirm arrival."
+            )
+
+        location = WarehouseLocation.objects.get(code=location_code)
+
+        with transaction.atomic():
+            for purchase_item in w_order.order.items.all():
+                item = WarehouseItem.objects.create(
+                    stock_product=purchase_item.stock_product,
+                    tracking_level=TrackingLevel.FUNGIBLE,
+                    amount=purchase_item.amount,
+                    order_in=w_order,
+                    location=location,
+                )
+                audit_service.add_entry(
+                    item,
+                    action=AuditAction.CREATE,
+                    user=context.user_id,
+                    reason=AuditMessages.ORDER_CODE_REFERENCE.CS.format(
+                        order_code=w_order.code
+                    ),
+                )
+
+        cls.transition_order(code, InboundWarehouseOrderState.DRAFT, context)
 
     @staticmethod
     def get_warehouse_availability(stock_product_code: str) -> Decimal:
@@ -912,6 +929,36 @@ class WarehouseService:
                 credit_note.code, CreditNoteState.DRAFT, context=context
             )
 
+    @classmethod
+    def set_order_state(
+        cls,
+        code: str,
+        target_state: InboundWarehouseOrderState,
+        context: RequestContext,
+        location_code: str | None = None,
+    ) -> None:
+        current_state = cls.get_inbound_warehouse_order(code).state
+
+        if target_state == InboundWarehouseOrderState.DRAFT:
+            if current_state == InboundWarehouseOrderState.IN_TRANSIT:
+                if not location_code:
+                    raise WarehouseGenericError(
+                        "location_code is required when confirming arrival from in transit"
+                    )
+                cls.confirm_arrival(
+                    code=code, location_code=location_code, context=context
+                )
+                return
+
+            cls.reset_to_draft(code, context=context)
+            return
+
+        if target_state == InboundWarehouseOrderState.PENDING:
+            cls.confirm_draft(code, context=context)
+            return
+
+        raise WarehouseGenericError(f"Unsupported state transition '{target_state}'")
+
     @staticmethod
     def recalculate_average_purchase_price(
         product_code: str, amount: Decimal, unit_price: Decimal, context: RequestContext
@@ -977,7 +1024,10 @@ class WarehouseService:
         Putaway an item while processing an inbound order.
         """
         warehouse_order = InboundWarehouseOrder.objects.get(code=warehouse_order_code)
-        if warehouse_order.state == InboundWarehouseOrderState.DRAFT:
+        if warehouse_order.state in (
+            InboundWarehouseOrderState.DRAFT,
+            InboundWarehouseOrderState.IN_TRANSIT,
+        ):
             raise WarehouseGenericError(
                 f"Warehouse order '{warehouse_order_code}' is not yet confirmed and thus read-only."
             )

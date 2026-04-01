@@ -54,16 +54,34 @@
       <template #body-cell-warehouseOrder="props">
         <q-td>
           <a
-            v-if="props.row.warehouse_order?.code"
+            v-if="
+              props.row.warehouse_orders.filter(
+                (order: InboundOrderSchema) => order.state !== 'completed',
+              ).length > 0
+            "
             class="link"
             @click="
               $router.push({
                 name: 'warehouseInboundOrderDetail',
-                params: { code: props.row.warehouse_order.code },
+                params: {
+                  code: props.row.warehouse_orders.filter(
+                    (order: InboundOrderSchema) => order.state !== 'completed',
+                  )[0].code,
+                },
               })
             "
-            >{{ props.row.warehouse_order.code }}
-            <InboundWarehouseOrderStateBadge :state="props.row.warehouse_order.state" class="ml-1"
+            >{{
+              props.row.warehouse_orders.filter(
+                (order: InboundOrderSchema) => order.state !== 'completed',
+              )[0].code
+            }}
+            <InboundWarehouseOrderStateBadge
+              :state="
+                props.row.warehouse_orders.filter(
+                  (order: InboundOrderSchema) => order.state !== 'completed',
+                )[0].state
+              "
+              class="ml-1"
           /></a>
         </q-td>
       </template>

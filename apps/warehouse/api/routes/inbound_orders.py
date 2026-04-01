@@ -2,13 +2,15 @@ from typing import cast
 
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
-from ninja import Router
+from ninja import File, Form, Router
+from ninja.files import UploadedFile
 from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import IncomingOrdersPagination
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
 from apps.warehouse.core.schemas.base import EmptyResponse
 from apps.warehouse.core.schemas.context import RequestContext
+from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
     InboundOrderSchema,
     InboundOrderItemCreateSchema,
@@ -84,6 +86,22 @@ def update_inbound_order(
     """
     updated_order = inbound_orders_service.update_or_create_incoming(
         params, context=RequestContext.from_django_request(request), code=order_code
+    )
+    return GetInboundOrderResponse(data=updated_order)
+
+
+@routes.post("/{order_code}/invoice", response={200: GetInboundOrderResponse})
+def store_inbound_order_invoice(
+    request: HttpRequest,
+    order_code: str,
+    body: Form[InvoiceStoreSchema],
+    invoice_file: File[UploadedFile] | None = None,
+):
+    updated_order = inbound_orders_service.store_invoice(
+        order_code,
+        body,
+        context=RequestContext.from_django_request(request),
+        invoice_file=invoice_file,
     )
     return GetInboundOrderResponse(data=updated_order)
 

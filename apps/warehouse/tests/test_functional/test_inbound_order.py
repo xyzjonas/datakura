@@ -90,28 +90,37 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     order_db.refresh_from_db()
     assert order_db.state == InboundOrderState.SUBMITTED
 
-    # 4. Create Inbound Warehouse Order (Receiving)
+    # 4. Create Inbound Warehouse Order (In Transit)
     res = warehouse_client.post(
         "/orders-incoming",
         json={
             "purchase_order_code": order_code,
-            "location_code": receiving_location.code,
         },
     )
     assert res.status_code == 200
     w_order_res = res.json()["data"]
     w_order_code = w_order_res["code"]
-    assert w_order_res["state"] == InboundWarehouseOrderState.DRAFT
+    assert w_order_res["state"] == InboundWarehouseOrderState.IN_TRANSIT
     assert w_order_res["order"]["state"] == InboundOrderState.RECEIVING
-    assert len(w_order_res["items"]) == 2
+    assert len(w_order_res["items"]) == 0
 
     order_db.refresh_from_db()
     w_order_db = InboundWarehouseOrder.objects.get(code=w_order_code)
-    assert w_order_db.state == InboundWarehouseOrderState.DRAFT
+    assert w_order_db.state == InboundWarehouseOrderState.IN_TRANSIT
     assert order_db.state == InboundOrderState.RECEIVING
     assert order_db.warehouse_orders.filter(code=w_order_code).exists()
 
-    # 5. Create Credit Note
+    # 5. Confirm arrival (creates receiving items)
+    res = warehouse_client.post(
+        f"/orders-incoming/{w_order_code}/state",
+        json={"state": "draft", "location_code": receiving_location.code},
+    )
+    assert res.status_code == 200
+    w_order_res = res.json()["data"]
+    assert w_order_res["state"] == InboundWarehouseOrderState.DRAFT
+    assert len(w_order_res["items"]) == 2
+
+    # 6. Create Credit Note
     item_to_return = next(
         item
         for item in w_order_res["items"]
@@ -135,7 +144,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
         str(item_to_return["amount"])
     ) - Decimal(return_amount)
 
-    # 6. Confirm Warehouse Order
+    # 7. Confirm Warehouse Order
     res = warehouse_client.post(
         f"/orders-incoming/{w_order_code}/state", json={"state": "pending"}
     )
@@ -145,7 +154,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     assert w_order_res["order"]["state"] == InboundOrderState.PUTAWAY
     assert w_order_res["credit_note"]["state"] == CreditNoteState.CONFIRMED
 
-    # 7. Putaway Items
+    # 8. Putaway Items
     items_to_putaway = w_order_res["items"]
     for i, item in enumerate(items_to_putaway):
         new_location = (
@@ -168,7 +177,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
             assert w_order_res["state"] == InboundWarehouseOrderState.COMPLETED
             assert w_order_res["order"]["state"] == InboundOrderState.COMPLETED
 
-    # 8. Final Verification
+    # 9. Final Verification
     res = warehouse_client.get(f"/locations/{storage_location_1.code}")
     assert res.status_code == 200
     location_1_items = res.json()["data"]["items"]

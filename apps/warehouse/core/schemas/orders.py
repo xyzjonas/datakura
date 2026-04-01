@@ -10,6 +10,7 @@ from .base_orders import (
     InboundWarehouseOrderBaseSchema,
     CreditNoteBaseSchema,
 )
+from .invoice import InvoiceSchema
 from .product import ProductSchema
 
 
@@ -55,6 +56,7 @@ class InboundOrderSchema(InboundOrderBaseSchema):
         default_factory=list
     )
     credit_note: CreditNoteBaseSchema | None = None
+    invoice: InvoiceSchema | None = None
 
 
 class GetInboundOrderResponse(BaseResponse):

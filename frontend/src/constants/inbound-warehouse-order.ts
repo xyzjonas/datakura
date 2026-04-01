@@ -10,6 +10,12 @@ export interface StateConfig {
 export const CANCELLED = 99
 
 export const INBOUND_WAREHOUSE_ORDER_STATES: Record<string, StateConfig> = {
+  'in transit': {
+    label: 'Na cestě',
+    icon: 'sym_o_delivery_truck_speed',
+    color: 'primary',
+    step: 0,
+  },
   draft: {
     label: 'Koncept',
     icon: 'sym_o_ink_pen',

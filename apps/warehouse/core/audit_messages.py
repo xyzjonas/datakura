@@ -54,6 +54,12 @@ class AuditMessages:
             AuditLanguage.CS: "Dobropis '{credit_note_code}' byl vytvořen pro příchozí objednávku",
         }
     )
+    INVOICE_STORED_FOR_INBOUND_ORDER = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Invoice '{invoice_code}' stored for inbound order",
+            AuditLanguage.CS: "Faktura '{invoice_code}' byla uložena pro příchozí objednávku",
+        }
+    )
     ITEM_PARTIALLY_MOVED = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Item partially moved",

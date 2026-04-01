@@ -1,6 +1,8 @@
 from __future__ import annotations
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.db.models import QuerySet
 from django.db.models.fields.related import ForeignKey
@@ -12,6 +14,10 @@ from .product import StockProduct
 
 if TYPE_CHECKING:
     from .warehouse import InboundWarehouseOrder  # noqa: F401
+
+
+def invoice_document_upload_to(instance: Invoice, filename: str) -> str:
+    return f"invoices/{instance.code}/{filename}"
 
 
 class InboundOrderState(models.TextChoices):
@@ -32,6 +38,59 @@ class CreditNoteState(models.TextChoices):
     CONFIRMED = "confirmed", "Confirmed"
 
 
+class InvoicePaymentMethod(BaseModel):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Invoice(BaseModel):
+    customer = models.ForeignKey(
+        Customer,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="customer_invoices",
+    )
+    supplier = models.ForeignKey(
+        Customer,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="supplier_invoices",
+    )
+    code = models.CharField(max_length=50, null=False, unique=True)
+    issued_date = models.DateField()
+    due_date = models.DateField()
+    payment_method = models.ForeignKey(
+        InvoicePaymentMethod,
+        null=False,
+        on_delete=models.PROTECT,
+        related_name="invoices",
+    )
+    external_code = models.CharField(max_length=50, null=True, blank=True)
+    taxable_supply_date = models.DateField()
+    paid_date = models.DateField(null=True, blank=True)
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
+    note = models.TextField(null=True, blank=True)
+    document = models.FileField(
+        upload_to=invoice_document_upload_to,
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=["pdf"])],
+    )
+
+    class Meta(BaseModel.Meta):
+        ordering = ["-issued_date", "-created"]
+
+    def __str__(self) -> str:
+        return self.code
+
+
 class InboundOrder(BaseModel):
     """Incoming order, or "purchase" order"""
 
@@ -41,6 +100,13 @@ class InboundOrder(BaseModel):
     )  # todo: add unique constraint
     description = models.TextField(null=True, blank=True)
     note = models.TextField(null=True, blank=True)
+    invoice = models.ForeignKey(
+        Invoice,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inbound_orders",
+    )
 
     supplier = models.ForeignKey(Customer, null=False, on_delete=models.PROTECT)
     items: QuerySet["InboundOrderItem"]
@@ -59,7 +125,7 @@ class InboundOrder(BaseModel):
     cancelled_date = models.DateTimeField(null=True, blank=True)
     received_date = models.DateTimeField(null=True, blank=True)
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         ordering = ["-created"]
 
     def __str__(self) -> str:
@@ -67,8 +133,9 @@ class InboundOrder(BaseModel):
 
     @property
     def warehouse_order_code(self) -> str | None:
-        if hasattr(self, "warehouse_order") and self.warehouse_order:
-            return self.warehouse_order.code
+        warehouse_order = getattr(self, "warehouse_order", None)
+        if warehouse_order:
+            return warehouse_order.code
         return None
 
 
@@ -87,10 +154,14 @@ class InboundOrderItem(BaseModel):
         related_name="items",
     )
     index = models.PositiveIntegerField(default=0)
-    unit_price = models.DecimalField(max_digits=10, decimal_places=4, default=0)
-    total_price = models.DecimalField(max_digits=12, decimal_places=4, default=0)
+    unit_price = models.DecimalField(
+        max_digits=10, decimal_places=4, default=Decimal("0")
+    )
+    total_price = models.DecimalField(
+        max_digits=12, decimal_places=4, default=Decimal("0")
+    )
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         ordering = ["index", "created"]
 
     def __str__(self):
@@ -129,7 +200,9 @@ class CreditNoteToSupplierItem(BaseModel):
         on_delete=models.CASCADE,
         related_name="items",
     )
-    unit_price = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    unit_price = models.DecimalField(
+        max_digits=10, decimal_places=4, default=Decimal("0")
+    )
 
     def __str__(self):
         return f"{self.amount} × {self.stock_product.name}"

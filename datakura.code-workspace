@@ -14,6 +14,7 @@
       "just": true,
       "uv": true,
       "npm run type-check": true,
+      "npm run openapi-ts": true,
     },
   },
 }

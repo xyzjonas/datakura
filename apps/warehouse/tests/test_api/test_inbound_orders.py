@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from ninja.testing import TestClient
 
@@ -7,7 +8,7 @@ from apps.warehouse.api.routes.inbound_orders import routes
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
-from apps.warehouse.tests.factories.order import InboundOrderFactory
+from apps.warehouse.tests.factories.order import InboundOrderFactory, InvoiceFactory
 from apps.warehouse.tests.factories.order import InboundOrderItemFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
 
@@ -85,3 +86,55 @@ def test_get_inbound_orders_filter_by_stock_product_code_and_search_term(db) -> 
     data = res.json()["data"]
     assert len(data) == 1
     assert data[0]["code"] == matching_order.code
+
+
+def test_get_inbound_order_includes_invoice(db, settings, tmp_path) -> None:
+    settings.MEDIA_ROOT = tmp_path
+    settings.MEDIA_URL = "/media/"
+
+    invoice = InvoiceFactory.it(code="INV-API-0001")
+    invoice.document.save(
+        "invoice.pdf",
+        SimpleUploadedFile(
+            "invoice.pdf",
+            b"%PDF-1.4 api test invoice",
+            content_type="application/pdf",
+        ),
+        save=True,
+    )
+    order = InboundOrderFactory.it(invoice=invoice)
+    client = TestClient(routes)
+
+    res = client.get(f"/{order.code}")
+
+    assert res.status_code == 200
+    invoice_data = res.json()["data"]["invoice"]
+    assert invoice_data["code"] == invoice.code
+    assert invoice_data["payment_method"]["name"] == invoice.payment_method.name
+    assert invoice_data["document"]["name"] == "invoice.pdf"
+    assert invoice_data["document"]["url"].endswith("invoice.pdf")
+
+
+def test_store_inbound_order_invoice(db) -> None:
+    client = TestClient(routes)
+    order = InboundOrderFactory.it()
+
+    res = client.post(
+        f"/{order.code}/invoice",
+        data={
+            "code": "INV-POST-0001",
+            "issued_date": "2026-04-01",
+            "due_date": "2026-04-15",
+            "payment_method_name": "Bank transfer",
+            "external_code": "POST-EXT-001",
+            "taxable_supply_date": "2026-04-01",
+            "currency": "CZK",
+            "note": "Stored through API",
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["invoice"]["code"] == "INV-POST-0001"
+    assert data["invoice"]["payment_method"]["name"] == "Bank transfer"
+    assert data["invoice"]["document"] is None

@@ -17,6 +17,11 @@ class BaseSchema(Schema):
         return dt.replace(microsecond=0)
 
 
+class MediaFileSchema(Schema):
+    name: str
+    url: str
+
+
 class ErrorInformation(Schema):
     error_code: str
     message: str

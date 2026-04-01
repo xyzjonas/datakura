@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import cast
 
 from django.db.models import F
 
+from apps.warehouse.core.schemas.base import MediaFileSchema
 from apps.warehouse.core.schemas.base_orders import (
     InboundWarehouseOrderBaseSchema,
     InboundOrderBaseSchema,
@@ -20,6 +22,10 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderItemSchema,
 )
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
+from apps.warehouse.core.schemas.invoice import (
+    InvoicePaymentMethodSchema,
+    InvoiceSchema,
+)
 from apps.warehouse.core.schemas.group import ProductGroupSchema
 from apps.warehouse.core.schemas.type import ProductTypeSchema
 from apps.warehouse.core.schemas.product import (
@@ -46,6 +52,8 @@ from apps.warehouse.models.orders import (
     InboundOrderState,
     CreditNoteToSupplier,
     CreditNoteState,
+    Invoice,
+    InvoicePaymentMethod,
 )
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import (
@@ -89,6 +97,45 @@ def barcode_orm_to_schema(barcode: Barcode | None = None) -> BarcodeSchema | Non
         is_primary=barcode.is_primary,
         created=barcode.created,
         changed=barcode.changed,
+    )
+
+
+def invoice_payment_method_orm_to_schema(
+    payment_method: InvoicePaymentMethod,
+) -> InvoicePaymentMethodSchema:
+    return InvoicePaymentMethodSchema(
+        id=payment_method.pk,
+        name=payment_method.name,
+        created=payment_method.created,
+        changed=payment_method.changed,
+    )
+
+
+def invoice_document_to_schema(invoice: Invoice) -> MediaFileSchema | None:
+    if not invoice.document:
+        return None
+    return MediaFileSchema(
+        name=Path(invoice.document.name).name,
+        url=invoice.document.url,
+    )
+
+
+def invoice_orm_to_schema(invoice: Invoice) -> InvoiceSchema:
+    return InvoiceSchema(
+        code=invoice.code,
+        customer=customer_orm_to_schema(invoice.customer) if invoice.customer else None,
+        supplier=customer_orm_to_schema(invoice.supplier) if invoice.supplier else None,
+        issued_date=invoice.issued_date,
+        due_date=invoice.due_date,
+        payment_method=invoice_payment_method_orm_to_schema(invoice.payment_method),
+        external_code=invoice.external_code,
+        taxable_supply_date=invoice.taxable_supply_date,
+        paid_date=invoice.paid_date,
+        currency=invoice.currency,
+        note=invoice.note,
+        document=invoice_document_to_schema(invoice),
+        created=invoice.created,
+        changed=invoice.changed,
     )
 
 
@@ -364,7 +411,7 @@ def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
                 for child in wo.derived_orders.all()
             ],
         )
-        for wo in order.warehouse_orders.all()
+        for wo in order.warehouse_orders.order_by("-created").all()
     ]
     return InboundOrderSchema(
         created=order.created,
@@ -382,6 +429,7 @@ def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
         credit_note=credit_note_supplier_orm_to_base_schema(order.credit_note)
         if getattr(order, "credit_note", None)
         else None,
+        invoice=invoice_orm_to_schema(order.invoice) if order.invoice else None,
         requested_delivery_date=order.requested_delivery_date,
         cancelled_date=order.cancelled_date,
         received_date=order.received_date,

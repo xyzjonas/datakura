@@ -123,11 +123,11 @@ class InboundWarehouseOrderUpdateSchema(Schema):
 
 class InboundWarehouseOrderSetStateSchema(Schema):
     state: InboundWarehouseOrderState
+    location_code: str | None = None
 
 
 class WarehouseOrderCreateSchema(Schema):
     purchase_order_code: str
-    location_code: str
 
 
 class WarehouseItemGetOrCreateSchema(Schema):

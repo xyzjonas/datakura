@@ -20,7 +20,10 @@ from apps.warehouse.models.warehouse import (
     WarehouseItem,
     WarehouseMovement,
 )
-from apps.warehouse.tests.factories.order import InboundOrderItemFactory
+from apps.warehouse.tests.factories.order import (
+    InboundOrderFactory,
+    InboundOrderItemFactory,
+)
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
     WarehouseItemFactory,
@@ -295,3 +298,44 @@ def test_get_inbound_warehouse_orders_list_includes_movements(db, client) -> Non
     assert len(matching[0]["movements"]) == 1
     movement = matching[0]["movements"][0]
     assert movement["amount"] == 3
+
+
+def test_transition_inbound_order_from_in_transit_to_draft_creates_items(db, client):
+    receiving_location = WarehouseLocationFactory(is_putaway=True)
+    inbound_order = InboundOrderFactory()
+    InboundOrderItemFactory.create_batch(2, order=inbound_order)
+    warehouse_order = InboundWarehouseOrderFactory(
+        order=inbound_order,
+        state=InboundWarehouseOrderState.IN_TRANSIT,
+    )
+
+    res = client.post(
+        f"orders-incoming/{warehouse_order.code}/state",
+        json={"state": "draft", "location_code": receiving_location.code},
+    )
+
+    assert res.status_code == 200
+    warehouse_order.refresh_from_db()
+    assert warehouse_order.state == InboundWarehouseOrderState.DRAFT
+    assert warehouse_order.items.count() == 2
+    assert all(
+        item.location.code == receiving_location.code
+        for item in warehouse_order.items.all()
+    )
+
+
+def test_transition_inbound_order_from_in_transit_to_draft_requires_location(
+    db, client
+):
+    inbound_order = InboundOrderFactory()
+    InboundOrderItemFactory.create_batch(1, order=inbound_order)
+    warehouse_order = InboundWarehouseOrderFactory(
+        order=inbound_order,
+        state=InboundWarehouseOrderState.IN_TRANSIT,
+    )
+
+    with pytest.raises(WarehouseGenericError):
+        client.post(
+            f"orders-incoming/{warehouse_order.code}/state",
+            json={"state": "draft"},
+        )

@@ -1,34 +1,25 @@
 <template>
   <ConfirmDialog
     v-model:show="show"
-    title="Vytovřit příjemku?"
-    @confirm="$emit('confirm', locationCode)"
+    title="Potvrdit přechod do příjmu?"
+    @confirm="$emit('confirm')"
   >
     <span>
-      Nová příjemka bude založena a objednávka přejde do stavu
-      <strong class="text-primary">příjem</strong>.
-
-      <q-input
-        outlined
-        v-model="locationCode"
-        label="Skladové místo"
-        hint="Skladové místo, kde bude vydaná objednávka uložena k naskladnění"
-        class="mt-5"
-      ></q-input>
+      Objednávka přejde do stavu <InboundOrderStateBadge state="receiving" /> a následně bude
+      založena příjemka.
     </span>
   </ConfirmDialog>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
+import InboundOrderStateBadge from './InboundOrderStateBadge.vue'
 
 const show = defineModel<boolean>('show', { default: false })
-defineEmits<{
-  (e: 'confirm', locationCode: string): void
-}>()
 
-const locationCode = ref('AA-00-00')
+defineEmits<{
+  (e: 'confirm'): void
+}>()
 </script>
 
 <style lang="scss" scoped></style>

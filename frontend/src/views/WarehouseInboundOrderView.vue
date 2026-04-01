@@ -34,7 +34,16 @@
       </div>
       <div class="flex gap-2 items-center">
         <q-btn
-          v-if="step === 1"
+          v-if="order.state === 'in transit'"
+          unelevated
+          color="primary"
+          icon="sym_o_local_shipping"
+          label="potvrdit příjezd"
+          @click="confirmDialog = true"
+          class="ml-auto"
+        />
+        <q-btn
+          v-else-if="step === 1"
           unelevated
           color="positive"
           icon="sym_o_order_approve"
@@ -66,9 +75,9 @@
         :inbound-order="order.order"
         show-credit-note
         :credit-note="order.credit_note"
-        show-parent-warehouse-order
+        :show-parent-warehouse-order="!!order.parent_order"
         :parent-warehouse-order="order.parent_order"
-        show-child-warehouse-orders
+        :show-child-warehouse-orders="!!order.child_orders?.length"
         :child-warehouse-orders="order.child_orders"
         class="flex-1"
       />
@@ -121,10 +130,17 @@
 
     <ConfirmDialog
       v-model:show="confirmDialog"
-      title="Potvrdit příjemku"
-      @confirm="transitionOrder('pending')"
+      :title="order.state === 'in transit' ? 'Potvrdit příjezd zboží' : 'Potvrdit příjemku'"
+      @confirm="onConfirmDialog"
     >
-      <span>
+      <div v-if="order.state === 'in transit'" class="flex flex-col gap-4">
+        <span>
+          Příjemka bude označena jako <InboundWarehouseOrderStateBadge state="draft" /> a vytvoří se
+          položky na zvoleném příjmovém místě.
+        </span>
+        <ReceivingLocationSelect v-model="arrivalLocationCode" />
+      </div>
+      <span v-else>
         Příjemka bude označena jako <InboundWarehouseOrderStateBadge state="pending" /> a pracovník
         na příjmu může začít s přesunem zboží. Po tomto kroku již nebude možné příjemku upravovat.
       </span>
@@ -173,6 +189,7 @@ import OrderProgress from '@/components/OrderProgress.vue'
 import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehouseOrderItemsList.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import InboundWarehouseOrderTimeline from '@/components/putaway/InboundWarehouseOrderTimeline.vue'
+import ReceivingLocationSelect from '@/components/selects/ReceivingLocationSelect.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import WarehouseMovementItem from '@/components/warehouse/WarehouseMovementItem.vue'
 import { useApi } from '@/composables/use-api'
@@ -201,6 +218,7 @@ const todoItems = computed(() => (order.value?.items ?? []).filter((it) => it.lo
 const movements = computed(() => order.value?.movements ?? [])
 
 const step = computed(() => getInboundWarehouseOrderStep(order.value))
+const arrivalLocationCode = ref<string>()
 
 const updateOrderItems = async (item: WarehouseItemSchema, toBeAdded: WarehouseItemSchema[]) => {
   if (!order.value) {
@@ -224,15 +242,28 @@ const updateOrderItems = async (item: WarehouseItemSchema, toBeAdded: WarehouseI
 const confirmDialog = ref(false)
 const resetDialog = ref(false)
 const auditDialog = ref(false)
-const transitionOrder = async (state: 'pending' | 'draft') => {
+const transitionOrder = async (
+  state: 'pending' | 'draft',
+  locationCode: string | undefined = undefined,
+) => {
   if (!order.value) {
     return
   }
+
+  if (state === 'draft' && order.value.state === 'in transit' && !locationCode) {
+    $q.notify({
+      type: 'negative',
+      message: 'Vyberte příjmové místo',
+    })
+    return
+  }
+
   const data = onResponse(
     await warehouseApiRoutesWarehouseTransitionInboundWarehouseOrder({
       path: { code: order.value.code },
       body: {
         state: state,
+        location_code: locationCode,
       },
     }),
   )
@@ -244,6 +275,15 @@ const transitionOrder = async (state: 'pending' | 'draft') => {
     message: 'Nový stav zaznamenán',
     caption: `Příjemka ${order.value.code}`,
   })
+}
+
+const onConfirmDialog = async () => {
+  if (order.value?.state === 'in transit') {
+    await transitionOrder('draft', arrivalLocationCode.value)
+    return
+  }
+
+  await transitionOrder('pending')
 }
 
 const dissolveItem = async (itemId: number) => {

@@ -2,8 +2,10 @@ from datetime import datetime
 from typing import cast
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
+from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
     InboundOrderItemCreateSchema,
     InboundOrderCreateOrUpdateSchema,
@@ -23,6 +25,7 @@ from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
     InboundOrderItemFactory,
     CreditNoteSupplierFactory,
+    InvoiceFactory,
 )
 from apps.warehouse.tests.factories.product import StockProductFactory
 
@@ -289,3 +292,88 @@ def test_create_credit_note_exist(db, context):
     assert not created
     assert CreditNoteToSupplier.objects.count() == 1
     assert len(result.items) == 1
+
+
+def test_store_invoice_creates_and_attaches_to_inbound_order(
+    db, context, settings, tmp_path
+):
+    settings.MEDIA_ROOT = tmp_path
+    settings.MEDIA_URL = "/media/"
+
+    order = InboundOrderFactory()
+    customer = CustomerFactoryMinimal()
+    supplier = CustomerFactoryMinimal()
+
+    result = inbound_orders_service.store_invoice(
+        order.code,
+        InvoiceStoreSchema(
+            customer_code=customer.code,
+            supplier_code=supplier.code,
+            code="INV-STORE-0001",
+            issued_date=datetime(2026, 3, 10).date(),
+            due_date=datetime(2026, 3, 31).date(),
+            payment_method_name="Bank transfer",
+            external_code="SUP-INV-001",
+            taxable_supply_date=datetime(2026, 3, 10).date(),
+            paid_date=None,
+            currency="CZK",
+            note="March invoice",
+        ),
+        context=context,
+        invoice_file=SimpleUploadedFile(
+            "invoice.pdf",
+            b"%PDF-1.4 test invoice",
+            content_type="application/pdf",
+        ),
+    )
+
+    order.refresh_from_db()
+
+    assert order.invoice is not None
+    assert order.invoice.code == "INV-STORE-0001"
+    assert order.invoice.customer == customer
+    assert order.invoice.supplier == supplier
+    assert order.invoice.payment_method.name == "Bank transfer"
+    assert order.invoice.document.name.endswith("invoice.pdf")
+    assert result.invoice is not None
+    assert result.invoice.document is not None
+    assert result.invoice.document.name == "invoice.pdf"
+    assert result.invoice.document.url.endswith("invoice.pdf")
+
+
+def test_store_invoice_updates_existing_invoice(db, context, settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    settings.MEDIA_URL = "/media/"
+
+    invoice = InvoiceFactory.it(code="INV-EXISTING-0001")
+    order = InboundOrderFactory.it(invoice=invoice)
+
+    result = inbound_orders_service.store_invoice(
+        order.code,
+        InvoiceStoreSchema(
+            customer_code=None,
+            supplier_code=None,
+            code="INV-EXISTING-0001",
+            issued_date=datetime(2026, 4, 1).date(),
+            due_date=datetime(2026, 4, 15).date(),
+            payment_method_name="Cash",
+            external_code="UPDATED-EXT-001",
+            taxable_supply_date=datetime(2026, 4, 1).date(),
+            paid_date=datetime(2026, 4, 3).date(),
+            currency="EUR",
+            note="Updated invoice",
+        ),
+        context=context,
+    )
+
+    order.refresh_from_db()
+    invoice.refresh_from_db()
+
+    assert order.invoice_id == invoice.id
+    assert invoice.customer is None
+    assert invoice.supplier is None
+    assert invoice.payment_method.name == "Cash"
+    assert invoice.external_code == "UPDATED-EXT-001"
+    assert invoice.currency == "EUR"
+    assert result.invoice is not None
+    assert result.invoice.payment_method.name == "Cash"

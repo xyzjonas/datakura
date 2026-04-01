@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import MissingSettingsTab from '@/components/settings/MissingSettingsTab.vue'
 import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue'
+import PaymentSettingsTab from '@/components/settings/PaymentSettingsTab.vue'
 import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
 import { computed, shallowRef, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -46,7 +47,7 @@ const route = useRoute()
 const router = useRouter()
 const selectedTabComponent = shallowRef<Component>()
 
-const validTabs = new Set(['location', 'packaging', 'products', 'users'])
+const validTabs = new Set(['location', 'packaging', 'products', 'payments', 'users'])
 
 const selectedTab = computed<string>({
   get() {
@@ -73,6 +74,8 @@ watch(
       selectedTabComponent.value = PackagingSettingsTab
     } else if (value === 'products') {
       selectedTabComponent.value = ProductSettingsTab
+    } else if (value === 'payments') {
+      selectedTabComponent.value = PaymentSettingsTab
     } else {
       selectedTabComponent.value = MissingSettingsTab
     }
@@ -95,6 +98,11 @@ const items = [
     key: 'products',
     label: 'produkty',
     icon: 'sym_o_shopping_cart',
+  },
+  {
+    key: 'payments',
+    label: 'platby',
+    icon: 'sym_o_payments',
   },
   {
     key: 'users',

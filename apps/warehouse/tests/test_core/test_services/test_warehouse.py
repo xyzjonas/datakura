@@ -54,13 +54,26 @@ def test_create_warehouse_inbound_order(context):
     InboundOrderItemFactory.create_batch(10, order=order)
 
     result = warehouse_service.create_inbound_order(
-        WarehouseOrderCreateSchema(
-            purchase_order_code=order.code, location_code=putaway.code
-        ),
+        WarehouseOrderCreateSchema(purchase_order_code=order.code),
         context=context,
     )
 
+    assert len(result.items) == 0
+    assert result.state == InboundWarehouseOrderState.IN_TRANSIT
+
+    warehouse_service.confirm_arrival(result.code, putaway.code, context=context)
+    result = warehouse_service.get_inbound_warehouse_order(result.code)
+
+    assert result.state == InboundWarehouseOrderState.DRAFT
     assert len(result.items) == 10
+
+
+def test_confirm_arrival_requires_in_transit_state(db, context):
+    order = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.DRAFT)
+    location = WarehouseLocationFactory()
+
+    with pytest.raises(WarehouseGenericError):
+        warehouse_service.confirm_arrival(order.code, location.code, context=context)
 
 
 @pytest.mark.parametrize("items_amount, amount", [(3, 99), (0, 10), (3, 1.2)])

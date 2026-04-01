@@ -10,7 +10,6 @@ from apps.warehouse.api.pagination import (
     WarehouseLocationsPagination,
 )
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
-from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.warehouse import (
     GetWarehouseLocationResponse,
@@ -40,7 +39,6 @@ from apps.warehouse.models.warehouse import (
     Warehouse,
     WarehouseLocation,
     InboundWarehouseOrder,
-    InboundWarehouseOrderState,
 )
 
 routes = Router(tags=["warehouse"])
@@ -271,16 +269,12 @@ def remove_from_order_to_credit_note(
 def transition_inbound_warehouse_order(
     request: HttpRequest, code: str, body: InboundWarehouseOrderSetStateSchema
 ):
-    if body.state == InboundWarehouseOrderState.DRAFT:
-        warehouse_service.reset_to_draft(
-            code, context=RequestContext.from_django_request(request)
-        )
-    elif body.state == InboundWarehouseOrderState.PENDING:
-        warehouse_service.confirm_draft(
-            code, context=RequestContext.from_django_request(request)
-        )
-    else:
-        raise WarehouseGenericError(f"Unsupported state transition '{body.state}'")
+    warehouse_service.set_order_state(
+        code,
+        target_state=body.state,
+        context=RequestContext.from_django_request(request),
+        location_code=body.location_code,
+    )
 
     return GetWarehouseOrderResponse(
         data=warehouse_service.get_inbound_warehouse_order(code)

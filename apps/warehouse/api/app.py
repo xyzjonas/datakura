@@ -13,6 +13,7 @@ from .routes.inbound_orders import routes as orders_routes
 from .routes.packaging import routes as packaging_routes
 from .routes.credit_notes import routes as credit_notes_routes
 from .routes.analytics import routes as analytics_routes
+from .routes.invoice_payment_methods import routes as invoice_payment_method_routes
 
 
 api = NinjaAPI(
@@ -32,6 +33,7 @@ api.add_router(router=orders_routes, prefix="orders")
 api.add_router(router=packaging_routes, prefix="packaging")
 api.add_router(router=credit_notes_routes, prefix="credit-notes")
 api.add_router(router=analytics_routes, prefix="analytics")
+api.add_router(router=invoice_payment_method_routes, prefix="invoice-payment-methods")
 
 
 @api.exception_handler(ApiBaseException)

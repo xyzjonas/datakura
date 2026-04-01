@@ -2,8 +2,8 @@
   <q-select
     ref="itemSelect"
     outlined
-    :label="modelValue ? modelValue.code : 'Vyhledat zákazníka'"
-    hint="Vyhledat zákazníka podle názvu, kódu, IČO nebo DIČ."
+    :label="label"
+    :hint="hint"
     v-model="modelValue"
     :options="options"
     option-label="name"
@@ -15,7 +15,7 @@
     autofocus
     @update:model-value="onSelectChange"
     clear-icon="sym_o_close_small"
-    :rules="[rules.notEmpty]"
+    :rules="required ? [rules.notEmpty] : []"
   >
     <template v-slot:no-option>
       <q-item>
@@ -32,6 +32,19 @@ import type { QSelect } from 'quasar'
 import { nextTick, ref } from 'vue'
 
 const MAX_LEN = 5
+
+withDefaults(
+  defineProps<{
+    label?: string
+    hint?: string
+    required?: boolean
+  }>(),
+  {
+    label: 'Vyhledat zákazníka',
+    hint: 'Vyhledat subjekt podle názvu, kódu, IČO nebo DIČ.',
+    required: true,
+  },
+)
 
 const modelValue = defineModel<CustomerSchema>()
 

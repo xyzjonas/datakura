@@ -2,6 +2,7 @@ from calendar import monthrange
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
+from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Q, QuerySet
 from django.template.loader import get_template
@@ -11,6 +12,7 @@ from loguru import logger
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
+from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
     InboundOrderItemCreateSchema,
     InboundOrderItemSchema,
@@ -33,6 +35,8 @@ from apps.warehouse.models.orders import (
     InboundOrderState,
     CreditNoteToSupplier,
     CreditNoteState,
+    Invoice,
+    InvoicePaymentMethod,
 )
 from apps.warehouse.models.product import StockProduct
 
@@ -61,9 +65,12 @@ class OrdersService:
         search_term: str | None = None,
         stock_product_code: str | None = None,
     ) -> QuerySet[InboundOrder]:
-        qs = InboundOrder.objects.select_related("supplier").exclude(
-            state__in=[InboundOrderState.CANCELLED, InboundOrderState.COMPLETED]
-        )
+        qs = InboundOrder.objects.select_related(
+            "supplier",
+            "invoice__customer",
+            "invoice__supplier",
+            "invoice__payment_method",
+        ).exclude(state__in=[InboundOrderState.CANCELLED, InboundOrderState.COMPLETED])
 
         if search_term:
             search_term = search_term.lower()
@@ -77,6 +84,12 @@ class OrdersService:
             qs = qs.filter(items__stock_product__code=stock_product_code).distinct()
 
         return qs
+
+    @staticmethod
+    def _get_customer_or_none(customer_code: str | None) -> Customer | None:
+        if not customer_code:
+            return None
+        return Customer.objects.get(code=customer_code)
 
     @staticmethod
     def generate_next_incoming_order_code() -> str:
@@ -319,6 +332,70 @@ class OrdersService:
             result = credit_note_supplier_orm_to_schema(order.credit_note)
 
         return result, created
+
+    @classmethod
+    def store_invoice(
+        cls,
+        order_code: str,
+        params: InvoiceStoreSchema,
+        context: RequestContext,
+        invoice_file: UploadedFile | None = None,
+    ) -> InboundOrderSchema:
+        order = InboundOrder.objects.select_related("invoice").get(code=order_code)
+        previous_invoice_code = order.invoice.code if order.invoice else None
+
+        customer = cls._get_customer_or_none(params.customer_code)
+        supplier = cls._get_customer_or_none(params.supplier_code)
+        payment_method, _ = InvoicePaymentMethod.objects.get_or_create(
+            name=params.payment_method_name
+        )
+
+        with transaction.atomic():
+            if order.invoice:
+                invoice = order.invoice
+            else:
+                invoice = Invoice()
+
+            invoice.customer = customer
+            invoice.supplier = supplier
+            invoice.code = params.code
+            invoice.issued_date = params.issued_date
+            invoice.due_date = params.due_date
+            invoice.payment_method = payment_method
+            invoice.external_code = params.external_code
+            invoice.taxable_supply_date = params.taxable_supply_date
+            invoice.paid_date = params.paid_date
+            invoice.currency = params.currency
+            invoice.note = params.note
+
+            if invoice_file is not None:
+                if invoice.pk and invoice.document:
+                    invoice.document.delete(save=False)
+                invoice.document = invoice_file
+
+            invoice.save()
+
+            if order.invoice_id != invoice.pk:
+                order.invoice = invoice
+                order.save(update_fields=["invoice", "changed"])
+
+            audit_service.add_entry(
+                order,
+                user=context.user_id,
+                action=AuditAction.UPDATE,
+                reason=AuditMessages.INVOICE_STORED_FOR_INBOUND_ORDER.CS.format(
+                    invoice_code=invoice.code
+                ),
+                changes={
+                    "invoice": {
+                        "old": previous_invoice_code,
+                        "new": invoice.code,
+                    }
+                },
+            )
+
+        order.refresh_from_db()
+        return inbound_order_orm_to_schema(order)
 
 
 inbound_orders_service = OrdersService()

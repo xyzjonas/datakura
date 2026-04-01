@@ -1068,10 +1068,6 @@ export type WarehouseOrderCreateSchema = {
      * Purchase Order Code
      */
     purchase_order_code: string;
-    /**
-     * Location Code
-     */
-    location_code: string;
 };
 
 /**
@@ -1166,6 +1162,10 @@ export type RemoveItemToCreditNoteRequest = {
  */
 export type InboundWarehouseOrderSetStateSchema = {
     state: InboundWarehouseOrderState;
+    /**
+     * Location Code
+     */
+    location_code?: string | null;
 };
 
 /**
@@ -1784,6 +1784,93 @@ export type InboundOrderSchema = {
      */
     warehouse_orders?: Array<InboundWarehouseOrderBaseSchema>;
     credit_note?: CreditNoteBaseSchema | null;
+    invoice?: InvoiceSchema | null;
+};
+
+/**
+ * InvoicePaymentMethodSchema
+ */
+export type InvoicePaymentMethodSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * InvoiceSchema
+ */
+export type InvoiceSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    customer?: CustomerSchema | null;
+    supplier?: CustomerSchema | null;
+    /**
+     * Issued Date
+     */
+    issued_date: string;
+    /**
+     * Due Date
+     */
+    due_date: string;
+    payment_method: InvoicePaymentMethodSchema;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Taxable Supply Date
+     */
+    taxable_supply_date: string;
+    /**
+     * Paid Date
+     */
+    paid_date?: string | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Note
+     */
+    note?: string | null;
+    document?: MediaFileSchema | null;
+};
+
+/**
+ * MediaFileSchema
+ */
+export type MediaFileSchema = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Url
+     */
+    url: string;
 };
 
 /**
@@ -1858,6 +1945,56 @@ export type InboundOrderCreateOrUpdateSchema = {
      * Requested Delivery Date
      */
     requested_delivery_date?: string | null;
+};
+
+/**
+ * InvoiceStoreSchema
+ */
+export type InvoiceStoreSchema = {
+    /**
+     * Customer Code
+     */
+    customer_code?: string | null;
+    /**
+     * Supplier Code
+     */
+    supplier_code?: string | null;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Issued Date
+     */
+    issued_date: string;
+    /**
+     * Due Date
+     */
+    due_date: string;
+    /**
+     * Payment Method Name
+     */
+    payment_method_name: string;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Taxable Supply Date
+     */
+    taxable_supply_date: string;
+    /**
+     * Paid Date
+     */
+    paid_date?: string | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Note
+     */
+    note?: string | null;
 };
 
 /**
@@ -2166,6 +2303,55 @@ export type GetCreditNoteToSupplierResponse = {
     success?: boolean;
     error?: ErrorInformation | null;
     data: CreditNoteSupplierSchema;
+};
+
+/**
+ * PagedInvoicePaymentMethodSchema
+ */
+export type PagedInvoicePaymentMethodSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<InvoicePaymentMethodSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetInvoicePaymentMethodResponse
+ */
+export type GetInvoicePaymentMethodResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: InvoicePaymentMethodSchema;
+};
+
+/**
+ * InvoicePaymentMethodCreateOrUpdateSchema
+ */
+export type InvoicePaymentMethodCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
 };
 
 export type WarehouseApiRoutesAuthLoginUserData = {
@@ -3174,6 +3360,80 @@ export type WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponses = {
 
 export type WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponse = WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponses[keyof WarehouseApiRoutesInboundOrdersGetInboundOrderAuditsResponses];
 
+export type WarehouseApiRoutesInboundOrdersStoreInboundOrderInvoiceData = {
+    /**
+     * FormParams
+     */
+    body: {
+        /**
+         * Customer Code
+         */
+        customer_code?: string | null;
+        /**
+         * Supplier Code
+         */
+        supplier_code?: string | null;
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Issued Date
+         */
+        issued_date: string;
+        /**
+         * Due Date
+         */
+        due_date: string;
+        /**
+         * Payment Method Name
+         */
+        payment_method_name: string;
+        /**
+         * External Code
+         */
+        external_code?: string | null;
+        /**
+         * Taxable Supply Date
+         */
+        taxable_supply_date: string;
+        /**
+         * Paid Date
+         */
+        paid_date?: string | null;
+        /**
+         * Currency
+         */
+        currency: string;
+        /**
+         * Note
+         */
+        note?: string | null;
+    };
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: {
+        /**
+         * Invoice File
+         */
+        invoice_file?: Blob | File | null;
+    };
+    url: '/api/v1/orders/{order_code}/invoice';
+};
+
+export type WarehouseApiRoutesInboundOrdersStoreInboundOrderInvoiceResponses = {
+    /**
+     * OK
+     */
+    200: GetInboundOrderResponse;
+};
+
+export type WarehouseApiRoutesInboundOrdersStoreInboundOrderInvoiceResponse = WarehouseApiRoutesInboundOrdersStoreInboundOrderInvoiceResponses[keyof WarehouseApiRoutesInboundOrdersStoreInboundOrderInvoiceResponses];
+
 export type WarehouseApiRoutesInboundOrdersGetInboundOrderPdfData = {
     body?: never;
     path: {
@@ -3498,3 +3758,90 @@ export type WarehouseApiRoutesAnalyticsGetAnalyticsResponses = {
      */
     200: unknown;
 };
+
+export type WarehouseApiRoutesInvoicePaymentMethodsGetInvoicePaymentMethodsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/invoice-payment-methods';
+};
+
+export type WarehouseApiRoutesInvoicePaymentMethodsGetInvoicePaymentMethodsResponses = {
+    /**
+     * OK
+     */
+    200: PagedInvoicePaymentMethodSchema;
+};
+
+export type WarehouseApiRoutesInvoicePaymentMethodsGetInvoicePaymentMethodsResponse = WarehouseApiRoutesInvoicePaymentMethodsGetInvoicePaymentMethodsResponses[keyof WarehouseApiRoutesInvoicePaymentMethodsGetInvoicePaymentMethodsResponses];
+
+export type WarehouseApiRoutesInvoicePaymentMethodsCreateInvoicePaymentMethodData = {
+    body: InvoicePaymentMethodCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/invoice-payment-methods';
+};
+
+export type WarehouseApiRoutesInvoicePaymentMethodsCreateInvoicePaymentMethodResponses = {
+    /**
+     * OK
+     */
+    200: GetInvoicePaymentMethodResponse;
+};
+
+export type WarehouseApiRoutesInvoicePaymentMethodsCreateInvoicePaymentMethodResponse = WarehouseApiRoutesInvoicePaymentMethodsCreateInvoicePaymentMethodResponses[keyof WarehouseApiRoutesInvoicePaymentMethodsCreateInvoicePaymentMethodResponses];
+
+export type WarehouseApiRoutesInvoicePaymentMethodsDeleteInvoicePaymentMethodData = {
+    body?: never;
+    path: {
+        /**
+         * Method Id
+         */
+        method_id: number;
+    };
+    query?: never;
+    url: '/api/v1/invoice-payment-methods/{method_id}';
+};
+
+export type WarehouseApiRoutesInvoicePaymentMethodsDeleteInvoicePaymentMethodResponses = {
+    /**
+     * OK
+     */
+    200: EmptyResponse;
+};
+
+export type WarehouseApiRoutesInvoicePaymentMethodsDeleteInvoicePaymentMethodResponse = WarehouseApiRoutesInvoicePaymentMethodsDeleteInvoicePaymentMethodResponses[keyof WarehouseApiRoutesInvoicePaymentMethodsDeleteInvoicePaymentMethodResponses];
+
+export type WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodData = {
+    body: InvoicePaymentMethodCreateOrUpdateSchema;
+    path: {
+        /**
+         * Method Id
+         */
+        method_id: number;
+    };
+    query?: never;
+    url: '/api/v1/invoice-payment-methods/{method_id}';
+};
+
+export type WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponses = {
+    /**
+     * OK
+     */
+    200: GetInvoicePaymentMethodResponse;
+};
+
+export type WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponse = WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponses[keyof WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponses];

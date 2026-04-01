@@ -59,10 +59,18 @@
           :disable="order.items?.length === 0"
         ></q-btn>
         <q-btn
-          v-if="getInboundOrderStep(order) === 2"
+          v-if="getInboundOrderStep(order) === 2 && !order.invoice"
+          unelevated
+          color="primary"
+          label="Připojit fakturu"
+          icon="sym_o_receipt_long"
+          @click="attachInvoiceDialog = true"
+        />
+        <q-btn
+          v-if="getInboundOrderStep(order) === 2 && !!order.invoice"
           unelevated
           color="positive"
-          label="Zboží dorazilo na příjem"
+          label="Potvrdit"
           icon="sym_o_check"
           @click="createWarehouseOrderDialog = true"
         />
@@ -76,6 +84,8 @@
         :warehouse-orders="order.warehouse_orders"
         show-credit-note
         :credit-note="order.credit_note"
+        show-invoice
+        :invoice="order.invoice"
       />
     </div>
 
@@ -123,8 +133,8 @@
     />
     <ConfirmDialog v-model="confirmDialog" title="Potvrdit vydanou objednávku?" @confirm="confirm">
       <span
-        >objednávka přejde do stavu <strong class="text-primary">potvrzeno</strong> a nebude možné
-        ji dále editovat!</span
+        >objednávka přejde do stavu <InboundOrderStateBadge state="submitted" /> a nebude možné ji
+        dále editovat!</span
       >
     </ConfirmDialog>
     <ConfirmDialog
@@ -133,13 +143,19 @@
       @confirm="cancel"
     >
       <span
-        >objednávka bude označena jako <strong class="text-red">zrušeno</strong> a bude archivována
-        (zmizí z výpisu objednávek).</span
+        >objednávka bude označena jako <InboundOrderStateBadge state="cancelled" /> a bude
+        archivována - zmizí z výpisu objednávek.</span
       >
     </ConfirmDialog>
-    <InboundOrderPutawayDialog
-      v-model:show="createWarehouseOrderDialog"
-      @confirm="createWarehouseOrder"
+    <InboundOrderPutawayDialog v-model:show="createWarehouseOrderDialog" @confirm="createWarehouseOrder" />
+    <InvoiceUpsertDialog
+      v-model:show="attachInvoiceDialog"
+      v-model="invoiceForm"
+      :default-supplier="order.supplier"
+      title="Připojit fakturu"
+      submit-label="Uložit fakturu"
+      :loading="invoiceLoading"
+      @submit="attachInvoice"
     />
     <AuditLogDialog
       v-model:show="auditDialog"
@@ -160,6 +176,7 @@ import {
   warehouseApiRoutesInboundOrdersGetInboundOrder,
   warehouseApiRoutesInboundOrdersGetInboundOrderPdf,
   warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder,
+  warehouseApiRoutesInboundOrdersStoreInboundOrderInvoice,
   warehouseApiRoutesInboundOrdersTransitionInboundOrder,
   warehouseApiRoutesInboundOrdersUpdateInboundOrder,
   warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder,
@@ -167,6 +184,7 @@ import {
   type InboundOrderCreateOrUpdateSchema,
   type InboundOrderItemCreateSchema,
   type InboundOrderSchema,
+  type InvoiceStoreSchema,
 } from '@/client'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
@@ -178,6 +196,7 @@ import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDia
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import InboundOrderTimeline from '@/components/order/InboundOrderTimeline.vue'
 import InboundOrderUpdateOrCreateDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
+import InvoiceUpsertDialog from '@/components/order/InvoiceUpsertDialog.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
@@ -188,7 +207,7 @@ import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
 import { getInboundOrderStep } from '@/constants/inbound-order'
 import { useQuasar } from 'quasar'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps<{ code: string }>()
 const order = ref<InboundOrderSchema>()
@@ -328,12 +347,24 @@ const cancel = async () => {
 const $q = useQuasar()
 const { goToWarehouseOrderIn } = useAppRouter()
 const createWarehouseOrderDialog = ref(false)
-const createWarehouseOrder = async (locationCode: string) => {
+const createWarehouseOrder = async () => {
   if (!order.value) {
     return
   }
+
+  const stateResponse = await warehouseApiRoutesInboundOrdersTransitionInboundOrder({
+    path: { order_code: order.value.code },
+    body: { state: 'receiving' },
+  })
+  const stateData = onResponse(stateResponse)
+  if (!stateData?.data) {
+    return
+  }
+
+  order.value = stateData.data
+
   const response = await warehouseApiRoutesWarehouseCreateInboundWarehouseOrder({
-    body: { purchase_order_code: order.value.code, location_code: locationCode },
+    body: { purchase_order_code: order.value.code },
   })
   const data = onResponse(response)
   if (data) {
@@ -343,6 +374,56 @@ const createWarehouseOrder = async (locationCode: string) => {
       message: `Příjemka úspěšně vytvořena: ${data.data.code}`,
     })
     goToWarehouseOrderIn(data.data.code)
+  }
+}
+
+const attachInvoiceDialog = ref(false)
+const invoiceLoading = ref(false)
+
+const createDefaultInvoiceForm = (): InvoiceStoreSchema => ({
+  code: '',
+  issued_date: new Date().toISOString().split('T')[0],
+  due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  taxable_supply_date: new Date().toISOString().split('T')[0],
+  payment_method_name: '',
+  currency: order.value?.currency ?? 'CZK',
+  customer_code: undefined,
+  supplier_code: order.value?.supplier.code,
+  external_code: undefined,
+  paid_date: undefined,
+  note: undefined,
+})
+
+const invoiceForm = ref<InvoiceStoreSchema>(createDefaultInvoiceForm())
+
+watch(attachInvoiceDialog, (isOpen) => {
+  if (isOpen) {
+    invoiceForm.value = createDefaultInvoiceForm()
+  }
+})
+
+const attachInvoice = async (body: InvoiceStoreSchema) => {
+  if (!order.value) {
+    return
+  }
+
+  invoiceLoading.value = true
+  try {
+    const response = await warehouseApiRoutesInboundOrdersStoreInboundOrderInvoice({
+      path: { order_code: order.value.code },
+      body,
+    })
+    const data = onResponse(response)
+    if (data?.data) {
+      order.value = data.data
+      attachInvoiceDialog.value = false
+      $q.notify({
+        type: 'positive',
+        message: 'Faktura byla připojena k objednávce.',
+      })
+    }
+  } finally {
+    invoiceLoading.value = false
   }
 }
 
