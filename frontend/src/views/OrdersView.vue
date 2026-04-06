@@ -16,15 +16,38 @@
 import LargeTabs from '@/components/LargeTabs.vue'
 import InboundOrdersView from '@/components/order/InboundOrdersView.vue'
 import OutboundOrdersView from '@/components/order/OutboundOrdersView.vue'
-import { useLocalStorage } from '@vueuse/core'
-import { type Component, shallowRef, watch } from 'vue'
+import { computed, type Component, shallowRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-const activeTabKey = useLocalStorage('selected-orders-tab', 'inbound')
+const route = useRoute()
+const router = useRouter()
+
+const validTabs = new Set(['inbound', 'outbound'])
+
+const activeTabKey = computed<string>({
+  get() {
+    const raw = route.query.tab
+    if (typeof raw === 'string' && validTabs.has(raw)) {
+      return raw
+    }
+
+    return 'inbound'
+  },
+  set(value: string) {
+    const query = { ...route.query, tab: value }
+    router.push({ query })
+  },
+})
+
 const activeTab = shallowRef<Component>(InboundOrdersView)
 
 watch(
   activeTabKey,
   (value) => {
+    if (route.query.tab !== value) {
+      router.replace({ query: { ...route.query, tab: value } })
+    }
+
     if (value === 'inbound') {
       activeTab.value = InboundOrdersView
     } else {

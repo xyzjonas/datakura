@@ -138,3 +138,83 @@ def test_store_inbound_order_invoice(db) -> None:
     assert data["invoice"]["code"] == "INV-POST-0001"
     assert data["invoice"]["payment_method"]["name"] == "Bank transfer"
     assert data["invoice"]["document"] is None
+
+
+def test_store_inbound_order_invoice_stores_uploaded_document(
+    db, settings, tmp_path
+) -> None:
+    settings.MEDIA_ROOT = tmp_path
+    settings.MEDIA_URL = "/media/"
+
+    client = TestClient(routes)
+    order = InboundOrderFactory.it()
+
+    res = client.post(
+        f"/{order.code}/invoice",
+        data={
+            "code": "INV-POST-0002",
+            "issued_date": "2026-04-01",
+            "due_date": "2026-04-15",
+            "payment_method_name": "Bank transfer",
+            "taxable_supply_date": "2026-04-01",
+            "currency": "CZK",
+        },
+        FILES={
+            "invoice_file": SimpleUploadedFile(
+                "invoice.pdf",
+                b"%PDF-1.4 uploaded by api",
+                content_type="application/pdf",
+            )
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["invoice"]["code"] == "INV-POST-0002"
+    assert data["invoice"]["document"]["name"] == "invoice.pdf"
+    assert data["invoice"]["document"]["url"].endswith("invoice.pdf")
+
+
+def test_store_inbound_order_invoice_replaces_existing_document(
+    db, settings, tmp_path
+) -> None:
+    settings.MEDIA_ROOT = tmp_path
+    settings.MEDIA_URL = "/media/"
+
+    invoice = InvoiceFactory.it(code="INV-POST-0003")
+    invoice.document.save(
+        "old.pdf",
+        SimpleUploadedFile(
+            "old.pdf",
+            b"%PDF-1.4 old document",
+            content_type="application/pdf",
+        ),
+        save=True,
+    )
+    order = InboundOrderFactory.it(invoice=invoice)
+    client = TestClient(routes)
+
+    res = client.post(
+        f"/{order.code}/invoice",
+        data={
+            "code": "INV-POST-0003",
+            "issued_date": "2026-04-01",
+            "due_date": "2026-04-15",
+            "payment_method_name": "Bank transfer",
+            "taxable_supply_date": "2026-04-01",
+            "currency": "CZK",
+        },
+        FILES={
+            "invoice_file": SimpleUploadedFile(
+                "new.pdf",
+                b"%PDF-1.4 replacement document",
+                content_type="application/pdf",
+            )
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["invoice"]["code"] == "INV-POST-0003"
+    assert data["invoice"]["document"]["name"] == "new.pdf"
+    assert data["invoice"]["document"]["url"].endswith("new.pdf")

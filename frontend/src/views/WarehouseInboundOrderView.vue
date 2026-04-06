@@ -3,11 +3,7 @@
     <div class="flex justify-between flex-wrap">
       <q-breadcrumbs class="mb-5 flex-[3]">
         <q-breadcrumbs-el label="Domů" :to="{ name: 'home' }" />
-        <q-breadcrumbs-el label="Vydané Objednávky" :to="{ name: 'orders' }" />
-        <q-breadcrumbs-el
-          :label="order.order.code"
-          :to="{ name: 'incomingOrderDetail', params: { code: order.order.code } }"
-        />
+        <q-breadcrumbs-el label="Příjemky" :to="{ name: 'warehouseInboundOrders' }" />
         <q-breadcrumbs-el :label="order.code" />
       </q-breadcrumbs>
       <div class="flex flex-col items-end gap-3 flex-1">
@@ -83,11 +79,12 @@
       />
     </div>
 
-    <ForegroundPanel>
+    <ForegroundPanel v-if="order.state != 'in transit'">
       <InboundWarehouseOrderTimeline :order="order" />
     </ForegroundPanel>
 
     <LargeTabs
+      v-if="order.state != 'in transit'"
       v-model:tab="activeTabKey"
       :items="[
         {

@@ -16,6 +16,20 @@
             :rules="[rules.notEmpty]"
           />
 
+          <q-file
+            v-model="invoiceFile"
+            outlined
+            accept=".pdf,application/pdf"
+            label="PDF faktury"
+            :hint="
+              existingDocument
+                ? `Nahrejte nový soubor, který nahradí stávající soubor \'${existingDocument.name}\''`
+                : 'Nahrajte originální PDF doklad k této faktuře.'
+            "
+            :rules="props.requireInvoiceFile ? [invoiceFileRule] : []"
+            clearable
+          />
+
           <q-select
             v-model="form.currency"
             outlined
@@ -136,7 +150,8 @@
 </template>
 
 <script setup lang="ts">
-import type { InvoiceStoreSchema, CustomerSchema } from '@/client'
+import type { InvoiceStoreSchema, CustomerSchema, MediaFileSchema } from '@/client'
+import type { InvoiceUpsertSubmitPayload } from './invoice-upload'
 import { ref, watch } from 'vue'
 import CustomerSearchSelect from '../selects/CustomerSearchSelect.vue'
 import InvoicePaymentMethodSelect from '../selects/InvoicePaymentMethodSelect.vue'
@@ -152,6 +167,8 @@ const props = withDefaults(
     loading?: boolean
     defaultCustomer?: CustomerSchema | null
     defaultSupplier?: CustomerSchema | null
+    requireInvoiceFile?: boolean
+    existingDocument?: MediaFileSchema | null
   }>(),
   {
     title: 'Nová faktura',
@@ -159,17 +176,21 @@ const props = withDefaults(
     loading: false,
     defaultCustomer: null,
     defaultSupplier: null,
+    requireInvoiceFile: true,
   },
 )
 
 const emit = defineEmits<{
-  (e: 'submit', body: InvoiceStoreSchema): void
+  (e: 'submit', payload: InvoiceUpsertSubmitPayload): void
 }>()
 
 const customer = ref<CustomerSchema | undefined>()
 const supplier = ref<CustomerSchema | undefined>()
+const invoiceFile = ref<File | null>(null)
 const currencies = ['CZK', 'EUR', 'PLN']
 const partyType = ref<'customer' | 'supplier'>('supplier')
+
+const invoiceFileRule = (val: File | null) => !!val || 'Nahrajte PDF faktury.'
 
 watch(
   () => showDialog.value,
@@ -177,6 +198,7 @@ watch(
     if (!isOpen) {
       return
     }
+    invoiceFile.value = null
     customer.value = props.defaultCustomer ?? undefined
     supplier.value = props.defaultSupplier ?? undefined
     if (props.defaultCustomer && !props.defaultSupplier) {
@@ -196,6 +218,9 @@ const onSubmit = () => {
     customer_code: selectedCustomerCode,
     supplier_code: selectedSupplierCode,
   }
-  emit('submit', body)
+  emit('submit', {
+    body,
+    invoiceFile: invoiceFile.value,
+  })
 }
 </script>

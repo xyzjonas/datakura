@@ -1,5 +1,6 @@
 from typing import cast
 
+from django.core.files.uploadedfile import UploadedFile as DjangoUploadedFile
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
 from ninja import File, Form, Router
@@ -97,11 +98,15 @@ def store_inbound_order_invoice(
     body: Form[InvoiceStoreSchema],
     invoice_file: File[UploadedFile] | None = None,
 ):
+    resolved_invoice_file = invoice_file or cast(
+        DjangoUploadedFile | None, request.FILES.get("invoice_file")
+    )
+
     updated_order = inbound_orders_service.store_invoice(
         order_code,
         body,
         context=RequestContext.from_django_request(request),
-        invoice_file=invoice_file,
+        invoice_file=resolved_invoice_file,
     )
     return GetInboundOrderResponse(data=updated_order)
 

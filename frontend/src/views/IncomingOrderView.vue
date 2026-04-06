@@ -3,7 +3,10 @@
     <div class="flex justify-between">
       <q-breadcrumbs class="mb-5">
         <q-breadcrumbs-el label="Home" :to="{ name: 'home' }" />
-        <q-breadcrumbs-el label="Vydané Objednávky" :to="{ name: 'incomingOrders' }" />
+        <q-breadcrumbs-el
+          label="Vydané Objednávky"
+          :to="{ name: 'orders', query: { tab: 'inbound' } }"
+        />
         <q-breadcrumbs-el :label="order.code" />
       </q-breadcrumbs>
       <q-btn flat dense color="primary" icon="sym_o_query_stats" @click="auditDialog = true">
@@ -86,6 +89,8 @@
         :credit-note="order.credit_note"
         show-invoice
         :invoice="order.invoice"
+        :show-invoice-edit="!!order.invoice"
+        @edit-invoice="openEditInvoiceDialog"
       />
     </div>
 
@@ -147,7 +152,10 @@
         archivována - zmizí z výpisu objednávek.</span
       >
     </ConfirmDialog>
-    <InboundOrderPutawayDialog v-model:show="createWarehouseOrderDialog" @confirm="createWarehouseOrder" />
+    <InboundOrderPutawayDialog
+      v-model:show="createWarehouseOrderDialog"
+      @confirm="createWarehouseOrder"
+    />
     <InvoiceUpsertDialog
       v-model:show="attachInvoiceDialog"
       v-model="invoiceForm"
@@ -156,6 +164,18 @@
       submit-label="Uložit fakturu"
       :loading="invoiceLoading"
       @submit="attachInvoice"
+    />
+    <InvoiceUpsertDialog
+      v-model:show="editInvoiceDialog"
+      v-model="editInvoiceForm"
+      :default-customer="order.invoice?.customer"
+      :default-supplier="order.invoice?.supplier"
+      :require-invoice-file="false"
+      title="Upravit fakturu"
+      submit-label="Uložit změny"
+      :existing-document="order.invoice?.document"
+      :loading="invoiceLoading"
+      @submit="editInvoice"
     />
     <AuditLogDialog
       v-model:show="auditDialog"
@@ -176,16 +196,18 @@ import {
   warehouseApiRoutesInboundOrdersGetInboundOrder,
   warehouseApiRoutesInboundOrdersGetInboundOrderPdf,
   warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder,
-  warehouseApiRoutesInboundOrdersStoreInboundOrderInvoice,
   warehouseApiRoutesInboundOrdersTransitionInboundOrder,
   warehouseApiRoutesInboundOrdersUpdateInboundOrder,
   warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder,
   warehouseApiRoutesWarehouseCreateInboundWarehouseOrder,
+  type GetInboundOrderResponse,
   type InboundOrderCreateOrUpdateSchema,
   type InboundOrderItemCreateSchema,
   type InboundOrderSchema,
   type InvoiceStoreSchema,
 } from '@/client'
+import { formDataBodySerializer } from '@/client/client'
+import { client } from '@/client/client.gen'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
@@ -206,6 +228,8 @@ import PrintDropdownButton from '@/components/PrintDropdownButton.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
 import { getInboundOrderStep } from '@/constants/inbound-order'
+import type { InvoiceUpsertSubmitPayload } from '@/components/order/invoice-upload'
+import { toInvoiceMultipartBody } from '@/components/order/invoice-upload'
 import { useQuasar } from 'quasar'
 import { ref, watch } from 'vue'
 
@@ -394,7 +418,25 @@ const createDefaultInvoiceForm = (): InvoiceStoreSchema => ({
   note: undefined,
 })
 
+const createInvoiceFormFromInvoice = (
+  invoice: NonNullable<InboundOrderSchema['invoice']>,
+): InvoiceStoreSchema => ({
+  code: invoice.code,
+  issued_date: invoice.issued_date,
+  due_date: invoice.due_date,
+  taxable_supply_date: invoice.taxable_supply_date,
+  payment_method_name: invoice.payment_method.name,
+  currency: invoice.currency,
+  customer_code: invoice.customer?.code,
+  supplier_code: invoice.supplier?.code,
+  external_code: invoice.external_code ?? undefined,
+  paid_date: invoice.paid_date ?? undefined,
+  note: invoice.note ?? undefined,
+})
+
 const invoiceForm = ref<InvoiceStoreSchema>(createDefaultInvoiceForm())
+const editInvoiceDialog = ref(false)
+const editInvoiceForm = ref<InvoiceStoreSchema>(createDefaultInvoiceForm())
 
 watch(attachInvoiceDialog, (isOpen) => {
   if (isOpen) {
@@ -402,16 +444,26 @@ watch(attachInvoiceDialog, (isOpen) => {
   }
 })
 
-const attachInvoice = async (body: InvoiceStoreSchema) => {
+const attachInvoice = async (payload: InvoiceUpsertSubmitPayload) => {
   if (!order.value) {
     return
   }
 
   invoiceLoading.value = true
   try {
-    const response = await warehouseApiRoutesInboundOrdersStoreInboundOrderInvoice({
+    const response = await client.post<{ 200: GetInboundOrderResponse }>({
+      ...formDataBodySerializer,
+      security: [
+        {
+          in: 'cookie',
+          name: 'sessionid',
+          type: 'apiKey',
+        },
+      ],
+      headers: { 'Content-Type': null },
+      url: '/api/v1/orders/{order_code}/invoice',
       path: { order_code: order.value.code },
-      body,
+      body: toInvoiceMultipartBody(payload),
     })
     const data = onResponse(response)
     if (data?.data) {
@@ -420,6 +472,49 @@ const attachInvoice = async (body: InvoiceStoreSchema) => {
       $q.notify({
         type: 'positive',
         message: 'Faktura byla připojena k objednávce.',
+      })
+    }
+  } finally {
+    invoiceLoading.value = false
+  }
+}
+
+const openEditInvoiceDialog = () => {
+  if (!order.value?.invoice) {
+    return
+  }
+  editInvoiceForm.value = createInvoiceFormFromInvoice(order.value.invoice)
+  editInvoiceDialog.value = true
+}
+
+const editInvoice = async (payload: InvoiceUpsertSubmitPayload) => {
+  if (!order.value) {
+    return
+  }
+
+  invoiceLoading.value = true
+  try {
+    const response = await client.post<{ 200: GetInboundOrderResponse }>({
+      ...formDataBodySerializer,
+      security: [
+        {
+          in: 'cookie',
+          name: 'sessionid',
+          type: 'apiKey',
+        },
+      ],
+      headers: { 'Content-Type': null },
+      url: '/api/v1/orders/{order_code}/invoice',
+      path: { order_code: order.value.code },
+      body: toInvoiceMultipartBody(payload),
+    })
+    const data = onResponse(response)
+    if (data?.data) {
+      order.value = data.data
+      editInvoiceDialog.value = false
+      $q.notify({
+        type: 'positive',
+        message: 'Faktura byla upravena.',
       })
     }
   } finally {

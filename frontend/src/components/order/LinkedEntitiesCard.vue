@@ -49,7 +49,32 @@
       <span v-else class="text-gray-5">Žádná Příchozí Objednávka</span>
     </ForegroundPanel>
     <ForegroundPanel v-if="showInvoice" class="flex-1 flex justify-center items-center">
-      <span class="link" v-if="invoice">{{ invoice.code }}</span>
+      <div v-if="invoice" class="flex flex-col">
+        <span class="text-gray-5 text-2xs uppercase">Faktura</span>
+        <div class="flex items-center gap-2">
+          <a
+            v-if="invoice.document?.url"
+            class="link"
+            :href="invoice.document.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ invoice.code }}</a
+          >
+          <span v-else class="text-gray-5 font-bold">{{ invoice.code }}</span>
+          <q-btn
+            v-if="showInvoiceEdit"
+            dense
+            flat
+            round
+            size="sm"
+            icon="edit"
+            color="primary"
+            @click="emit('edit-invoice')"
+          >
+            <q-tooltip :offset="[0, 10]">Upravit fakturu</q-tooltip>
+          </q-btn>
+        </div>
+      </div>
       <span v-else class="text-gray-5">Žádná Faktura</span>
     </ForegroundPanel>
     <ForegroundPanel v-if="showCreditNote" class="flex-1 flex justify-center items-center">
@@ -87,6 +112,11 @@ const props = defineProps<{
   inboundOrder?: InboundOrderSchema
   showInvoice?: boolean
   invoice?: InvoiceSchema | null
+  showInvoiceEdit?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'edit-invoice'): void
 }>()
 
 const warehouseOrdersToRender = computed(() => {

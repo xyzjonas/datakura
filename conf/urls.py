@@ -33,7 +33,10 @@ urlpatterns = [
     path("admin", admin.site.urls),
     # Quasar/Vite looks for .woff2 in `/assets/...` and not `/static/...` (a bit hackish but works)
     path("assets/<path:path>", assets_redirect),
-    re_path(r"^.*$", VueAppView.as_view(), name="vue-app"),  # Catch-all for Vue routing
 ]
 
+# media files
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Catch-all for Vue routing
+urlpatterns.append(re_path(r"^.*$", VueAppView.as_view(), name="vue-app"))
