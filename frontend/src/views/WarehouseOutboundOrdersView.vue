@@ -1,0 +1,181 @@
+<template>
+  <div class="flex-1">
+    <div class="mb-2 flex justify-between items-center">
+      <div>
+        <h1>Výdejky</h1>
+        <h5 class="text-gray-5 mt-2">Soupis aktivních výdejek</h5>
+      </div>
+    </div>
+    <q-table
+      :rows="orders"
+      :columns="columns"
+      :loading="loading"
+      loading-label="Načítám"
+      flat
+      v-model:pagination="pagination"
+      @request="onPaginationChange"
+      no-data-label="Žádné výdejky nenalezeny"
+      :rows-per-page-options="[10, 30, 50, 100]"
+      class="bg-transparent"
+    >
+      <template #top-left>
+        <SearchInput
+          v-model="search"
+          placeholder="Vyhledat výdejku"
+          clearable
+          :debounce="300"
+        ></SearchInput>
+      </template>
+      <template #body-cell-code="props">
+        <q-td>
+          <a
+            @click="
+              $router.push({
+                name: 'warehouseOutboundOrderDetail',
+                params: { code: props.row.code },
+              })
+            "
+            class="link"
+            >{{ props.row.code }}</a
+          >
+        </q-td>
+      </template>
+      <template #body-cell-state="props">
+        <q-td>
+          <OutboundWarehouseOrderStateBadge :state="props.row.state" />
+        </q-td>
+      </template>
+      <template #body-cell-order="props">
+        <q-td>
+          <a
+            class="link"
+            @click="
+              $router.push({
+                name: 'outgoingOrderDetail',
+                params: { code: props.row.order.code },
+              })
+            "
+            >{{ props.row.order.code }}</a
+          >
+        </q-td>
+      </template>
+      <template #body-cell-completedCount="props">
+        <q-td>
+          <OrderProgress :order="props.row" height="16px" />
+        </q-td>
+      </template>
+    </q-table>
+  </div>
+</template>
+
+<script setup lang="ts">
+import {
+  warehouseApiRoutesWarehouseGetOutboundWarehouseOrders,
+  type OutboundWarehouseOrderSchema,
+} from '@/client'
+import OrderProgress from '@/components/OrderProgress.vue'
+import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'
+import SearchInput from '@/components/SearchInput.vue'
+import { useQueryProducts } from '@/composables/query/use-products-query'
+import { type QTableColumn, type QTableProps } from 'quasar'
+import { onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
+const { page, pageSize, search } = useQueryProducts()
+
+const pagination = ref<NonNullable<QTableProps['pagination']>>({
+  rowsPerPage: pageSize.value,
+  page: page.value,
+  rowsNumber: pageSize.value,
+})
+
+const orders = ref<OutboundWarehouseOrderSchema[]>([])
+const loading = ref(false)
+const fetchOrders = async () => {
+  loading.value = true
+  try {
+    const res = await warehouseApiRoutesWarehouseGetOutboundWarehouseOrders({
+      query: {
+        page: page.value,
+        page_size: pageSize.value,
+        search_term: search.value,
+      },
+    })
+    if (res.data?.data) {
+      orders.value = res.data.data
+      pagination.value.rowsNumber = res.data.count
+    }
+  } finally {
+    setTimeout(() => (loading.value = false), 300)
+  }
+}
+
+onMounted(fetchOrders)
+
+const shouldNotFetch = () => {
+  return pagination.value.rowsPerPage === pageSize.value && pagination.value.page === page.value
+}
+
+const onPaginationChange = async (requestProp: { pagination: QTableProps['pagination'] }) => {
+  if (!requestProp.pagination) {
+    return
+  }
+  pagination.value = requestProp.pagination
+  if (shouldNotFetch()) {
+    return
+  }
+  page.value = Number(pagination.value.page)
+  setTimeout(() => (pageSize.value = Number(pagination.value.rowsPerPage)), 1)
+  setTimeout(() => fetchOrders(), 2)
+}
+
+const { currentRoute } = useRouter()
+watch(currentRoute, () => {
+  if (!shouldNotFetch()) {
+    fetchOrders()
+  }
+})
+
+watch(search, fetchOrders)
+
+const columns: QTableColumn[] = [
+  {
+    name: 'code',
+    field: 'code',
+    label: 'Kód',
+    align: 'left',
+  },
+  {
+    name: 'state',
+    field: 'state',
+    label: 'Stav',
+    align: 'left',
+  },
+  {
+    name: 'order',
+    field: (order: OutboundWarehouseOrderSchema) => order.order.code,
+    label: 'Objednávka',
+    align: 'left',
+  },
+  {
+    name: 'created',
+    field: 'created',
+    label: 'Datum vytvoření',
+    format: (val: string) =>
+      `${new Date(val).toLocaleDateString()} - ${new Date(val).toLocaleTimeString()}`,
+    align: 'left',
+  },
+  {
+    name: 'completedCount',
+    field: (order: OutboundWarehouseOrderSchema) => 1 - order.remaining_amount / order.total_amount,
+    label: 'Expedováno',
+    align: 'left',
+  },
+  {
+    name: 'customer',
+    field: (order: OutboundWarehouseOrderSchema) => order.order.customer.name,
+    label: 'Odběratel',
+    align: 'left',
+  },
+]
+</script>

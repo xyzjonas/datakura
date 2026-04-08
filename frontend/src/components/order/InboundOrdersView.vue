@@ -13,63 +13,15 @@
         @click="newOrderDialog = true"
       />
     </div>
-    <OrdersBaseTable :fetch-orders="fetchOrders" />
-    <!-- <q-table
-      :rows="orders"
-      :columns="columns"
-      :loading="loading"
-      loading-label="Načítám"
-      flat
-      v-model:pagination="pagination"
-      @request="onPaginationChange"
-      no-data-label="Žádné vydané objednávky nenalezeny"
-      :rows-per-page-options="[10, 30, 50, 100]"
-      class="bg-transparent"
-    >
-      <template #top-left>
-        <SearchInput
-          v-model="search"
-          placeholder="Vyhledat objednávku"
-          clearable
-          :debounce="300"
-        ></SearchInput>
-      </template>
-      <template #body-cell-code="props">
-        <q-td>
-          <a
-            @click="
-              $router.push({
-                name: 'incomingOrderDetail',
-                params: { code: props.row.code },
-              })
-            "
-            class="link"
-            >{{ props.row.code }}</a
-          >
-        </q-td>
-      </template>
-      <template #body-cell-state="props">
-        <q-td>
-          <InboundOrderStateBadge :state="props.row.state" />
-        </q-td>
-      </template>
-      <template #body-cell-warehouseOrder="props">
-        <q-td>
-          <a
-            v-if="props.row.warehouse_order?.code"
-            class="link"
-            @click="
-              $router.push({
-                name: 'warehouseInboundOrderDetail',
-                params: { code: props.row.warehouse_order.code },
-              })
-            "
-            >{{ props.row.warehouse_order.code }}
-            <InboundWarehouseOrderStateBadge :state="props.row.warehouse_order.state" class="ml-1"
-          /></a>
-        </q-td>
-      </template>
-    </q-table> -->
+    <OrdersBaseTable
+      :fetch-orders="fetchOrders"
+      order-type="inbound"
+      detail-route-name="incomingOrderDetail"
+      warehouse-detail-route-name="warehouseInboundOrderDetail"
+      warehouse-label="Příjemka"
+      partner-label="Dodavatel"
+      partner-field="supplier"
+    />
     <NewOrderDialog
       v-model="newOrderDialog"
       @create-order="createOrder"

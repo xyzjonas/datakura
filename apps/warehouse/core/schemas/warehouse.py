@@ -9,10 +9,19 @@ from ninja import Schema
 from .audit import AuditTimelineEntrySchema
 from .barcode import BarcodeSchema
 from .base import BaseResponse, BaseSchema, PaginatedResponse
-from .base_orders import InboundWarehouseOrderBaseSchema, InboundOrderBaseSchema
+from .base_orders import (
+    InboundWarehouseOrderBaseSchema,
+    InboundOrderBaseSchema,
+    OutboundWarehouseOrderBaseSchema,
+    OutboundOrderBaseSchema,
+)
 from .credit_notes import CreditNoteSupplierSchema
 from .product import ProductSchema
-from ...models.warehouse import InboundWarehouseOrderState, TrackingLevel
+from ...models.warehouse import (
+    InboundWarehouseOrderState,
+    OutboundWarehouseOrderState,
+    TrackingLevel,
+)
 
 if TYPE_CHECKING:
     pass
@@ -117,12 +126,29 @@ class InboundWarehouseOrderSchema(InboundWarehouseOrderBaseSchema):
     credit_note: CreditNoteSupplierSchema | None = None
 
 
+class OutboundWarehouseOrderSchema(OutboundWarehouseOrderBaseSchema):
+    items: list[WarehouseItemSchema]
+    movements: list[WarehouseMovementSchema]
+    completed_items_count: int
+    total_amount: float
+    remaining_amount: float
+    order: OutboundOrderBaseSchema
+
+
 class InboundWarehouseOrderUpdateSchema(Schema):
     state: InboundWarehouseOrderState
 
 
 class InboundWarehouseOrderSetStateSchema(Schema):
-    state: InboundWarehouseOrderState
+    location_code: str | None = None
+
+
+class OutboundWarehouseOrderUpdateSchema(Schema):
+    state: OutboundWarehouseOrderState
+
+
+class OutboundWarehouseOrderSetStateSchema(Schema):
+    state: OutboundWarehouseOrderState
     location_code: str | None = None
 
 
@@ -165,6 +191,10 @@ class GetWarehouseOrderResponse(BaseResponse):
     data: InboundWarehouseOrderSchema
 
 
+class GetOutboundWarehouseOrderResponse(BaseResponse):
+    data: OutboundWarehouseOrderSchema
+
+
 class GetWarehouseItemResponse(BaseResponse):
     data: WarehouseItemDetailSchema
 
@@ -172,6 +202,11 @@ class GetWarehouseItemResponse(BaseResponse):
 class GetWarehouseOrdersResponse(PaginatedResponse[InboundWarehouseOrderSchema]):
     ...
     # data: list[WarehouseOrderSchema]
+
+
+class GetOutboundWarehouseOrdersResponse(
+    PaginatedResponse[OutboundWarehouseOrderSchema]
+): ...
 
 
 class UpdateWarehouseOrderDraftItemsRequest(Schema):

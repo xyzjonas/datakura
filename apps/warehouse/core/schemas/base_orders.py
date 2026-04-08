@@ -3,8 +3,15 @@ from datetime import datetime
 from apps.warehouse.core.schemas.base import BaseSchema
 from apps.warehouse.core.schemas.customer import CustomerSchema
 from apps.warehouse.core.schemas.product import ProductSchema
-from apps.warehouse.models.orders import InboundOrderState, CreditNoteState
-from apps.warehouse.models.warehouse import InboundWarehouseOrderState
+from apps.warehouse.models.orders import (
+    InboundOrderState,
+    OutboundOrderState,
+    CreditNoteState,
+)
+from apps.warehouse.models.warehouse import (
+    InboundWarehouseOrderState,
+    OutboundWarehouseOrderState,
+)
 
 
 class CreditNoteSupplierItemSchema(BaseSchema):
@@ -33,6 +40,28 @@ class InboundWarehouseOrderBaseSchema(BaseSchema):
     state: InboundWarehouseOrderState
     parent_order: "InboundWarehouseOrderBaseSchema | None" = None
     child_orders: list["InboundWarehouseOrderBaseSchema"] = []
+
+
+class OutboundOrderBaseSchema(BaseSchema):
+    code: str
+    external_code: str | None = None
+    description: str | None = None
+    note: str | None = None
+    customer: CustomerSchema
+    currency: str
+    state: OutboundOrderState
+    warehouse_order_codes: list[str] = []
+    requested_delivery_date: datetime | None = None
+    cancelled_date: datetime | None = None
+    fulfilled_date: datetime | None = None
+
+
+class OutboundWarehouseOrderBaseSchema(BaseSchema):
+    code: str
+    order_code: str
+    state: OutboundWarehouseOrderState
+    parent_order: "OutboundWarehouseOrderBaseSchema | None" = None
+    child_orders: list["OutboundWarehouseOrderBaseSchema"] = []
 
 
 class CreditNoteBaseSchema(BaseSchema):

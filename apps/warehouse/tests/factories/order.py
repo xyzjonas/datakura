@@ -5,6 +5,8 @@ from apps.warehouse.models.currency import CURRENCY_CHOICES
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
+    OutboundOrder,
+    OutboundOrderItem,
     CreditNoteToSupplier,
     Invoice,
     InvoicePaymentMethod,
@@ -47,6 +49,44 @@ class InboundOrderFactory(DjangoModelFactory):
     note = factory.Faker("text", max_nb_chars=200)
 
     supplier = factory.SubFactory(CustomerFactory)
+    currency = CURRENCY_CHOICES[0][0]
+    invoice = None
+
+
+class OutboundOrderItemFactory(DjangoModelFactory):
+    """Factory for OutboundOrderItem model"""
+
+    class Meta:
+        model = OutboundOrderItem
+
+    @classmethod
+    def _(cls, **kwargs) -> OutboundOrderItem:
+        return cls(**kwargs)  # type: ignore
+
+    stock_product = factory.SubFactory(StockProductFactory)
+    amount = factory.Faker("random_int", min=1, max=100, step=1)
+    order = None
+    unit_price = factory.Faker("random_int", min=1, max=200, step=1)
+    total_price = factory.LazyAttribute(lambda o: o.amount * o.unit_price)
+
+
+class OutboundOrderFactory(DjangoModelFactory):
+    """Factory for OutboundOrder model"""
+
+    class Meta:
+        model = OutboundOrder
+        django_get_or_create = ("code",)
+
+    @classmethod
+    def it(cls, **kwargs) -> OutboundOrder:
+        return cls(**kwargs)  # type: ignore
+
+    code = factory.Sequence(lambda n: f"SORD-{n:04d}")
+    external_code = factory.Sequence(lambda n: f"SEXT-{n:12d}")
+    description = factory.Faker("text", max_nb_chars=50)
+    note = factory.Faker("text", max_nb_chars=200)
+
+    customer = factory.SubFactory(CustomerFactory)
     currency = CURRENCY_CHOICES[0][0]
     invoice = None
 

@@ -17,6 +17,7 @@ from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrderState,
+    OutboundWarehouseOrderState,
     WarehouseItem,
     WarehouseMovement,
 )
@@ -26,6 +27,7 @@ from apps.warehouse.tests.factories.order import (
 )
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
+    WarehouseOrderOutFactory,
     WarehouseItemFactory,
     WarehouseLocationFactory,
 )
@@ -52,6 +54,29 @@ def test_putaway_item(db, client) -> None:
     assert res.status_code == 200
     item.refresh_from_db()
     assert item.location == new_location
+
+
+def test_get_outbound_warehouse_orders(db, client) -> None:
+    order = WarehouseOrderOutFactory.it(state=OutboundWarehouseOrderState.PENDING)
+
+    res = client.get("orders-outgoing")
+
+    assert res.status_code == 200
+    rows = res.json()["data"]
+    assert len([row for row in rows if row["code"] == order.code]) == 1
+
+
+def test_get_outbound_warehouse_order(db, client) -> None:
+    order = WarehouseOrderOutFactory.it(state=OutboundWarehouseOrderState.PENDING)
+    linked_order = order.order
+    assert linked_order is not None
+
+    res = client.get(f"orders-outgoing/{order.code}")
+
+    assert res.status_code == 200
+    payload = res.json()["data"]
+    assert payload["code"] == order.code
+    assert payload["order"]["code"] == linked_order.code
 
 
 def test_putaway_item_invalid_state(db, client) -> None:
@@ -310,8 +335,8 @@ def test_transition_inbound_order_from_in_transit_to_draft_creates_items(db, cli
     )
 
     res = client.post(
-        f"orders-incoming/{warehouse_order.code}/state",
-        json={"state": "draft", "location_code": receiving_location.code},
+        f"orders-incoming/{warehouse_order.code}/transition",
+        json={"location_code": receiving_location.code},
     )
 
     assert res.status_code == 200
@@ -336,6 +361,6 @@ def test_transition_inbound_order_from_in_transit_to_draft_requires_location(
 
     with pytest.raises(WarehouseGenericError):
         client.post(
-            f"orders-incoming/{warehouse_order.code}/state",
-            json={"state": "draft"},
+            f"orders-incoming/{warehouse_order.code}/transition",
+            json={},
         )

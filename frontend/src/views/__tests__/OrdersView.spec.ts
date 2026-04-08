@@ -54,7 +54,7 @@ const createTestRouter = () =>
   })
 
 describe('OrdersView', () => {
-  it('uses inbound as default and normalizes query', async () => {
+  it('uses outbound as default and normalizes query', async () => {
     const router = createTestRouter()
     router.push('/orders')
     await router.isReady()
@@ -67,8 +67,8 @@ describe('OrdersView', () => {
 
     await flushPromises()
 
-    expect(router.currentRoute.value.query.tab).toBe('inbound')
-    expect(wrapper.find('[data-test="inbound-view"]').exists()).toBe(true)
+    expect(router.currentRoute.value.query.tab).toBe('outbound')
+    expect(wrapper.find('[data-test="outbound-view"]').exists()).toBe(true)
   })
 
   it('uses outbound when tab query is valid', async () => {
@@ -88,7 +88,7 @@ describe('OrdersView', () => {
     expect(wrapper.find('[data-test="outbound-view"]').exists()).toBe(true)
   })
 
-  it('falls back to inbound when tab query is invalid', async () => {
+  it('falls back to outbound when tab query is invalid', async () => {
     const router = createTestRouter()
     router.push('/orders?tab=invalid')
     await router.isReady()
@@ -101,8 +101,8 @@ describe('OrdersView', () => {
 
     await flushPromises()
 
-    expect(router.currentRoute.value.query.tab).toBe('inbound')
-    expect(wrapper.find('[data-test="inbound-view"]').exists()).toBe(true)
+    expect(router.currentRoute.value.query.tab).toBe('outbound')
+    expect(wrapper.find('[data-test="outbound-view"]').exists()).toBe(true)
   })
 
   it('updates query when user switches tabs', async () => {

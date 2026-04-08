@@ -7,6 +7,7 @@ import CustomerView from '@/views/CustomerView.vue'
 import GroupsView from '@/views/GroupsView.vue'
 import HomeView from '@/views/HomeView.vue'
 import IncomingOrderView from '@/views/IncomingOrderView.vue'
+import OutgoingOrderView from '@/views/OutgoingOrderView.vue'
 import LoginView from '@/views/LoginView.vue'
 import OrdersView from '@/views/OrdersView.vue'
 import ProductsView from '@/views/ProductsView.vue'
@@ -14,6 +15,8 @@ import ProductView from '@/views/ProductView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import WarehouseInboundOrdersView from '@/views/WarehouseInboundOrdersView.vue'
 import WarehouseInboundOrderView from '@/views/WarehouseInboundOrderView.vue'
+import WarehouseOutboundOrdersView from '@/views/WarehouseOutboundOrdersView.vue'
+import WarehouseOutboundOrderView from '@/views/WarehouseOutboundOrderView.vue'
 import WarehouseItemView from '@/views/WarehouseItemView.vue'
 import WarehouseView from '@/views/WarehouseView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -36,6 +39,17 @@ const router = createRouter({
       path: '/warehouse/inbound-orders',
       name: 'warehouseInboundOrders',
       component: WarehouseInboundOrdersView,
+    },
+    {
+      path: '/warehouse/outbound-orders',
+      name: 'warehouseOutboundOrders',
+      component: WarehouseOutboundOrdersView,
+    },
+    {
+      path: '/warehouse/outbound-orders/:code',
+      name: 'warehouseOutboundOrderDetail',
+      component: WarehouseOutboundOrderView,
+      props: true,
     },
     {
       path: '/warehouses',
@@ -95,6 +109,12 @@ const router = createRouter({
       path: '/incoming-orders/:code',
       name: 'incomingOrderDetail',
       component: IncomingOrderView,
+      props: true,
+    },
+    {
+      path: '/outgoing-orders/:code',
+      name: 'outgoingOrderDetail',
+      component: OutgoingOrderView,
       props: true,
     },
     {

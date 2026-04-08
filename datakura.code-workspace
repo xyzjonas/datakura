@@ -15,6 +15,8 @@
       "uv": true,
       "npm run type-check": true,
       "npm run openapi-ts": true,
+      "command": true,
+      "./.venv/bin/pytest": true,
     },
   },
 }

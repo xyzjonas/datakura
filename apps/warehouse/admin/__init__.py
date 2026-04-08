@@ -11,6 +11,8 @@ from apps.warehouse.models.customer import ContactPerson, Customer, CustomerGrou
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
+    OutboundOrder,
+    OutboundOrderItem,
     Invoice,
     InvoicePaymentMethod,
 )
@@ -104,6 +106,8 @@ class CustomerAdmin(admin.ModelAdmin):
 
 admin.site.register(InboundOrder)
 admin.site.register(InboundOrderItem)
+admin.site.register(OutboundOrder)
+admin.site.register(OutboundOrderItem)
 admin.site.register(Invoice)
 admin.site.register(InvoicePaymentMethod)
 

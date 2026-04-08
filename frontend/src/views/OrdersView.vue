@@ -3,8 +3,8 @@
     <LargeTabs
       v-model:tab="activeTabKey"
       :items="[
-        { key: 'inbound', icon: 'sym_o_call_received', title: 'Vydané Objednávky' },
         { key: 'outbound', icon: 'sym_o_call_made', title: 'Objednávky' },
+        { key: 'inbound', icon: 'sym_o_call_received', title: 'Vydané Objednávky' },
       ]"
       class="mb-5"
     />
@@ -31,7 +31,7 @@ const activeTabKey = computed<string>({
       return raw
     }
 
-    return 'inbound'
+    return 'outbound'
   },
   set(value: string) {
     const query = { ...route.query, tab: value }

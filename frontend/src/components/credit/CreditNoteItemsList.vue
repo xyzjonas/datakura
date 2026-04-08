@@ -11,6 +11,7 @@
           :readonly="props.readonly"
           :currency="props.currency"
           :order-code="props.orderCode"
+          order-type="inbound"
         ></ProductRow>
       </ForegroundPanel>
     </TransitionGroup>

@@ -5,10 +5,10 @@
 </template>
 
 <script setup lang="ts">
-import type { InboundOrderSchema } from '@/client'
+import type { InboundOrderSchema, OutboundOrderSchema } from '@/client'
 import { computed } from 'vue'
 
-const props = defineProps<{ order: InboundOrderSchema }>()
+const props = defineProps<{ order: InboundOrderSchema | OutboundOrderSchema }>()
 const totalWeight = computed(() => {
   return (props.order.items ?? []).reduce(
     (sum, item) => sum + item.amount * item.product.unit_weight,

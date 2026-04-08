@@ -1098,10 +1098,188 @@ export type PagedInboundWarehouseOrderSchema = {
 };
 
 /**
+ * OutboundOrderBaseSchema
+ */
+export type OutboundOrderBaseSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    customer: CustomerSchema;
+    /**
+     * Currency
+     */
+    currency: string;
+    state: OutboundOrderState;
+    /**
+     * Warehouse Order Codes
+     */
+    warehouse_order_codes?: Array<string>;
+    /**
+     * Requested Delivery Date
+     */
+    requested_delivery_date?: string | null;
+    /**
+     * Cancelled Date
+     */
+    cancelled_date?: string | null;
+    /**
+     * Fulfilled Date
+     */
+    fulfilled_date?: string | null;
+};
+
+/**
+ * OutboundOrderState
+ */
+export type OutboundOrderState = 'draft' | 'submitted' | 'picking' | 'packing' | 'shipping' | 'completed' | 'cancelled';
+
+/**
+ * OutboundWarehouseOrderBaseSchema
+ */
+export type OutboundWarehouseOrderBaseSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Order Code
+     */
+    order_code: string;
+    state: OutboundWarehouseOrderState;
+    parent_order?: OutboundWarehouseOrderBaseSchema | null;
+    /**
+     * Child Orders
+     */
+    child_orders?: Array<OutboundWarehouseOrderBaseSchema>;
+};
+
+/**
+ * OutboundWarehouseOrderSchema
+ */
+export type OutboundWarehouseOrderSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Order Code
+     */
+    order_code: string;
+    state: OutboundWarehouseOrderState;
+    parent_order?: OutboundWarehouseOrderBaseSchema | null;
+    /**
+     * Child Orders
+     */
+    child_orders?: Array<OutboundWarehouseOrderBaseSchema>;
+    /**
+     * Items
+     */
+    items: Array<WarehouseItemSchema>;
+    /**
+     * Movements
+     */
+    movements: Array<WarehouseMovementSchema>;
+    /**
+     * Completed Items Count
+     */
+    completed_items_count: number;
+    /**
+     * Total Amount
+     */
+    total_amount: number;
+    /**
+     * Remaining Amount
+     */
+    remaining_amount: number;
+    order: OutboundOrderBaseSchema;
+};
+
+/**
+ * OutboundWarehouseOrderState
+ */
+export type OutboundWarehouseOrderState = 'draft' | 'pending' | 'started' | 'completed' | 'cancelled';
+
+/**
+ * PagedOutboundWarehouseOrderSchema
+ */
+export type PagedOutboundWarehouseOrderSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<OutboundWarehouseOrderSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
  * InboundWarehouseOrderUpdateSchema
  */
 export type InboundWarehouseOrderUpdateSchema = {
     state: InboundWarehouseOrderState;
+};
+
+/**
+ * GetOutboundWarehouseOrderResponse
+ */
+export type GetOutboundWarehouseOrderResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: OutboundWarehouseOrderSchema;
 };
 
 /**
@@ -1161,7 +1339,6 @@ export type RemoveItemToCreditNoteRequest = {
  * InboundWarehouseOrderSetStateSchema
  */
 export type InboundWarehouseOrderSetStateSchema = {
-    state: InboundWarehouseOrderState;
     /**
      * Location Code
      */
@@ -2043,7 +2220,10 @@ export type InboundOrderItemCreateSchema = {
  * InboundOrderTransitionSchema
  */
 export type InboundOrderTransitionSchema = {
-    state: InboundOrderState;
+    /**
+     * Action
+     */
+    action?: 'next' | 'cancel' | 'rollback';
 };
 
 /**
@@ -2059,6 +2239,225 @@ export type EmptyResponse = {
      * Data
      */
     data?: null;
+};
+
+/**
+ * OutboundOrderItemSchema
+ */
+export type OutboundOrderItemSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    product: ProductSchema;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Unit Price
+     */
+    unit_price: number;
+    /**
+     * Total Price
+     */
+    total_price: number;
+    /**
+     * Index
+     */
+    index: number;
+};
+
+/**
+ * OutboundOrderSchema
+ */
+export type OutboundOrderSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    customer: CustomerSchema;
+    /**
+     * Currency
+     */
+    currency: string;
+    state: OutboundOrderState;
+    /**
+     * Warehouse Order Codes
+     */
+    warehouse_order_codes?: Array<string>;
+    /**
+     * Requested Delivery Date
+     */
+    requested_delivery_date?: string | null;
+    /**
+     * Cancelled Date
+     */
+    cancelled_date?: string | null;
+    /**
+     * Fulfilled Date
+     */
+    fulfilled_date?: string | null;
+    /**
+     * Items
+     */
+    items?: Array<OutboundOrderItemSchema>;
+    /**
+     * Warehouse Orders
+     */
+    warehouse_orders?: Array<OutboundWarehouseOrderBaseSchema>;
+    credit_note?: CreditNoteBaseSchema | null;
+    invoice?: InvoiceSchema | null;
+};
+
+/**
+ * PagedOutboundOrderSchema
+ */
+export type PagedOutboundOrderSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<OutboundOrderSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetOutboundOrderResponse
+ */
+export type GetOutboundOrderResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: OutboundOrderSchema;
+};
+
+/**
+ * OutboundOrderCreateOrUpdateSchema
+ */
+export type OutboundOrderCreateOrUpdateSchema = {
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Customer Code
+     */
+    customer_code: string;
+    /**
+     * Customer Name
+     */
+    customer_name: string;
+    state?: OutboundOrderState | null;
+    /**
+     * Requested Delivery Date
+     */
+    requested_delivery_date?: string | null;
+};
+
+/**
+ * CreateOutboundOrderItemResponse
+ */
+export type CreateOutboundOrderItemResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: OutboundOrderItemSchema;
+};
+
+/**
+ * OutboundOrderItemCreateSchema
+ */
+export type OutboundOrderItemCreateSchema = {
+    /**
+     * Product Code
+     */
+    product_code: string;
+    /**
+     * Product Name
+     */
+    product_name: string;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Total Price
+     */
+    total_price: number;
+    /**
+     * Unit Price
+     */
+    unit_price?: number | null;
+    /**
+     * Index
+     */
+    index?: number | null;
+};
+
+/**
+ * OutboundOrderTransitionSchema
+ */
+export type OutboundOrderTransitionSchema = {
+    /**
+     * Action
+     */
+    action?: 'next' | 'cancel';
 };
 
 /**
@@ -2556,6 +2955,35 @@ export type WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses = {
 
 export type WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses];
 
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/warehouse/orders-outgoing';
+};
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrdersResponses = {
+    /**
+     * OK
+     */
+    200: PagedOutboundWarehouseOrderSchema;
+};
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrdersResponse = WarehouseApiRoutesWarehouseGetOutboundWarehouseOrdersResponses[keyof WarehouseApiRoutesWarehouseGetOutboundWarehouseOrdersResponses];
+
 export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderData = {
     body?: never;
     path: {
@@ -2597,6 +3025,27 @@ export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses = {
 };
 
 export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderResponses];
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-outgoing/{code}';
+};
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponses];
 
 export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsData = {
     body?: never;
@@ -2720,7 +3169,7 @@ export type WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderData = {
         code: string;
     };
     query?: never;
-    url: '/api/v1/warehouse/orders-incoming/{code}/state';
+    url: '/api/v1/warehouse/orders-incoming/{code}/transition';
 };
 
 export type WarehouseApiRoutesWarehouseTransitionInboundWarehouseOrderResponses = {
@@ -3523,7 +3972,7 @@ export type WarehouseApiRoutesInboundOrdersTransitionInboundOrderData = {
         order_code: string;
     };
     query?: never;
-    url: '/api/v1/orders/{order_code}/state';
+    url: '/api/v1/orders/{order_code}/transition';
 };
 
 export type WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses = {
@@ -3559,6 +4008,280 @@ export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses 
 };
 
 export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponse = WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses];
+
+export type WarehouseApiRoutesOutboundOrdersGetOutboundOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Stock Product Code
+         */
+        stock_product_code?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/orders-outgoing';
+};
+
+export type WarehouseApiRoutesOutboundOrdersGetOutboundOrdersResponses = {
+    /**
+     * OK
+     */
+    200: PagedOutboundOrderSchema;
+};
+
+export type WarehouseApiRoutesOutboundOrdersGetOutboundOrdersResponse = WarehouseApiRoutesOutboundOrdersGetOutboundOrdersResponses[keyof WarehouseApiRoutesOutboundOrdersGetOutboundOrdersResponses];
+
+export type WarehouseApiRoutesOutboundOrdersCreateOutboundOrderData = {
+    body: OutboundOrderCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/orders-outgoing';
+};
+
+export type WarehouseApiRoutesOutboundOrdersCreateOutboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundOrderResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersCreateOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersCreateOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersCreateOutboundOrderResponses];
+
+export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}';
+};
+
+export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundOrderResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersGetOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersGetOutboundOrderResponses];
+
+export type WarehouseApiRoutesOutboundOrdersUpdateOutboundOrderData = {
+    body: OutboundOrderCreateOrUpdateSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}';
+};
+
+export type WarehouseApiRoutesOutboundOrdersUpdateOutboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundOrderResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersUpdateOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersUpdateOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersUpdateOutboundOrderResponses];
+
+export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}/audits';
+};
+
+export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponses = {
+    /**
+     * OK
+     */
+    200: GetAuditTimelineResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponse = WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponses[keyof WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponses];
+
+export type WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceData = {
+    /**
+     * FormParams
+     */
+    body: {
+        /**
+         * Customer Code
+         */
+        customer_code?: string | null;
+        /**
+         * Supplier Code
+         */
+        supplier_code?: string | null;
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Issued Date
+         */
+        issued_date: string;
+        /**
+         * Due Date
+         */
+        due_date: string;
+        /**
+         * Payment Method Name
+         */
+        payment_method_name: string;
+        /**
+         * External Code
+         */
+        external_code?: string | null;
+        /**
+         * Taxable Supply Date
+         */
+        taxable_supply_date: string;
+        /**
+         * Paid Date
+         */
+        paid_date?: string | null;
+        /**
+         * Currency
+         */
+        currency: string;
+        /**
+         * Note
+         */
+        note?: string | null;
+    };
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: {
+        /**
+         * Invoice File
+         */
+        invoice_file?: Blob | File | null;
+    };
+    url: '/api/v1/orders-outgoing/{order_code}/invoice';
+};
+
+export type WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundOrderResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceResponse = WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceResponses[keyof WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceResponses];
+
+export type WarehouseApiRoutesOutboundOrdersAddItemToOutboundOrderData = {
+    body: OutboundOrderItemCreateSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}/items';
+};
+
+export type WarehouseApiRoutesOutboundOrdersAddItemToOutboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: CreateOutboundOrderItemResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersAddItemToOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersAddItemToOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersAddItemToOutboundOrderResponses];
+
+export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderData = {
+    body: OutboundOrderItemCreateSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}/items';
+};
+
+export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: CreateOutboundOrderItemResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses];
+
+export type WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderData = {
+    body: OutboundOrderTransitionSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}/transition';
+};
+
+export type WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundOrderResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderResponses];
+
+export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}/items/{product_code}';
+};
+
+export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: EmptyResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses];
 
 export type WarehouseApiRoutesPackagingGetPackageTypesData = {
     body?: never;

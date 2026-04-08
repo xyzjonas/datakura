@@ -37,7 +37,7 @@
           <a
             @click="
               $router.push({
-                name: 'incomingOrderDetail',
+                name: detailRouteName,
                 params: { code: props.row.code },
               })
             "
@@ -48,7 +48,7 @@
       </template>
       <template #body-cell-state="props">
         <q-td>
-          <InboundOrderStateBadge :state="props.row.state" />
+          <component :is="orderStateBadgeComponent" :state="props.row.state" />
         </q-td>
       </template>
       <template #body-cell-warehouseOrder="props">
@@ -62,23 +62,24 @@
             class="link"
             @click="
               $router.push({
-                name: 'warehouseInboundOrderDetail',
+                name: warehouseDetailRouteName,
                 params: {
                   code: props.row.warehouse_orders.filter(
-                    (order: InboundOrderSchema) => order.state !== 'completed',
+                    (order: { state: string; code: string }) => order.state !== 'completed',
                   )[0].code,
                 },
               })
             "
             >{{
               props.row.warehouse_orders.filter(
-                (order: InboundOrderSchema) => order.state !== 'completed',
+                (order: { state: string; code: string }) => order.state !== 'completed',
               )[0].code
             }}
-            <InboundWarehouseOrderStateBadge
+            <component
+              :is="warehouseOrderStateBadgeComponent"
               :state="
                 props.row.warehouse_orders.filter(
-                  (order: InboundOrderSchema) => order.state !== 'completed',
+                  (order: { state: string; code: string }) => order.state !== 'completed',
                 )[0].state
               "
               class="ml-1"
@@ -86,34 +87,23 @@
         </q-td>
       </template>
     </q-table>
-    <NewOrderDialog
-      v-model="newOrderDialog"
-      @create-order="createOrder"
-      ref="newOrderDialogComponent"
-    ></NewOrderDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  warehouseApiRoutesInboundOrdersCreateInboundOrder,
-  type InboundOrderCreateOrUpdateSchema,
-  type InboundOrderSchema,
-} from '@/client'
+import { type InboundOrderSchema, type OutboundOrderSchema } from '@/client'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
-import NewOrderDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
+import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
+import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import StockProductSearchSelect from '@/components/selects/StockProductSearchSelect.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
-import { useApi } from '@/composables/use-api'
-import router from '@/router'
 import { calculateTotalPrice } from '@/utils/total-price'
-import { useQuasar, type QTableColumn, type QTableProps } from 'quasar'
-import { onMounted, ref, watch, type Ref } from 'vue'
+import { type QTableColumn, type QTableProps } from 'quasar'
+import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-const { onResponse } = useApi()
 const { page, pageSize, search, stockProductCode } = useQueryProducts()
 
 export type Pagination = NonNullable<QTableProps['pagination']>
@@ -124,34 +114,33 @@ const pagination = ref<Pagination>({
   rowsNumber: pageSize.value,
 })
 
-// todo: 'or' Outbound
-type Order = InboundOrderSchema
+type Order = InboundOrderSchema | OutboundOrderSchema
 
 const props = defineProps<{
   fetchOrders: (pagination: Ref<Pagination>, loading: Ref<boolean>) => Promise<Order[]>
+  orderType?: 'inbound' | 'outbound'
+  detailRouteName?: string
+  warehouseDetailRouteName?: string
+  warehouseLabel?: string
+  partnerLabel?: string
+  partnerField?: 'supplier' | 'customer'
 }>()
+
+const orderType = props.orderType ?? 'inbound'
+const detailRouteName = props.detailRouteName ?? 'incomingOrderDetail'
+const warehouseDetailRouteName = props.warehouseDetailRouteName ?? 'warehouseInboundOrderDetail'
+const warehouseLabel = props.warehouseLabel ?? 'Příjemka'
+const partnerLabel = props.partnerLabel ?? 'Dodavatel'
+const partnerField = props.partnerField ?? 'supplier'
+const orderStateBadgeComponent = computed(() =>
+  orderType === 'outbound' ? OutboundOrderStateBadge : InboundOrderStateBadge,
+)
+const warehouseOrderStateBadgeComponent = computed(() =>
+  orderType === 'outbound' ? OutboundWarehouseOrderStateBadge : InboundWarehouseOrderStateBadge,
+)
 
 const orders = ref<Order[]>([])
 const loading = ref(false)
-// const fetchOrders = async () => {
-//   loading.value = true
-//   try {
-//     const res = await warehouseApiRoutesInboundOrdersGetInboundOrders({
-//       query: {
-//         page: page.value,
-//         page_size: pageSize.value,
-//         search_term: search.value,
-//       },
-//     })
-//     const data = onResponse(res)
-//     if (data) {
-//       orders.value = data.data
-//       pagination.value.rowsNumber = data.count
-//     }
-//   } finally {
-//     setTimeout(() => (loading.value = false), 300)
-//   }
-// }
 
 const fetch = async () => {
   orders.value = await props.fetchOrders(pagination, loading)
@@ -202,7 +191,7 @@ const columns: QTableColumn[] = [
   {
     name: 'warehouseOrder',
     field: (order: InboundOrderSchema) => order.warehouse_order_codes?.join(', '),
-    label: 'Příjemka',
+    label: warehouseLabel,
     align: 'left',
   },
   {
@@ -226,9 +215,12 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
   {
-    name: 'supplier',
-    field: (order: InboundOrderSchema) => order.supplier.name,
-    label: 'Dodavatel',
+    name: 'partner',
+    field: (order: Order) =>
+      partnerField === 'supplier'
+        ? ((order as InboundOrderSchema).supplier?.name ?? '')
+        : ((order as OutboundOrderSchema).customer?.name ?? ''),
+    label: partnerLabel,
     align: 'left',
   },
   {
@@ -238,22 +230,6 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
 ]
-
-const newOrderDialog = ref(false)
-const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
-const $q = useQuasar()
-const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
-  const response = await warehouseApiRoutesInboundOrdersCreateInboundOrder({ body: params })
-  const data = onResponse(response)
-  if (data && newOrderDialogComponent.value) {
-    newOrderDialogComponent.value.reset()
-    $q.notify({
-      type: 'positive',
-      message: `vydaná objednávka úspěšně vytvořena: ${data.data.code}`,
-    })
-    router.push({ name: 'incomingOrderDetail', params: { code: data.data.code } })
-  }
-}
 </script>
 
 <style lang="scss" scoped></style>

@@ -84,7 +84,8 @@
                 {
                   label: 'Výdejky',
                   icon: 'sym_o_output',
-                  routeName: 'submissions',
+                  routeName: 'warehouseOutboundOrders',
+                  routeMatch: 'warehouseOutboundOrders,warehouseOutboundOrderDetail',
                 },
               ]"
             />

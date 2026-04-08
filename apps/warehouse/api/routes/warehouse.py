@@ -7,6 +7,7 @@ from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import (
     IncomingWarehouseOrdersPagination,
+    OutgoingWarehouseOrdersPagination,
     WarehouseLocationsPagination,
 )
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
@@ -15,8 +16,10 @@ from apps.warehouse.core.schemas.warehouse import (
     GetWarehouseLocationResponse,
     GetWarehouseItemResponse,
     GetWarehouseOrderResponse,
+    GetOutboundWarehouseOrderResponse,
     WarehouseOrderCreateSchema,
     InboundWarehouseOrderSchema,
+    OutboundWarehouseOrderSchema,
     UpdateWarehouseOrderDraftItemsRequest,
     InboundWarehouseOrderUpdateSchema,
     SetupTrackingWarehouseItemRequest,
@@ -34,11 +37,12 @@ from apps.warehouse.core.transformation import (
     location_orm_to_detail_schema,
     location_orm_to_schema_with_count,
 )
-from apps.warehouse.models.orders import InboundOrderState
+from apps.warehouse.models.orders import InboundOrderState, OutboundOrderState
 from apps.warehouse.models.warehouse import (
     Warehouse,
     WarehouseLocation,
     InboundWarehouseOrder,
+    OutboundWarehouseOrder,
 )
 
 routes = Router(tags=["warehouse"])
@@ -162,6 +166,36 @@ def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None =
 
 
 @routes.get(
+    "orders-outgoing",
+    response={200: list[OutboundWarehouseOrderSchema]},
+)
+@paginate(OutgoingWarehouseOrdersPagination)
+def get_outbound_warehouse_orders(request: HttpRequest, search_term: str | None = None):
+    qs = cast(
+        QuerySet[OutboundWarehouseOrder],
+        OutboundWarehouseOrder.objects.select_related("order", "order__customer")
+        .prefetch_related(
+            "order__items",
+            "warehouse_movements",
+            "warehouse_movements__location_from",
+            "warehouse_movements__location_to",
+            "warehouse_movements__stock_product",
+            "warehouse_movements__item",
+        )
+        .exclude(order__state=OutboundOrderState.CANCELLED)
+        .exclude(order__state=OutboundOrderState.COMPLETED),
+    )
+    if search_term:
+        search_term = search_term.lower()
+        qs = qs.filter(
+            Q(code__iexact=search_term)
+            | Q(code__icontains=search_term)
+            | Q(order__code__icontains=search_term)
+        )
+    return qs.all()
+
+
+@routes.get(
     "orders-incoming/{code}",
     response={200: GetWarehouseOrderResponse},
 )
@@ -171,6 +205,15 @@ def get_inbound_warehouse_order(request: HttpRequest, code: str):
     # )
     order = warehouse_service.get_inbound_warehouse_order(code)
     return GetWarehouseOrderResponse(data=order)
+
+
+@routes.get(
+    "orders-outgoing/{code}",
+    response={200: GetOutboundWarehouseOrderResponse},
+)
+def get_outbound_warehouse_order(request: HttpRequest, code: str):
+    order = warehouse_service.get_outbound_warehouse_order(code)
+    return GetOutboundWarehouseOrderResponse(data=order)
 
 
 @routes.get(
@@ -263,15 +306,14 @@ def remove_from_order_to_credit_note(
 
 
 @routes.post(
-    "orders-incoming/{code}/state",
+    "orders-incoming/{code}/transition",
     response={200: GetWarehouseOrderResponse},
 )
 def transition_inbound_warehouse_order(
     request: HttpRequest, code: str, body: InboundWarehouseOrderSetStateSchema
 ):
-    warehouse_service.set_order_state(
+    warehouse_service.transition_inbound_order(
         code,
-        target_state=body.state,
         context=RequestContext.from_django_request(request),
         location_code=body.location_code,
     )

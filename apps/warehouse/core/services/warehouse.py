@@ -24,6 +24,7 @@ from apps.warehouse.core.schemas.warehouse import (
     AuditTimelineEntrySchema,
     WarehouseOrderCreateSchema,
     InboundWarehouseOrderSchema,
+    OutboundWarehouseOrderSchema,
     ProductWarehouseAvailability,
     WarehouseItemDetailSchema,
     WarehouseItemSchema,
@@ -34,6 +35,7 @@ from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
 from apps.warehouse.core.transformation import (
     warehouse_inbound_order_orm_to_schema,
+    warehouse_outbound_order_orm_to_schema,
     product_orm_to_schema,
     package_orm_to_schema,
     location_orm_to_schema,
@@ -53,6 +55,7 @@ from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrder,
+    OutboundWarehouseOrder,
     WarehouseItem,
     WarehouseMovement,
     WarehouseLocation,
@@ -373,6 +376,22 @@ class WarehouseService:
         return warehouse_inbound_order_orm_to_schema(order)
 
     @staticmethod
+    def get_outbound_warehouse_order(code: str) -> OutboundWarehouseOrderSchema:
+        order = (
+            OutboundWarehouseOrder.objects.select_related("order", "order__customer")
+            .prefetch_related(
+                "order__items",
+                "warehouse_movements",
+                "warehouse_movements__location_from",
+                "warehouse_movements__location_to",
+                "warehouse_movements__stock_product",
+                "warehouse_movements__item",
+            )
+            .get(code=code)
+        )
+        return warehouse_outbound_order_orm_to_schema(order)
+
+    @staticmethod
     def create_inbound_order(
         params: WarehouseOrderCreateSchema, context: RequestContext
     ) -> InboundWarehouseOrderSchema:
@@ -396,7 +415,9 @@ class WarehouseService:
             )
 
             inbound_orders_service.transition_order(
-                purchase_order.code, InboundOrderState.RECEIVING, context=context
+                purchase_order.code,
+                context=context,
+                target_state=InboundOrderState.RECEIVING,
             )
 
         warehouse_order.refresh_from_db()
@@ -903,7 +924,9 @@ class WarehouseService:
         cls.transition_order(code, InboundWarehouseOrderState.PENDING, context)
         inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
         inbound_orders_service.transition_order(
-            inbound_order.code, InboundOrderState.PUTAWAY, context=context
+            inbound_order.code,
+            context=context,
+            target_state=InboundOrderState.PUTAWAY,
         )
         if credit_note := getattr(inbound_order, "credit_note", None):
             inbound_orders_service.transition_credit_note(
@@ -922,12 +945,43 @@ class WarehouseService:
         cls.transition_order(code, InboundWarehouseOrderState.DRAFT, context)
         inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
         inbound_orders_service.transition_order(
-            inbound_order.code, InboundOrderState.RECEIVING, context=context
+            inbound_order.code,
+            context=context,
+            target_state=InboundOrderState.RECEIVING,
         )
         if credit_note := getattr(inbound_order, "credit_note", None):
             inbound_orders_service.transition_credit_note(
                 credit_note.code, CreditNoteState.DRAFT, context=context
             )
+
+    @classmethod
+    def transition_inbound_order(
+        cls,
+        code: str,
+        context: RequestContext,
+        location_code: str | None = None,
+    ) -> None:
+        current_state = cls.get_inbound_warehouse_order(code).state
+
+        if current_state == InboundWarehouseOrderState.IN_TRANSIT:
+            if not location_code:
+                raise WarehouseGenericError(
+                    "location_code is required when confirming arrival from in transit"
+                )
+            cls.confirm_arrival(code=code, location_code=location_code, context=context)
+            return
+
+        if current_state == InboundWarehouseOrderState.DRAFT:
+            cls.confirm_draft(code, context=context)
+            return
+
+        if current_state == InboundWarehouseOrderState.PENDING:
+            cls.reset_to_draft(code, context=context)
+            return
+
+        raise WarehouseGenericError(
+            f"Unsupported transition from state '{current_state}'"
+        )
 
     @classmethod
     def set_order_state(
@@ -937,6 +991,11 @@ class WarehouseService:
         context: RequestContext,
         location_code: str | None = None,
     ) -> None:
+        # Backward-compatible wrapper for legacy callers.
+        current_state = cls.get_inbound_warehouse_order(code).state
+        if target_state == current_state:
+            return
+
         current_state = cls.get_inbound_warehouse_order(code).state
 
         if target_state == InboundWarehouseOrderState.DRAFT:
@@ -1070,8 +1129,8 @@ class WarehouseService:
                 ):
                     inbound_orders_service.transition_order(
                         warehouse_order.order.code,
-                        InboundOrderState.COMPLETED,
                         context=context,
+                        target_state=InboundOrderState.COMPLETED,
                     )
             else:
                 cls.transition_order(

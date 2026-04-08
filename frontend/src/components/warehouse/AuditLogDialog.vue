@@ -17,6 +17,7 @@
 <script setup lang="ts">
 import {
   warehouseApiRoutesInboundOrdersGetInboundOrderAudits,
+  warehouseApiRoutesOutboundOrdersGetOutboundOrderAudits,
   warehouseApiRoutesProductGetProductAudits,
   warehouseApiRoutesWarehouseGetInboundWarehouseOrderAudits,
   type GetAuditTimelineResponse,
@@ -26,7 +27,7 @@ import WarehouseItemAuditTimeline from '@/components/warehouse/WarehouseItemAudi
 import { useApi } from '@/composables/use-api'
 import { ref, watch } from 'vue'
 
-type AuditSource = 'inbound-order' | 'warehouse-inbound-order' | 'product'
+type AuditSource = 'inbound-order' | 'outbound-order' | 'warehouse-inbound-order' | 'product'
 
 type Props = {
   source: AuditSource
@@ -67,6 +68,15 @@ const fetchAudits = async () => {
     if (props.source === 'product') {
       const response = await warehouseApiRoutesProductGetProductAudits({
         path: { product_code: props.code },
+      })
+      const payload = onResponse(response)
+      entries.value = payload?.data ?? []
+      return
+    }
+
+    if (props.source === 'outbound-order') {
+      const response = await warehouseApiRoutesOutboundOrdersGetOutboundOrderAudits({
+        path: { order_code: props.code },
       })
       const payload = onResponse(response)
       entries.value = payload?.data ?? []

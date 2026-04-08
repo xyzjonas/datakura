@@ -83,7 +83,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     assert res.json()["data"]["state"] == InboundOrderState.DRAFT
 
     # 3. Submit Order
-    res = order_client.patch(f"/{order_code}/state", json={"state": "submitted"})
+    res = order_client.post(f"/{order_code}/transition", json={"action": "next"})
     assert res.status_code == 200
     assert res.json()["data"]["state"] == InboundOrderState.SUBMITTED
 
@@ -112,8 +112,8 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
 
     # 5. Confirm arrival (creates receiving items)
     res = warehouse_client.post(
-        f"/orders-incoming/{w_order_code}/state",
-        json={"state": "draft", "location_code": receiving_location.code},
+        f"/orders-incoming/{w_order_code}/transition",
+        json={"location_code": receiving_location.code},
     )
     assert res.status_code == 200
     w_order_res = res.json()["data"]
@@ -145,9 +145,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     ) - Decimal(return_amount)
 
     # 7. Confirm Warehouse Order
-    res = warehouse_client.post(
-        f"/orders-incoming/{w_order_code}/state", json={"state": "pending"}
-    )
+    res = warehouse_client.post(f"/orders-incoming/{w_order_code}/transition", json={})
     assert res.status_code == 200
     w_order_res = res.json()["data"]
     assert w_order_res["state"] == InboundWarehouseOrderState.PENDING

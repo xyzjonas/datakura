@@ -239,15 +239,12 @@ const updateOrderItems = async (item: WarehouseItemSchema, toBeAdded: WarehouseI
 const confirmDialog = ref(false)
 const resetDialog = ref(false)
 const auditDialog = ref(false)
-const transitionOrder = async (
-  state: 'pending' | 'draft',
-  locationCode: string | undefined = undefined,
-) => {
+const transitionOrder = async (locationCode: string | undefined = undefined) => {
   if (!order.value) {
     return
   }
 
-  if (state === 'draft' && order.value.state === 'in transit' && !locationCode) {
+  if (order.value.state === 'in transit' && !locationCode) {
     $q.notify({
       type: 'negative',
       message: 'Vyberte příjmové místo',
@@ -259,7 +256,6 @@ const transitionOrder = async (
     await warehouseApiRoutesWarehouseTransitionInboundWarehouseOrder({
       path: { code: order.value.code },
       body: {
-        state: state,
         location_code: locationCode,
       },
     }),
@@ -276,11 +272,11 @@ const transitionOrder = async (
 
 const onConfirmDialog = async () => {
   if (order.value?.state === 'in transit') {
-    await transitionOrder('draft', arrivalLocationCode.value)
+    await transitionOrder(arrivalLocationCode.value)
     return
   }
 
-  await transitionOrder('pending')
+  await transitionOrder()
 }
 
 const dissolveItem = async (itemId: number) => {

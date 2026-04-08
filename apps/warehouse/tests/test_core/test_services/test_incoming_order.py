@@ -245,8 +245,8 @@ def test_transition_order(db, context):
 
     result = inbound_orders_service.transition_order(
         code=order.code,
-        new_state=InboundOrderState.COMPLETED,
         context=context,
+        target_state=InboundOrderState.COMPLETED,
     )
     order_db = InboundOrder.objects.get(code=order.code)
     assert order_db.state == InboundOrderState.COMPLETED

@@ -34,12 +34,14 @@
         </template>
       </q-input>
       <q-input
-        :model-value="derivedUnitPrice"
-        readonly
+        v-model.number="unitPrice"
+        :readonly="isUnitPriceReadonly"
         dense
         outlined
         class="max-w-50"
         label="Nákupní cena"
+        @update:model-value="update"
+        :debounce="500"
       >
         <template #append>
           <span class="text-xs">{{ currency }} / {{ item.product.unit }}</span>
@@ -73,9 +75,11 @@
 
 <script setup lang="ts">
 import {
+  warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder,
   warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder,
   type CreditNoteSupplierItemSchema,
   type InboundOrderItemSchema,
+  type OutboundOrderItemSchema,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
 import { round } from '@/utils/round'
@@ -87,20 +91,33 @@ import ProductAvailability from '../product/ProductAvailability.vue'
 const $q = useQuasar()
 const { onResponse } = useApi()
 
-const props = defineProps<{ currency: string; readonly?: boolean; orderCode: string }>()
+const props = defineProps<{
+  currency: string
+  readonly?: boolean
+  orderCode: string
+  orderType: 'inbound' | 'outbound'
+}>()
 defineEmits<{ (e: 'dissolveItem'): void }>()
 
-const item = defineModel<InboundOrderItemSchema | CreditNoteSupplierItemSchema>('item', {
+const item = defineModel<
+  InboundOrderItemSchema | OutboundOrderItemSchema | CreditNoteSupplierItemSchema
+>('item', {
   required: true,
 })
 
 const totalPrice = ref(round(item.value.unit_price * item.value.amount))
+const unitPrice = ref(round(item.value.unit_price))
 const derivedUnitPrice = computed(() => {
   if (!item.value.amount) {
     return 0
   }
+  if (props.orderType === 'outbound') {
+    return round(unitPrice.value)
+  }
   return round(totalPrice.value / item.value.amount)
 })
+
+const isUnitPriceReadonly = computed(() => props.readonly || props.orderType === 'inbound')
 
 const index = computed(() => (isInboundOrderItem(item.value) ? item.value.index + 1 : undefined))
 
@@ -111,24 +128,37 @@ const isInboundOrderItem = (
 }
 
 const update = async () => {
-  const res = await warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder({
-    path: {
-      order_code: props.orderCode,
-    },
-    body: {
-      product_code: item.value.product.code,
-      product_name: item.value.product.name,
-      amount: item.value.amount,
-      total_price: totalPrice.value,
-      unit_price: derivedUnitPrice.value,
-      index: index.value,
-    },
-  })
+  if (props.orderType === 'outbound') {
+    totalPrice.value = round(item.value.amount * derivedUnitPrice.value)
+  } else {
+    unitPrice.value = derivedUnitPrice.value
+  }
+
+  const payload = {
+    product_code: item.value.product.code,
+    product_name: item.value.product.name,
+    amount: item.value.amount,
+    total_price: totalPrice.value,
+    unit_price: derivedUnitPrice.value,
+    index: index.value,
+  }
+
+  const res =
+    props.orderType === 'outbound'
+      ? await warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder({
+          path: { order_code: props.orderCode },
+          body: payload,
+        })
+      : await warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder({
+          path: { order_code: props.orderCode },
+          body: payload,
+        })
 
   const data = onResponse(res)
   if (data?.data) {
     item.value = data.data
     totalPrice.value = data.data.total_price
+    unitPrice.value = data.data.unit_price
     $q.notify({ type: 'positive', message: 'Položka aktualizována' })
   }
 }

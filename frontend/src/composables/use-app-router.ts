@@ -10,8 +10,16 @@ export const useAppRouter = () => {
     router.push({ name: 'warehouseInboundOrderDetail', params: { code } })
   }
 
+  const goToWarehouseOrderOut = (code: string) => {
+    router.push({ name: 'warehouseOutboundOrderDetail', params: { code } })
+  }
+
   const goToOrderIn = (code: string) => {
     router.push({ name: 'incomingOrderDetail', params: { code } })
+  }
+
+  const goToOrderOut = (code: string) => {
+    router.push({ name: 'outgoingOrderDetail', params: { code } })
   }
 
   const goToProduct = (code: string) => {
@@ -25,7 +33,9 @@ export const useAppRouter = () => {
   return {
     goToCustomer,
     goToOrderIn,
+    goToOrderOut,
     goToWarehouseOrderIn,
+    goToWarehouseOrderOut,
     goToProduct,
     goToCreditNote,
   }

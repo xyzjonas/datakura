@@ -118,6 +118,7 @@
         :currency="order.currency"
         :readonly="getInboundOrderStep(order) > 1"
         :order-code="order.code"
+        order-type="inbound"
         @dissolve-item="removeItem"
         @reorder-items="reorderItems"
         @add-item="addItemDialog = true"
@@ -343,7 +344,7 @@ const confirm = async () => {
   }
   const response = await warehouseApiRoutesInboundOrdersTransitionInboundOrder({
     path: { order_code: order.value.code },
-    body: { state: 'submitted' },
+    body: { action: 'next' },
   })
   const data = onResponse(response)
   if (data) {
@@ -359,7 +360,7 @@ const cancel = async () => {
   }
   const response = await warehouseApiRoutesInboundOrdersTransitionInboundOrder({
     path: { order_code: order.value.code },
-    body: { state: 'cancelled' },
+    body: { action: 'cancel' },
   })
   const data = onResponse(response)
   if (data) {
@@ -378,7 +379,7 @@ const createWarehouseOrder = async () => {
 
   const stateResponse = await warehouseApiRoutesInboundOrdersTransitionInboundOrder({
     path: { order_code: order.value.code },
-    body: { state: 'receiving' },
+    body: { action: 'next' },
   })
   const stateData = onResponse(stateResponse)
   if (!stateData?.data) {

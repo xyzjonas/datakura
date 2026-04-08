@@ -5,40 +5,38 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Q, QuerySet
-from django.template.loader import get_template
 from django.utils import timezone
 from loguru import logger
 
+from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.schemas.context import RequestContext
-from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
-    InboundOrderItemCreateSchema,
-    InboundOrderItemSchema,
-    InboundOrderCreateOrUpdateSchema,
-    InboundOrderSchema,
+    OutboundOrderCreateOrUpdateSchema,
+    OutboundOrderItemCreateSchema,
+    OutboundOrderItemSchema,
+    OutboundOrderSchema,
 )
-from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services import audit_service
-from apps.warehouse.core.services.pdf import print_html_to_pdf
 from apps.warehouse.core.transformation import (
-    inbound_order_item_orm_to_schema,
-    inbound_order_orm_to_schema,
-    credit_note_supplier_orm_to_schema,
+    outbound_order_item_orm_to_schema,
+    outbound_order_orm_to_schema,
 )
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import (
-    InboundOrder,
-    InboundOrderItem,
-    InboundOrderState,
-    CreditNoteToSupplier,
-    CreditNoteState,
     Invoice,
     InvoicePaymentMethod,
+    OutboundOrder,
+    OutboundOrderItem,
+    OutboundOrderState,
 )
 from apps.warehouse.models.product import StockProduct
+from apps.warehouse.models.warehouse import (
+    OutboundWarehouseOrder,
+    OutboundWarehouseOrderState,
+)
 
 
 def _get_end_of_month(date: datetime) -> datetime:
@@ -51,7 +49,7 @@ def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
     return date.replace(day=1, hour=0, minute=0, second=0, microsecond=0), last_day
 
 
-class OrdersService:
+class OutboundOrdersService:
     @staticmethod
     def _compute_unit_price(amount: Decimal, total_price: Decimal) -> Decimal:
         if amount <= 0:
@@ -61,23 +59,25 @@ class OrdersService:
         )
 
     @staticmethod
-    def get_inbound_orders(
+    def get_outbound_orders(
         search_term: str | None = None,
         stock_product_code: str | None = None,
-    ) -> QuerySet[InboundOrder]:
-        qs = InboundOrder.objects.select_related(
-            "supplier",
+    ) -> QuerySet[OutboundOrder]:
+        qs = OutboundOrder.objects.select_related(
+            "customer",
             "invoice__customer",
             "invoice__supplier",
             "invoice__payment_method",
-        ).exclude(state__in=[InboundOrderState.CANCELLED, InboundOrderState.COMPLETED])
+        ).exclude(
+            state__in=[OutboundOrderState.CANCELLED, OutboundOrderState.COMPLETED]
+        )
 
         if search_term:
             search_term = search_term.lower()
             qs = qs.filter(
                 Q(code__iexact=search_term)
                 | Q(code__icontains=search_term)
-                | Q(supplier__name__icontains=search_term)
+                | Q(customer__name__icontains=search_term)
             )
 
         if stock_product_code:
@@ -92,46 +92,38 @@ class OrdersService:
         return Customer.objects.get(code=customer_code)
 
     @staticmethod
-    def generate_next_incoming_order_code() -> str:
+    def generate_next_outgoing_order_code() -> str:
         now = timezone.now()
         dt_range = _get_month_range(now)
-        orders_this_month = InboundOrder.objects.filter(created__range=dt_range).count()
-        return f"OV{now.year}{now.month:02d}{orders_this_month + 1:04d}"
-
-    @staticmethod
-    def generate_next_credit_note_code() -> str:
-        now = timezone.now()
-        dt_range = _get_month_range(now)
-        notes_this_month = CreditNoteToSupplier.objects.filter(
+        orders_this_month = OutboundOrder.objects.filter(
             created__range=dt_range
         ).count()
-        return f"DV{now.year}{now.month:02d}{notes_this_month + 1:04d}"
+        return f"OP{now.year}{now.month:02d}{orders_this_month + 1:04d}"
 
     @staticmethod
-    def update_or_create_incoming(
-        params: InboundOrderCreateOrUpdateSchema,
+    def update_or_create_outgoing(
+        params: OutboundOrderCreateOrUpdateSchema,
         context: RequestContext,
         code: str | None = None,
-    ) -> InboundOrderSchema:
+    ) -> OutboundOrderSchema:
         if code is None:
-            # todo: create code only after transitioning from 'draft'
-            code = OrdersService.generate_next_incoming_order_code()
+            code = OutboundOrdersService.generate_next_outgoing_order_code()
 
         previous_order_schema = None
-        existing_order = InboundOrder.objects.filter(code=code).first()
+        existing_order = OutboundOrder.objects.filter(code=code).first()
         if existing_order:
-            previous_order_schema = inbound_order_orm_to_schema(existing_order)
+            previous_order_schema = outbound_order_orm_to_schema(existing_order)
 
-        supplier = Customer.objects.get(code=params.supplier_code)
+        customer = Customer.objects.get(code=params.customer_code)
         with transaction.atomic():
-            order, created = InboundOrder.objects.update_or_create(
+            order, created = OutboundOrder.objects.update_or_create(
                 code=code,
                 defaults=dict(
                     external_code=params.external_code,
                     description=params.description,
                     note=params.note,
                     currency=params.currency,
-                    supplier=supplier,
+                    customer=customer,
                     requested_delivery_date=params.requested_delivery_date,
                 ),
             )
@@ -140,11 +132,11 @@ class OrdersService:
                     order,
                     action=AuditAction.CREATE,
                     user=context.user_id,
-                    reason=AuditMessages.NEW_INBOUND_ORDER_CREATED.CS,
+                    reason=AuditMessages.ORDER_CREATED.CS,
                 )
             else:
                 if previous_order_schema:
-                    new_order = inbound_order_orm_to_schema(order).model_dump()
+                    new_order = outbound_order_orm_to_schema(order).model_dump()
                     final_diff = {}
                     for key, value in previous_order_schema.model_dump().items():
                         if key in ("created", "changed"):
@@ -159,20 +151,20 @@ class OrdersService:
                         order,
                         user=context.user_id,
                         action=AuditAction.UPDATE,
-                        reason=AuditMessages.WAREHOUSE_ORDER_UPDATED.CS,
+                        reason=AuditMessages.ORDER_UPDATED.CS,
                         changes=final_diff,
                     )
 
-        return inbound_order_orm_to_schema(order)
+        return outbound_order_orm_to_schema(order)
 
     @staticmethod
     def add_item(
-        code: str, item: InboundOrderItemCreateSchema
-    ) -> InboundOrderItemSchema:
-        order = InboundOrder.objects.get(code=code)
+        code: str, item: OutboundOrderItemCreateSchema
+    ) -> OutboundOrderItemSchema:
+        order = OutboundOrder.objects.get(code=code)
         stock_product = StockProduct.objects.get(code=item.product_code)
 
-        if InboundOrderItem.objects.filter(
+        if OutboundOrderItem.objects.filter(
             order=order, stock_product=stock_product
         ).exists():
             raise WarehouseItemBadRequestError(
@@ -183,23 +175,25 @@ class OrdersService:
             next_index = order.items.count()
             amount = Decimal(str(item.amount))
             total_price = Decimal(str(item.total_price))
-            item_model = InboundOrderItem.objects.create(
+            item_model = OutboundOrderItem.objects.create(
                 stock_product=stock_product,
                 amount=amount,
                 order=order,
                 total_price=total_price,
-                unit_price=OrdersService._compute_unit_price(amount, total_price),
+                unit_price=OutboundOrdersService._compute_unit_price(
+                    amount, total_price
+                ),
                 index=item.index if item.index is not None else next_index,
             )
 
-        return inbound_order_item_orm_to_schema(item_model)
+        return outbound_order_item_orm_to_schema(item_model)
 
     @staticmethod
     def update_item(
-        code: str, item: InboundOrderItemCreateSchema
-    ) -> InboundOrderItemSchema:
-        order = InboundOrder.objects.get(code=code)
-        item_model = InboundOrderItem.objects.get(
+        code: str, item: OutboundOrderItemCreateSchema
+    ) -> OutboundOrderItemSchema:
+        order = OutboundOrder.objects.get(code=code)
+        item_model = OutboundOrderItem.objects.get(
             order=order, stock_product__code=item.product_code
         )
 
@@ -208,19 +202,19 @@ class OrdersService:
             total_price = Decimal(str(item.total_price))
             item_model.amount = amount
             item_model.total_price = total_price
-            item_model.unit_price = OrdersService._compute_unit_price(
+            item_model.unit_price = OutboundOrdersService._compute_unit_price(
                 amount, total_price
             )
             if item.index is not None:
                 item_model.index = item.index
             item_model.save()
 
-        return inbound_order_item_orm_to_schema(item_model)
+        return outbound_order_item_orm_to_schema(item_model)
 
     @staticmethod
     def remove_item(code: str, product_code: str) -> bool:
-        order = InboundOrder.objects.get(code=code)
-        items = InboundOrderItem.objects.filter(
+        order = OutboundOrder.objects.get(code=code)
+        items = OutboundOrderItem.objects.filter(
             order=order, stock_product__code=product_code
         )
         with transaction.atomic():
@@ -228,42 +222,36 @@ class OrdersService:
 
         return True
 
-    @staticmethod
+    @classmethod
     def transition_order(
+        cls,
         code: str,
         context: RequestContext,
         action: str = "next",
-        target_state: InboundOrderState | None = None,
-    ) -> InboundOrderSchema:
-        order = InboundOrder.objects.get(code=code)
+        target_state: OutboundOrderState | None = None,
+    ) -> OutboundOrderSchema:
+        order = OutboundOrder.objects.get(code=code)
+        old_state = OutboundOrderState(order.state)
 
-        old_state = InboundOrderState(order.state)
         if target_state is None:
             if action == "cancel":
-                new_state = InboundOrderState.CANCELLED
-            elif action == "rollback":
-                if old_state != InboundOrderState.PUTAWAY:
-                    raise WarehouseItemBadRequestError(
-                        f"Unsupported rollback from state '{old_state}'"
-                    )
-                new_state = InboundOrderState.RECEIVING
+                new_state = OutboundOrderState.CANCELLED
             elif action == "next":
-                if old_state == InboundOrderState.DRAFT:
+                if old_state in (
+                    OutboundOrderState.DRAFT,
+                    OutboundOrderState.SUBMITTED,
+                ):
                     if not order.items.exists():
                         raise WarehouseItemBadRequestError(
                             "Order must have at least one item before confirmation"
                         )
-                    new_state = InboundOrderState.SUBMITTED
-                elif old_state == InboundOrderState.SUBMITTED:
-                    if not order.invoice:
-                        raise WarehouseItemBadRequestError(
-                            "Invoice must be attached before receiving transition"
-                        )
-                    new_state = InboundOrderState.RECEIVING
-                elif old_state == InboundOrderState.RECEIVING:
-                    new_state = InboundOrderState.PUTAWAY
-                elif old_state == InboundOrderState.PUTAWAY:
-                    new_state = InboundOrderState.COMPLETED
+                    new_state = OutboundOrderState.PICKING
+                elif old_state == OutboundOrderState.PICKING:
+                    new_state = OutboundOrderState.PACKING
+                elif old_state == OutboundOrderState.PACKING:
+                    new_state = OutboundOrderState.SHIPPING
+                elif old_state == OutboundOrderState.SHIPPING:
+                    new_state = OutboundOrderState.COMPLETED
                 else:
                     raise WarehouseItemBadRequestError(
                         f"No next transition available from state '{old_state}'"
@@ -278,15 +266,34 @@ class OrdersService:
         with transaction.atomic():
             order.state = new_state
 
-            if new_state == InboundOrderState.RECEIVING:
-                order.received_date = timezone.now()
+            if (
+                new_state == OutboundOrderState.PICKING
+                and not order.warehouse_orders.exists()
+            ):
+                warehouse_order_code = cls.generate_next_outbound_warehouse_order_code()
+                warehouse_order = OutboundWarehouseOrder.objects.create(
+                    code=warehouse_order_code,
+                    order=order,
+                    state=OutboundWarehouseOrderState.PENDING,
+                )
+                audit_service.add_entry(
+                    warehouse_order,
+                    action=AuditAction.CREATE,
+                    user=context.user_id,
+                    reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
+                        purchase_order_code=code
+                    ),
+                )
 
-            if new_state == InboundOrderState.CANCELLED:
+            if new_state == OutboundOrderState.COMPLETED:
+                order.fulfilled_date = timezone.now()
+
+            if new_state == OutboundOrderState.CANCELLED:
                 order.cancelled_date = timezone.now()
 
             order.save()
             logger.info(
-                f"Inboud order '{order.code}' transitioned: {old_state} -> {new_state}"
+                f"Outbound order '{order.code}' transitioned: {old_state} -> {new_state}"
             )
             audit_service.add_entry(
                 order,
@@ -298,85 +305,14 @@ class OrdersService:
                 changes={"state": {"old": old_state, "new": new_state}},
             )
 
-        return inbound_order_orm_to_schema(order)
+        return outbound_order_orm_to_schema(order)
 
     @staticmethod
-    def transition_credit_note(
-        code: str, new_state: CreditNoteState, context: RequestContext
-    ) -> None:
-        note = CreditNoteToSupplier.objects.get(code=code)
-        with transaction.atomic():
-            old_state = note.state
-            note.state = new_state
-
-            note.save()
-            logger.info(
-                f"Credit note '{note.code}' transitioned: {old_state} -> {new_state}"
-            )
-            audit_service.add_entry(
-                note,
-                user=context.user_id,
-                action=AuditAction.TRANSITION,
-                reason=AuditMessages.CREDIT_NOTE_STATE_CHANGED.CS.format(
-                    old_state=old_state, new_state=new_state
-                ),
-                changes={"state": {"old": old_state, "new": new_state}},
-            )
-
-        return None
-
-    @classmethod
-    def accept_inbound_order(cls, order_code: str, context: RequestContext):
-        # order = InboundOrder.objects.get(code=order_code)
-        cls.transition_order(
-            order_code,
-            context=context,
-            target_state=InboundOrderState.RECEIVING,
-        )
-        # for item in order.items.all():
-        #     stock_product_service.update_pricing(item.stock_product.code)
-
-    @staticmethod
-    def get_html(code: str) -> str:
-        order = InboundOrder.objects.get(code=code)
-        order_schema = inbound_order_orm_to_schema(order)
-        template = get_template("inbound_order.html")
-        html_content = template.render({"order": order_schema.model_dump()})
-
-        return html_content
-
-    @classmethod
-    def get_pdf(cls, code: str) -> bytes:
-        return print_html_to_pdf(content_html=cls.get_html(code))
-
-    @classmethod
-    def get_or_create_credit_note(
-        cls, order_code: str, context: RequestContext
-    ) -> tuple[CreditNoteSupplierSchema, bool]:
-        if not CreditNoteToSupplier.objects.filter(order__code=order_code).exists():
-            order = InboundOrder.objects.get(code=order_code)
-            created = True
-            code = cls.generate_next_credit_note_code()
-            note = CreditNoteToSupplier.objects.create(
-                code=code, order=order, reason="", note="", state=CreditNoteState.DRAFT
-            )
-
-            result = credit_note_supplier_orm_to_schema(note)
-            audit_service.add_entry(
-                order,
-                user=context.user_id,
-                action=AuditAction.CREATE,
-                reason=AuditMessages.CREDIT_NOTE_CREATED_FOR_INBOUND_ORDER.CS.format(
-                    credit_note_code=note.code
-                ),
-                changes={"credit_note": {"created": note.code}},
-            )
-        else:
-            order = InboundOrder.objects.get(code=order_code)
-            created = False
-            result = credit_note_supplier_orm_to_schema(order.credit_note)
-
-        return result, created
+    def generate_next_outbound_warehouse_order_code() -> str:
+        now = timezone.now()
+        dt_range = _get_month_range(now)
+        count = OutboundWarehouseOrder.objects.filter(created__range=dt_range).count()
+        return f"WO{now.year}{now.month:02d}{count + 1:04d}"
 
     @classmethod
     def store_invoice(
@@ -385,8 +321,8 @@ class OrdersService:
         params: InvoiceStoreSchema,
         context: RequestContext,
         invoice_file: UploadedFile | None = None,
-    ) -> InboundOrderSchema:
-        order = InboundOrder.objects.select_related("invoice").get(code=order_code)
+    ) -> OutboundOrderSchema:
+        order = OutboundOrder.objects.select_related("invoice").get(code=order_code)
         previous_invoice_code = order.invoice.code if order.invoice else None
 
         customer = cls._get_customer_or_none(params.customer_code)
@@ -420,7 +356,7 @@ class OrdersService:
 
             invoice.save()
 
-            if order.invoice_id != invoice.pk:
+            if (order.invoice.pk if order.invoice else None) != invoice.pk:
                 order.invoice = invoice
                 order.save(update_fields=["invoice", "changed"])
 
@@ -440,7 +376,7 @@ class OrdersService:
             )
 
         order.refresh_from_db()
-        return inbound_order_orm_to_schema(order)
+        return outbound_order_orm_to_schema(order)
 
 
-inbound_orders_service = OrdersService()
+outbound_orders_service = OutboundOrdersService()

@@ -23,6 +23,7 @@
           :readonly="props.readonly"
           :currency="props.currency"
           :order-code="props.orderCode"
+          :order-type="props.orderType"
           @dissolve-item="() => emit('dissolveItem', item.product.code)"
         ></ProductRow>
       </ForegroundPanel>
@@ -37,19 +38,26 @@
 </template>
 
 <script setup lang="ts">
-import type { InboundOrderItemSchema } from '@/client'
+import type { InboundOrderItemSchema, OutboundOrderItemSchema } from '@/client'
 import { ref } from 'vue'
 import EmptyPanel from '../EmptyPanel.vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
 import ProductRow from './ProductRow.vue'
 
+type OrderItem = InboundOrderItemSchema | OutboundOrderItemSchema
+
 const emit = defineEmits<{
   (e: 'dissolveItem', product_code: string): void
   (e: 'addItem'): void
-  (e: 'reorderItems', items: Array<InboundOrderItemSchema>): void
+  (e: 'reorderItems', items: Array<OrderItem>): void
 }>()
-const props = defineProps<{ currency: string; readonly?: boolean; orderCode: string }>()
-const items = defineModel<Array<InboundOrderItemSchema>>('items', {
+const props = defineProps<{
+  currency: string
+  readonly?: boolean
+  orderCode: string
+  orderType: 'inbound' | 'outbound'
+}>()
+const items = defineModel<Array<OrderItem>>('items', {
   default: [],
 })
 const draggingIndex = ref<number | null>(null)

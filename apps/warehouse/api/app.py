@@ -10,6 +10,7 @@ from .routes.product import routes as product_routes
 from .routes.group import routes as group_routes
 from .routes.customer import routes as customer_routes
 from .routes.inbound_orders import routes as orders_routes
+from .routes.outbound_orders import routes as outbound_orders_routes
 from .routes.packaging import routes as packaging_routes
 from .routes.credit_notes import routes as credit_notes_routes
 from .routes.analytics import routes as analytics_routes
@@ -30,6 +31,7 @@ api.add_router(router=product_routes, prefix="products")
 api.add_router(router=group_routes, prefix="groups")
 api.add_router(router=customer_routes, prefix="customers")
 api.add_router(router=orders_routes, prefix="orders")
+api.add_router(router=outbound_orders_routes, prefix="orders-outgoing")
 api.add_router(router=packaging_routes, prefix="packaging")
 api.add_router(router=credit_notes_routes, prefix="credit-notes")
 api.add_router(router=analytics_routes, prefix="analytics")

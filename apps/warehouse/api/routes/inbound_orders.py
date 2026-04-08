@@ -155,7 +155,7 @@ def update_item_in_inbound_order(
     return CreateInboundOrderItemResponse(data=updated_item)
 
 
-@routes.patch("/{order_code}/state", response={200: GetInboundOrderResponse})
+@routes.post("/{order_code}/transition", response={200: GetInboundOrderResponse})
 def transition_inbound_order(
     request: HttpRequest, order_code: str, body: InboundOrderTransitionSchema
 ):
@@ -163,7 +163,9 @@ def transition_inbound_order(
     Transition an inbound order.
     """
     new_item = inbound_orders_service.transition_order(
-        order_code, body.state, context=RequestContext.from_django_request(request)
+        order_code,
+        context=RequestContext.from_django_request(request),
+        action=body.action,
     )
     return GetInboundOrderResponse(data=new_item)
 

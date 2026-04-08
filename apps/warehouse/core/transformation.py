@@ -9,6 +9,8 @@ from apps.warehouse.core.schemas.base import MediaFileSchema
 from apps.warehouse.core.schemas.base_orders import (
     InboundWarehouseOrderBaseSchema,
     InboundOrderBaseSchema,
+    OutboundWarehouseOrderBaseSchema,
+    OutboundOrderBaseSchema,
     CreditNoteSupplierItemSchema,
     CreditNoteBaseSchema,
 )
@@ -20,6 +22,8 @@ from apps.warehouse.core.schemas.customer import (
 from apps.warehouse.core.schemas.orders import (
     InboundOrderSchema,
     InboundOrderItemSchema,
+    OutboundOrderSchema,
+    OutboundOrderItemSchema,
 )
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.invoice import (
@@ -37,6 +41,7 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,
     PackageSchema,
     InboundWarehouseOrderSchema,
+    OutboundWarehouseOrderSchema,
     WarehouseMovementSchema,
     WarehouseLocationSchema,
     WarehouseLocationDetailSchema,
@@ -50,7 +55,11 @@ from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
     InboundOrderState,
+    OutboundOrder,
+    OutboundOrderItem,
+    OutboundOrderState,
     CreditNoteToSupplier,
+    CreditNoteToCustomer,
     CreditNoteState,
     Invoice,
     InvoicePaymentMethod,
@@ -66,8 +75,10 @@ from apps.warehouse.models.warehouse import (
     WarehouseItem,
     WarehouseMovement,
     InboundWarehouseOrder,
+    OutboundWarehouseOrder,
     WarehouseLocation,
     InboundWarehouseOrderState,
+    OutboundWarehouseOrderState,
     Batch,
 )
 
@@ -325,8 +336,22 @@ def inbound_order_item_orm_to_schema(
     )
 
 
+def outbound_order_item_orm_to_schema(
+    item: OutboundOrderItem,
+) -> OutboundOrderItemSchema:
+    return OutboundOrderItemSchema(
+        product=product_orm_to_schema(item.stock_product),
+        amount=float(item.amount),
+        unit_price=float(item.unit_price),
+        total_price=float(item.total_price),
+        index=item.index,
+        changed=item.changed,
+        created=item.created,
+    )
+
+
 def credit_note_supplier_orm_to_base_schema(
-    credit_note: CreditNoteToSupplier,
+    credit_note: CreditNoteToSupplier | CreditNoteToCustomer,
 ) -> CreditNoteBaseSchema:
     return CreditNoteBaseSchema(
         code=credit_note.code,
@@ -436,6 +461,66 @@ def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
     )
 
 
+def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
+    def to_outbound_warehouse_base(
+        warehouse_order: OutboundWarehouseOrder,
+        fallback_order_code: str,
+    ) -> OutboundWarehouseOrderBaseSchema:
+        warehouse_order_parent = warehouse_order.order
+        return OutboundWarehouseOrderBaseSchema(
+            code=warehouse_order.code,
+            order_code=warehouse_order_parent.code
+            if warehouse_order_parent
+            else fallback_order_code,
+            state=OutboundWarehouseOrderState(warehouse_order.state),
+            created=warehouse_order.created,
+            changed=warehouse_order.changed,
+            parent_order=None,
+            child_orders=[],
+        )
+
+    warehouse_orders = [
+        OutboundWarehouseOrderBaseSchema(
+            code=wo.code,
+            order_code=order.code,
+            state=OutboundWarehouseOrderState(wo.state),
+            created=wo.created,
+            changed=wo.changed,
+            parent_order=(
+                to_outbound_warehouse_base(wo.primary_order, order.code)
+                if wo.primary_order
+                else None
+            ),
+            child_orders=[
+                to_outbound_warehouse_base(child, order.code)
+                for child in wo.derived_orders.all()
+            ],
+        )
+        for wo in order.warehouse_orders.order_by("-created").all()
+    ]
+    return OutboundOrderSchema(
+        created=order.created,
+        changed=order.changed,
+        code=order.code,
+        external_code=order.external_code,
+        customer=customer_orm_to_schema(order.customer),
+        description=order.description,
+        note=order.note,
+        currency=order.currency,
+        warehouse_order_codes=[wo.code for wo in order.warehouse_orders.all()],
+        warehouse_orders=warehouse_orders,
+        state=cast(OutboundOrderState, order.state),
+        items=[outbound_order_item_orm_to_schema(item) for item in order.items.all()],
+        credit_note=credit_note_supplier_orm_to_base_schema(order.credit_note)
+        if getattr(order, "credit_note", None)
+        else None,
+        invoice=invoice_orm_to_schema(order.invoice) if order.invoice else None,
+        requested_delivery_date=order.requested_delivery_date,
+        cancelled_date=order.cancelled_date,
+        fulfilled_date=order.fulfilled_date,
+    )
+
+
 def credit_note_supplier_orm_to_schema(
     credit_note: CreditNoteToSupplier,
 ) -> CreditNoteSupplierSchema:
@@ -459,21 +544,6 @@ def credit_note_supplier_orm_to_schema(
             received_date=credit_note.order.received_date,
         ),
     )
-
-
-#
-# def warehouse_inbound_order_item_orm_to_schema(
-#         item: InboundWarehouseOrderItem
-# ) -> InboundWarehouseOrderItemSchema:
-#     return InboundWarehouseOrderItemSchema(
-#         id=item.pk,
-#         amount=item.amount,
-#         created=item.created,
-#         changed=item.changed,
-#         warehouse_items=[
-#             warehouse_item_orm_to_schema(w_item) for w_item in item.warehouse_items
-#         ]
-#     )
 
 
 def warehouse_inbound_order_orm_to_schema(
@@ -554,6 +624,101 @@ def warehouse_inbound_order_orm_to_schema(
         credit_note=credit_note_supplier_orm_to_schema(w_order.order.credit_note)
         if getattr(w_order.order, "credit_note", None)
         else None,
+    )
+
+
+def warehouse_outbound_order_to_base_schema(
+    w_order: OutboundWarehouseOrder,
+) -> OutboundWarehouseOrderBaseSchema:
+    linked_order = w_order.order
+    if linked_order is None:
+        raise ValueError(
+            f"Outbound warehouse order {w_order.code} is missing linked outbound order"
+        )
+
+    def to_shallow_base(
+        order: OutboundWarehouseOrder,
+    ) -> OutboundWarehouseOrderBaseSchema:
+        order_parent = order.order
+        return OutboundWarehouseOrderBaseSchema(
+            code=order.code,
+            order_code=order_parent.code if order_parent else linked_order.code,
+            state=OutboundWarehouseOrderState(order.state),
+            created=order.created,
+            changed=order.changed,
+            parent_order=None,
+            child_orders=[],
+        )
+
+    parent_order = w_order.primary_order
+    return OutboundWarehouseOrderBaseSchema(
+        code=w_order.code,
+        order_code=linked_order.code,
+        state=OutboundWarehouseOrderState(w_order.state),
+        created=w_order.created,
+        changed=w_order.changed,
+        parent_order=to_shallow_base(parent_order) if parent_order else None,
+        child_orders=[to_shallow_base(child) for child in w_order.derived_orders.all()],
+    )
+
+
+def warehouse_outbound_order_orm_to_schema(
+    w_order: OutboundWarehouseOrder,
+) -> OutboundWarehouseOrderSchema:
+    linked_order = w_order.order
+    if linked_order is None:
+        raise ValueError(
+            f"Outbound warehouse order {w_order.code} is missing linked outbound order"
+        )
+
+    expected_amount = sum(float(item.amount) for item in linked_order.items.all())
+    moved_amount = sum(
+        float(movement.amount) for movement in w_order.warehouse_movements.all()
+    )
+    remaining_amount = max(0.0, expected_amount - moved_amount)
+
+    parent_order = w_order.primary_order
+
+    return OutboundWarehouseOrderSchema(
+        code=w_order.code,
+        created=w_order.created,
+        changed=w_order.changed,
+        items=[],
+        movements=[
+            warehouse_movement_orm_to_schema(movement)
+            for movement in w_order.warehouse_movements.order_by("-moved_at")
+        ],
+        completed_items_count=0,
+        total_amount=expected_amount,
+        remaining_amount=remaining_amount,
+        order_code=linked_order.code,
+        order=OutboundOrderBaseSchema(
+            code=linked_order.code,
+            state=OutboundOrderState(linked_order.state),
+            created=linked_order.created,
+            changed=linked_order.changed,
+            external_code=linked_order.external_code,
+            description=linked_order.description,
+            note=linked_order.note,
+            customer=customer_orm_to_schema(linked_order.customer),
+            currency=linked_order.currency,
+            warehouse_order_codes=[
+                wo.code for wo in linked_order.warehouse_orders.all()
+            ],
+            requested_delivery_date=linked_order.requested_delivery_date,
+            cancelled_date=linked_order.cancelled_date,
+            fulfilled_date=linked_order.fulfilled_date,
+        ),
+        state=OutboundWarehouseOrderState(w_order.state),
+        parent_order=(
+            warehouse_outbound_order_to_base_schema(parent_order)
+            if parent_order
+            else None
+        ),
+        child_orders=[
+            warehouse_outbound_order_to_base_schema(child)
+            for child in w_order.derived_orders.all()
+        ],
     )
 
 

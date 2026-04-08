@@ -14,6 +14,7 @@ from .product import StockProduct
 
 if TYPE_CHECKING:
     from .warehouse import InboundWarehouseOrder  # noqa: F401
+    from .warehouse import OutboundWarehouseOrder  # noqa: F401
 
 
 def invoice_document_upload_to(instance: Invoice, filename: str) -> str:
@@ -31,6 +32,16 @@ class InboundOrderState(models.TextChoices):
     COMPLETED = "completed", "Completed"
     CANCELLED = "cancelled", "Cancelled"
     # PARTIALLY_RECEIVED = "partially_received", "Partially Received"
+
+
+class OutboundOrderState(models.TextChoices):
+    DRAFT = "draft", "Draft"
+    SUBMITTED = "submitted", "Submitted"
+    PICKING = "picking", "Picking"
+    PACKING = "packing", "Packing"
+    SHIPPING = "shipping", "Shipping"
+    COMPLETED = "completed", "Completed"
+    CANCELLED = "cancelled", "Cancelled"
 
 
 class CreditNoteState(models.TextChoices):
@@ -168,6 +179,76 @@ class InboundOrderItem(BaseModel):
         return f"{self.amount} × {self.stock_product.name}"
 
 
+class OutboundOrder(BaseModel):
+    """Outgoing order, or "sales" order"""
+
+    code = models.CharField(max_length=50, null=False, unique=True)
+    external_code = models.CharField(
+        max_length=50, null=True, blank=True
+    )  # todo: add unique constraint
+    description = models.TextField(null=True, blank=True)
+    note = models.TextField(null=True, blank=True)
+    invoice = models.ForeignKey(
+        Invoice,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="outbound_orders",
+    )
+
+    customer = models.ForeignKey(Customer, null=False, on_delete=models.PROTECT)
+    items: QuerySet["OutboundOrderItem"]
+
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
+    state = models.CharField(
+        max_length=20,
+        choices=OutboundOrderState.choices,
+        default=OutboundOrderState.DRAFT,
+    )
+
+    warehouse_orders: "QuerySet[OutboundWarehouseOrder]"
+    credit_note: "CreditNoteToCustomer"
+
+    requested_delivery_date = models.DateTimeField(null=True, blank=True)
+    cancelled_date = models.DateTimeField(null=True, blank=True)
+    fulfilled_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["-created"]
+
+    def __str__(self) -> str:
+        return f"{self.code} | {self.customer.name}"
+
+
+class OutboundOrderItem(BaseModel):
+    """Outgoing order item"""
+
+    stock_product = models.ForeignKey(
+        StockProduct, null=False, on_delete=models.PROTECT
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=4, null=False)
+    order = models.ForeignKey(
+        OutboundOrder,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    index = models.PositiveIntegerField(default=0)
+    unit_price = models.DecimalField(
+        max_digits=10, decimal_places=4, default=Decimal("0")
+    )
+    total_price = models.DecimalField(
+        max_digits=12, decimal_places=4, default=Decimal("0")
+    )
+
+    class Meta(BaseModel.Meta):
+        ordering = ["index", "created"]
+
+    def __str__(self):
+        return f"{self.amount} × {self.stock_product.name}"
+
+
 class CreditNoteToSupplier(BaseModel):
     """Credit note"""
 
@@ -195,6 +276,46 @@ class CreditNoteToSupplierItem(BaseModel):
     amount = models.DecimalField(max_digits=10, decimal_places=4, null=False)
     credit_note = ForeignKey(
         CreditNoteToSupplier,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    unit_price = models.DecimalField(
+        max_digits=10, decimal_places=4, default=Decimal("0")
+    )
+
+    def __str__(self):
+        return f"{self.amount} × {self.stock_product.name}"
+
+
+class CreditNoteToCustomer(BaseModel):
+    """Credit note"""
+
+    code = models.CharField(max_length=50, null=False, unique=True)
+    order = models.OneToOneField(
+        OutboundOrder, on_delete=models.CASCADE, related_name="credit_note"
+    )
+    reason = models.TextField(null=True, blank=True)
+    note = models.TextField(null=True, blank=True)
+    state = models.CharField(
+        max_length=20,
+        choices=CreditNoteState.choices,
+        default=CreditNoteState.DRAFT,
+    )
+
+    items: QuerySet["CreditNoteToCustomerItem"]
+
+
+class CreditNoteToCustomerItem(BaseModel):
+    """Credit note item (crediting customer)"""
+
+    stock_product = models.ForeignKey(
+        StockProduct, null=False, on_delete=models.PROTECT
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=4, null=False)
+    credit_note = ForeignKey(
+        CreditNoteToCustomer,
         null=True,
         blank=True,
         on_delete=models.CASCADE,

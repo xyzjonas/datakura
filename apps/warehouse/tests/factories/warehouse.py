@@ -11,8 +11,13 @@ from apps.warehouse.models.warehouse import (
     OutboundWarehouseOrder,
     InboundWarehouseOrder,
     InboundWarehouseOrderState,
+    OutboundWarehouseOrderState,
 )
-from .order import InboundOrderFactory, InboundOrderItemFactory
+from .order import (
+    InboundOrderFactory,
+    InboundOrderItemFactory,
+    OutboundOrderFactory,
+)
 from .product import (
     StockProductFactory,
 )
@@ -46,8 +51,13 @@ class WarehouseOrderOutFactory(DjangoModelFactory):
     class Meta:
         model = OutboundWarehouseOrder
 
-    # Add fields as they are defined in your model
-    pass
+    @classmethod
+    def it(cls, **kwargs) -> OutboundWarehouseOrder:
+        return cls(**kwargs)  # type: ignore
+
+    code = factory.Sequence(lambda n: f"WOUT-{n:06d}")
+    order = factory.SubFactory(OutboundOrderFactory)
+    state = OutboundWarehouseOrderState.DRAFT
 
 
 class InboundWarehouseOrderFactory(DjangoModelFactory):

@@ -14,7 +14,15 @@
       />
     </div>
 
-    <OrdersBaseTable :fetch-orders="fetchOrders" />
+    <OrdersBaseTable
+      :fetch-orders="fetchOrders"
+      order-type="outbound"
+      detail-route-name="outgoingOrderDetail"
+      warehouse-detail-route-name="warehouseOutboundOrderDetail"
+      warehouse-label="Výdejka"
+      partner-label="Odběratel"
+      partner-field="customer"
+    />
 
     <NewOrderDialog
       v-model="newOrderDialog"
@@ -26,29 +34,49 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesInboundOrdersCreateInboundOrder,
-  type InboundOrderCreateOrUpdateSchema,
-  type InboundOrderSchema,
+  warehouseApiRoutesOutboundOrdersCreateOutboundOrder,
+  warehouseApiRoutesOutboundOrdersGetOutboundOrders,
+  type OutboundOrderCreateOrUpdateSchema,
 } from '@/client'
-import NewOrderDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
+import NewOrderDialog from '@/components/order/OutboundOrderUpdateOrCreateDialog.vue'
+import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'
 import router from '@/router'
 import { useQuasar } from 'quasar'
-import { ref } from 'vue'
-import OrdersBaseTable from './OrdersBaseTable.vue'
+import { ref, type Ref } from 'vue'
+import OrdersBaseTable, { type Pagination } from './OrdersBaseTable.vue'
 
 const { onResponse } = useApi()
+const { page, pageSize, search, stockProductCode } = useQueryProducts()
 
-// const loading = ref(false)
-const fetchOrders = async () => {
-  return [] satisfies InboundOrderSchema[] // todo: OUT
+const fetchOrders = async (pagination: Ref<Pagination>, loading: Ref<boolean>) => {
+  loading.value = true
+  try {
+    const res = await warehouseApiRoutesOutboundOrdersGetOutboundOrders({
+      query: {
+        page: page.value,
+        page_size: pageSize.value,
+        search_term: search.value,
+        stock_product_code: stockProductCode.value ?? undefined,
+      },
+    })
+    const data = onResponse(res)
+    if (data) {
+      pagination.value.rowsNumber = data.count
+      return data.data
+    }
+  } finally {
+    setTimeout(() => (loading.value = false), 300)
+  }
+
+  return []
 }
 
 const newOrderDialog = ref(false)
 const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
 const $q = useQuasar()
-const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
-  const response = await warehouseApiRoutesInboundOrdersCreateInboundOrder({ body: params })
+const createOrder = async (params: OutboundOrderCreateOrUpdateSchema) => {
+  const response = await warehouseApiRoutesOutboundOrdersCreateOutboundOrder({ body: params })
   const data = onResponse(response)
   if (data && newOrderDialogComponent.value) {
     newOrderDialogComponent.value.reset()
@@ -56,7 +84,7 @@ const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
       type: 'positive',
       message: `vydaná objednávka úspěšně vytvořena: ${data.data.code}`,
     })
-    router.push({ name: 'incomingOrderDetail', params: { code: data.data.code } })
+    router.push({ name: 'outgoingOrderDetail', params: { code: data.data.code } })
   }
 }
 </script>

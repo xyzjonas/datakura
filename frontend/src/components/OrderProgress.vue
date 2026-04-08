@@ -7,12 +7,15 @@
 </template>
 
 <script setup lang="ts">
-import type { InboundWarehouseOrderSchema } from '@/client'
+import type { InboundWarehouseOrderSchema, OutboundWarehouseOrderSchema } from '@/client'
 import { computed } from 'vue'
 
 const props = withDefaults(
   defineProps<{
-    order: Pick<InboundWarehouseOrderSchema, 'remaining_amount' | 'total_amount'>
+    order: Pick<
+      InboundWarehouseOrderSchema | OutboundWarehouseOrderSchema,
+      'remaining_amount' | 'total_amount'
+    >
     height?: string
   }>(),
   { height: '24px' },

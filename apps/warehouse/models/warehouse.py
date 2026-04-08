@@ -12,7 +12,7 @@ from django.utils.functional import cached_property
 
 from .barcode import BarcodeMixin
 from .base import BaseModel
-from .orders import InboundOrder
+from .orders import InboundOrder, OutboundOrder
 from .packaging import PackageType
 from .product import StockProduct, UnitOfMeasure
 
@@ -241,11 +241,42 @@ class InboundWarehouseOrderState(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+class OutboundWarehouseOrderState(models.TextChoices):
+    DRAFT = "draft", "Draft"
+    PENDING = "pending", "Pending"
+    STARTED = "started", "Started"
+    COMPLETED = "completed", "Completed"
+    CANCELLED = "cancelled", "Cancelled"
+
+
 class OutboundWarehouseOrder(BaseModel):
     """Warehouse work item - order - move out of the warehouse"""
 
     code = models.CharField(max_length=50, unique=True, null=False)
+    order = models.ForeignKey(
+        OutboundOrder,
+        on_delete=models.PROTECT,
+        related_name="warehouse_orders",
+        null=True,
+        blank=True,
+    )
     items: QuerySet["WarehouseItem"]
+    state = models.CharField(
+        choices=OutboundWarehouseOrderState,
+        default=OutboundWarehouseOrderState.DRAFT,
+        max_length=30,
+    )
+    primary_order = models.ForeignKey(
+        "OutboundWarehouseOrder",
+        on_delete=models.CASCADE,
+        related_name="derived_orders",
+        help_text="Primary order that this order is derived from",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["-created"]
 
     def __str__(self) -> str:
         return self.code
