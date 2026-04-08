@@ -1,5 +1,5 @@
 <template>
-  <ForegroundPanel class="min-w-[256px]">
+  <ForegroundPanel class="min-w-xs flex-1">
     <SearchInput
       v-model="locationSearch"
       placeholder="Vyhledat skladové místo"
@@ -35,14 +35,14 @@
     </q-tree>
   </ForegroundPanel>
 
-  <ForegroundPanel class="flex-[5]" v-if="warehouseLocation">
+  <ForegroundPanel class="flex-[5] min-w-xs sm:min-w-md" v-if="warehouseLocation">
     <div class="flex justify-between items-center">
       <div class="flex items-center gap-4">
         <h2>{{ warehouseLocation.code }}</h2>
         <q-separator vertical />
         <span class="flex items-center gap-1">
-          <h2 class="font-thin">{{ warehouseLocationCount?.toFixed(2) }}</h2>
-          <span class="font-thin text-[10px] text-gray-5">{{ productUnit }}</span>
+          <h2 class="font-300">{{ warehouseLocationCount?.toFixed(2) }}</h2>
+          <span class="font-300 text-[10px] text-gray-5">{{ productUnit }}</span>
         </span>
       </div>
       <q-btn
@@ -62,7 +62,14 @@
       flat
       :pagination="{ rowsPerPage: 20 }"
       class="bg-transparent"
+      :grid="$q.screen.lt.md"
     >
+      <template #item="props">
+        <div class="q-pa-xs col-12">
+          <WarehouseItemGridCard :item="props.row" :aggregate="aggregate" />
+        </div>
+      </template>
+
       <template #top-left>
         <q-toggle v-model="aggregate">
           <span class="text-slate"> Sloučit podle typu balení </span>
@@ -122,6 +129,7 @@ import {
 } from '@/client'
 import { aggregatePackaging, type WarehouseItemSchemaWithCount } from '@/utils/aggregatePackaging'
 import WarehouseItemCountBadge from './WarehouseItemCountBadge.vue'
+import WarehouseItemGridCard from './WarehouseItemGridCard.vue'
 import { useApi } from '@/composables/use-api'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import BarcodeElement from '../BarcodeElement.vue'

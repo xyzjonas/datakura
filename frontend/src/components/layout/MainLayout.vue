@@ -6,6 +6,7 @@
         <div class="ml-auto flex items-center gap-10">
           <LoginInfo />
         </div>
+        <ToggleDrawerButton />
       </q-toolbar>
     </q-header>
 
@@ -143,6 +144,7 @@
 
 <script setup lang="ts">
 import { useDarkmode } from '@/composables/use-dark-mode'
+import { useDrawer } from '@/composables/use-drawer'
 import { useGlobalLoading } from '@/composables/use-global-loading'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -151,10 +153,11 @@ import MenuList from '../MenuList.vue'
 import SearchInput from '../SearchInput.vue'
 import BackToTopFab from './BackToTopFab.vue'
 import LoginInfo from './LoginInfo.vue'
+import ToggleDrawerButton from './ToggleDrawerButton.vue'
 
 const search = ref('')
 const { isDark, toggle } = useDarkmode()
-const isOpened = ref(true)
+const { isOpened } = useDrawer()
 
 const { currentRoute } = useRouter()
 const noLayout = computed(() => currentRoute.value.meta.disableLayout === true)

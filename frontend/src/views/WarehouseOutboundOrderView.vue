@@ -33,7 +33,7 @@
         <span class="text-gray-5 text-2xs uppercase">Objednávka</span>
         <a
           class="link text-lg"
-          @click="$router.push({ name: 'outgoingOrderDetail', params: { code: order.order.code } })"
+          @click="$router.push({ name: 'outboundOrderDetail', params: { code: order.order.code } })"
         >
           {{ order.order.code }}
         </a>

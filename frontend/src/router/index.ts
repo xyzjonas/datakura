@@ -6,8 +6,8 @@ import CustomersView from '@/views/CustomersView.vue'
 import CustomerView from '@/views/CustomerView.vue'
 import GroupsView from '@/views/GroupsView.vue'
 import HomeView from '@/views/HomeView.vue'
-import IncomingOrderView from '@/views/IncomingOrderView.vue'
-import OutgoingOrderView from '@/views/OutgoingOrderView.vue'
+import InboundOrderView from '@/views/InboundOrderView.vue'
+import OutboundOrderView from '@/views/OutboundOrderView.vue'
 import LoginView from '@/views/LoginView.vue'
 import OrdersView from '@/views/OrdersView.vue'
 import ProductsView from '@/views/ProductsView.vue'
@@ -20,6 +20,8 @@ import WarehouseOutboundOrderView from '@/views/WarehouseOutboundOrderView.vue'
 import WarehouseItemView from '@/views/WarehouseItemView.vue'
 import WarehouseView from '@/views/WarehouseView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import { useDrawer } from '@/composables/use-drawer'
+import { useQuasar } from 'quasar'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -106,15 +108,15 @@ const router = createRouter({
       props: true,
     },
     {
-      path: '/incoming-orders/:code',
-      name: 'incomingOrderDetail',
-      component: IncomingOrderView,
+      path: '/inbound-orders/:code',
+      name: 'inboundOrderDetail',
+      component: InboundOrderView,
       props: true,
     },
     {
-      path: '/outgoing-orders/:code',
-      name: 'outgoingOrderDetail',
-      component: OutgoingOrderView,
+      path: '/outbound-orders/:code',
+      name: 'outboundOrderDetail',
+      component: OutboundOrderView,
       props: true,
     },
     {
@@ -159,6 +161,14 @@ router.beforeEach(async (to, from, next) => {
     next({ name: 'login' })
   } finally {
     isLoading.value = false
+  }
+})
+
+router.afterEach(() => {
+  const { close } = useDrawer()
+  const $q = useQuasar()
+  if ($q.screen.lt.md) {
+    close()
   }
 })
 

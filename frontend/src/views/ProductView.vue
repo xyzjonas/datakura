@@ -102,7 +102,10 @@
           </q-item>
         </q-list>
       </ForegroundPanel>
-      <ProductPricingCard v-model="product" class="min-w-[340px] flex-1" />
+      <ProductPricingCard
+        v-model="product"
+        class="min-w-[370px] sm:min-w-xl flex-1 overflow-hidden"
+      />
     </div>
     <ProductInboundOrdersWidget :product-code="product.code" class="min-w-[340px] flex-1" />
     <div class="flex gap-2 flex-1">

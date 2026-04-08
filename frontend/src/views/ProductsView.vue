@@ -5,7 +5,14 @@
         <h1>Přehled Produktů</h1>
         <h5 class="text-gray-5 mt-2">Správa evidovaných produktů</h5>
       </div>
-      <q-btn color="primary" unelevated label="vytvořit" icon="sym_o_add" @click="openCreateForm" />
+      <q-btn
+        color="primary"
+        unelevated
+        label="vytvořit"
+        icon="sym_o_add"
+        @click="openCreateForm"
+        class="mt-5 mx-4 xs:mx-0 xs:mt-0"
+      />
     </div>
     <q-table
       :rows="products"
@@ -18,17 +25,35 @@
       no-data-label="Žádné produkty nenalezeny"
       :rows-per-page-options="[10, 30, 50, 100]"
       class="bg-transparent"
+      :grid="$q.screen.lt.sm"
     >
+      <template #item="props">
+        <div class="q-pa-xs col-12">
+          <ProductGridCard :product="props.row" />
+        </div>
+      </template>
+
       <template #top-left>
-        <div class="flex gap-2">
+        <div class="flex gap-2 items-start flex-wrap">
           <SearchInput
             v-model="search"
             placeholder="Vyhledat položku"
             clearable
             :debounce="300"
+            class="min-w-[260px] flex-1"
           ></SearchInput>
-          <ProductGroupSelect dense v-model="productGroup" label="Filtrovat podle skupiny" />
-          <ProductTypeSelect dense v-model="productType" label="Filtrovat podle typy zboží" />
+          <ProductGroupSelect
+            dense
+            v-model="productGroup"
+            label="Filtrovat podle skupiny"
+            class="min-w-[260px] flex-1"
+          />
+          <ProductTypeSelect
+            dense
+            v-model="productType"
+            label="Filtrovat podle typu zboží"
+            class="min-w-[260px] flex-1"
+          />
         </div>
       </template>
       <template #body-cell-name="props">
@@ -74,6 +99,7 @@ import {
   type ProductSchema,
 } from '@/client'
 import ProductUpsertDialog from '@/components/product/ProductUpsertDialog.vue'
+import ProductGridCard from '@/components/product/ProductGridCard.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import ProductTypeSelect from '@/components/selects/ProductTypeSelect.vue'
 import ProductGroupSelect from '@/components/selects/ProductGroupSelect.vue'

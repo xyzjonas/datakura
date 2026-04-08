@@ -17,13 +17,21 @@
       no-data-label="Žádné výdejky nenalezeny"
       :rows-per-page-options="[10, 30, 50, 100]"
       class="bg-transparent"
+      :grid="$q.screen.lt.sm"
     >
+      <template #item="props">
+        <div class="q-pa-xs col-12">
+          <OutboundWarehouseOrderGridCard :order="props.row" />
+        </div>
+      </template>
+
       <template #top-left>
         <SearchInput
           v-model="search"
           placeholder="Vyhledat výdejku"
           clearable
           :debounce="300"
+          class="min-w-[260px] flex-1"
         ></SearchInput>
       </template>
       <template #body-cell-code="props">
@@ -51,7 +59,7 @@
             class="link"
             @click="
               $router.push({
-                name: 'outgoingOrderDetail',
+                name: 'outboundOrderDetail',
                 params: { code: props.row.order.code },
               })
             "
@@ -74,6 +82,7 @@ import {
   type OutboundWarehouseOrderSchema,
 } from '@/client'
 import OrderProgress from '@/components/OrderProgress.vue'
+import OutboundWarehouseOrderGridCard from '@/components/putaway/OutboundWarehouseOrderGridCard.vue'
 import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'

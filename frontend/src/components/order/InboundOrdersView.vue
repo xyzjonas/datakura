@@ -11,12 +11,13 @@
         label="vytvořit"
         icon="sym_o_add"
         @click="newOrderDialog = true"
+        class="mt-5 mx-4 sm:mx-0 sm:mt-0"
       />
     </div>
     <OrdersBaseTable
       :fetch-orders="fetchOrders"
       order-type="inbound"
-      detail-route-name="incomingOrderDetail"
+      detail-route-name="inboundOrderDetail"
       warehouse-detail-route-name="warehouseInboundOrderDetail"
       warehouse-label="Příjemka"
       partner-label="Dodavatel"
@@ -165,7 +166,7 @@ const createOrder = async (params: InboundOrderCreateOrUpdateSchema) => {
       type: 'positive',
       message: `vydaná objednávka úspěšně vytvořena: ${data.data.code}`,
     })
-    router.push({ name: 'incomingOrderDetail', params: { code: data.data.code } })
+    router.push({ name: 'inboundOrderDetail', params: { code: data.data.code } })
   }
 }
 </script>

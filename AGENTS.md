@@ -18,7 +18,7 @@
 
 - Always create dedicated .vue components whenever an element has more than a single usage
 - Always make the interface clean - only props that are needed, 2-way defineModel binding if possible, no prop drilling!
-- use exlusively UnoCSS (tailwind style) styling, avoid custom scoped (S)CSS if possible
+- use exlusively UnoCSS (tailwind style) styling, avoid custom scoped (S)CSS if possible and aboslutely NOT Quasar utility classes!
 
 ## Backend clean code instructions
 

@@ -10,7 +10,14 @@
     no-data-label="Žádné objednávky nenalezeny"
     :rows-per-page-options="[5]"
     class="bg-transparent"
+    :grid="$q.screen.lt.md"
   >
+    <template #item="props">
+      <div class="q-pa-xs col-12">
+        <InboundOrderGridCard :order="props.row" detail-route-name="inboundOrderDetail" />
+      </div>
+    </template>
+
     <template v-if="!hideSearch" #top-left>
       <SearchInput
         v-model="search"
@@ -26,7 +33,7 @@
         <a
           @click="
             $router.push({
-              name: 'incomingOrderDetail',
+              name: 'inboundOrderDetail',
               params: { code: props.row.code },
             })
           "
@@ -51,6 +58,7 @@ import {
   type PagedInboundOrderSchema,
 } from '@/client'
 import SearchInput from '@/components/SearchInput.vue'
+import InboundOrderGridCard from '@/components/order/InboundOrderGridCard.vue'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import { useApi } from '@/composables/use-api'
 import { calculateTotalPrice } from '@/utils/total-price'

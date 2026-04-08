@@ -3,7 +3,7 @@
     <LargeTabs
       v-model:tab="activeTabKey"
       :items="[
-        { key: 'outbound', icon: 'sym_o_call_made', title: 'Objednávky' },
+        { key: 'outbound', icon: 'sym_o_call_made', title: 'Přijaté Objednávky' },
         { key: 'inbound', icon: 'sym_o_call_received', title: 'Vydané Objednávky' },
       ]"
       class="mb-5"

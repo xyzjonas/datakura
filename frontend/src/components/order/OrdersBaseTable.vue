@@ -11,7 +11,18 @@
       no-data-label="Žádné objednávky nenalezeny"
       :rows-per-page-options="[10, 30, 50, 100]"
       class="bg-transparent"
+      :grid="$q.screen.lt.sm"
     >
+      <template #item="props">
+        <div class="q-pa-xs col-12">
+          <component
+            :is="orderGridCardComponent"
+            :order="props.row"
+            :detail-route-name="detailRouteName"
+          />
+        </div>
+      </template>
+
       <template #top-left>
         <div class="flex gap-2 items-start flex-wrap">
           <SearchInput
@@ -19,19 +30,16 @@
             placeholder="Vyhledat objednávku"
             clearable
             :debounce="300"
-            class="min-w-[260px]"
+            class="min-w-[260px] flex-1"
           ></SearchInput>
           <StockProductSearchSelect
             v-model="stockProductCode"
             label="Produkt v objednávce"
             hint=""
-            class="min-w-[300px]"
+            class="min-w-[300px] flex-1"
           />
         </div>
       </template>
-      <!-- <template #top-right>
-        <q-btn color="gray" unelevated label="vytvořit" disable @click="newOrderDialog = true" />
-      </template> -->
       <template #body-cell-code="props">
         <q-td>
           <a
@@ -92,7 +100,9 @@
 
 <script setup lang="ts">
 import { type InboundOrderSchema, type OutboundOrderSchema } from '@/client'
+import InboundOrderGridCard from '@/components/order/InboundOrderGridCard.vue'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
+import OutboundOrderGridCard from '@/components/order/OutboundOrderGridCard.vue'
 import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'
@@ -127,7 +137,7 @@ const props = defineProps<{
 }>()
 
 const orderType = props.orderType ?? 'inbound'
-const detailRouteName = props.detailRouteName ?? 'incomingOrderDetail'
+const detailRouteName = props.detailRouteName ?? 'inboundOrderDetail'
 const warehouseDetailRouteName = props.warehouseDetailRouteName ?? 'warehouseInboundOrderDetail'
 const warehouseLabel = props.warehouseLabel ?? 'Příjemka'
 const partnerLabel = props.partnerLabel ?? 'Dodavatel'
@@ -137,6 +147,9 @@ const orderStateBadgeComponent = computed(() =>
 )
 const warehouseOrderStateBadgeComponent = computed(() =>
   orderType === 'outbound' ? OutboundWarehouseOrderStateBadge : InboundWarehouseOrderStateBadge,
+)
+const orderGridCardComponent = computed(() =>
+  orderType === 'outbound' ? OutboundOrderGridCard : InboundOrderGridCard,
 )
 
 const orders = ref<Order[]>([])

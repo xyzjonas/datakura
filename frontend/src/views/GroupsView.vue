@@ -5,7 +5,14 @@
         <h1>Přehled Skupin</h1>
         <h5 class="text-gray-5 mt-2">Správa skupin produktů</h5>
       </div>
-      <q-btn color="primary" unelevated label="vytvořit" icon="sym_o_add" @click="openCreateForm" />
+      <q-btn
+        color="primary"
+        unelevated
+        label="vytvořit"
+        icon="sym_o_add"
+        @click="openCreateForm"
+        class="mt-5 mx-4 xs:mx-0 xs:mt-0"
+      />
     </div>
     <q-table
       :rows="groups"

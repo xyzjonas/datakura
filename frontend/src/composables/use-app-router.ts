@@ -15,11 +15,11 @@ export const useAppRouter = () => {
   }
 
   const goToOrderIn = (code: string) => {
-    router.push({ name: 'incomingOrderDetail', params: { code } })
+    router.push({ name: 'inboundOrderDetail', params: { code } })
   }
 
   const goToOrderOut = (code: string) => {
-    router.push({ name: 'outgoingOrderDetail', params: { code } })
+    router.push({ name: 'outboundOrderDetail', params: { code } })
   }
 
   const goToProduct = (code: string) => {

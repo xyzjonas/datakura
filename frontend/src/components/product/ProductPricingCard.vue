@@ -1,5 +1,5 @@
 <template>
-  <ForegroundPanel class="flex flex-col">
+  <ForegroundPanel no-padding class="flex flex-col p-2">
     <!-- <h2 class="mb-4">Ceník</h2> -->
     <q-table
       :rows="prices"
@@ -9,7 +9,20 @@
       :pagination="{ rowsPerPage: 5 }"
       class="bg-transparent"
       no-data-label="Prodejní cena není nastavena!"
+      :grid="$q.screen.lt.md"
     >
+      <template #item="slotProps">
+        <div class="q-pa-xs col-12">
+          <ProductPricingGridCard
+            :row="slotProps.row"
+            :price-type-label="formatPriceType(slotProps.row.price_type)"
+            :final-price="getFinalPrice(slotProps.row)"
+            :deleting-price-id="deletingPriceId"
+            @delete="onDeleteDynamicPrice"
+          />
+        </div>
+      </template>
+
       <template #top-right>
         <q-btn
           outline
@@ -21,13 +34,15 @@
       </template>
 
       <template #body-cell-customer="slotProps">
-        <q-td :props="slotProps">
+        <q-td :props="slotProps" auto-width>
           <router-link
             v-if="slotProps.row.customer?.code"
             :to="{ name: 'customerDetail', params: { customerCode: slotProps.row.customer.code } }"
-            class="link"
+            class="link flex"
           >
-            {{ slotProps.row.customer.code }} - {{ slotProps.row.customer.name }}
+            <span class="truncate max-w-30 2xl:max-w-xs">
+              {{ slotProps.row.customer.name }}
+            </span>
           </router-link>
           <span v-else>—</span>
         </q-td>
@@ -80,6 +95,7 @@ import {
   type ProductSchema,
 } from '@/client'
 import AddDynamicPriceDialog from '@/components/product/AddDynamicPriceDialog.vue'
+import ProductPricingGridCard from '@/components/product/ProductPricingGridCard.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useApi } from '@/composables/use-api'
 import ForegroundPanel from '../ForegroundPanel.vue'
@@ -200,6 +216,10 @@ const basePrice = computed<DynamicProductPriceSchema[]>(() => [
 
 const prices = computed(() => basePrice.value.concat(product.value.dynamic_prices ?? []))
 
+const getFinalPrice = (row: DynamicProductPriceSchema) => {
+  return round(product.value.base_price! - (row.discount_percent / 100) * product.value.base_price!)
+}
+
 const formatPriceType = (type: string) => {
   switch (type) {
     case 'BASE_PRICE':
@@ -268,8 +288,7 @@ const columns: QTableColumn[] = [
   {
     name: 'price',
     label: 'Cena / MJ',
-    field: (row: DynamicProductPriceSchema) =>
-      round(product.value.base_price! - (row.discount_percent / 100) * product.value.base_price!),
+    field: (row: DynamicProductPriceSchema) => getFinalPrice(row),
     align: 'left',
     format: (val) => `${val} Kč`,
     classes: 'text-primary font-bold',
