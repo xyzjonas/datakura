@@ -232,21 +232,52 @@ class WarehouseMovement(models.Model):
 ###################################################################################
 
 
-class InboundWarehouseOrderState(models.TextChoices):
-    IN_TRANSIT = "in transit", "In Transit"
-    DRAFT = "draft", "Draft"
-    PENDING = "pending", "Pending"
-    STARTED = "started", "Started"
-    COMPLETED = "completed", "Completed"
-    CANCELLED = "cancelled", "Cancelled"
+class InboundWarehouseOrderState(models.IntegerChoices):
+    IN_TRANSIT = 1, "In Transit"
+    DRAFT = 2, "Draft"
+    PENDING = 3, "Pending"
+    STARTED = 4, "Started"
+    COMPLETED = 5, "Completed"
+    CANCELLED = 6, "Cancelled"
+
+    @classmethod
+    def get_label(cls, value):
+        """Return the API string for a given state value."""
+        member = value if isinstance(value, cls) else cls(value)
+        api_values = {
+            cls.IN_TRANSIT: "in transit",
+            cls.DRAFT: "draft",
+            cls.PENDING: "pending",
+            cls.STARTED: "started",
+            cls.COMPLETED: "completed",
+            cls.CANCELLED: "cancelled",
+        }
+        if member in api_values:
+            return api_values[member]
+        return str(value)
 
 
-class OutboundWarehouseOrderState(models.TextChoices):
-    DRAFT = "draft", "Draft"
-    PENDING = "pending", "Pending"
-    STARTED = "started", "Started"
-    COMPLETED = "completed", "Completed"
-    CANCELLED = "cancelled", "Cancelled"
+class OutboundWarehouseOrderState(models.IntegerChoices):
+    DRAFT = 1, "Draft"
+    PENDING = 2, "Pending"
+    STARTED = 3, "Started"
+    COMPLETED = 4, "Completed"
+    CANCELLED = 5, "Cancelled"
+
+    @classmethod
+    def get_label(cls, value):
+        """Return the API string for a given state value."""
+        member = value if isinstance(value, cls) else cls(value)
+        api_values = {
+            cls.DRAFT: "draft",
+            cls.PENDING: "pending",
+            cls.STARTED: "started",
+            cls.COMPLETED: "completed",
+            cls.CANCELLED: "cancelled",
+        }
+        if member in api_values:
+            return api_values[member]
+        return str(value)
 
 
 class OutboundWarehouseOrder(BaseModel):
@@ -261,10 +292,9 @@ class OutboundWarehouseOrder(BaseModel):
         blank=True,
     )
     items: QuerySet["WarehouseItem"]
-    state = models.CharField(
+    state = models.PositiveIntegerField(
         choices=OutboundWarehouseOrderState,
         default=OutboundWarehouseOrderState.DRAFT,
-        max_length=30,
     )
     primary_order = models.ForeignKey(
         "OutboundWarehouseOrder",
@@ -292,10 +322,9 @@ class InboundWarehouseOrder(BaseModel):
         related_name="warehouse_orders",
     )
     items: QuerySet[WarehouseItem]
-    state = models.CharField(
+    state = models.PositiveIntegerField(
         choices=InboundWarehouseOrderState,
         default=InboundWarehouseOrderState.DRAFT,
-        max_length=30,
     )
     primary_order = models.ForeignKey(
         "InboundWarehouseOrder",

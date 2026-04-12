@@ -80,12 +80,16 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     assert order_db.state == InboundOrderState.DRAFT
 
     res = order_client.get(f"/{order_code}")
-    assert res.json()["data"]["state"] == InboundOrderState.DRAFT
+    assert res.json()["data"]["state"] == InboundOrderState.get_label(
+        InboundOrderState.DRAFT
+    )
 
     # 3. Submit Order
     res = order_client.post(f"/{order_code}/transition", json={"action": "next"})
     assert res.status_code == 200
-    assert res.json()["data"]["state"] == InboundOrderState.SUBMITTED
+    assert res.json()["data"]["state"] == InboundOrderState.get_label(
+        InboundOrderState.SUBMITTED
+    )
 
     order_db.refresh_from_db()
     assert order_db.state == InboundOrderState.SUBMITTED
@@ -100,8 +104,12 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     assert res.status_code == 200
     w_order_res = res.json()["data"]
     w_order_code = w_order_res["code"]
-    assert w_order_res["state"] == InboundWarehouseOrderState.IN_TRANSIT
-    assert w_order_res["order"]["state"] == InboundOrderState.RECEIVING
+    assert w_order_res["state"] == InboundWarehouseOrderState.get_label(
+        InboundWarehouseOrderState.IN_TRANSIT
+    )
+    assert w_order_res["order"]["state"] == InboundOrderState.get_label(
+        InboundOrderState.RECEIVING
+    )
     assert len(w_order_res["items"]) == 0
 
     order_db.refresh_from_db()
@@ -117,7 +125,9 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     )
     assert res.status_code == 200
     w_order_res = res.json()["data"]
-    assert w_order_res["state"] == InboundWarehouseOrderState.DRAFT
+    assert w_order_res["state"] == InboundWarehouseOrderState.get_label(
+        InboundWarehouseOrderState.DRAFT
+    )
     assert len(w_order_res["items"]) == 2
 
     # 6. Create Credit Note
@@ -134,7 +144,9 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     assert res.status_code == 200
     w_order_res = res.json()["data"]
     assert w_order_res["credit_note"] is not None
-    assert w_order_res["credit_note"]["state"] == CreditNoteState.DRAFT
+    assert w_order_res["credit_note"]["state"] == CreditNoteState.get_label(
+        CreditNoteState.DRAFT
+    )
     updated_item = next(
         item
         for item in w_order_res["items"]
@@ -148,9 +160,15 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     res = warehouse_client.post(f"/orders-incoming/{w_order_code}/transition", json={})
     assert res.status_code == 200
     w_order_res = res.json()["data"]
-    assert w_order_res["state"] == InboundWarehouseOrderState.PENDING
-    assert w_order_res["order"]["state"] == InboundOrderState.PUTAWAY
-    assert w_order_res["credit_note"]["state"] == CreditNoteState.CONFIRMED
+    assert w_order_res["state"] == InboundWarehouseOrderState.get_label(
+        InboundWarehouseOrderState.PENDING
+    )
+    assert w_order_res["order"]["state"] == InboundOrderState.get_label(
+        InboundOrderState.PUTAWAY
+    )
+    assert w_order_res["credit_note"]["state"] == CreditNoteState.get_label(
+        CreditNoteState.CONFIRMED
+    )
 
     # 8. Putaway Items
     items_to_putaway = w_order_res["items"]
@@ -169,11 +187,17 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
 
         # Verify state transitions during putaway
         if i < len(items_to_putaway) - 1:
-            assert w_order_res["state"] == InboundWarehouseOrderState.STARTED
+            assert w_order_res["state"] == InboundWarehouseOrderState.get_label(
+                InboundWarehouseOrderState.STARTED
+            )
         else:
             # After last item is put away, orders should be completed
-            assert w_order_res["state"] == InboundWarehouseOrderState.COMPLETED
-            assert w_order_res["order"]["state"] == InboundOrderState.COMPLETED
+            assert w_order_res["state"] == InboundWarehouseOrderState.get_label(
+                InboundWarehouseOrderState.COMPLETED
+            )
+            assert w_order_res["order"]["state"] == InboundOrderState.get_label(
+                InboundOrderState.COMPLETED
+            )
 
     # 9. Final Verification
     res = warehouse_client.get(f"/locations/{storage_location_1.code}")

@@ -65,12 +65,16 @@ def test_create_warehouse_inbound_order(context):
     )
 
     assert len(result.items) == 0
-    assert result.state == InboundWarehouseOrderState.IN_TRANSIT
+    assert result.state == InboundWarehouseOrderState.get_label(
+        InboundWarehouseOrderState.IN_TRANSIT
+    )
 
     warehouse_service.confirm_arrival(result.code, putaway.code, context=context)
     result = warehouse_service.get_inbound_warehouse_order(result.code)
 
-    assert result.state == InboundWarehouseOrderState.DRAFT
+    assert result.state == InboundWarehouseOrderState.get_label(
+        InboundWarehouseOrderState.DRAFT
+    )
     assert len(result.items) == 10
 
 
@@ -284,7 +288,7 @@ def test_update_inbound_order_items(db, context):
     )
     assert WarehouseItem.objects.filter(pk=old_item.pk).first() is None
     assert result.code == order.code
-    assert result.state == order.state
+    assert result.state == InboundWarehouseOrderState.get_label(order.state)
     assert len(result.items) == count
     for item in result.items:
         assert item.location.code == new_location.code
@@ -320,7 +324,7 @@ def test_setup_tracking_for_inbound_order_item_total(db, context):
     )
     assert WarehouseItem.objects.filter(pk=old_item.pk).first() is None
     assert result.code == order.code
-    assert result.state == order.state
+    assert result.state == InboundWarehouseOrderState.get_label(order.state)
     assert len(result.items) == count
     for item in result.items:
         assert item.location.code == new_location.code
@@ -360,7 +364,7 @@ def test_setup_tracking_for_inbound_order_item_remaining(db, context):
     assert old_item.amount == 10
 
     assert result.code == order.code
-    assert result.state == order.state
+    assert result.state == InboundWarehouseOrderState.get_label(order.state)
 
     packaged_items = [item for item in result.items if item.package is not None]
     assert len(packaged_items) == count
@@ -497,7 +501,7 @@ def test_remove_from_order_to_credit_note(db, context):
     )
     credit_note = w_order.credit_note
     assert credit_note
-    assert credit_note.state == CreditNoteState.DRAFT
+    assert credit_note.state == CreditNoteState.get_label(CreditNoteState.DRAFT)
     assert credit_note.order.code == w_order.order.code
     assert len(credit_note.items) == 1
 

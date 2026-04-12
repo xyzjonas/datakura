@@ -21,32 +21,73 @@ def invoice_document_upload_to(instance: Invoice, filename: str) -> str:
     return f"invoices/{instance.code}/{filename}"
 
 
-class InboundOrderState(models.TextChoices):
-    DRAFT = "draft", "Draft"
-    SUBMITTED = "submitted", "Submitted"
-    # IN_TRANSIT = "in_transit", "In Transit"
-    # ARRIVED = "arrived", "Arrived"
-    RECEIVING = "receiving", "Receiving"
-    # QUALITY_CHECK = "quality_check", "Quality Check"
-    PUTAWAY = "putaway", "Put Away"
-    COMPLETED = "completed", "Completed"
-    CANCELLED = "cancelled", "Cancelled"
-    # PARTIALLY_RECEIVED = "partially_received", "Partially Received"
+class InboundOrderState(models.IntegerChoices):
+    DRAFT = 1, "Draft"
+    SUBMITTED = 2, "Submitted"
+    RECEIVING = 3, "Receiving"
+    PUTAWAY = 4, "Put Away"
+    COMPLETED = 5, "Completed"
+    CANCELLED = 6, "Cancelled"
+
+    @classmethod
+    def get_label(cls, value):
+        """Return the API string for a given state value."""
+        member = value if isinstance(value, cls) else cls(value)
+        api_values = {
+            cls.DRAFT: "draft",
+            cls.SUBMITTED: "submitted",
+            cls.RECEIVING: "receiving",
+            cls.PUTAWAY: "putaway",
+            cls.COMPLETED: "completed",
+            cls.CANCELLED: "cancelled",
+        }
+        if member in api_values:
+            return api_values[member]
+        return str(value)
 
 
-class OutboundOrderState(models.TextChoices):
-    DRAFT = "draft", "Draft"
-    SUBMITTED = "submitted", "Submitted"
-    PICKING = "picking", "Picking"
-    PACKING = "packing", "Packing"
-    SHIPPING = "shipping", "Shipping"
-    COMPLETED = "completed", "Completed"
-    CANCELLED = "cancelled", "Cancelled"
+class OutboundOrderState(models.IntegerChoices):
+    DRAFT = 1, "Draft"
+    SUBMITTED = 2, "Submitted"
+    PICKING = 3, "Picking"
+    PACKING = 4, "Packing"
+    SHIPPING = 5, "Shipping"
+    COMPLETED = 6, "Completed"
+    CANCELLED = 7, "Cancelled"
+
+    @classmethod
+    def get_label(cls, value):
+        """Return the API string for a given state value."""
+        member = value if isinstance(value, cls) else cls(value)
+        api_values = {
+            cls.DRAFT: "draft",
+            cls.SUBMITTED: "submitted",
+            cls.PICKING: "picking",
+            cls.PACKING: "packing",
+            cls.SHIPPING: "shipping",
+            cls.COMPLETED: "completed",
+            cls.CANCELLED: "cancelled",
+        }
+        if member in api_values:
+            return api_values[member]
+        return str(value)
 
 
-class CreditNoteState(models.TextChoices):
-    DRAFT = "draft", "Draft"
-    CONFIRMED = "confirmed", "Confirmed"
+class CreditNoteState(models.IntegerChoices):
+    DRAFT = 1, "Draft"
+    CONFIRMED = 2, "Confirmed"
+
+    @classmethod
+    def get_label(cls, value):
+        """Return the API string for a given state value."""
+        member = value if isinstance(value, cls) else cls(value)
+        api_values = {
+            cls.DRAFT: "draft",
+            cls.CONFIRMED: "confirmed",
+        }
+        if member in api_values:
+            return api_values[member]
+        return str(value)
 
 
 class InvoicePaymentMethod(BaseModel):
@@ -123,8 +164,7 @@ class InboundOrder(BaseModel):
     items: QuerySet["InboundOrderItem"]
 
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
-    state = models.CharField(
-        max_length=20,
+    state = models.PositiveIntegerField(
         choices=InboundOrderState.choices,
         default=InboundOrderState.DRAFT,
     )
@@ -200,8 +240,7 @@ class OutboundOrder(BaseModel):
     items: QuerySet["OutboundOrderItem"]
 
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
-    state = models.CharField(
-        max_length=20,
+    state = models.PositiveIntegerField(
         choices=OutboundOrderState.choices,
         default=OutboundOrderState.DRAFT,
     )
@@ -258,8 +297,7 @@ class CreditNoteToSupplier(BaseModel):
     )
     reason = models.TextField(null=True, blank=True)
     note = models.TextField(null=True, blank=True)
-    state = models.CharField(
-        max_length=20,
+    state = models.PositiveIntegerField(
         choices=CreditNoteState.choices,
         default=CreditNoteState.DRAFT,
     )
@@ -298,8 +336,7 @@ class CreditNoteToCustomer(BaseModel):
     )
     reason = models.TextField(null=True, blank=True)
     note = models.TextField(null=True, blank=True)
-    state = models.CharField(
-        max_length=20,
+    state = models.PositiveIntegerField(
         choices=CreditNoteState.choices,
         default=CreditNoteState.DRAFT,
     )

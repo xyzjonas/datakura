@@ -54,7 +54,7 @@ class InboundOrderTransitionSchema(Schema):
 
 class InboundOrderSchema(InboundOrderBaseSchema):
     items: list[InboundOrderItemSchema] = Field(default_factory=list)
-    state: InboundOrderState
+    state: str
     warehouse_orders: list[InboundWarehouseOrderBaseSchema] = Field(
         default_factory=list
     )
@@ -120,7 +120,7 @@ class OutboundOrderTransitionSchema(Schema):
 
 class OutboundOrderSchema(OutboundOrderBaseSchema):
     items: list[OutboundOrderItemSchema] = Field(default_factory=list)
-    state: OutboundOrderState
+    state: str
     warehouse_orders: list[OutboundWarehouseOrderBaseSchema] = Field(
         default_factory=list
     )

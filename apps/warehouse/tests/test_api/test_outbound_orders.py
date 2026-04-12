@@ -195,7 +195,7 @@ def test_transition_outbound_order_next_creates_warehouse_order(db) -> None:
 
     assert res.status_code == 200
     data = res.json()["data"]
-    assert data["state"] == OutboundOrderState.PICKING
+    assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.PICKING)
     assert len(data["warehouse_orders"]) == 1
     assert data["warehouse_orders"][0]["order_code"] == order.code
     assert OutboundWarehouseOrder.objects.filter(order__code=order.code).count() == 1
@@ -209,4 +209,4 @@ def test_transition_outbound_order_cancel_action(db) -> None:
 
     assert res.status_code == 200
     data = res.json()["data"]
-    assert data["state"] == OutboundOrderState.CANCELLED
+    assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.CANCELLED)

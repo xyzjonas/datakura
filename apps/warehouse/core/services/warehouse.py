@@ -358,9 +358,11 @@ class WarehouseService:
 
     @staticmethod
     def get_inbound_warehouse_order(code: str):
-        # user = authenticate(
-        #     request, username=credentials.username, password=credentials.password
-        # )
+        order = WarehouseService.get_inbound_warehouse_order_model(code)
+        return warehouse_inbound_order_orm_to_schema(order)
+
+    @staticmethod
+    def get_inbound_warehouse_order_model(code: str) -> InboundWarehouseOrder:
         order = (
             InboundWarehouseOrder.objects.prefetch_related(
                 "items",
@@ -375,7 +377,7 @@ class WarehouseService:
             .select_related("order", "order__credit_note")
             .get(code=code)
         )
-        return warehouse_inbound_order_orm_to_schema(order)
+        return order
 
     @staticmethod
     def get_outbound_warehouse_order(code: str) -> OutboundWarehouseOrderSchema:
@@ -890,9 +892,10 @@ class WarehouseService:
             note, created = inbound_orders_service.get_or_create_credit_note(
                 order.code, context
             )
-            if note.state != CreditNoteState.DRAFT:
+            note_model = CreditNoteToSupplier.objects.get(order=order)
+            if note_model.state != CreditNoteState.DRAFT:
                 raise WarehouseGenericError(
-                    f"Credit Note '{note.code}' is already confirmed and read-only"
+                    f"Credit Note '{note_model.code}' is already confirmed and read-only"
                 )
 
             code_model = CreditNoteToSupplier.objects.get(code=note.code)
@@ -939,7 +942,7 @@ class WarehouseService:
 
     @classmethod
     def confirm_draft(cls, code: str, context: RequestContext) -> None:
-        w_order = cls.get_inbound_warehouse_order(code)
+        w_order = cls.get_inbound_warehouse_order_model(code)
         if w_order.state != InboundWarehouseOrderState.DRAFT:
             raise WarehouseGenericError(
                 f"Warehouse order '{code}' (state={w_order.state}) has to be in draft state in order to be confirmed."
@@ -960,7 +963,7 @@ class WarehouseService:
 
     @classmethod
     def reset_to_draft(cls, code: str, context: RequestContext) -> None:
-        w_order = cls.get_inbound_warehouse_order(code)
+        w_order = cls.get_inbound_warehouse_order_model(code)
         if w_order.state != InboundWarehouseOrderState.PENDING:
             raise WarehouseGenericError(
                 f"Warehouse order ${code}, state={w_order.state} has to be in pending state in order to be reset to draft."
@@ -984,7 +987,7 @@ class WarehouseService:
         context: RequestContext,
         location_code: str | None = None,
     ) -> None:
-        current_state = cls.get_inbound_warehouse_order(code).state
+        current_state = cls.get_inbound_warehouse_order_model(code).state
 
         if current_state == InboundWarehouseOrderState.IN_TRANSIT:
             if not location_code:
@@ -1015,11 +1018,11 @@ class WarehouseService:
         location_code: str | None = None,
     ) -> None:
         # Backward-compatible wrapper for legacy callers.
-        current_state = cls.get_inbound_warehouse_order(code).state
+        current_state = cls.get_inbound_warehouse_order_model(code).state
         if target_state == current_state:
             return
 
-        current_state = cls.get_inbound_warehouse_order(code).state
+        current_state = cls.get_inbound_warehouse_order_model(code).state
 
         if target_state == InboundWarehouseOrderState.DRAFT:
             if current_state == InboundWarehouseOrderState.IN_TRANSIT:
