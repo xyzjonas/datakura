@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
+from ninja import Schema
 from pydantic import ConfigDict, Field
 
 from apps.warehouse.core.schemas.base import BaseResponse
@@ -14,6 +15,15 @@ class CustomerGroupSchema(BaseSchema):
 
     code: str
     name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CustomerDiscountGroupSchema(BaseSchema):
+    code: str
+    name: str
+    discount_percent: float
+    is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -87,6 +97,7 @@ class CustomerSchema(BaseSchema):
     owner: Optional[str] = None
     responsible_user: Optional[str] = None
     group: CustomerGroupSchema
+    discount_group: CustomerDiscountGroupSchema | None = None
     contacts: list[ContactPersonSchema] = Field(default_factory=list)
 
     # Additional Fields
@@ -101,3 +112,7 @@ class GetCustomerResponse(BaseResponse):
 
 
 class GetCustomersResponse(PaginatedResponse[CustomerSchema]): ...
+
+
+class CustomerDiscountGroupAssignSchema(Schema):
+    discount_group_code: str | None = None

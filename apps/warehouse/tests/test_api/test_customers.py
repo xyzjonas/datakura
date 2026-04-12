@@ -5,6 +5,7 @@ from ninja.testing import TestClient
 
 from apps.warehouse.core.schemas.customer import GetCustomersResponse
 from apps.warehouse.models.customer import Customer
+from apps.warehouse.tests.factories.product import PriceGroupFactory
 from apps.warehouse.tests.factories.customer import CustomerFactoryWithContacts
 from apps.warehouse.api.routes.customer import routes
 
@@ -116,3 +117,32 @@ def test_get_all_customers_search_by_attribute(db, client, attr) -> None:
     assert customer.name == customer_model.name
     assert customer.customer_type == customer_model.customer_type
     assert customer.code == customer_model.code
+
+
+def test_assign_customer_discount_group(db, client) -> None:
+    customer = cast(Customer, CustomerFactoryWithContacts())
+    discount_group = PriceGroupFactory(code="A", name="Group A", discount_percent=5)
+
+    res = client.patch(
+        f"/{customer.code}/discount-group",
+        json={"discount_group_code": discount_group.code},
+    )
+
+    assert res.status_code == 200
+    assert res.json()["data"]["discount_group"]["code"] == "A"
+    assert res.json()["data"]["discount_group"]["discount_percent"] == 5.0
+
+
+def test_unassign_customer_discount_group(db, client) -> None:
+    discount_group = PriceGroupFactory(code="B", name="Group B", discount_percent=10)
+    customer = cast(
+        Customer, CustomerFactoryWithContacts(discount_group=discount_group)
+    )
+
+    res = client.patch(
+        f"/{customer.code}/discount-group",
+        json={"discount_group_code": None},
+    )
+
+    assert res.status_code == 200
+    assert res.json()["data"]["discount_group"] is None

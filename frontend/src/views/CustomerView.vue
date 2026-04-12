@@ -13,6 +13,13 @@
               <q-icon name="groups"></q-icon>
               {{ customer.group.name }}
             </span>
+            <span class="flex items-center gap-1 flex-nowrap whitespace-nowrap">
+              <q-icon name="percent"></q-icon>
+              {{ customer.discount_group?.name ?? 'Bez slevové skupiny' }}
+              <small v-if="customer.discount_group" class="text-gray-5">
+                ({{ customer.discount_group.discount_percent }} %)
+              </small>
+            </span>
             <span class="text-gray-5">
               <q-btn flat round size="8px" icon="content_copy" />
               <small>kód: </small>{{ customer.code }}
@@ -23,6 +30,13 @@
         <CustomerInformationForm v-model="customerInformation" readonly class="my-2" />
 
         <div class="mt-auto flex gap-2 flex-row-reverse">
+          <q-btn
+            outline
+            color="primary"
+            icon="sym_o_percent"
+            label="změnit slevovou skupinu"
+            @click="showDiscountDialog = true"
+          ></q-btn>
           <q-btn
             outline
             color="primary"
@@ -58,25 +72,48 @@
     <span class="text-5xl text-gray-5">404</span>
     <span class="text-lg text-gray-5"> ZÁKAZNÍK NENALEZEN </span>
   </ForegroundPanel>
+
+  <CustomerDiscountGroupDialog
+    v-model:show="showDiscountDialog"
+    :current-code="customer?.discount_group?.code ?? null"
+    :groups="discountGroups"
+    :loading="assigningDiscountGroup"
+    @submit="onAssignDiscountGroup"
+  />
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesCustomerGetCustomer } from '@/client'
+import {
+  warehouseApiRoutesCustomerAssignCustomerDiscountGroup,
+  warehouseApiRoutesCustomerGetCustomer,
+  warehouseApiRoutesProductGetDiscountGroups,
+} from '@/client'
 import CustomerContactForm from '@/components/customer/CustomerContactForm.vue'
+import CustomerDiscountGroupDialog from '@/components/customer/CustomerDiscountGroupDialog.vue'
 import CustomerContactPersonForm from '@/components/customer/CustomerContactPersonForm.vue'
 import CustomerInformationForm from '@/components/customer/CustomerInformationForm.vue'
 import CustomerTypeIcon from '@/components/customer/CustomerTypeIcon.vue'
 import EmptyPanel from '@/components/EmptyPanel.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import { useApi } from '@/composables/use-api'
+import { useQuasar } from 'quasar'
 import { ref } from 'vue'
 
 const props = defineProps<{
   customerCode: string
 }>()
 
+const { onResponse } = useApi()
+const $q = useQuasar()
+const showDiscountDialog = ref(false)
+const assigningDiscountGroup = ref(false)
+
 const result = await warehouseApiRoutesCustomerGetCustomer({
   path: { customer_code: props.customerCode },
 })
+
+const discountGroupsResult = await warehouseApiRoutesProductGetDiscountGroups()
+const discountGroups = ref(discountGroupsResult.data?.data ?? [])
 
 const customer = ref(result.data?.data)
 const customerContact = ref()
@@ -109,6 +146,7 @@ if (customer.value) {
     owner: customer.value.owner,
     responsible_user: customer.value.responsible_user,
     group: customer.value.group.name,
+    discount_group: customer.value.discount_group?.name ?? '',
     note: customer.value.note,
     register_information: customer.value.register_information,
   }
@@ -137,6 +175,34 @@ if (customer.value && customer.value.contacts) {
       note: contact.note || '',
     }
   })
+}
+
+const onAssignDiscountGroup = async (discountGroupCode: string | null) => {
+  if (!customer.value) {
+    return
+  }
+
+  assigningDiscountGroup.value = true
+  try {
+    const result = await warehouseApiRoutesCustomerAssignCustomerDiscountGroup({
+      path: { customer_code: customer.value.code },
+      body: {
+        discount_group_code: discountGroupCode,
+      },
+    })
+
+    const response = onResponse(result)
+    if (!response?.data) {
+      return
+    }
+
+    customer.value = response.data
+    customerInformation.value.discount_group = customer.value.discount_group?.name ?? ''
+    showDiscountDialog.value = false
+    $q.notify({ type: 'positive', message: 'Slevová skupina byla aktualizována.' })
+  } finally {
+    assigningDiscountGroup.value = false
+  }
 }
 </script>
 

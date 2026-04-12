@@ -85,6 +85,13 @@ class Customer(BaseModel):
     customer_group = models.ForeignKey(
         CustomerGroup, on_delete=models.PROTECT, related_name="customers"
     )
+    discount_group = models.ForeignKey(
+        "warehouse.PriceGroup",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="discount_customers",
+    )
     contacts: QuerySet["ContactPerson"]
 
     # Additional Fields

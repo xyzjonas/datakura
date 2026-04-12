@@ -147,7 +147,7 @@ def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
     assert pricing_details["base_price"] == 150.0
     assert pricing_details["suggested_unit_price"] == 120.0
     assert pricing_details["avg_purchase_price"] == 90.0
-    assert pricing_details["source"] == "CUSTOMER_DISCOUNT"
+    assert pricing_details["source"] == "CUSTOMER_OVERRIDE"
 
     update_res = client.put(
         f"/{order.code}/items",

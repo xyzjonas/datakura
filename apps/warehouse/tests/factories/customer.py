@@ -62,6 +62,7 @@ class CustomerFactory(DjangoModelFactory):
     owner = factory.SubFactory(UserFactory)
     responsible_user = factory.SubFactory(UserFactory)
     customer_group = factory.SubFactory(CustomerGroupFactory)
+    discount_group = None
 
     # Additional Fields
     note = factory.Faker("text", max_nb_chars=200)
@@ -80,6 +81,7 @@ class CustomerFactoryMinimal(DjangoModelFactory):
     customer_type = "FIRMY"
     price_type = "FIRMA"
     customer_group = factory.SubFactory(CustomerGroupFactory)
+    discount_group = None
 
 
 class ContactPersonFactory(DjangoModelFactory):

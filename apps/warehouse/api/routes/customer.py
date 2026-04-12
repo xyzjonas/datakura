@@ -12,9 +12,11 @@ from apps.warehouse.core.schemas.base import BaseResponse
 from apps.warehouse.core.schemas.customer import (
     GetCustomerResponse,
     CustomerSchema,
+    CustomerDiscountGroupAssignSchema,
 )
 from apps.warehouse.core.transformation import customer_orm_to_schema
 from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.product import PriceGroup
 
 routes = Router(tags=["customers"])
 
@@ -29,7 +31,11 @@ def get_customers(
 ):
     qs = cast(
         QuerySet[Customer],
-        Customer.objects.filter(is_deleted=is_deleted, is_valid=is_active),
+        Customer.objects.filter(
+            is_deleted=is_deleted, is_valid=is_active
+        ).select_related(
+            "customer_group", "discount_group", "responsible_user", "owner"
+        ),
     )
     if not search_term:
         return qs.all()
@@ -52,6 +58,25 @@ def get_customers(
 @routes.get("/{customer_code}", response={200: GetCustomerResponse})
 def get_customer(request: HttpRequest, customer_code: str):
     customer = Customer.objects.prefetch_related(
-        "contacts", "customer_group", "responsible_user", "owner"
+        "contacts", "customer_group", "discount_group", "responsible_user", "owner"
+    ).get(code=customer_code)
+    return GetCustomerResponse(data=customer_orm_to_schema(customer))
+
+
+@routes.patch("/{customer_code}/discount-group", response={200: GetCustomerResponse})
+def assign_customer_discount_group(
+    request: HttpRequest,
+    customer_code: str,
+    body: CustomerDiscountGroupAssignSchema,
+):
+    customer = Customer.objects.get(code=customer_code)
+    if body.discount_group_code:
+        customer.discount_group = PriceGroup.objects.get(code=body.discount_group_code)
+    else:
+        customer.discount_group = None
+    customer.save(update_fields=["discount_group", "changed"])
+
+    customer = Customer.objects.prefetch_related(
+        "contacts", "customer_group", "discount_group", "responsible_user", "owner"
     ).get(code=customer_code)
     return GetCustomerResponse(data=customer_orm_to_schema(customer))

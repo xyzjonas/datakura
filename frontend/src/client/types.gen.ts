@@ -319,18 +319,10 @@ export type DynamicProductPriceSchema = {
      */
     price_id: number;
     /**
-     * Price Type
-     */
-    price_type: string;
-    /**
      * Discount Percent
      */
     discount_percent: number;
-    /**
-     * Group
-     */
-    group?: string | null;
-    customer?: DynamicProductPriceCustomerSchema | null;
+    customer: DynamicProductPriceCustomerSchema;
 };
 
 /**
@@ -750,6 +742,36 @@ export type CreditNoteSupplierSchema = {
 };
 
 /**
+ * CustomerDiscountGroupSchema
+ */
+export type CustomerDiscountGroupSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Discount Percent
+     */
+    discount_percent: number;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+};
+
+/**
  * CustomerGroupSchema
  * Schema for CustomerGroup output
  */
@@ -866,6 +888,7 @@ export type CustomerSchema = {
      */
     responsible_user?: string | null;
     group: CustomerGroupSchema;
+    discount_group?: CustomerDiscountGroupSchema | null;
     /**
      * Contacts
      */
@@ -1658,21 +1681,88 @@ export type ProductBarcodeCreateSchema = {
  */
 export type DynamicProductPriceCreateSchema = {
     /**
-     * Price Type
+     * Discount Percent
      */
-    price_type: string;
+    discount_percent: number;
+    /**
+     * Customer Code
+     */
+    customer_code: string;
+};
+
+/**
+ * DiscountGroupSchema
+ */
+export type DiscountGroupSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
     /**
      * Discount Percent
      */
     discount_percent: number;
     /**
-     * Group Name
+     * Is Active
      */
-    group_name?: string | null;
+    is_active: boolean;
+};
+
+/**
+ * GetDiscountGroupsResponse
+ */
+export type GetDiscountGroupsResponse = {
     /**
-     * Customer Code
+     * Success
      */
-    customer_code?: string | null;
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<DiscountGroupSchema>;
+};
+
+/**
+ * GetDiscountGroupResponse
+ */
+export type GetDiscountGroupResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: DiscountGroupSchema;
+};
+
+/**
+ * DiscountGroupCreateOrUpdateSchema
+ */
+export type DiscountGroupCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Discount Percent
+     */
+    discount_percent: number;
+    /**
+     * Is Active
+     */
+    is_active?: boolean;
 };
 
 /**
@@ -1680,17 +1770,9 @@ export type DynamicProductPriceCreateSchema = {
  */
 export type DynamicProductPriceUpdateSchema = {
     /**
-     * Price Type
-     */
-    price_type?: string | null;
-    /**
      * Discount Percent
      */
     discount_percent?: number | null;
-    /**
-     * Group Name
-     */
-    group_name?: string | null;
     /**
      * Customer Code
      */
@@ -1888,6 +1970,16 @@ export type GetCustomerResponse = {
     success?: boolean;
     error?: ErrorInformation | null;
     data: CustomerSchema;
+};
+
+/**
+ * CustomerDiscountGroupAssignSchema
+ */
+export type CustomerDiscountGroupAssignSchema = {
+    /**
+     * Discount Group Code
+     */
+    discount_group_code?: string | null;
 };
 
 /**
@@ -3591,6 +3683,85 @@ export type WarehouseApiRoutesProductAddProductDynamicPriceResponses = {
 
 export type WarehouseApiRoutesProductAddProductDynamicPriceResponse = WarehouseApiRoutesProductAddProductDynamicPriceResponses[keyof WarehouseApiRoutesProductAddProductDynamicPriceResponses];
 
+export type WarehouseApiRoutesProductGetDiscountGroupsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/products/pricing/discount-groups';
+};
+
+export type WarehouseApiRoutesProductGetDiscountGroupsResponses = {
+    /**
+     * OK
+     */
+    200: GetDiscountGroupsResponse;
+};
+
+export type WarehouseApiRoutesProductGetDiscountGroupsResponse = WarehouseApiRoutesProductGetDiscountGroupsResponses[keyof WarehouseApiRoutesProductGetDiscountGroupsResponses];
+
+export type WarehouseApiRoutesProductDeleteDiscountGroupData = {
+    body?: never;
+    path: {
+        /**
+         * Group Code
+         */
+        group_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/pricing/discount-groups/{group_code}';
+};
+
+export type WarehouseApiRoutesProductDeleteDiscountGroupResponses = {
+    /**
+     * OK
+     */
+    200: GetDiscountGroupsResponse;
+};
+
+export type WarehouseApiRoutesProductDeleteDiscountGroupResponse = WarehouseApiRoutesProductDeleteDiscountGroupResponses[keyof WarehouseApiRoutesProductDeleteDiscountGroupResponses];
+
+export type WarehouseApiRoutesProductUpdateDiscountGroupData = {
+    body: DiscountGroupCreateOrUpdateSchema;
+    path: {
+        /**
+         * Group Code
+         */
+        group_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/pricing/discount-groups/{group_code}';
+};
+
+export type WarehouseApiRoutesProductUpdateDiscountGroupResponses = {
+    /**
+     * OK
+     */
+    200: GetDiscountGroupResponse;
+};
+
+export type WarehouseApiRoutesProductUpdateDiscountGroupResponse = WarehouseApiRoutesProductUpdateDiscountGroupResponses[keyof WarehouseApiRoutesProductUpdateDiscountGroupResponses];
+
+export type WarehouseApiRoutesProductCreateDiscountGroupData = {
+    body: DiscountGroupCreateOrUpdateSchema;
+    path: {
+        /**
+         * Group Code
+         */
+        group_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/pricing/discount-groups/{group_code}';
+};
+
+export type WarehouseApiRoutesProductCreateDiscountGroupResponses = {
+    /**
+     * OK
+     */
+    200: GetDiscountGroupResponse;
+};
+
+export type WarehouseApiRoutesProductCreateDiscountGroupResponse = WarehouseApiRoutesProductCreateDiscountGroupResponses[keyof WarehouseApiRoutesProductCreateDiscountGroupResponses];
+
 export type WarehouseApiRoutesProductDeleteProductDynamicPriceData = {
     body?: never;
     path: {
@@ -3815,6 +3986,27 @@ export type WarehouseApiRoutesCustomerGetCustomerResponses = {
 };
 
 export type WarehouseApiRoutesCustomerGetCustomerResponse = WarehouseApiRoutesCustomerGetCustomerResponses[keyof WarehouseApiRoutesCustomerGetCustomerResponses];
+
+export type WarehouseApiRoutesCustomerAssignCustomerDiscountGroupData = {
+    body: CustomerDiscountGroupAssignSchema;
+    path: {
+        /**
+         * Customer Code
+         */
+        customer_code: string;
+    };
+    query?: never;
+    url: '/api/v1/customers/{customer_code}/discount-group';
+};
+
+export type WarehouseApiRoutesCustomerAssignCustomerDiscountGroupResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerResponse;
+};
+
+export type WarehouseApiRoutesCustomerAssignCustomerDiscountGroupResponse = WarehouseApiRoutesCustomerAssignCustomerDiscountGroupResponses[keyof WarehouseApiRoutesCustomerAssignCustomerDiscountGroupResponses];
 
 export type WarehouseApiRoutesInboundOrdersGetInboundOrdersData = {
     body?: never;

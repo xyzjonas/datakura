@@ -15,7 +15,7 @@
         <div class="q-pa-xs col-12">
           <ProductPricingGridCard
             :row="slotProps.row"
-            :price-type-label="formatPriceType(slotProps.row.price_type)"
+            :price-type-label="formatPriceType(slotProps.row)"
             :final-price="getFinalPrice(slotProps.row)"
             :deleting-price-id="deletingPriceId"
             @delete="onDeleteDynamicPrice"
@@ -135,15 +135,13 @@ const pendingDeletePriceDescription = computed(() => {
     return 'neznámá cena'
   }
 
-  const target = price.group
-    ? `skupina ${price.group}`
-    : price.customer
-      ? `zákazník ${price.customer.code} - ${price.customer.name}`
-      : 'bez cíle'
+  const target = price.customer
+    ? `zákazník ${price.customer.code} - ${price.customer.name}`
+    : 'bez cíle'
   const finalPrice = round(
     product.value.base_price! - (price.discount_percent / 100) * product.value.base_price!,
   )
-  return `${formatPriceType(price.price_type)}, ${target}, sleva ${price.discount_percent} %, cena ${finalPrice} Kč`
+  return `${formatPriceType(price)}, ${target}, sleva ${price.discount_percent} %, cena ${finalPrice} Kč`
 })
 
 const onAddDynamicPrice = async (body: DynamicProductPriceCreateSchema) => {
@@ -209,8 +207,11 @@ const onConfirmDeleteDynamicPrice = async () => {
 const basePrice = computed<DynamicProductPriceSchema[]>(() => [
   {
     price_id: -1,
-    price_type: 'BASE_PRICE',
     discount_percent: 0,
+    customer: {
+      code: '',
+      name: '',
+    },
   } as DynamicProductPriceSchema,
 ])
 
@@ -220,32 +221,17 @@ const getFinalPrice = (row: DynamicProductPriceSchema) => {
   return round(product.value.base_price! - (row.discount_percent / 100) * product.value.base_price!)
 }
 
-const formatPriceType = (type: string) => {
-  switch (type) {
-    case 'BASE_PRICE':
-      return 'Základní cena'
-    case 'GROUP_DISCOUNT':
-      return 'Skupinová sleva'
-    case 'CUSTOMER_DISCOUNT':
-      return 'Sleva pro zákazníka'
-    default:
-      return type
-  }
+const formatPriceType = (row: DynamicProductPriceSchema) => {
+  return row.price_id < 0 ? 'Základní cena' : 'Sleva pro zákazníka'
 }
 
 const columns: QTableColumn[] = [
   {
     name: 'type',
     label: 'Typ ceny',
-    field: 'price_type',
+    field: 'price_id',
     align: 'left',
-    format: (val) => formatPriceType(val),
-  },
-  {
-    name: 'group',
-    label: 'Skupina',
-    field: 'group',
-    align: 'left',
+    format: (_, row: DynamicProductPriceSchema) => formatPriceType(row),
   },
   {
     name: 'customer',

@@ -5,7 +5,6 @@ from factory.django import DjangoModelFactory
 from factory.fuzzy import FuzzyChoice
 
 from apps.warehouse.models.product import (
-    DynamicPriceType,
     ProductType,
     ProductGroup,
     PriceGroup,
@@ -61,9 +60,14 @@ class StockProductFactory(DjangoModelFactory):
 class PriceGroupFactory(DjangoModelFactory):
     class Meta:
         model = PriceGroup
-        django_get_or_create = ("name",)
+        django_get_or_create = ("code",)
 
+    code = factory.Sequence(lambda n: f"GRP{n:03d}")
     name = factory.Sequence(lambda n: f"Group {n}")
+    discount_percent = factory.Faker(
+        "pydecimal", left_digits=2, right_digits=2, min_value=0, max_value=100
+    )
+    is_active = True
 
 
 class StockProductPriceFactory(DjangoModelFactory):
@@ -71,15 +75,11 @@ class StockProductPriceFactory(DjangoModelFactory):
         model = StockProductPrice
 
     product = factory.SubFactory(StockProductFactory)
-    price_type = DynamicPriceType.GROUP_DISCOUNT
     discount_percent = factory.Faker(
         "pydecimal", left_digits=2, right_digits=2, min_value=0, max_value=100
     )
-    group = factory.SubFactory(PriceGroupFactory)
-    customer = None
+    customer = factory.SubFactory(CustomerFactory)
 
 
 class StockProductPriceCustomerFactory(StockProductPriceFactory):
-    price_type = DynamicPriceType.CUSTOMER_DISCOUNT
-    group = None  # type: ignore
     customer = factory.SubFactory(CustomerFactory)  # type: ignore

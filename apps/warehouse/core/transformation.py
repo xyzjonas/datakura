@@ -17,6 +17,7 @@ from apps.warehouse.core.schemas.base_orders import (
 from apps.warehouse.core.schemas.customer import (
     CustomerSchema,
     CustomerGroupSchema,
+    CustomerDiscountGroupSchema,
     ContactPersonSchema,
 )
 from apps.warehouse.core.schemas.orders import (
@@ -37,6 +38,7 @@ from apps.warehouse.core.schemas.product import (
     ProductSchema,
     DynamicProductPriceSchema,
     DynamicProductPriceCustomerSchema,
+    DiscountGroupSchema,
 )
 from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,
@@ -69,6 +71,7 @@ from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import (
     StockProduct,
     StockProductPrice,
+    PriceGroup,
     ProductGroup,
     ProductType,
 )
@@ -219,6 +222,16 @@ def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
         if customer.responsible_user
         else None,
         group=CustomerGroupSchema.from_orm(customer.customer_group),
+        discount_group=CustomerDiscountGroupSchema(
+            created=customer.discount_group.created,
+            changed=customer.discount_group.changed,
+            code=customer.discount_group.code,
+            name=customer.discount_group.name,
+            discount_percent=float(customer.discount_group.discount_percent),
+            is_active=customer.discount_group.is_active,
+        )
+        if customer.discount_group
+        else None,
         contacts=[
             ContactPersonSchema.from_orm(contact) for contact in customer.contacts.all()
         ],
@@ -258,7 +271,6 @@ def get_product_by_code(product_code: str) -> ProductSchema:
         "unit_of_measure",
         "type",
         "group",
-        "dynamic_prices__group",
         "dynamic_prices__customer",
     ).get(code=product_code)
     return product_orm_to_schema(product)
@@ -271,15 +283,22 @@ def dynamic_product_price_orm_to_schema(
         price_id=dynamic_price.pk,
         created=dynamic_price.created,
         changed=dynamic_price.changed,
-        price_type=dynamic_price.price_type,
         discount_percent=float(dynamic_price.discount_percent),
-        group=dynamic_price.group.name if dynamic_price.group else None,
         customer=DynamicProductPriceCustomerSchema(
             code=dynamic_price.customer.code,
             name=dynamic_price.customer.name,
-        )
-        if dynamic_price.customer
-        else None,
+        ),
+    )
+
+
+def discount_group_orm_to_schema(discount_group: PriceGroup) -> DiscountGroupSchema:
+    return DiscountGroupSchema(
+        created=discount_group.created,
+        changed=discount_group.changed,
+        code=discount_group.code,
+        name=discount_group.name,
+        discount_percent=float(discount_group.discount_percent),
+        is_active=discount_group.is_active,
     )
 
 

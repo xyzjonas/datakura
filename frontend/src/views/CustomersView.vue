@@ -45,6 +45,15 @@
           <span class="lowercase ml-2">{{ props.row.customer_type }}</span>
         </q-td>
       </template>
+
+      <template #body-cell-discountGroup="props">
+        <q-td>
+          <span v-if="props.row.discount_group">
+            {{ props.row.discount_group.name }} ({{ props.row.discount_group.discount_percent }} %)
+          </span>
+          <span v-else>—</span>
+        </q-td>
+      </template>
     </q-table>
   </div>
 </template>
@@ -142,6 +151,12 @@ const columns: QTableColumn[] = [
     field: (cust: CustomerSchema) => (cust.tax_identification ? cust.tax_identification : '-'),
     label: 'DIČ',
     align: 'right',
+  },
+  {
+    name: 'discountGroup',
+    field: (cust: CustomerSchema) => cust.discount_group?.name ?? '-',
+    label: 'Slevová skupina',
+    align: 'left',
   },
   // {
   //   name: 'type',

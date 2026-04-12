@@ -17,10 +17,6 @@
 
     <q-card-section class="space-y-2">
       <div class="flex items-center justify-between gap-2">
-        <span class="text-gray-5">Skupina</span>
-        <span class="truncate max-w-48 text-right">{{ row.group ?? '—' }}</span>
-      </div>
-      <div class="flex items-center justify-between gap-2">
         <span class="text-gray-5">Zákazník</span>
         <router-link
           v-if="row.customer?.code"
@@ -72,9 +68,6 @@ const props = defineProps<{
 defineEmits<{ delete: [priceId: number] }>()
 
 const targetDescription = computed(() => {
-  if (props.row.group) {
-    return `Skupina: ${props.row.group}`
-  }
   if (props.row.customer?.code) {
     return `Zákazník: ${props.row.customer.code}`
   }

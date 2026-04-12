@@ -8,15 +8,6 @@
         </div>
 
         <q-form class="flex flex-col gap-2" @submit="onSubmit">
-          <q-select
-            v-model="addForm.price_type"
-            label="Typ ceny"
-            :options="priceTypeOptions"
-            emit-value
-            map-options
-            outlined
-          />
-
           <q-input
             v-model.number="addForm.discount_percent"
             label="Sleva (%)"
@@ -28,19 +19,7 @@
             :rules="[rules.isPercentage]"
           />
 
-          <q-input
-            v-if="addForm.price_type === 'GROUP_DISCOUNT'"
-            v-model="addForm.group_name"
-            label="Skupina"
-            outlined
-          />
-
-          <q-input
-            v-if="addForm.price_type === 'CUSTOMER_DISCOUNT'"
-            v-model="addForm.customer_code"
-            label="Kód zákazníka"
-            outlined
-          />
+          <q-input v-model="addForm.customer_code" label="Kód zákazníka" outlined />
 
           <q-btn
             type="submit"
@@ -75,27 +54,16 @@ const emit = defineEmits<{
 const $q = useQuasar()
 
 const addForm = ref<{
-  price_type: 'GROUP_DISCOUNT' | 'CUSTOMER_DISCOUNT'
   discount_percent: number | null
-  group_name: string
   customer_code: string
 }>({
-  price_type: 'GROUP_DISCOUNT',
   discount_percent: null,
-  group_name: '',
   customer_code: '',
 })
 
-const priceTypeOptions = [
-  { label: 'Skupinová sleva', value: 'GROUP_DISCOUNT' },
-  { label: 'Sleva pro zákazníka', value: 'CUSTOMER_DISCOUNT' },
-]
-
 const resetAddForm = () => {
   addForm.value = {
-    price_type: 'GROUP_DISCOUNT',
     discount_percent: null,
-    group_name: '',
     customer_code: '',
   }
 }
@@ -113,25 +81,14 @@ const onSubmit = () => {
     return
   }
 
-  if (addForm.value.price_type === 'GROUP_DISCOUNT' && !addForm.value.group_name.trim()) {
-    $q.notify({ type: 'warning', message: 'Vyplňte skupinu.' })
-    return
-  }
-
-  if (addForm.value.price_type === 'CUSTOMER_DISCOUNT' && !addForm.value.customer_code.trim()) {
+  if (!addForm.value.customer_code.trim()) {
     $q.notify({ type: 'warning', message: 'Vyplňte kód zákazníka.' })
     return
   }
 
   const body: DynamicProductPriceCreateSchema = {
-    price_type: addForm.value.price_type,
     discount_percent: discount,
-    group_name:
-      addForm.value.price_type === 'GROUP_DISCOUNT' ? addForm.value.group_name.trim() : undefined,
-    customer_code:
-      addForm.value.price_type === 'CUSTOMER_DISCOUNT'
-        ? addForm.value.customer_code.trim()
-        : undefined,
+    customer_code: addForm.value.customer_code.trim(),
   }
 
   emit('submit', body)

@@ -64,19 +64,23 @@ class StockProduct(BaseModel, BarcodeMixin):
         return self.name
 
 
-class DynamicPriceType(models.TextChoices):
-    GROUP_DISCOUNT = "GROUP_DISCOUNT", "Generic group discount"
-    CUSTOMER_DISCOUNT = "CUSTOMER_DISCOUNT", "Customer discount"
-
-
 class PriceGroup(BaseModel):
+    code = models.CharField(max_length=64, unique=True)
     name = models.CharField(max_length=255, unique=True)
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    is_active = models.BooleanField(default=True)
 
     class Meta(BaseModel.Meta):
-        ordering = ["name"]
+        ordering = ["code"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(discount_percent__gte=0) & Q(discount_percent__lte=100),
+                name="warehouse_pricegroup_discount_range",
+            )
+        ]
 
     def __str__(self) -> str:
-        return self.name
+        return f"{self.code} - {self.name} ({self.discount_percent}%)"
 
 
 class StockProductPrice(BaseModel):
@@ -86,74 +90,30 @@ class StockProductPrice(BaseModel):
         on_delete=models.CASCADE,
         related_name="dynamic_prices",
     )
-    price_type = models.CharField(
-        max_length=32,
-        choices=DynamicPriceType.choices,
-    )
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2)
-    group = models.ForeignKey(
-        PriceGroup,
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-        related_name="prices",
-    )
     customer = models.ForeignKey(
         "warehouse.Customer",
-        null=True,
-        blank=True,
+        null=False,
         on_delete=models.CASCADE,
         related_name="product_prices",
     )
 
     class Meta(BaseModel.Meta):
-        ordering = ["product", "price_type", "discount_percent"]
+        ordering = ["product", "customer", "discount_percent"]
         constraints = [
             models.CheckConstraint(
                 condition=Q(discount_percent__gte=0) & Q(discount_percent__lte=100),
                 name="warehouse_productprice_discount_range",
             ),
             models.CheckConstraint(
-                condition=(
-                    Q(
-                        price_type=DynamicPriceType.GROUP_DISCOUNT,
-                        group__isnull=False,
-                        customer__isnull=True,
-                    )
-                    | Q(
-                        price_type=DynamicPriceType.CUSTOMER_DISCOUNT,
-                        customer__isnull=False,
-                        group__isnull=True,
-                    )
-                ),
-                name="warehouse_productprice_target_by_type",
-            ),
-            models.UniqueConstraint(
-                fields=["product", "group"],
-                condition=Q(
-                    price_type=DynamicPriceType.GROUP_DISCOUNT,
-                    group__isnull=False,
-                ),
-                name="warehouse_unique_product_group_discount",
+                condition=Q(customer__isnull=False),
+                name="warehouse_productprice_customer_required",
             ),
             models.UniqueConstraint(
                 fields=["product", "customer"],
-                condition=Q(
-                    price_type=DynamicPriceType.CUSTOMER_DISCOUNT,
-                    customer__isnull=False,
-                ),
                 name="warehouse_unique_product_customer_discount",
             ),
         ]
 
     def __str__(self) -> str:
-        if self.group:
-            target = self.group.name
-        elif self.customer:
-            target = self.customer.code
-        else:
-            target = "-"
-        return (
-            f"{self.product.code} - {self.price_type} - {target} "
-            f"({self.discount_percent}%)"
-        )
+        return f"{self.product.code} - {self.customer.code} ({self.discount_percent}%)"

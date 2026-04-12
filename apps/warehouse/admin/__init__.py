@@ -79,18 +79,17 @@ admin.site.register(UnitOfMeasure)
 
 @admin.register(PriceGroup)
 class PriceGroupAdmin(admin.ModelAdmin):
-    search_fields = ("name",)
+    search_fields = ("code", "name")
+    list_display = ["code", "name", "discount_percent", "is_active"]
 
 
 @admin.register(StockProductPrice)
 class StockProductPriceAdmin(admin.ModelAdmin):
-    autocomplete_fields = ["product", "group", "customer"]
+    autocomplete_fields = ["product", "customer"]
     list_display = [
         "id",
         "product",
-        "price_type",
         "discount_percent",
-        "group",
         "customer",
     ]
 

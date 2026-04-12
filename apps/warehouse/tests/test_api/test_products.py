@@ -13,6 +13,7 @@ from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.product import StockProduct
+from apps.warehouse.models.product import PriceGroup
 from apps.warehouse.models.product import StockProductPrice
 from apps.warehouse.models.packaging import UnitOfMeasure
 
@@ -304,8 +305,12 @@ def test_get_product_audits(db, client) -> None:
 
 def test_get_product_returns_dynamic_prices(db, client):
     product = cast(StockProduct, StockProductFactory())
-    group = PriceGroupFactory(name="Group A")
-    StockProductPriceFactory(product=product, group=group, discount_percent=5)
+    customer_for_override = CustomerFactory()
+    StockProductPriceFactory(
+        product=product,
+        customer=customer_for_override,
+        discount_percent=5,
+    )
     customer_price = StockProductPriceCustomerFactory(
         product=product, discount_percent=10
     )
@@ -315,44 +320,9 @@ def test_get_product_returns_dynamic_prices(db, client):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data["dynamic_prices"]) == 2
-
-    group_price = next(
-        item
-        for item in data["dynamic_prices"]
-        if item["price_type"] == "GROUP_DISCOUNT"
-    )
-    assert group_price["group"] == "Group A"
-    assert group_price["customer"] is None
-
-    customer_specific = next(
-        item
-        for item in data["dynamic_prices"]
-        if item["price_type"] == "CUSTOMER_DISCOUNT"
-    )
-    assert customer_specific["customer"]["code"] == customer_price.customer.code
-    assert customer_specific["customer"]["name"] == customer_price.customer.name
-
-
-def test_add_group_dynamic_price(db, client):
-    product = cast(StockProduct, StockProductFactory())
-
-    response = client.post(
-        f"/{product.code}/prices",
-        json={
-            "price_type": "GROUP_DISCOUNT",
-            "discount_percent": 7.5,
-            "group_name": "Group B",
-        },
-    )
-
-    assert response.status_code == 200
-    data = response.json()["data"]
-    added = next(
-        item
-        for item in data["dynamic_prices"]
-        if item["price_type"] == "GROUP_DISCOUNT"
-    )
-    assert added["group"] == "Group B"
+    codes = {item["customer"]["code"] for item in data["dynamic_prices"]}
+    assert customer_price.customer.code in codes
+    assert customer_for_override.code in codes
 
 
 def test_add_customer_dynamic_price(db, client):
@@ -362,7 +332,6 @@ def test_add_customer_dynamic_price(db, client):
     response = client.post(
         f"/{product.code}/prices",
         json={
-            "price_type": "CUSTOMER_DISCOUNT",
             "discount_percent": 12,
             "customer_code": customer.code,
         },
@@ -373,7 +342,7 @@ def test_add_customer_dynamic_price(db, client):
     added = next(
         item
         for item in data["dynamic_prices"]
-        if item["price_type"] == "CUSTOMER_DISCOUNT"
+        if item["customer"]["code"] == customer.code
     )
     assert added["customer"]["code"] == customer.code
     assert added["customer"]["name"] == customer.name
@@ -387,14 +356,12 @@ def test_update_dynamic_price(db, client):
         f"/{product.code}/prices/{price.id}",
         json={
             "discount_percent": 15,
-            "group_name": "VIP",
         },
     )
 
     assert response.status_code == 200
     price.refresh_from_db()
     assert float(price.discount_percent) == 15
-    assert price.group.name == "VIP"
 
 
 def test_delete_dynamic_price(db, client):
@@ -415,8 +382,8 @@ def test_delete_dynamic_price(db, client):
         "expected_reason_fragment",
     ),
     [
-        ("customer", 15, "CUSTOMER_DISCOUNT", "Customer discount"),
-        ("group", 10, "GROUP_DISCOUNT", "Group discount"),
+        ("customer", 15, "CUSTOMER_OVERRIDE", "Customer override"),
+        ("group", 10, "CUSTOMER_GROUP", "Discount group"),
         ("none", 0, "BASE_PRICE", "Base selling price"),
     ],
 )
@@ -438,12 +405,15 @@ def test_get_product_selling_price_lookup(
             discount_percent=discount_percent,
         )
     elif discount_mode == "group":
-        group = PriceGroupFactory(name=customer.customer_group.name)
-        StockProductPriceFactory(
-            product=product,
-            group=group,
-            discount_percent=discount_percent,
+        customer.discount_group = cast(
+            PriceGroup,
+            PriceGroupFactory(
+                code="GROUP-LKP",
+                name="Lookup Group",
+                discount_percent=discount_percent,
+            ),
         )
+        customer.save(update_fields=["discount_group", "changed"])
 
     response = client.get(
         f"/{product.code}/selling-price?customer_code={customer.code}"
@@ -459,3 +429,40 @@ def test_get_product_selling_price_lookup(
 
     expected_price = round(200 * (1 - discount_percent / 100), 2)
     assert data["final_price"] == expected_price
+
+
+def test_discount_group_crud(db, client):
+    create_response = client.post(
+        "/pricing/discount-groups/D",
+        json={
+            "name": "Group D",
+            "discount_percent": 17,
+            "is_active": True,
+        },
+    )
+
+    assert create_response.status_code == 200
+    assert create_response.json()["data"]["code"] == "D"
+    assert create_response.json()["data"]["discount_percent"] == 17.0
+
+    update_response = client.patch(
+        "/pricing/discount-groups/D",
+        json={
+            "name": "Group D Premium",
+            "discount_percent": 18,
+            "is_active": False,
+        },
+    )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["data"]["name"] == "Group D Premium"
+    assert update_response.json()["data"]["discount_percent"] == 18.0
+    assert update_response.json()["data"]["is_active"] is False
+
+    list_response = client.get("/pricing/discount-groups")
+    assert list_response.status_code == 200
+    assert any(group["code"] == "D" for group in list_response.json()["data"])
+
+    delete_response = client.delete("/pricing/discount-groups/D")
+    assert delete_response.status_code == 200
+    assert all(group["code"] != "D" for group in delete_response.json()["data"])

@@ -26,6 +26,12 @@
     <q-input
       outlined
       :readonly="readonly"
+      v-model="customer.discount_group"
+      label="Slevová skupina"
+    ></q-input>
+    <q-input
+      outlined
+      :readonly="readonly"
       v-model="customer.invoice_due_days"
       label="Splatnost"
     ></q-input>
@@ -65,6 +71,7 @@ interface CustomerIn {
   owner: string
   responsible_user: string
   group: string
+  discount_group: string
   note: string
   register_information: string
 }

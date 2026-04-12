@@ -22,7 +22,6 @@ from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.product import (
     StockProduct,
-    DynamicPriceType,
     PriceGroup,
     ProductType,
     ProductGroup,
@@ -42,7 +41,6 @@ class StockProductsService:
             customer_discount = (
                 StockProductPrice.objects.filter(
                     product=product,
-                    price_type=DynamicPriceType.CUSTOMER_DISCOUNT,
                     customer=customer,
                 )
                 .order_by("-discount_percent")
@@ -56,29 +54,22 @@ class StockProductsService:
                 return (
                     final_price,
                     discount_percent,
-                    f"Customer discount for {customer.code}",
-                    DynamicPriceType.CUSTOMER_DISCOUNT,
+                    f"Customer override for {customer.code}",
+                    "CUSTOMER_OVERRIDE",
                 )
 
-            group_discount = (
-                StockProductPrice.objects.filter(
-                    product=product,
-                    price_type=DynamicPriceType.GROUP_DISCOUNT,
-                    group__name=customer.customer_group.name,
+            if customer.discount_group and customer.discount_group.is_active:
+                discount_percent = Decimal(
+                    str(customer.discount_group.discount_percent)
                 )
-                .order_by("-discount_percent")
-                .first()
-            )
-            if group_discount:
-                discount_percent = Decimal(str(group_discount.discount_percent))
                 final_price = base_price * (
                     Decimal("1") - discount_percent / Decimal("100")
                 )
                 return (
                     final_price,
                     discount_percent,
-                    f"Group discount for {customer.customer_group.name}",
-                    DynamicPriceType.GROUP_DISCOUNT,
+                    f"Discount group {customer.discount_group.code}",
+                    "CUSTOMER_GROUP",
                 )
 
         return base_price, Decimal("0"), "Base selling price", "BASE_PRICE"
@@ -197,36 +188,10 @@ class StockProductsService:
             raise WarehouseGenericError("discount_percent must be between 0 and 100")
 
     @staticmethod
-    def _resolve_price_target(
-        price_type: str,
-        group_name: str | None,
-        customer_code: str | None,
-    ) -> tuple[PriceGroup | None, Customer | None]:
-        if price_type == DynamicPriceType.GROUP_DISCOUNT:
-            if not group_name:
-                raise WarehouseGenericError("group_name is required for GROUP_DISCOUNT")
-            if customer_code:
-                raise WarehouseGenericError(
-                    "customer_code must not be set for GROUP_DISCOUNT"
-                )
-            group, _ = PriceGroup.objects.get_or_create(name=group_name)
-            return group, None
-
-        if price_type == DynamicPriceType.CUSTOMER_DISCOUNT:
-            if not customer_code:
-                raise WarehouseGenericError(
-                    "customer_code is required for CUSTOMER_DISCOUNT"
-                )
-            if group_name:
-                raise WarehouseGenericError(
-                    "group_name must not be set for CUSTOMER_DISCOUNT"
-                )
-            customer = Customer.objects.get(code=customer_code)
-            return None, customer
-
-        raise WarehouseGenericError(
-            "price_type must be one of GROUP_DISCOUNT or CUSTOMER_DISCOUNT"
-        )
+    def _resolve_override_customer(customer_code: str | None) -> Customer:
+        if not customer_code:
+            raise WarehouseGenericError("customer_code is required")
+        return Customer.objects.get(code=customer_code)
 
     @staticmethod
     @transaction.atomic
@@ -235,21 +200,14 @@ class StockProductsService:
         params: DynamicProductPriceCreateSchema,
     ):
         product = StockProduct.objects.get(code=product_code)
-        price_type = DynamicPriceType(params.price_type)
         discount_percent = Decimal(str(params.discount_percent))
         StockProductsService._validate_discount(discount_percent)
-        group, customer = StockProductsService._resolve_price_target(
-            price_type=price_type,
-            group_name=params.group_name,
-            customer_code=params.customer_code,
-        )
+        customer = StockProductsService._resolve_override_customer(params.customer_code)
 
         try:
             StockProductPrice.objects.create(
                 product=product,
-                price_type=price_type,
                 discount_percent=discount_percent,
-                group=group,
                 customer=customer,
             )
         except IntegrityError as exc:
@@ -269,34 +227,17 @@ class StockProductsService:
             product__code=product_code,
         )
 
-        next_price_type = DynamicPriceType(params.price_type or price.price_type)
         next_discount = Decimal(str(params.discount_percent or price.discount_percent))
         StockProductsService._validate_discount(next_discount)
 
-        next_group_name = params.group_name
-        next_customer_code = params.customer_code
-        if params.price_type is None:
-            next_group_name = (
-                next_group_name
-                if next_group_name is not None
-                else (price.group.name if price.group else None)
-            )
-            next_customer_code = (
-                next_customer_code
-                if next_customer_code is not None
-                else (price.customer.code if price.customer else None)
-            )
-
-        group, customer = StockProductsService._resolve_price_target(
-            price_type=next_price_type,
-            group_name=next_group_name,
-            customer_code=next_customer_code,
+        customer = (
+            StockProductsService._resolve_override_customer(params.customer_code)
+            if params.customer_code
+            else price.customer
         )
 
         try:
-            price.price_type = next_price_type
             price.discount_percent = next_discount
-            price.group = group
             price.customer = customer
             price.save()
         except IntegrityError as exc:
@@ -313,6 +254,58 @@ class StockProductsService:
         )
         price.delete()
         return get_product_by_code(product_code)
+
+    @staticmethod
+    def list_discount_groups() -> list[PriceGroup]:
+        return list(PriceGroup.objects.order_by("code"))
+
+    @staticmethod
+    @transaction.atomic
+    def create_discount_group(
+        group_code: str,
+        name: str,
+        discount_percent: float,
+        is_active: bool,
+    ) -> PriceGroup:
+        if not group_code or not group_code.strip():
+            raise WarehouseGenericError("group_code is required")
+
+        percent = Decimal(str(discount_percent))
+        StockProductsService._validate_discount(percent)
+
+        return PriceGroup.objects.create(
+            code=group_code.strip(),
+            name=name,
+            discount_percent=percent,
+            is_active=is_active,
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def update_discount_group(
+        group_code: str,
+        name: str | None = None,
+        discount_percent: float | None = None,
+        is_active: bool | None = None,
+    ) -> PriceGroup:
+        group = PriceGroup.objects.get(code=group_code)
+
+        if name is not None:
+            group.name = name
+        if discount_percent is not None:
+            percent = Decimal(str(discount_percent))
+            StockProductsService._validate_discount(percent)
+            group.discount_percent = percent
+        if is_active is not None:
+            group.is_active = is_active
+
+        group.save()
+        return group
+
+    @staticmethod
+    @transaction.atomic
+    def delete_discount_group(group_code: str) -> None:
+        PriceGroup.objects.get(code=group_code).delete()
 
     @staticmethod
     def add_barcode(product_code: str, params: ProductBarcodeCreateSchema):

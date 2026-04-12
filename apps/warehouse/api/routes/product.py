@@ -16,11 +16,14 @@ from apps.warehouse.core.schemas.type import (
 )
 from apps.warehouse.core.schemas.product import (
     GetProductResponse,
+    GetDiscountGroupResponse,
+    GetDiscountGroupsResponse,
     GetSellingPriceLookupResponse,
     ProductSchema,
     ProductCreateOrUpdateSchema,
     ProductDuplicateSchema,
     ProductBarcodeCreateSchema,
+    DiscountGroupCreateOrUpdateSchema,
     DynamicProductPriceCreateSchema,
     DynamicProductPriceUpdateSchema,
 )
@@ -34,6 +37,7 @@ from apps.warehouse.core.schemas.warehouse import (
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
+    discount_group_orm_to_schema,
     get_product_by_code,
     product_type_orm_to_schema,
     warehouse_item_orm_to_schema,
@@ -85,7 +89,6 @@ def get_products(
     qs = cast(
         QuerySet[StockProduct],
         StockProduct.objects.prefetch_related(
-            "dynamic_prices__group",
             "dynamic_prices__customer",
         ),
     )
@@ -180,6 +183,64 @@ def add_product_dynamic_price(
 ):
     return GetProductResponse(
         data=stock_product_service.add_dynamic_price(product_code, body)
+    )
+
+
+@routes.get("/pricing/discount-groups", response={200: GetDiscountGroupsResponse})
+def get_discount_groups(request: HttpRequest):
+    groups = stock_product_service.list_discount_groups()
+    return GetDiscountGroupsResponse(
+        data=[discount_group_orm_to_schema(group) for group in groups]
+    )
+
+
+@routes.post(
+    "/pricing/discount-groups/{group_code}",
+    response={200: GetDiscountGroupResponse},
+)
+def create_discount_group(
+    request: HttpRequest,
+    group_code: str,
+    body: DiscountGroupCreateOrUpdateSchema,
+):
+    group = stock_product_service.create_discount_group(
+        group_code=group_code,
+        name=body.name,
+        discount_percent=body.discount_percent,
+        is_active=body.is_active,
+    )
+    return GetDiscountGroupResponse(data=discount_group_orm_to_schema(group))
+
+
+@routes.patch(
+    "/pricing/discount-groups/{group_code}",
+    response={200: GetDiscountGroupResponse},
+)
+def update_discount_group(
+    request: HttpRequest,
+    group_code: str,
+    body: DiscountGroupCreateOrUpdateSchema,
+):
+    group = stock_product_service.update_discount_group(
+        group_code=group_code,
+        name=body.name,
+        discount_percent=body.discount_percent,
+        is_active=body.is_active,
+    )
+    return GetDiscountGroupResponse(data=discount_group_orm_to_schema(group))
+
+
+@routes.delete(
+    "/pricing/discount-groups/{group_code}", response={200: GetDiscountGroupsResponse}
+)
+def delete_discount_group(
+    request: HttpRequest,
+    group_code: str,
+):
+    stock_product_service.delete_discount_group(group_code)
+    groups = stock_product_service.list_discount_groups()
+    return GetDiscountGroupsResponse(
+        data=[discount_group_orm_to_schema(group) for group in groups]
     )
 
 
