@@ -24,6 +24,7 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderItemSchema,
     OutboundOrderSchema,
     OutboundOrderItemSchema,
+    OutboundOrderItemPricingDetailsSchema,
 )
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.invoice import (
@@ -338,6 +339,7 @@ def inbound_order_item_orm_to_schema(
 
 def outbound_order_item_orm_to_schema(
     item: OutboundOrderItem,
+    pricing_details: OutboundOrderItemPricingDetailsSchema | None = None,
 ) -> OutboundOrderItemSchema:
     return OutboundOrderItemSchema(
         product=product_orm_to_schema(item.stock_product),
@@ -345,6 +347,7 @@ def outbound_order_item_orm_to_schema(
         unit_price=float(item.unit_price),
         total_price=float(item.total_price),
         index=item.index,
+        pricing_details=pricing_details,
         changed=item.changed,
         created=item.created,
     )

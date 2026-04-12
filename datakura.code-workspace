@@ -17,6 +17,14 @@
       "npm run openapi-ts": true,
       "command": true,
       "./.venv/bin/pytest": true,
+      "/^npm run -s typecheck$/": {
+        "approve": true,
+        "matchCommandLine": true,
+      },
+      "/^cd /home/jonas/Projects/personal/datakura && /home/jonas/Projects/personal/datakura/\\.venv/bin/python -m pytest apps/warehouse/tests/test_core/test_services/test_warehouse\\.py -q$/": {
+        "approve": true,
+        "matchCommandLine": true,
+      },
     },
   },
 }

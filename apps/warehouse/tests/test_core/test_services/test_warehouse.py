@@ -23,7 +23,11 @@ from apps.warehouse.core.transformation import (
     warehouse_item_orm_to_schema,
 )
 from apps.warehouse.models.barcode import Barcode
-from apps.warehouse.models.orders import CreditNoteState, InboundOrderState
+from apps.warehouse.models.orders import (
+    CreditNoteState,
+    InboundOrderState,
+    OutboundOrderState,
+)
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.warehouse import (
     WarehouseLocation,
@@ -37,6 +41,8 @@ from apps.warehouse.models.warehouse import (
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
     InboundOrderItemFactory,
+    OutboundOrderFactory,
+    OutboundOrderItemFactory,
 )
 from apps.warehouse.tests.factories.packaging import PackageTypeFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
@@ -102,6 +108,152 @@ def test_get_total_availability(db, items_amount, amount):
     result = warehouse_service.get_total_availability(product.code)
     assert result.total_amount == pytest.approx(Decimal(items_amount * amount))
     assert result.available_amount == pytest.approx(Decimal(items_amount * amount))
+    assert result.incoming_amount == pytest.approx(Decimal(0))
+
+
+@pytest.mark.parametrize("items_amount, amount", [(3, 99), (0, 10), (3, 1.2)])
+def test_get_incoming_availability(db, items_amount, amount):
+    """Test calculation of incoming items from draft inbound orders"""
+    product = StockProductFactory.it()
+    order = InboundOrderFactory(state=InboundOrderState.DRAFT)
+    InboundOrderItemFactory.create_batch(
+        items_amount,
+        amount=amount,
+        stock_product=product,
+        order=order,
+    )
+    assert warehouse_service.get_incoming_availability(product.code) == pytest.approx(
+        Decimal(items_amount * amount)
+    )
+
+
+@pytest.mark.parametrize("items_amount, amount", [(3, 99), (0, 10), (5, 2.5)])
+def test_get_incoming_availability_in_transit(db, items_amount, amount):
+    """Test that submitted inbound order items are counted as incoming"""
+    product = StockProductFactory.it()
+    order = InboundOrderFactory(state=InboundOrderState.SUBMITTED)
+    InboundOrderItemFactory.create_batch(
+        items_amount,
+        amount=amount,
+        stock_product=product,
+        order=order,
+    )
+    assert warehouse_service.get_incoming_availability(product.code) == pytest.approx(
+        Decimal(items_amount * amount)
+    )
+
+
+def test_get_incoming_availability_excludes_available_items(db):
+    """Test that incoming doesn't count items from completed/pending inbound orders"""
+    product = StockProductFactory.it()
+    # Create incoming items
+    InboundOrderItemFactory.create_batch(
+        2,
+        amount=10,
+        stock_product=product,
+        order=InboundOrderFactory(state=InboundOrderState.DRAFT),
+    )
+    # Create items that are already available
+    InboundOrderItemFactory.create_batch(
+        3,
+        amount=10,
+        stock_product=product,
+        order=InboundOrderFactory(state=InboundOrderState.PUTAWAY),
+    )
+    # Incoming should only count the DRAFT items
+    assert warehouse_service.get_incoming_availability(product.code) == pytest.approx(
+        Decimal(20)
+    )
+
+
+@pytest.mark.parametrize("amount", [(10), (5.5), (0)])
+def test_get_booked_availability(db, amount):
+    """Test calculation of booked items from submitted outbound orders"""
+    product = StockProductFactory.it()
+    outbound_order = OutboundOrderFactory(state=OutboundOrderState.SUBMITTED)
+    OutboundOrderItemFactory.create(
+        stock_product=product,
+        amount=Decimal(amount),
+        order=outbound_order,
+    )
+
+    booked = warehouse_service.get_booked_availability(product.code)
+    assert booked == pytest.approx(Decimal(amount))
+
+
+def test_get_booked_availability_started(db):
+    """Test that picking outbound orders are included in booked calculation"""
+    product = StockProductFactory.it()
+    outbound_order = OutboundOrderFactory(state=OutboundOrderState.PICKING)
+    OutboundOrderItemFactory.create(
+        stock_product=product,
+        amount=Decimal(15),
+        order=outbound_order,
+    )
+
+    booked = warehouse_service.get_booked_availability(product.code)
+    assert booked == pytest.approx(Decimal(15))
+
+
+def test_get_booked_availability_excludes_completed(db):
+    """Test that completed outbound orders are not counted as booked"""
+    product = StockProductFactory.it()
+
+    # Create completed outbound order
+    completed_order = OutboundOrderFactory(state=OutboundOrderState.COMPLETED)
+    OutboundOrderItemFactory.create(
+        stock_product=product,
+        amount=Decimal(10),
+        order=completed_order,
+    )
+
+    # Create pending outbound order
+    pending_order = OutboundOrderFactory(state=OutboundOrderState.SUBMITTED)
+    OutboundOrderItemFactory.create(
+        stock_product=product,
+        amount=Decimal(5),
+        order=pending_order,
+    )
+
+    booked = warehouse_service.get_booked_availability(product.code)
+    # Should only count the pending order
+    assert booked == pytest.approx(Decimal(5))
+
+
+def test_get_total_availability_with_incoming_and_booked(db):
+    """Test total availability with incoming items and booked items"""
+    product = StockProductFactory.it()
+
+    # Create available stock
+    WarehouseItemFactory.create_batch(
+        5,
+        amount=10,
+        stock_product=product,
+        order_in=InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING),
+    )  # 50 items available
+
+    # Create incoming stock
+    InboundOrderItemFactory.create_batch(
+        2,
+        amount=10,
+        stock_product=product,
+        order=InboundOrderFactory(state=InboundOrderState.DRAFT),
+    )  # 20 items incoming
+
+    # Create booked stock
+    outbound_order = OutboundOrderFactory(state=OutboundOrderState.SUBMITTED)
+    OutboundOrderItemFactory.create(
+        stock_product=product,
+        amount=Decimal(15),
+        order=outbound_order,
+    )  # 15 items booked
+
+    result = warehouse_service.get_total_availability(product.code)
+    assert result.total_amount == pytest.approx(Decimal(50))  # stocked amount only
+    assert result.available_amount == pytest.approx(
+        Decimal(35)
+    )  # 50 - 15 available - booked
+    assert result.incoming_amount == pytest.approx(Decimal(20))  # 20 incoming
 
 
 def test_update_inbound_order_items(db, context):

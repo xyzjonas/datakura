@@ -82,12 +82,25 @@ class OutboundOrderItemCreateSchema(Schema):
     index: int | None = None
 
 
+class OutboundOrderItemPricingDetailsSchema(Schema):
+    base_price: float
+    avg_purchase_price: float
+    suggested_unit_price: float
+    selected_unit_price: float
+    discount_percent: float
+    reason: str
+    source: str
+    margin_amount: float
+    margin_percent: float
+
+
 class OutboundOrderItemSchema(BaseSchema):
     product: ProductSchema
     amount: float
     unit_price: float
     total_price: float
     index: int
+    pricing_details: OutboundOrderItemPricingDetailsSchema | None = None
 
 
 class OutboundOrderCreateOrUpdateSchema(Schema):

@@ -26,7 +26,7 @@
         outlined
         class="max-w-28"
         label="Počet"
-        @update:model-value="update"
+        @update:model-value="update('amount')"
         :debounce="500"
       >
         <template #append>
@@ -34,23 +34,37 @@
         </template>
       </q-input>
       <q-input
+        v-if="props.orderType === 'inbound'"
         v-model.number="unitPrice"
         :readonly="isUnitPriceReadonly"
         dense
         outlined
         class="max-w-50"
         label="Nákupní cena"
-        @update:model-value="update"
+        @update:model-value="update('unit')"
         :debounce="500"
       >
         <template #append>
           <span class="text-xs">{{ currency }} / {{ item.product.unit }}</span>
         </template>
       </q-input>
+      <SellingPriceEditor
+        v-else
+        v-model="unitPrice"
+        :readonly="readonly"
+        :currency="currency"
+        :unit="item.product.unit"
+        :base-price="pricingContext.basePrice"
+        :suggested-price="pricingContext.suggestedUnitPrice"
+        :avg-purchase-price="pricingContext.avgPurchasePrice"
+        :discount-percent="pricingContext.discountPercent"
+        :reason="pricingContext.reason"
+        @update:model-value="update('unit')"
+      />
       <q-input
         :readonly="readonly"
         v-model.number="totalPrice"
-        @update:model-value="update"
+        @update:model-value="update('total')"
         dense
         outlined
         class="max-w-40"
@@ -87,6 +101,7 @@ import { useQuasar } from 'quasar'
 import { computed, ref } from 'vue'
 import IndexRectangle from '../IndexRectangle.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
+import SellingPriceEditor from './SellingPriceEditor.vue'
 
 const $q = useQuasar()
 const { onResponse } = useApi()
@@ -107,19 +122,43 @@ const item = defineModel<
 
 const totalPrice = ref(round(item.value.unit_price * item.value.amount))
 const unitPrice = ref(round(item.value.unit_price))
-const derivedUnitPrice = computed(() => {
+const computeUnitFromTotal = () => {
   if (!item.value.amount) {
     return 0
   }
-  if (props.orderType === 'outbound') {
-    return round(unitPrice.value)
-  }
   return round(totalPrice.value / item.value.amount)
-})
+}
 
 const isUnitPriceReadonly = computed(() => props.readonly || props.orderType === 'inbound')
 
 const index = computed(() => (isInboundOrderItem(item.value) ? item.value.index + 1 : undefined))
+
+type OutboundPricingDetails = {
+  base_price?: number
+  avg_purchase_price?: number
+  suggested_unit_price?: number
+  discount_percent?: number
+  reason?: string
+}
+
+const pricingContext = computed(() => {
+  const pricing = (
+    item.value as OutboundOrderItemSchema & { pricing_details?: OutboundPricingDetails }
+  ).pricing_details
+  const basePrice = round(pricing?.base_price ?? item.value.product.base_price ?? unitPrice.value)
+  const avgPurchasePrice = round(
+    pricing?.avg_purchase_price ?? item.value.product.purchase_price ?? 0,
+  )
+  const suggestedUnitPrice = round(pricing?.suggested_unit_price ?? basePrice)
+
+  return {
+    basePrice,
+    avgPurchasePrice,
+    suggestedUnitPrice,
+    discountPercent: round(pricing?.discount_percent ?? 0),
+    reason: pricing?.reason ?? 'Base selling price',
+  }
+})
 
 const isInboundOrderItem = (
   item: InboundOrderItemSchema | CreditNoteSupplierItemSchema,
@@ -127,11 +166,15 @@ const isInboundOrderItem = (
   return 'index' in item
 }
 
-const update = async () => {
+const update = async (changedField: 'amount' | 'unit' | 'total') => {
   if (props.orderType === 'outbound') {
-    totalPrice.value = round(item.value.amount * derivedUnitPrice.value)
+    if (changedField === 'total') {
+      unitPrice.value = computeUnitFromTotal()
+    } else {
+      totalPrice.value = round(item.value.amount * round(unitPrice.value))
+    }
   } else {
-    unitPrice.value = derivedUnitPrice.value
+    unitPrice.value = computeUnitFromTotal()
   }
 
   const payload = {
@@ -139,7 +182,7 @@ const update = async () => {
     product_name: item.value.product.name,
     amount: item.value.amount,
     total_price: totalPrice.value,
-    unit_price: derivedUnitPrice.value,
+    unit_price: unitPrice.value,
     index: index.value,
   }
 

@@ -1538,6 +1538,52 @@ export type ProductCreateOrUpdateSchema = {
 };
 
 /**
+ * GetSellingPriceLookupResponse
+ */
+export type GetSellingPriceLookupResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: SellingPriceLookupSchema;
+};
+
+/**
+ * SellingPriceLookupSchema
+ */
+export type SellingPriceLookupSchema = {
+    /**
+     * Product Code
+     */
+    product_code: string;
+    /**
+     * Customer Code
+     */
+    customer_code?: string | null;
+    /**
+     * Base Price
+     */
+    base_price: number;
+    /**
+     * Final Price
+     */
+    final_price: number;
+    /**
+     * Discount Percent
+     */
+    discount_percent: number;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Source
+     */
+    source: string;
+};
+
+/**
  * ProductDuplicateSchema
  */
 export type ProductDuplicateSchema = {
@@ -1717,6 +1763,10 @@ export type ProductWarehouseAvailability = {
      * Available Amount
      */
     available_amount: string;
+    /**
+     * Incoming Amount
+     */
+    incoming_amount: string;
 };
 
 /**
@@ -2242,6 +2292,48 @@ export type EmptyResponse = {
 };
 
 /**
+ * OutboundOrderItemPricingDetailsSchema
+ */
+export type OutboundOrderItemPricingDetailsSchema = {
+    /**
+     * Base Price
+     */
+    base_price: number;
+    /**
+     * Avg Purchase Price
+     */
+    avg_purchase_price: number;
+    /**
+     * Suggested Unit Price
+     */
+    suggested_unit_price: number;
+    /**
+     * Selected Unit Price
+     */
+    selected_unit_price: number;
+    /**
+     * Discount Percent
+     */
+    discount_percent: number;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Margin Amount
+     */
+    margin_amount: number;
+    /**
+     * Margin Percent
+     */
+    margin_percent: number;
+};
+
+/**
  * OutboundOrderItemSchema
  */
 export type OutboundOrderItemSchema = {
@@ -2270,6 +2362,7 @@ export type OutboundOrderItemSchema = {
      * Index
      */
     index: number;
+    pricing_details?: OutboundOrderItemPricingDetailsSchema | null;
 };
 
 /**
@@ -3387,6 +3480,32 @@ export type WarehouseApiRoutesProductUpdateProductResponses = {
 };
 
 export type WarehouseApiRoutesProductUpdateProductResponse = WarehouseApiRoutesProductUpdateProductResponses[keyof WarehouseApiRoutesProductUpdateProductResponses];
+
+export type WarehouseApiRoutesProductGetProductSellingPriceData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: {
+        /**
+         * Customer Code
+         */
+        customer_code?: string | null;
+    };
+    url: '/api/v1/products/{product_code}/selling-price';
+};
+
+export type WarehouseApiRoutesProductGetProductSellingPriceResponses = {
+    /**
+     * OK
+     */
+    200: GetSellingPriceLookupResponse;
+};
+
+export type WarehouseApiRoutesProductGetProductSellingPriceResponse = WarehouseApiRoutesProductGetProductSellingPriceResponses[keyof WarehouseApiRoutesProductGetProductSellingPriceResponses];
 
 export type WarehouseApiRoutesProductDuplicateProductData = {
     body: ProductDuplicateSchema;

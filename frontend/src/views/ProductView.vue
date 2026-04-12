@@ -107,7 +107,8 @@
         class="min-w-[370px] sm:min-w-xl flex-1 overflow-hidden"
       />
     </div>
-    <ProductInboundOrdersWidget :product-code="product.code" class="min-w-[340px] flex-1" />
+
+    <ProductOrdersSection :product-code="product.code" />
     <div class="flex gap-2 flex-1">
       <WarehouseCard :product-code="product.code" :product-unit="product.unit" />
     </div>
@@ -155,7 +156,7 @@ import {
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
-import ProductInboundOrdersWidget from '@/components/product/ProductInboundOrdersWidget.vue'
+import ProductOrdersSection from '@/components/product/ProductOrdersSection.vue'
 import ProductPricingCard from '@/components/product/ProductPricingCard.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import ProductUpsertDialog from '@/components/product/ProductUpsertDialog.vue'

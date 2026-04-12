@@ -16,6 +16,7 @@ from apps.warehouse.core.schemas.type import (
 )
 from apps.warehouse.core.schemas.product import (
     GetProductResponse,
+    GetSellingPriceLookupResponse,
     ProductSchema,
     ProductCreateOrUpdateSchema,
     ProductDuplicateSchema,
@@ -116,6 +117,22 @@ def get_product(request: HttpRequest, product_code: str):
     #     request, username=credentials.username, password=credentials.password
     # )
     return GetProductResponse(data=get_product_by_code(product_code))
+
+
+@routes.get(
+    "/{product_code}/selling-price", response={200: GetSellingPriceLookupResponse}
+)
+def get_product_selling_price(
+    request: HttpRequest,
+    product_code: str,
+    customer_code: str | None = None,
+):
+    return GetSellingPriceLookupResponse(
+        data=stock_product_service.get_selling_price_lookup(
+            product_code=product_code,
+            customer_code=customer_code,
+        )
+    )
 
 
 @routes.put("/{product_code}", response={200: GetProductResponse})

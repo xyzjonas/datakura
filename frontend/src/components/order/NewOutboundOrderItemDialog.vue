@@ -16,24 +16,23 @@
             hint="Počet Kusů dle MJ"
             inputmode="numeric"
             :rules="[rules.atLeastOne, rules.max9999]"
-            @update:model-value="recalcTotal"
+            @update:model-value="recalcTotalFromUnit"
           >
             <template #append>
               <span class="text-sm">{{ productUom }}</span>
             </template>
           </q-input>
-          <q-input
-            v-model.number="item.unit_price"
-            outlined
-            label="Prodejní cena"
-            hint="Prodejní cena za MJ"
-            inputmode="numeric"
-            @update:model-value="recalcTotal"
-          >
-            <template #append>
-              <span class="text-sm">{{ currency }} / {{ productUom }}</span>
-            </template>
-          </q-input>
+          <SellingPriceEditor
+            v-model="item.unit_price"
+            :currency="currency"
+            :unit="productUom"
+            :base-price="pricingContext.basePrice"
+            :suggested-price="pricingContext.suggestedPrice"
+            :avg-purchase-price="pricingContext.avgPurchasePrice"
+            :discount-percent="pricingContext.discountPercent"
+            :reason="pricingContext.reason"
+            @update:model-value="recalcTotalFromUnit"
+          />
           <q-input
             v-model.number="item.total_price"
             outlined
@@ -41,6 +40,7 @@
             hint="Celková cena položky"
             inputmode="numeric"
             :rules="[rules.atLeastOne, rules.max99999]"
+            @update:model-value="recalcUnitFromTotal"
           >
             <template #append>
               <span class="text-sm">{{ currency }}</span>
@@ -54,23 +54,33 @@
 </template>
 
 <script setup lang="ts">
-import type { OutboundOrderItemCreateSchema, ProductSchema } from '@/client'
+import {
+  warehouseApiRoutesProductGetProductSellingPrice,
+  type OutboundOrderItemCreateSchema,
+  type ProductSchema,
+  type SellingPriceLookupSchema,
+} from '@/client'
+import { useApi } from '@/composables/use-api'
 import { rules } from '@/utils/rules'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
+import SellingPriceEditor from './SellingPriceEditor.vue'
 
 const showDialog = defineModel('show', { default: false })
+const { onResponse } = useApi()
 
 export interface NewOutboundOrderItemDialogExpose {
   reset: () => void
 }
 
-defineProps<{
+const props = defineProps<{
   currency: string
+  customerCode: string
 }>()
 
 const productUom = ref('')
+const pricingLookup = ref<SellingPriceLookupSchema>()
 
 const item = ref<OutboundOrderItemCreateSchema>({
   product_code: '',
@@ -83,20 +93,54 @@ const item = ref<OutboundOrderItemCreateSchema>({
 const product = ref<ProductSchema>()
 
 watch(product, (newValue: ProductSchema | undefined) => {
-  if (newValue) {
+  const resolvePricing = async () => {
+    if (!newValue) {
+      item.value.product_code = ''
+      item.value.product_name = ''
+      pricingLookup.value = undefined
+      return
+    }
+
     item.value.product_code = newValue.code
     item.value.product_name = newValue.name
-    item.value.unit_price = newValue.purchase_price ?? 0
-    item.value.total_price = (newValue.purchase_price ?? 0) * item.value.amount
     productUom.value = newValue.unit
-  } else {
-    item.value.product_code = ''
-    item.value.product_name = ''
+
+    const response = await warehouseApiRoutesProductGetProductSellingPrice({
+      path: { product_code: newValue.code },
+      query: { customer_code: props.customerCode },
+    })
+    const data = onResponse(response)
+    if (data?.data) {
+      pricingLookup.value = data.data
+      item.value.unit_price = data.data.final_price
+    } else {
+      pricingLookup.value = undefined
+      item.value.unit_price = newValue.base_price ?? 0
+    }
+    item.value.total_price = (item.value.unit_price ?? 0) * item.value.amount
   }
+
+  void resolvePricing()
 })
 
-const recalcTotal = () => {
+const pricingContext = computed(() => ({
+  basePrice: pricingLookup.value?.base_price ?? product.value?.base_price ?? 0,
+  suggestedPrice: pricingLookup.value?.final_price ?? product.value?.base_price ?? 0,
+  avgPurchasePrice: product.value?.purchase_price ?? 0,
+  discountPercent: pricingLookup.value?.discount_percent ?? 0,
+  reason: pricingLookup.value?.reason ?? 'Base selling price',
+}))
+
+const recalcTotalFromUnit = () => {
   item.value.total_price = (item.value.unit_price ?? 0) * item.value.amount
+}
+
+const recalcUnitFromTotal = () => {
+  if (!item.value.amount) {
+    item.value.unit_price = 0
+    return
+  }
+  item.value.unit_price = item.value.total_price / item.value.amount
 }
 
 const emit = defineEmits<{

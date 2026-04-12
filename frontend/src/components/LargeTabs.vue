@@ -3,9 +3,10 @@
     <ForegroundPanel
       v-for="item in items"
       :key="item.key"
-      class="flex-1"
+      :class="flat ? '' : 'flex-1'"
       @click="activeTabKey = item.key"
       :active="activeTabKey === item.key"
+      :flat="flat"
       clickable
     >
       <q-icon v-if="item.icon" :name="item.icon" size="24px"></q-icon>
@@ -21,6 +22,7 @@ import ForegroundPanel from './ForegroundPanel.vue'
 
 const activeTabKey = defineModel('tab', { required: true })
 defineProps<{
+  flat?: boolean
   items: {
     title: string
     icon?: string

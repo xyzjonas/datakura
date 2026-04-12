@@ -85,6 +85,7 @@ class ProductWarehouseAvailability(Schema):
 
     total_amount: Decimal
     available_amount: Decimal
+    incoming_amount: Decimal
 
 
 class WarehouseLocationDetailSchema(WarehouseLocationSchema):

@@ -11,6 +11,7 @@ from apps.warehouse.core.schemas.product import (
     ProductDuplicateSchema,
     DynamicProductPriceCreateSchema,
     DynamicProductPriceUpdateSchema,
+    SellingPriceLookupSchema,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.audit_messages import AuditMessages
@@ -30,6 +31,80 @@ from apps.warehouse.models.product import (
 
 
 class StockProductsService:
+    @staticmethod
+    def _resolve_selling_price(
+        product: StockProduct,
+        customer: Customer | None = None,
+    ) -> tuple[Decimal, Decimal, str, str]:
+        base_price = Decimal(str(product.base_price or 0))
+
+        if customer:
+            customer_discount = (
+                StockProductPrice.objects.filter(
+                    product=product,
+                    price_type=DynamicPriceType.CUSTOMER_DISCOUNT,
+                    customer=customer,
+                )
+                .order_by("-discount_percent")
+                .first()
+            )
+            if customer_discount:
+                discount_percent = Decimal(str(customer_discount.discount_percent))
+                final_price = base_price * (
+                    Decimal("1") - discount_percent / Decimal("100")
+                )
+                return (
+                    final_price,
+                    discount_percent,
+                    f"Customer discount for {customer.code}",
+                    DynamicPriceType.CUSTOMER_DISCOUNT,
+                )
+
+            group_discount = (
+                StockProductPrice.objects.filter(
+                    product=product,
+                    price_type=DynamicPriceType.GROUP_DISCOUNT,
+                    group__name=customer.customer_group.name,
+                )
+                .order_by("-discount_percent")
+                .first()
+            )
+            if group_discount:
+                discount_percent = Decimal(str(group_discount.discount_percent))
+                final_price = base_price * (
+                    Decimal("1") - discount_percent / Decimal("100")
+                )
+                return (
+                    final_price,
+                    discount_percent,
+                    f"Group discount for {customer.customer_group.name}",
+                    DynamicPriceType.GROUP_DISCOUNT,
+                )
+
+        return base_price, Decimal("0"), "Base selling price", "BASE_PRICE"
+
+    @staticmethod
+    def get_selling_price_lookup(
+        product_code: str,
+        customer_code: str | None = None,
+    ) -> SellingPriceLookupSchema:
+        product = StockProduct.objects.get(code=product_code)
+        customer = Customer.objects.get(code=customer_code) if customer_code else None
+        base_price = Decimal(str(product.base_price or 0))
+
+        final_price, discount_percent, reason, source = (
+            StockProductsService._resolve_selling_price(product, customer)
+        )
+        return SellingPriceLookupSchema(
+            product_code=product.code,
+            customer_code=customer.code if customer else None,
+            base_price=float(base_price.quantize(Decimal("0.01"))),
+            final_price=float(final_price.quantize(Decimal("0.01"))),
+            discount_percent=float(discount_percent),
+            reason=reason,
+            source=source,
+        )
+
     @staticmethod
     def _build_product_defaults(params: ProductCreateOrUpdateSchema):
         product_type, _ = ProductType.objects.get_or_create(name=params.type)

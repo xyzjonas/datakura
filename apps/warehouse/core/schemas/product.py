@@ -20,6 +20,16 @@ class DynamicProductPriceSchema(BaseSchema):
     customer: DynamicProductPriceCustomerSchema | None = None
 
 
+class SellingPriceLookupSchema(Schema):
+    product_code: str
+    customer_code: str | None = None
+    base_price: float
+    final_price: float
+    discount_percent: float
+    reason: str
+    source: str
+
+
 class DynamicProductPriceCreateSchema(Schema):
     price_type: str
     discount_percent: float
@@ -69,6 +79,9 @@ class ProductDuplicateSchema(ProductCreateOrUpdateSchema): ...
 
 
 class GetProductResponse(Response[ProductSchema]): ...
+
+
+class GetSellingPriceLookupResponse(Response[SellingPriceLookupSchema]): ...
 
 
 class GetProductsResponse(PaginatedResponse[ProductSchema]): ...

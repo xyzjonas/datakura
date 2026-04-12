@@ -22,7 +22,6 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
-from apps.warehouse.core.transformation import outbound_order_orm_to_schema
 from apps.warehouse.models.orders import OutboundOrder
 
 routes = Router(tags=["outbound_order"])
@@ -59,7 +58,7 @@ def create_outbound_order(
 @routes.get("/{order_code}", response={200: GetOutboundOrderResponse})
 def get_outbound_order(request: HttpRequest, order_code: str):
     return GetOutboundOrderResponse(
-        data=outbound_order_orm_to_schema(OutboundOrder.objects.get(code=order_code))
+        data=outbound_orders_service.get_outbound_order(order_code)
     )
 
 

@@ -1,14 +1,15 @@
 <template>
   <div
     :class="[
-      'shadow-md',
-      noPadding ? '' : 'p-5',
+      flat ? '' : 'shadow-md',
+      noPadding ? '' : 'p-4',
       'rounded',
-      'light:bg-white',
-      'dark:bg-dark-6',
-      'border',
-      'dark:border-dark-3',
+      flat ? '' : 'light:bg-white',
+      flat ? '' : 'dark:bg-dark-6',
+      flat ? '' : 'border',
+      flat ? '' : 'dark:border-dark-3',
       active ? 'active' : '',
+      active && flat ? 'active-flat' : '',
       clickable ? 'clickable' : '',
     ]"
   >
@@ -17,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ active?: boolean; clickable?: boolean; noPadding?: boolean }>()
+defineProps<{ active?: boolean; clickable?: boolean; noPadding?: boolean; flat?: boolean }>()
 </script>
 
 <style lang="scss" scoped>
@@ -29,6 +30,10 @@ div {
 .active {
   border: 1px solid #1976d24b;
   color: $primary;
+}
+
+.active-flat {
+  border: none;
 }
 
 .clickable {

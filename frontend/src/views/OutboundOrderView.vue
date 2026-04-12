@@ -98,6 +98,7 @@
       v-model:show="addItemDialog"
       @add-item="addItem"
       :currency="order.currency"
+      :customer-code="order.customer.code"
     />
 
     <OutboundOrderUpdateOrCreateDialog

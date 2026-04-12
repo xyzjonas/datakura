@@ -11,6 +11,7 @@ from apps.warehouse.core.schemas.product import ProductSchema, GetProductsRespon
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.barcode import Barcode
+from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.product import StockProductPrice
 from apps.warehouse.models.packaging import UnitOfMeasure
@@ -404,3 +405,57 @@ def test_delete_dynamic_price(db, client):
 
     assert response.status_code == 200
     assert StockProductPrice.objects.filter(id=price.id).exists() is False
+
+
+@pytest.mark.parametrize(
+    (
+        "discount_mode",
+        "discount_percent",
+        "expected_source",
+        "expected_reason_fragment",
+    ),
+    [
+        ("customer", 15, "CUSTOMER_DISCOUNT", "Customer discount"),
+        ("group", 10, "GROUP_DISCOUNT", "Group discount"),
+        ("none", 0, "BASE_PRICE", "Base selling price"),
+    ],
+)
+def test_get_product_selling_price_lookup(
+    db,
+    client,
+    discount_mode: str,
+    discount_percent: int,
+    expected_source: str,
+    expected_reason_fragment: str,
+):
+    product = cast(StockProduct, StockProductFactory(base_price=200))
+    customer = cast(Customer, CustomerFactory())
+
+    if discount_mode == "customer":
+        StockProductPriceCustomerFactory(
+            product=product,
+            customer=customer,
+            discount_percent=discount_percent,
+        )
+    elif discount_mode == "group":
+        group = PriceGroupFactory(name=customer.customer_group.name)
+        StockProductPriceFactory(
+            product=product,
+            group=group,
+            discount_percent=discount_percent,
+        )
+
+    response = client.get(
+        f"/{product.code}/selling-price?customer_code={customer.code}"
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["product_code"] == product.code
+    assert data["customer_code"] == customer.code
+    assert data["base_price"] == 200.0
+    assert data["source"] == expected_source
+    assert expected_reason_fragment in data["reason"]
+
+    expected_price = round(200 * (1 - discount_percent / 100), 2)
+    assert data["final_price"] == expected_price

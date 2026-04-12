@@ -6,6 +6,7 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 
 from apps.warehouse.core.exceptions import (
@@ -47,6 +48,7 @@ from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderState,
     InboundOrderItem,
+    OutboundOrderState,
     CreditNoteState,
     CreditNoteToSupplier,
     CreditNoteToSupplierItem,
@@ -464,26 +466,47 @@ class WarehouseService:
         # .get("total_amount")
         # or 0.0
 
+    @staticmethod
+    def get_incoming_availability(stock_product_code: str) -> Decimal:
+        """Get total amount of incoming items (from inbound order items not yet completed)"""
+        from apps.warehouse.models.orders import InboundOrderItem
+
+        return InboundOrderItem.objects.filter(
+            stock_product__code=stock_product_code,
+            order__state__in=(
+                InboundOrderState.DRAFT,
+                InboundOrderState.SUBMITTED,
+                InboundOrderState.RECEIVING,
+            ),
+        ).aggregate(total_amount=Sum("amount")).get("total_amount") or Decimal("0")
+
+    @staticmethod
+    def get_booked_availability(stock_product_code: str) -> Decimal:
+        """Get total amount booked in outbound order items (from SUBMITTED until completed)"""
+        from apps.warehouse.models.orders import OutboundOrderItem
+
+        return OutboundOrderItem.objects.filter(
+            stock_product__code=stock_product_code,
+            order__state__in=(
+                OutboundOrderState.SUBMITTED,
+                OutboundOrderState.PICKING,
+                OutboundOrderState.PACKING,
+                OutboundOrderState.SHIPPING,
+            ),
+        ).aggregate(total_amount=Sum("amount")).get("total_amount") or Decimal("0")
+
     @classmethod
     def get_total_availability(
         cls, stock_product_code: str
     ) -> ProductWarehouseAvailability:
         warehouse_amount = cls.get_warehouse_availability(stock_product_code)
-        # warehouse_amount = float(
-        #     WarehouseItem.objects.filter(
-        #         stock_product__code=stock_product_code, location__is_putaway=False
-        #     )
-        #     .aggregate(total_amount=Sum("amount"))
-        #     .get("total_amount")
-        #     or 0.0
-        # )
-
-        # todo: pending outcoming orders
-        out_amount = Decimal("0")
+        incoming_amount = cls.get_incoming_availability(stock_product_code)
+        booked_amount = cls.get_booked_availability(stock_product_code)
 
         return ProductWarehouseAvailability(
             total_amount=warehouse_amount,
-            available_amount=warehouse_amount - out_amount,
+            available_amount=warehouse_amount - booked_amount,
+            incoming_amount=incoming_amount,
         )
 
     # todo: pass warehouse item code to know about the location codes....

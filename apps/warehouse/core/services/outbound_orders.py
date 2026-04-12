@@ -15,10 +15,12 @@ from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
     OutboundOrderCreateOrUpdateSchema,
     OutboundOrderItemCreateSchema,
+    OutboundOrderItemPricingDetailsSchema,
     OutboundOrderItemSchema,
     OutboundOrderSchema,
 )
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.transformation import (
     outbound_order_item_orm_to_schema,
     outbound_order_orm_to_schema,
@@ -50,6 +52,67 @@ def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
 
 
 class OutboundOrdersService:
+    @staticmethod
+    def _with_pricing_details(
+        order: OutboundOrderSchema, order_model: OutboundOrder
+    ) -> OutboundOrderSchema:
+        product_by_code = {
+            item.stock_product.code: item.stock_product
+            for item in order_model.items.select_related("stock_product")
+        }
+        for schema_item in order.items:
+            product = product_by_code.get(schema_item.product.code)
+            if product is None:
+                continue
+            schema_item.pricing_details = (
+                OutboundOrdersService._build_item_pricing_details(
+                    order=order_model,
+                    stock_product=product,
+                    selected_unit_price=Decimal(str(schema_item.unit_price)),
+                )
+            )
+        return order
+
+    @staticmethod
+    def get_outbound_order(code: str) -> OutboundOrderSchema:
+        order = OutboundOrder.objects.select_related("customer").get(code=code)
+        schema = outbound_order_orm_to_schema(order)
+        return OutboundOrdersService._with_pricing_details(schema, order)
+
+    @staticmethod
+    def _build_item_pricing_details(
+        *,
+        order: OutboundOrder,
+        stock_product: StockProduct,
+        selected_unit_price: Decimal,
+    ) -> OutboundOrderItemPricingDetailsSchema:
+        suggested = stock_product_service.get_selling_price_lookup(
+            product_code=stock_product.code,
+            customer_code=order.customer.code if order.customer else None,
+        )
+
+        avg_purchase_price = Decimal(str(stock_product.purchase_price or 0))
+        margin_amount = selected_unit_price - avg_purchase_price
+        margin_percent = Decimal("0")
+        if avg_purchase_price > 0:
+            margin_percent = (
+                margin_amount / avg_purchase_price * Decimal("100")
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        return OutboundOrderItemPricingDetailsSchema(
+            base_price=suggested.base_price,
+            avg_purchase_price=float(avg_purchase_price),
+            suggested_unit_price=suggested.final_price,
+            selected_unit_price=float(selected_unit_price),
+            discount_percent=suggested.discount_percent,
+            reason=suggested.reason,
+            source=suggested.source,
+            margin_amount=float(
+                margin_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            ),
+            margin_percent=float(margin_percent),
+        )
+
     @staticmethod
     def _compute_unit_price(amount: Decimal, total_price: Decimal) -> Decimal:
         if amount <= 0:
@@ -155,7 +218,8 @@ class OutboundOrdersService:
                         changes=final_diff,
                     )
 
-        return outbound_order_orm_to_schema(order)
+        schema = outbound_order_orm_to_schema(order)
+        return OutboundOrdersService._with_pricing_details(schema, order)
 
     @staticmethod
     def add_item(
@@ -185,8 +249,17 @@ class OutboundOrdersService:
                 ),
                 index=item.index if item.index is not None else next_index,
             )
-
-        return outbound_order_item_orm_to_schema(item_model)
+        selected_unit_price = OutboundOrdersService._compute_unit_price(
+            amount, total_price
+        )
+        pricing_details = OutboundOrdersService._build_item_pricing_details(
+            order=order,
+            stock_product=stock_product,
+            selected_unit_price=selected_unit_price,
+        )
+        return outbound_order_item_orm_to_schema(
+            item_model, pricing_details=pricing_details
+        )
 
     @staticmethod
     def update_item(
@@ -208,8 +281,14 @@ class OutboundOrdersService:
             if item.index is not None:
                 item_model.index = item.index
             item_model.save()
-
-        return outbound_order_item_orm_to_schema(item_model)
+        pricing_details = OutboundOrdersService._build_item_pricing_details(
+            order=order,
+            stock_product=item_model.stock_product,
+            selected_unit_price=item_model.unit_price,
+        )
+        return outbound_order_item_orm_to_schema(
+            item_model, pricing_details=pricing_details
+        )
 
     @staticmethod
     def remove_item(code: str, product_code: str) -> bool:
@@ -305,7 +384,8 @@ class OutboundOrdersService:
                 changes={"state": {"old": old_state, "new": new_state}},
             )
 
-        return outbound_order_orm_to_schema(order)
+        schema = outbound_order_orm_to_schema(order)
+        return OutboundOrdersService._with_pricing_details(schema, order)
 
     @staticmethod
     def generate_next_outbound_warehouse_order_code() -> str:
@@ -376,7 +456,8 @@ class OutboundOrdersService:
             )
 
         order.refresh_from_db()
-        return outbound_order_orm_to_schema(order)
+        schema = outbound_order_orm_to_schema(order)
+        return OutboundOrdersService._with_pricing_details(schema, order)
 
 
 outbound_orders_service = OutboundOrdersService()

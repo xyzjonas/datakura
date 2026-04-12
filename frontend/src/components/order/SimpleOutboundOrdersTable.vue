@@ -14,7 +14,7 @@
   >
     <template #item="props">
       <div class="q-pa-xs col-12">
-        <InboundOrderGridCard :order="props.row" detail-route-name="inboundOrderDetail" />
+        <OutboundOrderGridCard :order="props.row" detail-route-name="outboundOrderDetail" />
       </div>
     </template>
 
@@ -33,7 +33,7 @@
         <a
           @click="
             $router.push({
-              name: 'inboundOrderDetail',
+              name: 'outboundOrderDetail',
               params: { code: props.row.code },
             })
           "
@@ -45,7 +45,7 @@
 
     <template #body-cell-state="props">
       <q-td>
-        <InboundOrderStateBadge :state="props.row.state" />
+        <OutboundOrderStateBadge :state="props.row.state" />
       </q-td>
     </template>
   </q-table>
@@ -53,13 +53,13 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesInboundOrdersGetInboundOrders,
-  type InboundOrderSchema,
-  type PagedInboundOrderSchema,
+  warehouseApiRoutesOutboundOrdersGetOutboundOrders,
+  type OutboundOrderSchema,
+  type PagedOutboundOrderSchema,
 } from '@/client'
 import SearchInput from '@/components/SearchInput.vue'
-import InboundOrderGridCard from '@/components/order/InboundOrderGridCard.vue'
-import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
+import OutboundOrderGridCard from '@/components/order/OutboundOrderGridCard.vue'
+import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
 import { useApi } from '@/composables/use-api'
 import { calculateTotalPrice } from '@/utils/total-price'
 import { type QTableColumn, type QTableProps } from 'quasar'
@@ -81,14 +81,14 @@ const pagination = ref<Pagination>({
 
 const search = ref('')
 const loading = ref(false)
-const orders = ref<InboundOrderSchema[]>([])
+const orders = ref<OutboundOrderSchema[]>([])
 
 const { onResponse } = useApi()
 
 const fetchOrders = async () => {
   loading.value = true
   try {
-    const result = await warehouseApiRoutesInboundOrdersGetInboundOrders({
+    const result = await warehouseApiRoutesOutboundOrdersGetOutboundOrders({
       query: {
         page: Number(pagination.value.page),
         page_size: Number(pagination.value.rowsPerPage),
@@ -97,7 +97,7 @@ const fetchOrders = async () => {
       },
     })
 
-    const data = onResponse(result) as PagedInboundOrderSchema | undefined
+    const data = onResponse(result) as PagedOutboundOrderSchema | undefined
     if (!data) {
       orders.value = []
       pagination.value.rowsNumber = 0
@@ -156,20 +156,20 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
   {
-    name: 'supplier',
-    field: (order: InboundOrderSchema) => order.supplier.name,
-    label: 'Dodavatel',
+    name: 'customer',
+    field: (order: OutboundOrderSchema) => order.customer.name,
+    label: 'Odběratel',
     align: 'left',
   },
   {
     name: 'itemsCount',
-    field: (order: InboundOrderSchema) => order.items?.length ?? 0,
+    field: (order: OutboundOrderSchema) => order.items?.length ?? 0,
     label: 'Počet položek',
     align: 'left',
   },
   {
     name: 'price',
-    field: (order: InboundOrderSchema) => `${calculateTotalPrice(order.items)} ${order.currency}`,
+    field: (order: OutboundOrderSchema) => `${calculateTotalPrice(order.items)} ${order.currency}`,
     label: 'Celková částka',
     align: 'left',
   },

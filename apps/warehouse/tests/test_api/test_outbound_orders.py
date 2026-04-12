@@ -15,7 +15,10 @@ from apps.warehouse.tests.factories.order import (
     OutboundOrderFactory,
     OutboundOrderItemFactory,
 )
-from apps.warehouse.tests.factories.product import StockProductFactory
+from apps.warehouse.tests.factories.product import (
+    StockProductFactory,
+    StockProductPriceCustomerFactory,
+)
 
 
 def test_get_outbound_order_audits(db) -> None:
@@ -121,7 +124,12 @@ def test_store_outbound_order_invoice(db) -> None:
 def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
     client = TestClient(routes)
     order = OutboundOrderFactory.it()
-    product = StockProductFactory()
+    product = StockProductFactory(base_price=150, purchase_price=90)
+    StockProductPriceCustomerFactory(
+        product=product,
+        customer=order.customer,
+        discount_percent=20,
+    )
 
     add_res = client.post(
         f"/{order.code}/items",
@@ -135,6 +143,11 @@ def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
     )
     assert add_res.status_code == 200
     assert add_res.json()["data"]["index"] == 0
+    pricing_details = add_res.json()["data"]["pricing_details"]
+    assert pricing_details["base_price"] == 150.0
+    assert pricing_details["suggested_unit_price"] == 120.0
+    assert pricing_details["avg_purchase_price"] == 90.0
+    assert pricing_details["source"] == "CUSTOMER_DISCOUNT"
 
     update_res = client.put(
         f"/{order.code}/items",
@@ -148,10 +161,28 @@ def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
     )
     assert update_res.status_code == 200
     assert update_res.json()["data"]["index"] == 5
+    assert update_res.json()["data"]["pricing_details"]["selected_unit_price"] == 5.0
 
     delete_res = client.delete(f"/{order.code}/items/{product.code}")
     assert delete_res.status_code == 200
     assert delete_res.json()["success"] is True
+
+
+def test_get_outbound_order_contains_item_pricing_details(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    product = StockProductFactory(base_price=120, purchase_price=100)
+    OutboundOrderItemFactory(
+        order=order, stock_product=product, amount=2, unit_price=130
+    )
+
+    response = client.get(f"/{order.code}")
+
+    assert response.status_code == 200
+    item = response.json()["data"]["items"][0]
+    assert item["pricing_details"]["base_price"] == 120.0
+    assert item["pricing_details"]["selected_unit_price"] == 130.0
+    assert item["pricing_details"]["margin_amount"] == 30.0
 
 
 def test_transition_outbound_order_next_creates_warehouse_order(db) -> None:
