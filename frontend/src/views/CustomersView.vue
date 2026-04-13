@@ -20,6 +20,9 @@
           :debounce="300"
         ></SearchInput>
       </template>
+      <template #top-right>
+        <q-btn color="primary" unelevated icon="add" label="vytvořit" @click="onCreateCustomer" />
+      </template>
       <template #body-cell-name="props">
         <q-td class="flex items-center gap-2">
           <CustomerTypeIcon
@@ -56,18 +59,40 @@
       </template>
     </q-table>
   </div>
+
+  <CustomerUpsertDialog
+    v-model:show="showCreateDialog"
+    v-model="newCustomer"
+    :customer-groups="customerGroups"
+    title="Nový zákazník"
+    submit-label="vytvořit"
+    :loading="savingCustomer"
+    @submit="onSaveCustomer"
+  />
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesCustomerGetCustomers, type CustomerSchema } from '@/client'
+import {
+  warehouseApiRoutesCustomerCreateCustomer,
+  warehouseApiRoutesCustomerGroupsGetCustomerGroups,
+  warehouseApiRoutesCustomerGetCustomers,
+  type CustomerCreateOrUpdateSchema,
+  type CustomerGroupSchema,
+  type CustomerSchema,
+} from '@/client'
+import CustomerUpsertDialog from '@/components/customer/CustomerUpsertDialog.vue'
 import CustomerTypeIcon from '@/components/customer/CustomerTypeIcon.vue'
 import SearchInput from '@/components/SearchInput.vue'
+import { useApi } from '@/composables/use-api'
 import { useQueryCustomers } from '@/composables/query/use-customers-query'
-import { type QTableColumn, type QTableProps } from 'quasar'
+import { type QTableColumn, type QTableProps, useQuasar } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const { page, pageSize, search } = useQueryCustomers()
+const { onResponse } = useApi()
+const $q = useQuasar()
+const router = useRouter()
 
 const pagination = ref<NonNullable<QTableProps['pagination']>>({
   rowsPerPage: pageSize.value,
@@ -76,7 +101,25 @@ const pagination = ref<NonNullable<QTableProps['pagination']>>({
 })
 
 const customers = ref<CustomerSchema[]>([])
+const customerGroups = ref<CustomerGroupSchema[]>([])
 const loading = ref(false)
+const showCreateDialog = ref(false)
+const savingCustomer = ref(false)
+const newCustomer = ref<CustomerCreateOrUpdateSchema>({
+  code: '',
+  name: '',
+  customer_type: 'FIRMA',
+  price_type: 'FIRMY',
+  customer_group_code: '',
+  invoice_due_days: 30,
+  block_after_due_days: 30,
+  state: 'CZ',
+  data_collection_agreement: false,
+  marketing_data_use_agreement: false,
+  is_valid: true,
+  is_deleted: false,
+})
+
 const fetchCustomers = async () => {
   loading.value = true
   try {
@@ -97,7 +140,60 @@ const fetchCustomers = async () => {
   }
 }
 
+const fetchCustomerGroups = async () => {
+  const result = await warehouseApiRoutesCustomerGroupsGetCustomerGroups({
+    query: { page: 1, page_size: 200 },
+  })
+  if (result.data?.data) {
+    customerGroups.value = result.data.data
+  }
+}
+
+const resetNewCustomer = () => {
+  newCustomer.value = {
+    code: '',
+    name: '',
+    customer_type: 'FIRMA',
+    price_type: 'FIRMY',
+    customer_group_code: '',
+    invoice_due_days: 30,
+    block_after_due_days: 30,
+    state: 'CZ',
+    data_collection_agreement: false,
+    marketing_data_use_agreement: false,
+    is_valid: true,
+    is_deleted: false,
+  }
+}
+
+const onCreateCustomer = () => {
+  resetNewCustomer()
+  showCreateDialog.value = true
+}
+
+const onSaveCustomer = async (body: CustomerCreateOrUpdateSchema) => {
+  savingCustomer.value = true
+  try {
+    const result = await warehouseApiRoutesCustomerCreateCustomer({ body })
+    const response = onResponse(result)
+    if (!response?.data) {
+      return
+    }
+
+    showCreateDialog.value = false
+    await fetchCustomers()
+    $q.notify({ type: 'positive', message: 'Zákazník byl vytvořen.' })
+    await router.push({
+      name: 'customerDetail',
+      params: { customerCode: response.data.code },
+    })
+  } finally {
+    savingCustomer.value = false
+  }
+}
+
 onMounted(fetchCustomers)
+onMounted(fetchCustomerGroups)
 
 const shouldNotFetch = () => {
   return pagination.value.rowsPerPage === pageSize.value && pagination.value.page === page.value
@@ -116,7 +212,7 @@ const onPaginationChange = async (requestProp: { pagination: QTableProps['pagina
   setTimeout(() => fetchCustomers(), 2)
 }
 
-const { currentRoute } = useRouter()
+const { currentRoute } = router
 watch(currentRoute, () => {
   if (!shouldNotFetch()) {
     fetchCustomers()

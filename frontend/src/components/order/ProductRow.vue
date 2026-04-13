@@ -1,30 +1,32 @@
 <template>
-  <div class="flex w-full justify-between items-center gap-5">
-    <IndexRectangle v-if="index" :index="index" />
-    <div>
-      <a
-        @click="
-          $router.push({
-            name: 'productDetail',
-            params: { productCode: item.product.code },
-          })
-        "
-        class="link"
-        >{{ item.product.name }}</a
-      >
-      <br />
-      <span class="text-xs text-gray-5">{{ item.product.code }}</span>
+  <div class="flex flex-col xl:flex-row w-full justify-between items-start xl:items-center gap-5">
+    <div class="flex items center gap-3">
+      <IndexRectangle v-if="displayIndex !== undefined" :index="displayIndex" />
+      <div>
+        <a
+          @click="
+            $router.push({
+              name: 'productDetail',
+              params: { productCode: item.product.code },
+            })
+          "
+          class="link"
+          >{{ item.product.name }}</a
+        >
+        <br />
+        <span class="text-xs text-gray-5">{{ item.product.code }}</span>
+      </div>
     </div>
     <div
-      class="flex gap-3 flex-1 items-center justify-start lg:justify-end flex-nowrap min-w-[670px]"
+      class="flex flex-col xl:flex-row gap-3 flex-1 items-start xl:items-center justify-start lg:justify-end flex-nowrap min-w-[670px]"
     >
-      <ProductAvailability :product-code="item.product.code" class="mr-5" />
+      <ProductAvailability :product-code="item.product.code" class="" />
       <q-input
         v-model.number="item.amount"
         :readonly="readonly"
         dense
         outlined
-        class="max-w-28"
+        class="w-full"
         label="Počet"
         @update:model-value="update('amount')"
         :debounce="500"
@@ -48,6 +50,7 @@
           <span class="text-xs">{{ currency }} / {{ item.product.unit }}</span>
         </template>
       </q-input>
+
       <SellingPriceEditor
         v-else
         v-model="unitPrice"
@@ -59,7 +62,11 @@
         :avg-purchase-price="pricingContext.avgPurchasePrice"
         :discount-percent="pricingContext.discountPercent"
         :reason="pricingContext.reason"
+        :price-source="pricingContext.source"
+        :can-persist-override="orderType === 'outbound' && !!customerCode && !readonly"
+        :override-saving="isPersistingOverride"
         @update:model-value="update('unit')"
+        @persist-override="persistOverrideForCustomer"
       />
       <q-input
         :readonly="readonly"
@@ -91,6 +98,7 @@
 import {
   warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder,
   warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder,
+  warehouseApiRoutesProductUpsertProductCustomerPriceOverride,
   type CreditNoteSupplierItemSchema,
   type InboundOrderItemSchema,
   type OutboundOrderItemSchema,
@@ -111,6 +119,7 @@ const props = defineProps<{
   readonly?: boolean
   orderCode: string
   orderType: 'inbound' | 'outbound'
+  customerCode?: string
 }>()
 defineEmits<{ (e: 'dissolveItem'): void }>()
 
@@ -131,7 +140,7 @@ const computeUnitFromTotal = () => {
 
 const isUnitPriceReadonly = computed(() => props.readonly || props.orderType === 'inbound')
 
-const index = computed(() => (isInboundOrderItem(item.value) ? item.value.index + 1 : undefined))
+const displayIndex = computed(() => ('index' in item.value ? item.value.index + 1 : undefined))
 
 type OutboundPricingDetails = {
   base_price?: number
@@ -139,6 +148,7 @@ type OutboundPricingDetails = {
   suggested_unit_price?: number
   discount_percent?: number
   reason?: string
+  source?: string
 }
 
 const pricingContext = computed(() => {
@@ -157,14 +167,11 @@ const pricingContext = computed(() => {
     suggestedUnitPrice,
     discountPercent: round(pricing?.discount_percent ?? 0),
     reason: pricing?.reason ?? 'Base selling price',
+    source: pricing?.source ?? 'BASE_PRICE',
   }
 })
 
-const isInboundOrderItem = (
-  item: InboundOrderItemSchema | CreditNoteSupplierItemSchema,
-): item is InboundOrderItemSchema => {
-  return 'index' in item
-}
+const isPersistingOverride = ref(false)
 
 const update = async (changedField: 'amount' | 'unit' | 'total') => {
   if (props.orderType === 'outbound') {
@@ -183,7 +190,6 @@ const update = async (changedField: 'amount' | 'unit' | 'total') => {
     amount: item.value.amount,
     total_price: totalPrice.value,
     unit_price: unitPrice.value,
-    index: index.value,
   }
 
   const res =
@@ -204,6 +210,46 @@ const update = async (changedField: 'amount' | 'unit' | 'total') => {
     unitPrice.value = data.data.unit_price
     $q.notify({ type: 'positive', message: 'Položka aktualizována' })
   }
+}
+
+const persistOverrideForCustomer = async () => {
+  if (props.orderType !== 'outbound' || !props.customerCode) {
+    return
+  }
+
+  isPersistingOverride.value = true
+  const response = await warehouseApiRoutesProductUpsertProductCustomerPriceOverride({
+    path: { product_code: item.value.product.code },
+    body: {
+      customer_code: props.customerCode,
+      fixed_price: unitPrice.value,
+    },
+  })
+  isPersistingOverride.value = false
+
+  const data = onResponse(response)
+  if (!data?.data || props.orderType !== 'outbound') {
+    return
+  }
+
+  const outboundItem = item.value as OutboundOrderItemSchema & {
+    pricing_details?: OutboundPricingDetails
+  }
+  outboundItem.pricing_details = {
+    avg_purchase_price:
+      outboundItem.pricing_details?.avg_purchase_price ?? pricingContext.value.avgPurchasePrice,
+    selected_unit_price: unitPrice.value,
+    margin_amount: outboundItem.pricing_details?.margin_amount ?? 0,
+    margin_percent: outboundItem.pricing_details?.margin_percent ?? 0,
+    base_price: data.data.base_price,
+    suggested_unit_price: data.data.final_price,
+    discount_percent: data.data.discount_percent,
+    reason: data.data.reason,
+    source: data.data.source,
+  }
+  item.value = outboundItem
+
+  $q.notify({ type: 'positive', message: 'Cena uložena jako zákaznický override' })
 }
 </script>
 

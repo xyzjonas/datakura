@@ -94,7 +94,6 @@ const propToRef = (order?: InboundOrderSchema) => {
   return {
     currency: order.currency,
     note: order.note,
-    state: order.state,
     description: order.description,
     supplier_code: order.supplier.code,
     supplier_name: order.supplier.name,

@@ -27,6 +27,7 @@ class DiscountGroupCreateOrUpdateSchema(Schema):
 
 class DynamicProductPriceSchema(BaseSchema):
     price_id: int
+    fixed_price: float
     discount_percent: float
     customer: DynamicProductPriceCustomerSchema
 
@@ -42,13 +43,18 @@ class SellingPriceLookupSchema(Schema):
 
 
 class DynamicProductPriceCreateSchema(Schema):
-    discount_percent: float
+    fixed_price: float
     customer_code: str
 
 
 class DynamicProductPriceUpdateSchema(Schema):
-    discount_percent: float | None = None
+    fixed_price: float | None = None
     customer_code: str | None = None
+
+
+class CustomerPriceOverrideUpsertSchema(Schema):
+    customer_code: str
+    fixed_price: float
 
 
 class ProductSchema(BaseSchema):

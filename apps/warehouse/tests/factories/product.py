@@ -75,8 +75,8 @@ class StockProductPriceFactory(DjangoModelFactory):
         model = StockProductPrice
 
     product = factory.SubFactory(StockProductFactory)
-    discount_percent = factory.Faker(
-        "pydecimal", left_digits=2, right_digits=2, min_value=0, max_value=100
+    fixed_price = factory.Faker(
+        "pydecimal", left_digits=4, right_digits=2, min_value=0, max_value=10000
     )
     customer = factory.SubFactory(CustomerFactory)
 

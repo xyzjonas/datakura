@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import IntegrityError, transaction
 
@@ -9,6 +9,7 @@ from apps.warehouse.core.schemas.product import (
     ProductBarcodeCreateSchema,
     ProductCreateOrUpdateSchema,
     ProductDuplicateSchema,
+    CustomerPriceOverrideUpsertSchema,
     DynamicProductPriceCreateSchema,
     DynamicProductPriceUpdateSchema,
     SellingPriceLookupSchema,
@@ -31,6 +32,14 @@ from apps.warehouse.models.product import (
 
 class StockProductsService:
     @staticmethod
+    def _derive_discount_percent(base_price: Decimal, final_price: Decimal) -> Decimal:
+        if base_price <= 0:
+            return Decimal("0")
+        return ((Decimal("1") - final_price / base_price) * Decimal("100")).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+
+    @staticmethod
     def _resolve_selling_price(
         product: StockProduct,
         customer: Customer | None = None,
@@ -38,18 +47,15 @@ class StockProductsService:
         base_price = Decimal(str(product.base_price or 0))
 
         if customer:
-            customer_discount = (
-                StockProductPrice.objects.filter(
-                    product=product,
-                    customer=customer,
-                )
-                .order_by("-discount_percent")
-                .first()
-            )
+            customer_discount = StockProductPrice.objects.filter(
+                product=product,
+                customer=customer,
+            ).first()
             if customer_discount:
-                discount_percent = Decimal(str(customer_discount.discount_percent))
-                final_price = base_price * (
-                    Decimal("1") - discount_percent / Decimal("100")
+                final_price = Decimal(str(customer_discount.fixed_price))
+                discount_percent = StockProductsService._derive_discount_percent(
+                    base_price,
+                    final_price,
                 )
                 return (
                     final_price,
@@ -188,10 +194,39 @@ class StockProductsService:
             raise WarehouseGenericError("discount_percent must be between 0 and 100")
 
     @staticmethod
+    def _validate_fixed_price(fixed_price: Decimal) -> None:
+        if fixed_price < 0:
+            raise WarehouseGenericError(
+                "fixed_price must be greater than or equal to 0"
+            )
+
+    @staticmethod
     def _resolve_override_customer(customer_code: str | None) -> Customer:
         if not customer_code:
             raise WarehouseGenericError("customer_code is required")
         return Customer.objects.get(code=customer_code)
+
+    @staticmethod
+    @transaction.atomic
+    def upsert_customer_price_override(
+        product_code: str,
+        params: CustomerPriceOverrideUpsertSchema,
+    ) -> SellingPriceLookupSchema:
+        product = StockProduct.objects.get(code=product_code)
+        customer = StockProductsService._resolve_override_customer(params.customer_code)
+        fixed_price = Decimal(str(params.fixed_price))
+        StockProductsService._validate_fixed_price(fixed_price)
+
+        StockProductPrice.objects.update_or_create(
+            product=product,
+            customer=customer,
+            defaults={"fixed_price": fixed_price},
+        )
+
+        return StockProductsService.get_selling_price_lookup(
+            product_code=product_code,
+            customer_code=customer.code,
+        )
 
     @staticmethod
     @transaction.atomic
@@ -200,14 +235,14 @@ class StockProductsService:
         params: DynamicProductPriceCreateSchema,
     ):
         product = StockProduct.objects.get(code=product_code)
-        discount_percent = Decimal(str(params.discount_percent))
-        StockProductsService._validate_discount(discount_percent)
+        fixed_price = Decimal(str(params.fixed_price))
+        StockProductsService._validate_fixed_price(fixed_price)
         customer = StockProductsService._resolve_override_customer(params.customer_code)
 
         try:
             StockProductPrice.objects.create(
                 product=product,
-                discount_percent=discount_percent,
+                fixed_price=fixed_price,
                 customer=customer,
             )
         except IntegrityError as exc:
@@ -227,8 +262,14 @@ class StockProductsService:
             product__code=product_code,
         )
 
-        next_discount = Decimal(str(params.discount_percent or price.discount_percent))
-        StockProductsService._validate_discount(next_discount)
+        next_fixed_price = Decimal(
+            str(
+                params.fixed_price
+                if params.fixed_price is not None
+                else price.fixed_price
+            )
+        )
+        StockProductsService._validate_fixed_price(next_fixed_price)
 
         customer = (
             StockProductsService._resolve_override_customer(params.customer_code)
@@ -237,7 +278,7 @@ class StockProductsService:
         )
 
         try:
-            price.discount_percent = next_discount
+            price.fixed_price = next_fixed_price
             price.customer = customer
             price.save()
         except IntegrityError as exc:

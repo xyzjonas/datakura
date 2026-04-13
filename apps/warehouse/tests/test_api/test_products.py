@@ -309,10 +309,11 @@ def test_get_product_returns_dynamic_prices(db, client):
     StockProductPriceFactory(
         product=product,
         customer=customer_for_override,
-        discount_percent=5,
+        fixed_price=95,
     )
     customer_price = StockProductPriceCustomerFactory(
-        product=product, discount_percent=10
+        product=product,
+        fixed_price=90,
     )
 
     response = client.get(f"/{product.code}")
@@ -323,6 +324,8 @@ def test_get_product_returns_dynamic_prices(db, client):
     codes = {item["customer"]["code"] for item in data["dynamic_prices"]}
     assert customer_price.customer.code in codes
     assert customer_for_override.code in codes
+    assert all("fixed_price" in item for item in data["dynamic_prices"])
+    assert all("discount_percent" in item for item in data["dynamic_prices"])
 
 
 def test_add_customer_dynamic_price(db, client):
@@ -332,7 +335,7 @@ def test_add_customer_dynamic_price(db, client):
     response = client.post(
         f"/{product.code}/prices",
         json={
-            "discount_percent": 12,
+            "fixed_price": 120,
             "customer_code": customer.code,
         },
     )
@@ -346,27 +349,28 @@ def test_add_customer_dynamic_price(db, client):
     )
     assert added["customer"]["code"] == customer.code
     assert added["customer"]["name"] == customer.name
+    assert added["fixed_price"] == 120.0
 
 
 def test_update_dynamic_price(db, client):
     product = cast(StockProduct, StockProductFactory())
-    price = StockProductPriceFactory(product=product, discount_percent=5)
+    price = StockProductPriceFactory(product=product, fixed_price=95)
 
     response = client.patch(
         f"/{product.code}/prices/{price.id}",
         json={
-            "discount_percent": 15,
+            "fixed_price": 80,
         },
     )
 
     assert response.status_code == 200
     price.refresh_from_db()
-    assert float(price.discount_percent) == 15
+    assert float(price.fixed_price) == 80
 
 
 def test_delete_dynamic_price(db, client):
     product = cast(StockProduct, StockProductFactory())
-    price = StockProductPriceFactory(product=product, discount_percent=5)
+    price = StockProductPriceFactory(product=product, fixed_price=95)
 
     response = client.delete(f"/{product.code}/prices/{price.id}")
 
@@ -402,7 +406,7 @@ def test_get_product_selling_price_lookup(
         StockProductPriceCustomerFactory(
             product=product,
             customer=customer,
-            discount_percent=discount_percent,
+            fixed_price=200 * (1 - discount_percent / 100),
         )
     elif discount_mode == "group":
         customer.discount_group = cast(
@@ -429,6 +433,81 @@ def test_get_product_selling_price_lookup(
 
     expected_price = round(200 * (1 - discount_percent / 100), 2)
     assert data["final_price"] == expected_price
+
+
+def test_get_product_selling_price_lookup_customer_override_with_zero_base_price(
+    db,
+    client,
+):
+    product = cast(StockProduct, StockProductFactory(base_price=0))
+    customer = cast(Customer, CustomerFactory())
+    StockProductPriceCustomerFactory(
+        product=product,
+        customer=customer,
+        fixed_price=42,
+    )
+
+    response = client.get(
+        f"/{product.code}/selling-price?customer_code={customer.code}"
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["base_price"] == 0.0
+    assert data["final_price"] == 42.0
+    assert data["discount_percent"] == 0.0
+
+
+def test_upsert_customer_price_override_creates_new_override(db, client):
+    product = cast(StockProduct, StockProductFactory(base_price=200))
+    customer = cast(Customer, CustomerFactory())
+
+    response = client.post(
+        f"/{product.code}/selling-price/override",
+        json={
+            "customer_code": customer.code,
+            "fixed_price": 150,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["source"] == "CUSTOMER_OVERRIDE"
+    assert data["customer_code"] == customer.code
+    assert data["final_price"] == 150.0
+
+    stored = StockProductPrice.objects.get(product=product, customer=customer)
+    assert float(stored.fixed_price) == 150.0
+
+
+def test_upsert_customer_price_override_updates_existing_override(db, client):
+    product = cast(StockProduct, StockProductFactory(base_price=200))
+    customer = cast(Customer, CustomerFactory())
+    existing = StockProductPriceCustomerFactory(
+        product=product,
+        customer=customer,
+        fixed_price=120,
+    )
+
+    response = client.post(
+        f"/{product.code}/selling-price/override",
+        json={
+            "customer_code": customer.code,
+            "fixed_price": 135,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["source"] == "CUSTOMER_OVERRIDE"
+    assert data["final_price"] == 135.0
+
+    existing.refresh_from_db()
+    assert float(existing.fixed_price) == 135.0
+    assert (
+        StockProductPrice.objects.filter(product=product, customer=customer).count()
+        == 1
+    )
 
 
 def test_discount_group_crud(db, client):

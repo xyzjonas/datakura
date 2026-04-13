@@ -128,7 +128,7 @@ def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
     StockProductPriceCustomerFactory(
         product=product,
         customer=order.customer,
-        discount_percent=20,
+        fixed_price=120,
     )
 
     add_res = client.post(
@@ -166,6 +166,38 @@ def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
     delete_res = client.delete(f"/{order.code}/items/{product.code}")
     assert delete_res.status_code == 200
     assert delete_res.json()["success"] is True
+
+
+def test_update_outbound_order_item_without_index_keeps_existing_index(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    product = StockProductFactory()
+
+    add_res = client.post(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 3,
+            "total_price": 30,
+            "index": 4,
+        },
+    )
+    assert add_res.status_code == 200
+    assert add_res.json()["data"]["index"] == 4
+
+    update_res = client.put(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 5,
+            "total_price": 50,
+        },
+    )
+
+    assert update_res.status_code == 200
+    assert update_res.json()["data"]["index"] == 4
 
 
 def test_get_outbound_order_contains_item_pricing_details(db) -> None:

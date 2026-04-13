@@ -92,7 +92,6 @@ const propToRef = (order?: OutboundOrderSchema) => {
   return {
     currency: order.currency,
     note: order.note,
-    state: order.state,
     description: order.description,
     customer_code: order.customer.code,
     customer_name: order.customer.name,

@@ -146,3 +146,185 @@ def test_unassign_customer_discount_group(db, client) -> None:
 
     assert res.status_code == 200
     assert res.json()["data"]["discount_group"] is None
+
+
+# ============ CRUD TESTS ============
+
+
+def test_create_customer(db, client) -> None:
+    """Test creating a new customer"""
+    from apps.warehouse.tests.factories.customer import CustomerGroupFactory
+
+    group = CustomerGroupFactory()
+
+    res = client.post(
+        "/",
+        json={
+            "code": "NEWCUST001",
+            "name": "New Customer Inc.",
+            "customer_type": "FIRMA",
+            "price_type": "FIRMY",
+            "customer_group_code": group.code,
+            "email": "contact@newcust.com",
+            "phone": "+420123456789",
+            "street": "Main St 123",
+            "city": "Prague",
+            "postal_code": "11000",
+            "state": "CZ",
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["code"] == "NEWCUST001"
+    assert data["name"] == "New Customer Inc."
+    assert data["customer_type"] == "FIRMA"
+    assert data["group"]["code"] == group.code
+
+
+def test_update_customer(db, client) -> None:
+    """Test updating an existing customer"""
+    customer = cast(Customer, CustomerFactoryWithContacts())
+
+    res = client.put(
+        f"/{customer.code}",
+        json={
+            "code": customer.code,
+            "name": "Updated Customer Name",
+            "customer_type": customer.customer_type,
+            "price_type": customer.price_type,
+            "customer_group_code": customer.customer_group.code,
+            "email": "newemail@example.com",
+            "phone": "+999999999",
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["name"] == "Updated Customer Name"
+    assert data["email"] == "newemail@example.com"
+    assert data["phone"] == "+999999999"
+
+
+def test_delete_customer_soft_delete(db, client) -> None:
+    """Test deleting a customer (soft delete)"""
+    customer = cast(Customer, CustomerFactoryWithContacts())
+
+    res = client.delete(f"/{customer.code}")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["is_deleted"] is True
+
+    # Verify in DB
+    customer.refresh_from_db()
+    assert customer.is_deleted is True
+
+
+def test_create_contact_person(db, client) -> None:
+    """Test creating a new contact person"""
+    customer = cast(Customer, CustomerFactoryWithContacts())
+
+    res = client.post(
+        f"/{customer.code}/contacts",
+        json={
+            "first_name": "John",
+            "last_name": "Doe",
+            "email": "john@example.com",
+            "phone": "+420123456789",
+            "title_pre": "Ing.",
+            "birth_date": "1990-01-15",
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()
+    assert data["first_name"] == "John"
+    assert data["last_name"] == "Doe"
+    assert data["email"] == "john@example.com"
+
+
+def test_create_contact_person_minimal(db, client) -> None:
+    """Test creating contact person with minimal required fields"""
+    customer = cast(Customer, CustomerFactoryWithContacts())
+
+    res = client.post(
+        f"/{customer.code}/contacts",
+        json={
+            "first_name": "Jane",
+            "last_name": "Smith",
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()
+    assert data["first_name"] == "Jane"
+    assert data["last_name"] == "Smith"
+
+
+def test_update_contact_person(db, client) -> None:
+    """Test updating an existing contact person"""
+
+    customer = cast(Customer, CustomerFactoryWithContacts())
+    contact = customer.contacts.first()
+    assert contact is not None
+
+    res = client.put(
+        f"/{customer.code}/contacts/{contact.id}",
+        json={
+            "first_name": contact.first_name,
+            "last_name": "UpdatedLastName",
+            "email": "updated@example.com",
+            "phone": contact.phone,
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()
+    assert data["last_name"] == "UpdatedLastName"
+    assert data["email"] == "updated@example.com"
+
+
+def test_delete_contact_person_soft_delete(db, client) -> None:
+    """Test deleting a contact person (soft delete)"""
+    customer = cast(Customer, CustomerFactoryWithContacts())
+    contact = customer.contacts.first()
+    assert contact is not None
+    contact_id = contact.id
+
+    res = client.delete(f"/{customer.code}/contacts/{contact_id}")
+
+    assert res.status_code == 200
+    data = res.json()
+    assert data["is_deleted"] is True
+
+    # Verify in DB
+    contact.refresh_from_db()
+    assert contact.is_deleted is True
+
+
+def test_get_customer_contacts(db, client) -> None:
+    """Test getting all contact persons for a customer"""
+    customer = cast(Customer, CustomerFactoryWithContacts())
+
+    res = client.get(f"/{customer.code}/contacts")
+
+    assert res.status_code == 200
+    contacts = res.json()
+    assert len(contacts) == 2  # CustomerFactoryWithContacts creates 2 contacts
+    assert all(not c["is_deleted"] for c in contacts)
+
+
+def test_contact_fields_validation(db, client) -> None:
+    """Test that contact creation validates required fields"""
+    customer = cast(Customer, CustomerFactoryWithContacts())
+
+    # Missing required first_name
+    res = client.post(
+        f"/{customer.code}/contacts",
+        json={
+            "last_name": "Doe",
+        },
+    )
+
+    assert res.status_code != 200

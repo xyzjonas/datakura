@@ -319,6 +319,10 @@ export type DynamicProductPriceSchema = {
      */
     price_id: number;
     /**
+     * Fixed Price
+     */
+    fixed_price: number;
+    /**
      * Discount Percent
      */
     discount_percent: number;
@@ -620,6 +624,10 @@ export type ContactPersonSchema = {
      */
     changed: string;
     /**
+     * Id
+     */
+    id: number;
+    /**
      * Title Pre
      */
     title_pre?: string | null;
@@ -682,11 +690,6 @@ export type ContactPersonSchema = {
 };
 
 /**
- * CreditNoteState
- */
-export type CreditNoteState = 'draft' | 'confirmed';
-
-/**
  * CreditNoteSupplierItemSchema
  */
 export type CreditNoteSupplierItemSchema = {
@@ -733,7 +736,10 @@ export type CreditNoteSupplierSchema = {
      * Note
      */
     note?: string | null;
-    state: CreditNoteState;
+    /**
+     * State
+     */
+    state: string;
     /**
      * Items
      */
@@ -948,7 +954,10 @@ export type InboundOrderBaseSchema = {
      * Currency
      */
     currency: string;
-    state: InboundOrderState;
+    /**
+     * State
+     */
+    state: string;
     /**
      * Warehouse Order Codes
      */
@@ -966,11 +975,6 @@ export type InboundOrderBaseSchema = {
      */
     received_date?: string | null;
 };
-
-/**
- * InboundOrderState
- */
-export type InboundOrderState = 'draft' | 'submitted' | 'receiving' | 'putaway' | 'completed' | 'cancelled';
 
 /**
  * InboundWarehouseOrderBaseSchema
@@ -992,7 +996,10 @@ export type InboundWarehouseOrderBaseSchema = {
      * Order Code
      */
     order_code: string;
-    state: InboundWarehouseOrderState;
+    /**
+     * State
+     */
+    state: string;
     parent_order?: InboundWarehouseOrderBaseSchema | null;
     /**
      * Child Orders
@@ -1020,7 +1027,10 @@ export type InboundWarehouseOrderSchema = {
      * Order Code
      */
     order_code: string;
-    state: InboundWarehouseOrderState;
+    /**
+     * State
+     */
+    state: string;
     parent_order?: InboundWarehouseOrderBaseSchema | null;
     /**
      * Child Orders
@@ -1049,11 +1059,6 @@ export type InboundWarehouseOrderSchema = {
     order: InboundOrderBaseSchema;
     credit_note?: CreditNoteSupplierSchema | null;
 };
-
-/**
- * InboundWarehouseOrderState
- */
-export type InboundWarehouseOrderState = 'in transit' | 'draft' | 'pending' | 'started' | 'completed' | 'cancelled';
 
 /**
  * WarehouseMovementSchema
@@ -1153,7 +1158,10 @@ export type OutboundOrderBaseSchema = {
      * Currency
      */
     currency: string;
-    state: OutboundOrderState;
+    /**
+     * State
+     */
+    state: string;
     /**
      * Warehouse Order Codes
      */
@@ -1171,11 +1179,6 @@ export type OutboundOrderBaseSchema = {
      */
     fulfilled_date?: string | null;
 };
-
-/**
- * OutboundOrderState
- */
-export type OutboundOrderState = 'draft' | 'submitted' | 'picking' | 'packing' | 'shipping' | 'completed' | 'cancelled';
 
 /**
  * OutboundWarehouseOrderBaseSchema
@@ -1197,7 +1200,10 @@ export type OutboundWarehouseOrderBaseSchema = {
      * Order Code
      */
     order_code: string;
-    state: OutboundWarehouseOrderState;
+    /**
+     * State
+     */
+    state: string;
     parent_order?: OutboundWarehouseOrderBaseSchema | null;
     /**
      * Child Orders
@@ -1225,7 +1231,10 @@ export type OutboundWarehouseOrderSchema = {
      * Order Code
      */
     order_code: string;
-    state: OutboundWarehouseOrderState;
+    /**
+     * State
+     */
+    state: string;
     parent_order?: OutboundWarehouseOrderBaseSchema | null;
     /**
      * Child Orders
@@ -1255,11 +1264,6 @@ export type OutboundWarehouseOrderSchema = {
 };
 
 /**
- * OutboundWarehouseOrderState
- */
-export type OutboundWarehouseOrderState = 'draft' | 'pending' | 'started' | 'completed' | 'cancelled';
-
-/**
  * PagedOutboundWarehouseOrderSchema
  */
 export type PagedOutboundWarehouseOrderSchema = {
@@ -1285,6 +1289,11 @@ export type PagedOutboundWarehouseOrderSchema = {
      */
     previous: number | null;
 };
+
+/**
+ * InboundWarehouseOrderState
+ */
+export type InboundWarehouseOrderState = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * InboundWarehouseOrderUpdateSchema
@@ -1607,6 +1616,20 @@ export type SellingPriceLookupSchema = {
 };
 
 /**
+ * CustomerPriceOverrideUpsertSchema
+ */
+export type CustomerPriceOverrideUpsertSchema = {
+    /**
+     * Customer Code
+     */
+    customer_code: string;
+    /**
+     * Fixed Price
+     */
+    fixed_price: number;
+};
+
+/**
  * ProductDuplicateSchema
  */
 export type ProductDuplicateSchema = {
@@ -1681,9 +1704,9 @@ export type ProductBarcodeCreateSchema = {
  */
 export type DynamicProductPriceCreateSchema = {
     /**
-     * Discount Percent
+     * Fixed Price
      */
-    discount_percent: number;
+    fixed_price: number;
     /**
      * Customer Code
      */
@@ -1770,9 +1793,9 @@ export type DiscountGroupCreateOrUpdateSchema = {
  */
 export type DynamicProductPriceUpdateSchema = {
     /**
-     * Discount Percent
+     * Fixed Price
      */
-    discount_percent?: number | null;
+    fixed_price?: number | null;
     /**
      * Customer Code
      */
@@ -1973,6 +1996,109 @@ export type GetCustomerResponse = {
 };
 
 /**
+ * CustomerCreateOrUpdateSchema
+ * Schema for creating/updating Customer
+ */
+export type CustomerCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Street
+     */
+    street?: string | null;
+    /**
+     * City
+     */
+    city?: string | null;
+    /**
+     * Postal Code
+     */
+    postal_code?: string | null;
+    /**
+     * State
+     */
+    state?: string;
+    /**
+     * Tax Identification
+     */
+    tax_identification?: string | null;
+    /**
+     * Identification
+     */
+    identification?: string | null;
+    /**
+     * Customer Type
+     */
+    customer_type: string;
+    /**
+     * Price Type
+     */
+    price_type: string;
+    /**
+     * Invoice Due Days
+     */
+    invoice_due_days?: number;
+    /**
+     * Block After Due Days
+     */
+    block_after_due_days?: number;
+    /**
+     * Data Collection Agreement
+     */
+    data_collection_agreement?: boolean;
+    /**
+     * Marketing Data Use Agreement
+     */
+    marketing_data_use_agreement?: boolean;
+    /**
+     * Is Valid
+     */
+    is_valid?: boolean;
+    /**
+     * Is Deleted
+     */
+    is_deleted?: boolean;
+    /**
+     * Customer Group Code
+     */
+    customer_group_code: string;
+    /**
+     * Owner
+     */
+    owner?: string | null;
+    /**
+     * Responsible User
+     */
+    responsible_user?: string | null;
+    /**
+     * Discount Group Code
+     */
+    discount_group_code?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Register Information
+     */
+    register_information?: string | null;
+};
+
+/**
  * CustomerDiscountGroupAssignSchema
  */
 export type CustomerDiscountGroupAssignSchema = {
@@ -1980,6 +2106,126 @@ export type CustomerDiscountGroupAssignSchema = {
      * Discount Group Code
      */
     discount_group_code?: string | null;
+};
+
+/**
+ * ContactPersonCreateOrUpdateSchema
+ * Schema for creating/updating ContactPerson
+ */
+export type ContactPersonCreateOrUpdateSchema = {
+    /**
+     * Title Pre
+     */
+    title_pre?: string | null;
+    /**
+     * First Name
+     */
+    first_name: string;
+    /**
+     * Middle Name
+     */
+    middle_name?: string | null;
+    /**
+     * Last Name
+     */
+    last_name: string;
+    /**
+     * Title Post
+     */
+    title_post?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Birth Date
+     */
+    birth_date?: string | null;
+    /**
+     * Street
+     */
+    street?: string | null;
+    /**
+     * City
+     */
+    city?: string | null;
+    /**
+     * Postal Code
+     */
+    postal_code?: string | null;
+    /**
+     * State
+     */
+    state?: string | null;
+    /**
+     * Profile Picture Url
+     */
+    profile_picture_url?: string | null;
+    /**
+     * Is Deleted
+     */
+    is_deleted?: boolean;
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
+ * PagedCustomerGroupSchema
+ */
+export type PagedCustomerGroupSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<CustomerGroupSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetCustomerGroupResponse
+ */
+export type GetCustomerGroupResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: CustomerGroupSchema;
+};
+
+/**
+ * CustomerGroupCreateOrUpdateSchema
+ */
+export type CustomerGroupCreateOrUpdateSchema = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -2006,7 +2252,10 @@ export type CreditNoteBaseSchema = {
      * Note
      */
     note?: string | null;
-    state: CreditNoteState;
+    /**
+     * State
+     */
+    state: string;
     /**
      * Items
      */
@@ -2077,7 +2326,10 @@ export type InboundOrderSchema = {
      * Currency
      */
     currency: string;
-    state: InboundOrderState;
+    /**
+     * State
+     */
+    state: string;
     /**
      * Warehouse Order Codes
      */
@@ -2265,6 +2517,11 @@ export type InboundOrderCreateOrUpdateSchema = {
      */
     requested_delivery_date?: string | null;
 };
+
+/**
+ * InboundOrderState
+ */
+export type InboundOrderState = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * InvoiceStoreSchema
@@ -2490,7 +2747,10 @@ export type OutboundOrderSchema = {
      * Currency
      */
     currency: string;
-    state: OutboundOrderState;
+    /**
+     * State
+     */
+    state: string;
     /**
      * Warehouse Order Codes
      */
@@ -2592,6 +2852,11 @@ export type OutboundOrderCreateOrUpdateSchema = {
      */
     requested_delivery_date?: string | null;
 };
+
+/**
+ * OutboundOrderState
+ */
+export type OutboundOrderState = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 /**
  * CreateOutboundOrderItemResponse
@@ -3599,6 +3864,27 @@ export type WarehouseApiRoutesProductGetProductSellingPriceResponses = {
 
 export type WarehouseApiRoutesProductGetProductSellingPriceResponse = WarehouseApiRoutesProductGetProductSellingPriceResponses[keyof WarehouseApiRoutesProductGetProductSellingPriceResponses];
 
+export type WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideData = {
+    body: CustomerPriceOverrideUpsertSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/selling-price/override';
+};
+
+export type WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponses = {
+    /**
+     * OK
+     */
+    200: GetSellingPriceLookupResponse;
+};
+
+export type WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponse = WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponses[keyof WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponses];
+
 export type WarehouseApiRoutesProductDuplicateProductData = {
     body: ProductDuplicateSchema;
     path: {
@@ -3966,6 +4252,43 @@ export type WarehouseApiRoutesCustomerGetCustomersResponses = {
 
 export type WarehouseApiRoutesCustomerGetCustomersResponse = WarehouseApiRoutesCustomerGetCustomersResponses[keyof WarehouseApiRoutesCustomerGetCustomersResponses];
 
+export type WarehouseApiRoutesCustomerCreateCustomerData = {
+    body: CustomerCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/customers';
+};
+
+export type WarehouseApiRoutesCustomerCreateCustomerResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerResponse;
+};
+
+export type WarehouseApiRoutesCustomerCreateCustomerResponse = WarehouseApiRoutesCustomerCreateCustomerResponses[keyof WarehouseApiRoutesCustomerCreateCustomerResponses];
+
+export type WarehouseApiRoutesCustomerDeleteCustomerData = {
+    body?: never;
+    path: {
+        /**
+         * Customer Code
+         */
+        customer_code: string;
+    };
+    query?: never;
+    url: '/api/v1/customers/{customer_code}';
+};
+
+export type WarehouseApiRoutesCustomerDeleteCustomerResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerResponse;
+};
+
+export type WarehouseApiRoutesCustomerDeleteCustomerResponse = WarehouseApiRoutesCustomerDeleteCustomerResponses[keyof WarehouseApiRoutesCustomerDeleteCustomerResponses];
+
 export type WarehouseApiRoutesCustomerGetCustomerData = {
     body?: never;
     path: {
@@ -3987,6 +4310,27 @@ export type WarehouseApiRoutesCustomerGetCustomerResponses = {
 
 export type WarehouseApiRoutesCustomerGetCustomerResponse = WarehouseApiRoutesCustomerGetCustomerResponses[keyof WarehouseApiRoutesCustomerGetCustomerResponses];
 
+export type WarehouseApiRoutesCustomerUpdateCustomerData = {
+    body: CustomerCreateOrUpdateSchema;
+    path: {
+        /**
+         * Customer Code
+         */
+        customer_code: string;
+    };
+    query?: never;
+    url: '/api/v1/customers/{customer_code}';
+};
+
+export type WarehouseApiRoutesCustomerUpdateCustomerResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerResponse;
+};
+
+export type WarehouseApiRoutesCustomerUpdateCustomerResponse = WarehouseApiRoutesCustomerUpdateCustomerResponses[keyof WarehouseApiRoutesCustomerUpdateCustomerResponses];
+
 export type WarehouseApiRoutesCustomerAssignCustomerDiscountGroupData = {
     body: CustomerDiscountGroupAssignSchema;
     path: {
@@ -4007,6 +4351,186 @@ export type WarehouseApiRoutesCustomerAssignCustomerDiscountGroupResponses = {
 };
 
 export type WarehouseApiRoutesCustomerAssignCustomerDiscountGroupResponse = WarehouseApiRoutesCustomerAssignCustomerDiscountGroupResponses[keyof WarehouseApiRoutesCustomerAssignCustomerDiscountGroupResponses];
+
+export type WarehouseApiRoutesCustomerGetCustomerContactsData = {
+    body?: never;
+    path: {
+        /**
+         * Customer Code
+         */
+        customer_code: string;
+    };
+    query?: never;
+    url: '/api/v1/customers/{customer_code}/contacts';
+};
+
+export type WarehouseApiRoutesCustomerGetCustomerContactsResponses = {
+    /**
+     * Response
+     * OK
+     */
+    200: Array<ContactPersonSchema>;
+};
+
+export type WarehouseApiRoutesCustomerGetCustomerContactsResponse = WarehouseApiRoutesCustomerGetCustomerContactsResponses[keyof WarehouseApiRoutesCustomerGetCustomerContactsResponses];
+
+export type WarehouseApiRoutesCustomerCreateCustomerContactData = {
+    body: ContactPersonCreateOrUpdateSchema;
+    path: {
+        /**
+         * Customer Code
+         */
+        customer_code: string;
+    };
+    query?: never;
+    url: '/api/v1/customers/{customer_code}/contacts';
+};
+
+export type WarehouseApiRoutesCustomerCreateCustomerContactResponses = {
+    /**
+     * OK
+     */
+    200: ContactPersonSchema;
+};
+
+export type WarehouseApiRoutesCustomerCreateCustomerContactResponse = WarehouseApiRoutesCustomerCreateCustomerContactResponses[keyof WarehouseApiRoutesCustomerCreateCustomerContactResponses];
+
+export type WarehouseApiRoutesCustomerDeleteCustomerContactData = {
+    body?: never;
+    path: {
+        /**
+         * Customer Code
+         */
+        customer_code: string;
+        /**
+         * Contact Id
+         */
+        contact_id: number;
+    };
+    query?: never;
+    url: '/api/v1/customers/{customer_code}/contacts/{contact_id}';
+};
+
+export type WarehouseApiRoutesCustomerDeleteCustomerContactResponses = {
+    /**
+     * OK
+     */
+    200: ContactPersonSchema;
+};
+
+export type WarehouseApiRoutesCustomerDeleteCustomerContactResponse = WarehouseApiRoutesCustomerDeleteCustomerContactResponses[keyof WarehouseApiRoutesCustomerDeleteCustomerContactResponses];
+
+export type WarehouseApiRoutesCustomerUpdateCustomerContactData = {
+    body: ContactPersonCreateOrUpdateSchema;
+    path: {
+        /**
+         * Customer Code
+         */
+        customer_code: string;
+        /**
+         * Contact Id
+         */
+        contact_id: number;
+    };
+    query?: never;
+    url: '/api/v1/customers/{customer_code}/contacts/{contact_id}';
+};
+
+export type WarehouseApiRoutesCustomerUpdateCustomerContactResponses = {
+    /**
+     * OK
+     */
+    200: ContactPersonSchema;
+};
+
+export type WarehouseApiRoutesCustomerUpdateCustomerContactResponse = WarehouseApiRoutesCustomerUpdateCustomerContactResponses[keyof WarehouseApiRoutesCustomerUpdateCustomerContactResponses];
+
+export type WarehouseApiRoutesCustomerGroupsGetCustomerGroupsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/customer-groups';
+};
+
+export type WarehouseApiRoutesCustomerGroupsGetCustomerGroupsResponses = {
+    /**
+     * OK
+     */
+    200: PagedCustomerGroupSchema;
+};
+
+export type WarehouseApiRoutesCustomerGroupsGetCustomerGroupsResponse = WarehouseApiRoutesCustomerGroupsGetCustomerGroupsResponses[keyof WarehouseApiRoutesCustomerGroupsGetCustomerGroupsResponses];
+
+export type WarehouseApiRoutesCustomerGroupsCreateCustomerGroupData = {
+    body: CustomerGroupCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/customer-groups';
+};
+
+export type WarehouseApiRoutesCustomerGroupsCreateCustomerGroupResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerGroupResponse;
+};
+
+export type WarehouseApiRoutesCustomerGroupsCreateCustomerGroupResponse = WarehouseApiRoutesCustomerGroupsCreateCustomerGroupResponses[keyof WarehouseApiRoutesCustomerGroupsCreateCustomerGroupResponses];
+
+export type WarehouseApiRoutesCustomerGroupsDeleteCustomerGroupData = {
+    body?: never;
+    path: {
+        /**
+         * Group Code
+         */
+        group_code: string;
+    };
+    query?: never;
+    url: '/api/v1/customer-groups/{group_code}';
+};
+
+export type WarehouseApiRoutesCustomerGroupsDeleteCustomerGroupResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerGroupResponse;
+};
+
+export type WarehouseApiRoutesCustomerGroupsDeleteCustomerGroupResponse = WarehouseApiRoutesCustomerGroupsDeleteCustomerGroupResponses[keyof WarehouseApiRoutesCustomerGroupsDeleteCustomerGroupResponses];
+
+export type WarehouseApiRoutesCustomerGroupsUpdateCustomerGroupData = {
+    body: CustomerGroupCreateOrUpdateSchema;
+    path: {
+        /**
+         * Group Code
+         */
+        group_code: string;
+    };
+    query?: never;
+    url: '/api/v1/customer-groups/{group_code}';
+};
+
+export type WarehouseApiRoutesCustomerGroupsUpdateCustomerGroupResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerGroupResponse;
+};
+
+export type WarehouseApiRoutesCustomerGroupsUpdateCustomerGroupResponse = WarehouseApiRoutesCustomerGroupsUpdateCustomerGroupResponses[keyof WarehouseApiRoutesCustomerGroupsUpdateCustomerGroupResponses];
 
 export type WarehouseApiRoutesInboundOrdersGetInboundOrdersData = {
     body?: never;

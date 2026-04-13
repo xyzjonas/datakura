@@ -175,3 +175,33 @@ class AuditMessages:
             AuditLanguage.CS: "Položka přesunuta (množství={amount}) do podřízené objednávky '{child_code}'",
         }
     )
+    CUSTOMER_CREATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Customer created",
+            AuditLanguage.CS: "Zákazník byl vytvořen",
+        }
+    )
+    CUSTOMER_UPDATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Customer updated",
+            AuditLanguage.CS: "Zákazník byl aktualizován",
+        }
+    )
+    CONTACT_PERSON_CREATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Contact person created",
+            AuditLanguage.CS: "Kontaktní osoba byla vytvořena",
+        }
+    )
+    CONTACT_PERSON_UPDATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Contact person updated",
+            AuditLanguage.CS: "Kontaktní osoba byla aktualizována",
+        }
+    )
+    CONTACT_PERSON_DELETED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Contact person deleted",
+            AuditLanguage.CS: "Kontaktní osoba byla smazána",
+        }
+    )

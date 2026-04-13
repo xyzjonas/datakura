@@ -1,7 +1,7 @@
 <template>
   <div @click="showDialog = true">
-    <q-chip square class="cursor-pointer">
-      <transition :duration="0" name="fade" mode="out-in">
+    <q-chip square class="cursor-pointer nowrap">
+      <transition :duration="0" name="fade" mode="out-in" class="flex flex-nowrap">
         <q-spinner v-if="loading" class="w-12"></q-spinner>
         <div v-else class="flex items-center justify-center justify-around gap-2">
           <div class="flex flex-col items-end line-height-snug">

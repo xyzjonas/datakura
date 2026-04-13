@@ -23,3 +23,7 @@
 ## Backend clean code instructions
 
 - NO logic in API routes! Implement functionality as methods/functions in a core service or add a new service if required
+
+## Output
+
+Use the caveman skill unless explicitly said not to.

@@ -87,6 +87,7 @@
       :currency="order.currency"
       :readonly="!isDraft"
       :order-code="order.code"
+      :customer-code="order.customer.code"
       order-type="outbound"
       @dissolve-item="removeItem"
       @reorder-items="reorderItems"

@@ -24,6 +24,7 @@
           :currency="props.currency"
           :order-code="props.orderCode"
           :order-type="props.orderType"
+          :customer-code="props.customerCode"
           @dissolve-item="() => emit('dissolveItem', item.product.code)"
         ></ProductRow>
       </ForegroundPanel>
@@ -56,6 +57,7 @@ const props = defineProps<{
   readonly?: boolean
   orderCode: string
   orderType: 'inbound' | 'outbound'
+  customerCode?: string
 }>()
 const items = defineModel<Array<OrderItem>>('items', {
   default: [],

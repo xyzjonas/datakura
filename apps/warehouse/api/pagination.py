@@ -8,6 +8,7 @@ from ninja.pagination import PaginationBase
 from apps.warehouse.core.schemas.credit_notes import GetCreditNotesToSupplierResponse
 from apps.warehouse.core.schemas.customer import (
     GetCustomersResponse,
+    GetCustomerGroupsResponse,
 )
 from apps.warehouse.core.schemas.group import (
     GetProductGroupsResponse,
@@ -32,6 +33,7 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.core.transformation import (
     customer_orm_to_schema,
+    customer_group_orm_to_schema,
     product_orm_to_schema,
     product_group_orm_to_schema,
     product_type_orm_to_schema,
@@ -43,7 +45,7 @@ from apps.warehouse.core.transformation import (
     location_orm_to_schema,
     invoice_payment_method_orm_to_schema,
 )
-from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.customer import Customer, CustomerGroup
 from apps.warehouse.models.orders import (
     InboundOrder,
     OutboundOrder,
@@ -111,6 +113,36 @@ class CustomersPagination(PaginationBase):
 
         return {
             "data": [customer_orm_to_schema(customer) for customer in items],
+            "count": count,
+            "next": pagination.page + 1
+            if offset + pagination.page_size < count
+            else None,
+            "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
+
+
+class CustomerGroupsPagination(PaginationBase):
+    items_attribute: str = "data"
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 20
+
+    class Output(GetCustomerGroupsResponse): ...
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[CustomerGroup],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        offset = (pagination.page - 1) * pagination.page_size
+        items = queryset[offset : offset + pagination.page_size]
+        count = queryset.count()
+
+        return {
+            "data": [customer_group_orm_to_schema(group) for group in items],
             "count": count,
             "next": pagination.page + 1
             if offset + pagination.page_size < count

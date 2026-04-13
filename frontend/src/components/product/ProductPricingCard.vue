@@ -138,10 +138,7 @@ const pendingDeletePriceDescription = computed(() => {
   const target = price.customer
     ? `zákazník ${price.customer.code} - ${price.customer.name}`
     : 'bez cíle'
-  const finalPrice = round(
-    product.value.base_price! - (price.discount_percent / 100) * product.value.base_price!,
-  )
-  return `${formatPriceType(price)}, ${target}, sleva ${price.discount_percent} %, cena ${finalPrice} Kč`
+  return `${formatPriceType(price)}, ${target}, sleva ${price.discount_percent} %, cena ${round(price.fixed_price)} Kč`
 })
 
 const onAddDynamicPrice = async (body: DynamicProductPriceCreateSchema) => {
@@ -207,6 +204,7 @@ const onConfirmDeleteDynamicPrice = async () => {
 const basePrice = computed<DynamicProductPriceSchema[]>(() => [
   {
     price_id: -1,
+    fixed_price: product.value.base_price ?? 0,
     discount_percent: 0,
     customer: {
       code: '',
@@ -218,7 +216,7 @@ const basePrice = computed<DynamicProductPriceSchema[]>(() => [
 const prices = computed(() => basePrice.value.concat(product.value.dynamic_prices ?? []))
 
 const getFinalPrice = (row: DynamicProductPriceSchema) => {
-  return round(product.value.base_price! - (row.discount_percent / 100) * product.value.base_price!)
+  return round(row.fixed_price)
 }
 
 const formatPriceType = (row: DynamicProductPriceSchema) => {

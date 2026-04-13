@@ -9,17 +9,16 @@
 
         <q-form class="flex flex-col gap-2" @submit="onSubmit">
           <q-input
-            v-model.number="addForm.discount_percent"
-            label="Sleva (%)"
+            v-model.number="addForm.fixed_price"
+            label="Cena (Kč)"
             type="number"
             min="0"
-            max="100"
             step="0.01"
             outlined
-            :rules="[rules.isPercentage]"
+            :rules="[rules.isNumber, rules.atLeastZero]"
           />
 
-          <q-input v-model="addForm.customer_code" label="Kód zákazníka" outlined />
+          <CustomerSearchSelect v-model="addForm.customer" />
 
           <q-btn
             type="submit"
@@ -36,7 +35,8 @@
 </template>
 
 <script setup lang="ts">
-import { type DynamicProductPriceCreateSchema } from '@/client'
+import { type DynamicProductPriceCreateSchema, type CustomerSchema } from '@/client'
+import CustomerSearchSelect from '@/components/selects/CustomerSearchSelect.vue'
 import { useQuasar } from 'quasar'
 import { ref, watch } from 'vue'
 import { rules } from '@/utils/rules'
@@ -54,17 +54,17 @@ const emit = defineEmits<{
 const $q = useQuasar()
 
 const addForm = ref<{
-  discount_percent: number | null
-  customer_code: string
+  fixed_price: number | null
+  customer: CustomerSchema | undefined
 }>({
-  discount_percent: null,
-  customer_code: '',
+  fixed_price: null,
+  customer: undefined,
 })
 
 const resetAddForm = () => {
   addForm.value = {
-    discount_percent: null,
-    customer_code: '',
+    fixed_price: null,
+    customer: undefined,
   }
 }
 
@@ -75,20 +75,20 @@ watch(showDialog, (value) => {
 })
 
 const onSubmit = () => {
-  const discount = addForm.value.discount_percent
-  if (discount === null || discount < 0 || discount > 100) {
-    $q.notify({ type: 'warning', message: 'Sleva musí být v rozmezí 0 až 100 %.' })
+  const fixedPrice = addForm.value.fixed_price
+  if (fixedPrice === null || fixedPrice < 0) {
+    $q.notify({ type: 'warning', message: 'Cena musí být rovna nebo vyšší než 0.' })
     return
   }
 
-  if (!addForm.value.customer_code.trim()) {
-    $q.notify({ type: 'warning', message: 'Vyplňte kód zákazníka.' })
+  if (!addForm.value.customer) {
+    $q.notify({ type: 'warning', message: 'Vyberte zákazníka.' })
     return
   }
 
   const body: DynamicProductPriceCreateSchema = {
-    discount_percent: discount,
-    customer_code: addForm.value.customer_code.trim(),
+    fixed_price: fixedPrice,
+    customer_code: addForm.value.customer.code,
   }
 
   emit('submit', body)

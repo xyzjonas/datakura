@@ -90,7 +90,7 @@ class StockProductPrice(BaseModel):
         on_delete=models.CASCADE,
         related_name="dynamic_prices",
     )
-    discount_percent = models.DecimalField(max_digits=5, decimal_places=2)
+    fixed_price = models.DecimalField(max_digits=10, decimal_places=2)
     customer = models.ForeignKey(
         "warehouse.Customer",
         null=False,
@@ -99,11 +99,11 @@ class StockProductPrice(BaseModel):
     )
 
     class Meta(BaseModel.Meta):
-        ordering = ["product", "customer", "discount_percent"]
+        ordering = ["product", "customer", "fixed_price"]
         constraints = [
             models.CheckConstraint(
-                condition=Q(discount_percent__gte=0) & Q(discount_percent__lte=100),
-                name="warehouse_productprice_discount_range",
+                condition=Q(fixed_price__gte=0),
+                name="warehouse_productprice_fixed_price_non_negative",
             ),
             models.CheckConstraint(
                 condition=Q(customer__isnull=False),
@@ -116,4 +116,4 @@ class StockProductPrice(BaseModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.product.code} - {self.customer.code} ({self.discount_percent}%)"
+        return f"{self.product.code} - {self.customer.code} ({self.fixed_price})"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 from django.db.models import F
@@ -52,7 +53,7 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.core.schemas.barcode import BarcodeSchema
 from apps.warehouse.models.barcode import Barcode
-from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.customer import Customer, CustomerGroup
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
@@ -239,9 +240,21 @@ def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
     )
 
 
+def customer_group_orm_to_schema(group: CustomerGroup) -> CustomerGroupSchema:
+    return CustomerGroupSchema(
+        code=group.code,
+        name=group.name,
+        created=group.created,
+        changed=group.changed,
+    )
+
+
 def product_orm_to_schema(product: StockProduct) -> ProductSchema:
     dynamic_prices = [
-        dynamic_product_price_orm_to_schema(dynamic_price)
+        dynamic_product_price_orm_to_schema(
+            dynamic_price,
+            base_price=Decimal(str(product.base_price or 0)),
+        )
         for dynamic_price in product.dynamic_prices.all()
     ]
 
@@ -277,12 +290,21 @@ def get_product_by_code(product_code: str) -> ProductSchema:
 
 def dynamic_product_price_orm_to_schema(
     dynamic_price: StockProductPrice,
+    base_price: Decimal,
 ) -> DynamicProductPriceSchema:
+    fixed_price = Decimal(str(dynamic_price.fixed_price))
+    discount_percent = Decimal("0")
+    if base_price > 0:
+        discount_percent = (
+            (Decimal("1") - fixed_price / base_price) * Decimal("100")
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
     return DynamicProductPriceSchema(
         price_id=dynamic_price.pk,
         created=dynamic_price.created,
         changed=dynamic_price.changed,
-        discount_percent=float(dynamic_price.discount_percent),
+        fixed_price=float(fixed_price),
+        discount_percent=float(discount_percent),
         customer=DynamicProductPriceCustomerSchema(
             code=dynamic_price.customer.code,
             name=dynamic_price.customer.name,

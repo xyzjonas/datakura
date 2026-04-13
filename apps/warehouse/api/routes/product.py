@@ -15,6 +15,7 @@ from apps.warehouse.core.schemas.type import (
     ProductTypeSchema,
 )
 from apps.warehouse.core.schemas.product import (
+    CustomerPriceOverrideUpsertSchema,
     GetProductResponse,
     GetDiscountGroupResponse,
     GetDiscountGroupsResponse,
@@ -135,6 +136,20 @@ def get_product_selling_price(
             product_code=product_code,
             customer_code=customer_code,
         )
+    )
+
+
+@routes.post(
+    "/{product_code}/selling-price/override",
+    response={200: GetSellingPriceLookupResponse},
+)
+def upsert_product_customer_price_override(
+    request: HttpRequest,
+    product_code: str,
+    body: CustomerPriceOverrideUpsertSchema,
+):
+    return GetSellingPriceLookupResponse(
+        data=stock_product_service.upsert_customer_price_override(product_code, body)
     )
 
 

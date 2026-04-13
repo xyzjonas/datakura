@@ -218,3 +218,35 @@ def test_store_inbound_order_invoice_replaces_existing_document(
     assert data["invoice"]["code"] == "INV-POST-0003"
     assert data["invoice"]["document"]["name"] == "new.pdf"
     assert data["invoice"]["document"]["url"].endswith("new.pdf")
+
+
+def test_update_inbound_order_item_without_index_keeps_existing_index(db) -> None:
+    client = TestClient(routes)
+    order = InboundOrderFactory.it()
+    product = StockProductFactory()
+
+    add_res = client.post(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 2,
+            "total_price": 20,
+            "index": 3,
+        },
+    )
+    assert add_res.status_code == 200
+    assert add_res.json()["data"]["index"] == 3
+
+    update_res = client.put(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 4,
+            "total_price": 48,
+        },
+    )
+
+    assert update_res.status_code == 200
+    assert update_res.json()["data"]["index"] == 3

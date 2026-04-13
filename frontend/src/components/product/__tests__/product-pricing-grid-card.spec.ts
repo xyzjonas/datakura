@@ -14,14 +14,13 @@ describe('ProductPricingGridCard', () => {
   it('renders customer target and emits delete', async () => {
     const row = {
       price_id: 10,
-      price_type: 'CUSTOMER_DISCOUNT',
+      fixed_price: 170,
       discount_percent: 15,
       customer: {
         code: 'CUS-1',
         name: 'Customer One',
       },
-      group: null,
-    } as unknown as DynamicPriceRow
+    } as DynamicPriceRow
 
     const wrapper = mount(ProductPricingGridCard, {
       props: {

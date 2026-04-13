@@ -89,7 +89,7 @@ class StockProductPriceAdmin(admin.ModelAdmin):
     list_display = [
         "id",
         "product",
-        "discount_percent",
+        "fixed_price",
         "customer",
     ]
 
