@@ -14,11 +14,11 @@
       </q-btn>
     </div>
 
-    <div class="mb-2 flex justify-between items-center">
+    <div class="mb-2 flex justify-between items-start md:items-center flex-col md:flex-row gap-2">
       <div class="flex gap-2 items-center">
         <div>
           <span class="text-gray-5 flex items-center gap-1">VYDANÁ OBJEDNÁVKA</span>
-          <h1 class="text-primary mb-1 text-5xl">{{ order.code }}</h1>
+          <h1 class="text-primary mb-1 text-3xl md:text-5xl">{{ order.code }}</h1>
           <div class="flex items-center gap-1">
             <h5>{{ order.code }}</h5>
             <CopyToClipBoardButton v-if="order.code" :text="order.code" />
@@ -79,7 +79,7 @@
         />
       </div>
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-2 flex-col md:flex-row">
       <InboundOrderDetailsListCard :order="order" />
       <CustomerCard :customer="order.supplier" title="DODAVATEL" class="flex-1" />
       <LinkedEntitiesCard
@@ -94,22 +94,24 @@
       />
     </div>
 
-    <ForegroundPanel>
+    <ForegroundPanel v-if="$q.screen.gt.md">
       <InboundOrderTimeline :state="order.state" />
     </ForegroundPanel>
 
-    <div class="flex items-center gap-2 mt-5">
-      <h2>Položky objednávky</h2>
-      <q-btn
-        v-if="getInboundOrderStep(order) === 1"
-        flat
-        color="primary"
-        icon="sym_o_add"
-        label="přidat položku"
-        @click="addItemDialog = true"
-        class="ml-5"
-      ></q-btn>
-      <TotalWeight :order="order" class="ml-auto mr-5" />
+    <div class="flex items-center justify-between gap-2 mt-5">
+      <div class="flex items-center gap-2">
+        <h2>Položky objednávky</h2>
+        <q-btn
+          v-if="getInboundOrderStep(order) === 1"
+          flat
+          color="primary"
+          icon="sym_o_add"
+          label="přidat položku"
+          @click="addItemDialog = true"
+          class="ml-5"
+        ></q-btn>
+        <TotalWeight :order="order" />
+      </div>
       <TotalPrice :order="order" />
     </div>
     <div>

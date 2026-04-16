@@ -10,8 +10,10 @@ from apps.warehouse.models.warehouse import (
     WarehouseMovement,
     OutboundWarehouseOrder,
     InboundWarehouseOrder,
+    InboundWarehouseOrderItem,
     InboundWarehouseOrderState,
     OutboundWarehouseOrderState,
+    TrackingLevel,
 )
 from .order import (
     InboundOrderFactory,
@@ -82,21 +84,31 @@ class InboundWarehouseOrderFactory(DjangoModelFactory):
         is_putaway: bool = False,
         **kwargs,
     ) -> InboundWarehouseOrder:
+        """
+        Creates a fully set-up warehouse order for testing.
+
+        In DRAFT state (default): only InboundWarehouseOrderItems exist.
+        In PENDING/STARTED/COMPLETED: InboundWarehouseOrderItems + WarehouseItems exist.
+        """
         if not product:
             product = StockProductFactory()
         elif isinstance(product, str):
             product = StockProductFactory(code=product)
 
         inbound_order = InboundOrderFactory()
+        pickup_location = WarehouseLocationFactory(is_putaway=not is_putaway)
 
-        w_order = cls(order=inbound_order, **kwargs)
-        w_order.order = inbound_order  # type: ignore
+        w_order = cls(
+            order=inbound_order,
+            pickup_location=pickup_location,
+            **kwargs,
+        )
 
-        WarehouseItemFactory(
-            order_in=w_order,
+        order_item = InboundWarehouseOrderItemFactory(
+            warehouse_order=w_order,
             stock_product=product,
             amount=amount,
-            location=WarehouseLocationFactory(is_putaway=is_putaway),
+            unit_price_at_receipt=unit_price,
         )
 
         InboundOrderItemFactory(
@@ -106,7 +118,36 @@ class InboundWarehouseOrderFactory(DjangoModelFactory):
             unit_price=unit_price,
         )
 
+        # Only create live WarehouseItems once the order is past DRAFT
+        if w_order.state not in (
+            InboundWarehouseOrderState.DRAFT,
+            InboundWarehouseOrderState.IN_TRANSIT,
+        ):
+            WarehouseItemFactory(
+                order_in=w_order,
+                source_order_item=order_item,
+                stock_product=product,
+                amount=amount,
+                location=WarehouseLocationFactory(is_putaway=is_putaway),
+            )
+
         return w_order  # type: ignore
+
+
+class InboundWarehouseOrderItemFactory(DjangoModelFactory):
+    class Meta:
+        model = InboundWarehouseOrderItem
+
+    @classmethod
+    def it(cls, **kwargs) -> InboundWarehouseOrderItem:
+        return cls(**kwargs)  # type: ignore
+
+    warehouse_order = factory.SubFactory(InboundWarehouseOrderFactory)
+    stock_product = factory.SubFactory(StockProductFactory)
+    amount = factory.Sequence(lambda n: n + 1)
+    tracking_level = TrackingLevel.FUNGIBLE
+    unit_price_at_receipt = 0
+    index = factory.Sequence(lambda n: n)
 
 
 class WarehouseItemFactory(DjangoModelFactory):
@@ -121,6 +162,7 @@ class WarehouseItemFactory(DjangoModelFactory):
     package_type = None
     location = factory.SubFactory(WarehouseLocationFactory)
     order_in = factory.SubFactory(InboundWarehouseOrderFactory)
+    source_order_item = None
     tracking_level = "FUNGIBLE"
     amount = 0
 

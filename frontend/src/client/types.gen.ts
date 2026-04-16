@@ -1008,6 +1008,56 @@ export type InboundWarehouseOrderBaseSchema = {
 };
 
 /**
+ * InboundWarehouseOrderItemSchema
+ * Frozen snapshot of a single line configured during order drafting.
+ */
+export type InboundWarehouseOrderItemSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    product: ProductSchema;
+    /**
+     * Unit Of Measure
+     */
+    unit_of_measure: string;
+    /**
+     * Amount
+     */
+    amount: string;
+    tracking_level: TrackingLevel;
+    package: PackageSchema | null;
+    /**
+     * Unit Price At Receipt
+     */
+    unit_price_at_receipt: string;
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Batch Barcode
+     */
+    batch_barcode: string | null;
+    /**
+     * Pending
+     */
+    pending: boolean;
+    /**
+     * Warehouse Item Id
+     */
+    warehouse_item_id?: number | null;
+};
+
+/**
  * InboundWarehouseOrderSchema
  */
 export type InboundWarehouseOrderSchema = {
@@ -1036,6 +1086,10 @@ export type InboundWarehouseOrderSchema = {
      * Child Orders
      */
     child_orders?: Array<InboundWarehouseOrderBaseSchema>;
+    /**
+     * Order Items
+     */
+    order_items: Array<InboundWarehouseOrderItemSchema>;
     /**
      * Items
      */
@@ -1330,17 +1384,32 @@ export type GetAuditTimelineResponse = {
 };
 
 /**
+ * DraftItemAddSchema
+ * Payload for adding a line item to a draft inbound warehouse order.
+ */
+export type DraftItemAddSchema = {
+    /**
+     * Product Code
+     */
+    product_code: string;
+    /**
+     * Amount
+     */
+    amount: number;
+};
+
+/**
  * UpdateWarehouseOrderDraftItemsRequest
  */
 export type UpdateWarehouseOrderDraftItemsRequest = {
     /**
      * To Be Removed
      */
-    to_be_removed: Array<WarehouseItemSchema>;
+    to_be_removed: Array<number>;
     /**
      * To Be Added
      */
-    to_be_added: Array<WarehouseItemSchema>;
+    to_be_added: Array<DraftItemAddSchema>;
 };
 
 /**
@@ -3058,9 +3127,9 @@ export type PutInPackageResponse = {
  */
 export type PutInPackageRequestSchema = {
     /**
-     * Warehouse Item Id
+     * Order Item Id
      */
-    warehouse_item_id: number;
+    order_item_id: number;
     /**
      * Product Code
      */
@@ -3080,9 +3149,9 @@ export type PutInPackageRequestSchema = {
  */
 export type PutInBatchRequestSchema = {
     /**
-     * Warehouse Item Id
+     * Order Item Id
      */
-    warehouse_item_id: number;
+    order_item_id: number;
     /**
      * Product Code
      */
@@ -3102,9 +3171,9 @@ export type PutInBatchRequestSchema = {
  */
 export type PutInSerialRequestSchema = {
     /**
-     * Warehouse Item Id
+     * Order Item Id
      */
-    warehouse_item_id: number;
+    order_item_id: number;
     /**
      * Product Code
      */
@@ -3527,7 +3596,7 @@ export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsData = {
         code: string;
     };
     query?: never;
-    url: '/api/v1/warehouse/orders-incoming/{code}/items';
+    url: '/api/v1/warehouse/orders-incoming/{code}/order-items';
 };
 
 export type WarehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItemsResponses = {
@@ -3547,12 +3616,12 @@ export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemData = {
          */
         code: string;
         /**
-         * Item Code
+         * Item Id
          */
-        item_code: string;
+        item_id: number;
     };
     query?: never;
-    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}';
+    url: '/api/v1/warehouse/orders-incoming/{code}/order-items/{item_id}/track';
 };
 
 export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses = {
@@ -3577,7 +3646,7 @@ export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData = {
         item_id: number;
     };
     query?: never;
-    url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_id}/dissolve';
+    url: '/api/v1/warehouse/orders-incoming/{code}/order-items/{item_id}';
 };
 
 export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemResponses = {

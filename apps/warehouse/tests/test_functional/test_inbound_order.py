@@ -128,12 +128,12 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     assert w_order_res["state"] == InboundWarehouseOrderState.get_label(
         InboundWarehouseOrderState.DRAFT
     )
-    assert len(w_order_res["items"]) == 2
+    assert len(w_order_res["order_items"]) == 2
 
     # 6. Create Credit Note
     item_to_return = next(
         item
-        for item in w_order_res["items"]
+        for item in w_order_res["order_items"]
         if item["product"]["code"] == product_1.code
     )
     return_amount = 20
@@ -149,7 +149,7 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
     )
     updated_item = next(
         item
-        for item in w_order_res["items"]
+        for item in w_order_res["order_items"]
         if item["product"]["code"] == product_1.code
     )
     assert Decimal(str(updated_item["amount"])) == Decimal(

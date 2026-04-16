@@ -17,12 +17,23 @@
             label="Počet"
             hint="Počet Kusů dle MJ"
             inputmode="numeric"
+            :debounce="300"
             :rules="[rules.atLeastOne, rules.max9999]"
           >
             <template #append>
               <span class="text-sm">{{ productUom }}</span>
             </template>
           </q-input>
+          <div class="ml-1" v-if="product">
+            <small :class="percentDifference >= 0 ? 'text-positive' : 'text-negative'">
+              Cena je o
+              <strong>{{ Math.abs(percentDifference) }}%</strong>
+              {{ percentDifference > 0 ? 'nižší' : 'vyšší' }} než aktuální průměrná nákupní cena ({{
+                serverPurchasePrice
+              }}
+              {{ product?.currency }})</small
+            >
+          </div>
           <q-input
             :model-value="derivedUnitPrice"
             readonly
@@ -30,6 +41,8 @@
             label="Nákupní cena"
             hint="Nákupní cena za MJ"
             inputmode="numeric"
+            :error="priceSanityCheck"
+            :error-message="`Nákupní cena se příliš liší od aktuální ceny produktu (${serverPurchasePrice} ${product?.currency}) o ${percentDifference}%!`"
           >
             <template #append>
               <span class="text-sm">{{ currency }} / {{ productUom }}</span>
@@ -60,6 +73,7 @@ import { rules } from '@/utils/rules'
 import { computed, ref, watch } from 'vue'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
+import { round } from '@/utils/round'
 
 const showDialog = defineModel('show', { default: false })
 
@@ -82,13 +96,30 @@ const item = ref<InboundOrderItemCreateSchema>({
   unit_price: 0,
 })
 
+const allowedPercent = 20
+const serverPurchasePrice = ref(0)
 const derivedUnitPrice = computed(() => {
   if (!item.value.amount) {
-    return 0
+    return serverPurchasePrice.value
   }
-  return item.value.total_price / item.value.amount
+  if (!item.value.total_price) {
+    return serverPurchasePrice.value
+  }
+  return round(item.value.total_price / item.value.amount)
 })
 
+const percentDifference = computed(() => {
+  if (!serverPurchasePrice.value) {
+    return 0
+  }
+  return round((1 - derivedUnitPrice.value / serverPurchasePrice.value) * 100)
+})
+const priceSanityCheck = computed(() => {
+  if (!product.value) {
+    return false
+  }
+  return percentDifference.value > allowedPercent || percentDifference.value < -allowedPercent
+})
 const product = ref<ProductSchema>()
 
 watch(product, (newValue: ProductSchema | undefined) => {
@@ -98,12 +129,22 @@ watch(product, (newValue: ProductSchema | undefined) => {
     item.value.product_name = newValue.name
     item.value.unit_price = newValue.purchase_price ?? 0
     item.value.total_price = (newValue.purchase_price ?? 0) * item.value.amount
+    serverPurchasePrice.value = newValue.purchase_price ?? 0
     productUom.value = newValue.unit
   } else {
     item.value.product_code = ''
     item.value.product_name = ''
   }
 })
+
+watch(
+  () => item.value.amount,
+  (newAmount) => {
+    if (item.value.total_price <= 0) {
+      item.value.total_price = round((item.value.unit_price ?? 0) * newAmount)
+    }
+  },
+)
 
 const emit = defineEmits<{
   (e: 'addItem', item: InboundOrderItemCreateSchema): void

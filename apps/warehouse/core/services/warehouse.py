@@ -31,6 +31,7 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,
     InboundWarehouseOrderUpdateSchema,
     BatchSchema,
+    DraftItemAddSchema,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
@@ -47,7 +48,6 @@ from apps.warehouse.models.barcode import BarcodeType, Barcode
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderState,
-    InboundOrderItem,
     OutboundOrderState,
     CreditNoteState,
     CreditNoteToSupplier,
@@ -57,6 +57,7 @@ from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrder,
+    InboundWarehouseOrderItem,
     OutboundWarehouseOrder,
     WarehouseItem,
     WarehouseMovement,
@@ -322,7 +323,7 @@ class WarehouseService:
         item = warehouse_order.items.get(pk=item_id)
         new_location = WarehouseLocation.objects.get(code=new_location_code)
 
-        movement_data = dict(
+        movement_data: dict[str, object] = dict(
             location_from=item.location,
             location_to=new_location,
             inbound_order_code=warehouse_order,
@@ -365,6 +366,12 @@ class WarehouseService:
     def get_inbound_warehouse_order_model(code: str) -> InboundWarehouseOrder:
         order = (
             InboundWarehouseOrder.objects.prefetch_related(
+                "order_items",
+                "order_items__stock_product",
+                "order_items__stock_product__unit_of_measure",
+                "order_items__package_type",
+                "order_items__warehouse_items",
+                "order_items__warehouse_items__location",
                 "items",
                 "items__stock_product",
                 "items__stock_product__unit_of_measure",
@@ -374,7 +381,7 @@ class WarehouseService:
                 "warehouse_movements__location_to",
                 "warehouse_movements__stock_product",
             )
-            .select_related("order", "order__credit_note")
+            .select_related("order", "order__credit_note", "pickup_location")
             .get(code=code)
         )
         return order
@@ -440,16 +447,22 @@ class WarehouseService:
         location = WarehouseLocation.objects.get(code=location_code)
 
         with transaction.atomic():
-            for purchase_item in w_order.order.items.all():
-                item = WarehouseItem.objects.create(
+            w_order.pickup_location = location
+            w_order.save(update_fields=["pickup_location"])
+
+            for index, purchase_item in enumerate(
+                w_order.order.items.order_by("index", "created")
+            ):
+                order_item = InboundWarehouseOrderItem.objects.create(
+                    warehouse_order=w_order,
                     stock_product=purchase_item.stock_product,
-                    tracking_level=TrackingLevel.FUNGIBLE,
                     amount=purchase_item.amount,
-                    order_in=w_order,
-                    location=location,
+                    unit_price_at_receipt=purchase_item.unit_price,
+                    tracking_level=TrackingLevel.FUNGIBLE,
+                    index=index,
                 )
                 audit_service.add_entry(
-                    item,
+                    order_item,
                     action=AuditAction.CREATE,
                     user=context.user_id,
                     reason=AuditMessages.ORDER_CODE_REFERENCE.CS.format(
@@ -511,18 +524,24 @@ class WarehouseService:
             incoming_amount=incoming_amount,
         )
 
-    # todo: pass warehouse item code to know about the location codes....
     @staticmethod
     def preview_packaging(
-        warehouse_item_id: int, product_code: str, package_name: str, amount: float
+        order_item_id: int, product_code: str, package_name: str, amount: float
     ) -> list[WarehouseItemSchema]:
-        warehouse_item = WarehouseItem.objects.get(pk=warehouse_item_id)
+        order_item = InboundWarehouseOrderItem.objects.select_related(
+            "warehouse_order__pickup_location",
+            "warehouse_order__pickup_location__warehouse",
+        ).get(pk=order_item_id)
+        location = order_item.warehouse_order.pickup_location
+        if not location:
+            raise WarehouseGenericError(
+                "Warehouse order has no pickup location set — cannot preview packaging."
+            )
         product = StockProduct.objects.get(code=product_code)
         package = PackageType.objects.get(name=package_name)
 
         if not package.unit_of_measure:
-            # no units for a package - special kind that holds any number (carton, pallet)
-            package_amount_in_product_uom: float | None = float(warehouse_item.amount)
+            package_amount_in_product_uom: float | None = float(order_item.amount)
         else:
             package_amount_in_product_uom = get_package_amount_in_product_uom(
                 package, product
@@ -531,7 +550,6 @@ class WarehouseService:
         if package.amount == 0:
             num_of_packages = 1
             package_amount_in_product_uom = amount
-
         else:
             if not package_amount_in_product_uom:
                 raise_by_code(
@@ -562,7 +580,7 @@ class WarehouseService:
                     unit_of_measure=product.unit_of_measure.name,
                     amount=float(package_amount_in_product_uom),
                     package=package_orm_to_schema(package),
-                    location=location_orm_to_schema(warehouse_item.location),
+                    location=location_orm_to_schema(location),
                     created=timezone.now(),
                     changed=timezone.now(),
                 )
@@ -572,12 +590,20 @@ class WarehouseService:
 
     @staticmethod
     def preview_batching(
-        warehouse_item_id: int,
+        order_item_id: int,
         product_code: str,
         amount: float,
         batch_code: str | None = None,
     ) -> list[WarehouseItemSchema]:
-        warehouse_item = WarehouseItem.objects.get(pk=warehouse_item_id)
+        order_item = InboundWarehouseOrderItem.objects.select_related(
+            "warehouse_order__pickup_location",
+            "warehouse_order__pickup_location__warehouse",
+        ).get(pk=order_item_id)
+        location = order_item.warehouse_order.pickup_location
+        if not location:
+            raise WarehouseGenericError(
+                "Warehouse order has no pickup location set — cannot preview batching."
+            )
         product = StockProduct.objects.get(code=product_code)
 
         if batch_code:
@@ -608,7 +634,7 @@ class WarehouseService:
                     changed=timezone.now(),
                     created=timezone.now(),
                 ),
-                location=location_orm_to_schema(warehouse_item.location),
+                location=location_orm_to_schema(location),
                 created=timezone.now(),
                 changed=timezone.now(),
             )
@@ -618,11 +644,19 @@ class WarehouseService:
 
     @staticmethod
     def preview_serial_tracking(
-        warehouse_item_id: int,
+        order_item_id: int,
         product_code: str,
         amount: float,
     ) -> list[WarehouseItemSchema]:
-        warehouse_item = WarehouseItem.objects.get(pk=warehouse_item_id)
+        order_item = InboundWarehouseOrderItem.objects.select_related(
+            "warehouse_order__pickup_location",
+            "warehouse_order__pickup_location__warehouse",
+        ).get(pk=order_item_id)
+        location = order_item.warehouse_order.pickup_location
+        if not location:
+            raise WarehouseGenericError(
+                "Warehouse order has no pickup location set — cannot preview serial tracking."
+            )
         product = StockProduct.objects.get(code=product_code)
 
         requested_amount = Decimal(str(amount))
@@ -644,7 +678,7 @@ class WarehouseService:
                 package=None,
                 batch=None,
                 primary_barcode=generate_warehouse_item_code(),
-                location=location_orm_to_schema(warehouse_item.location),
+                location=location_orm_to_schema(location),
                 created=timezone.now(),
                 changed=timezone.now(),
             )
@@ -656,8 +690,8 @@ class WarehouseService:
     @staticmethod
     def add_or_remove_inbound_order_items(
         order_code: str,
-        to_be_removed: list[WarehouseItemSchema],
-        to_be_added: list[WarehouseItemSchema],
+        to_be_removed: list[int],
+        to_be_added: list[DraftItemAddSchema],
         context: RequestContext,
     ) -> InboundWarehouseOrderSchema:
         order = InboundWarehouseOrder.objects.get(code=order_code)
@@ -666,20 +700,23 @@ class WarehouseService:
 
         try:
             with transaction.atomic():
-                for item in to_be_removed:
-                    order.items.get(pk=item.id).delete()
-                for item in to_be_added:
-                    new_item = WarehouseItem.objects.create(
-                        order_in=order,
-                        package_type=PackageType.objects.get(name=item.package.type)
-                        if item.package
-                        else None,
-                        stock_product=StockProduct.objects.get(code=item.product.code),
-                        amount=item.amount,
-                        location=WarehouseLocation.objects.get(code=item.location.code),
+                for item_id in to_be_removed:
+                    order.order_items.get(pk=item_id).delete()
+                next_index = (
+                    order.order_items.order_by("-index")
+                    .values_list("index", flat=True)
+                    .first()
+                    or -1
+                ) + 1
+                for i, item in enumerate(to_be_added):
+                    new_order_item = InboundWarehouseOrderItem.objects.create(
+                        warehouse_order=order,
+                        stock_product=StockProduct.objects.get(code=item.product_code),
+                        amount=Decimal(str(item.amount)),
+                        index=next_index + i,
                     )
                     audit_service.add_entry(
-                        new_item,
+                        new_order_item,
                         action=AuditAction.CREATE,
                         user=context.user_id,
                         reason=AuditMessages.ORDER_CODE_REFERENCE.CS.format(
@@ -696,61 +733,57 @@ class WarehouseService:
     @staticmethod
     def setup_tracking_for_inbound_order_item(
         order_code: str,
-        stock_product_code: str,
+        order_item_id: int,
         to_be_added: list[WarehouseItemSchema],
         context: RequestContext,
     ) -> InboundWarehouseOrderSchema:
         """
-        Setup tracking for a warehouse item.
+        Configure tracking for a draft order line.
 
-        Untracked warehouse item is split into individual warehouse items depending on the
-        tracking type (packaging, unique pieces, batches, ...).
-
-        This function makes sure total amounts (UoM) match before and after!
+        The fungible InboundWarehouseOrderItem identified by order_item_id is
+        split into one or more tracked InboundWarehouseOrderItem rows based on
+        the supplied breakdown.  Total amounts (UoM) are validated to match.
+        WarehouseItems do not exist yet — they are materialised at confirmation.
         """
         order = InboundWarehouseOrder.objects.get(code=order_code)
         raise_if_readonly(order)
 
-        untracked_item = WarehouseItem.objects.get(
-            stock_product__code=stock_product_code,
-            order_in=order,
+        source_item = InboundWarehouseOrderItem.objects.get(
+            pk=order_item_id,
+            warehouse_order=order,
             tracking_level=TrackingLevel.FUNGIBLE,
         )
 
-        remaining_amount = untracked_item.amount - Decimal(
+        remaining_amount = source_item.amount - Decimal(
             sum(item.amount for item in to_be_added)
         )
         try:
             with transaction.atomic():
                 for new_item in to_be_added:
-                    batch = None
+                    batch_barcode: str | None = None
                     if new_item.batch and new_item.batch.primary_barcode:
-                        batch, _ = get_or_create_batch(
-                            new_item.batch.primary_barcode.code
-                        )
+                        batch_barcode = new_item.batch.primary_barcode.code
 
-                    item = WarehouseItem.objects.create(
-                        order_in=order,
-                        package_type=PackageType.objects.get(name=new_item.package.type)
+                    package_type = (
+                        PackageType.objects.get(name=new_item.package.type)
                         if new_item.package
-                        else None,
-                        batch=batch,
-                        # todo: code=generate_warehouse_item_code(),
+                        else None
+                    )
+                    InboundWarehouseOrderItem.objects.create(
+                        warehouse_order=order,
                         stock_product=StockProduct.objects.get(
                             code=new_item.product.code
                         ),
-                        amount=new_item.amount,
-                        location=WarehouseLocation.objects.get(
-                            code=new_item.location.code
-                        ),
+                        amount=Decimal(str(new_item.amount)),
                         tracking_level=new_item.tracking_level,
-                    )
-                    item.attach_barcode(
-                        code=generate_warehouse_item_code(), is_primary=True
+                        package_type=package_type,
+                        unit_price_at_receipt=source_item.unit_price_at_receipt,
+                        index=source_item.index,
+                        batch_barcode=batch_barcode,
                     )
                     audit_service.add_entry(
-                        item,
-                        action=AuditAction.CREATE,
+                        order,
+                        action=AuditAction.UPDATE,
                         user=context.user_id,
                         reason=AuditMessages.TRACKING_SETUP.CS.format(
                             order_code=order_code,
@@ -758,10 +791,10 @@ class WarehouseService:
                         ),
                     )
                 if remaining_amount > 0:
-                    untracked_item.amount = remaining_amount
-                    untracked_item.save()
+                    source_item.amount = remaining_amount
+                    source_item.save(update_fields=["amount"])
                 else:
-                    untracked_item.delete()
+                    source_item.delete()
         except ObjectDoesNotExist as exc:
             raise WarehouseItemBadRequestError(str(exc))
 
@@ -772,36 +805,40 @@ class WarehouseService:
     @staticmethod
     def dissolve_inbound_order_item(
         order_code: str,
-        warehouse_item_id: int,
+        order_item_id: int,
     ) -> InboundWarehouseOrderSchema:
         order = InboundWarehouseOrder.objects.get(code=order_code)
 
         raise_if_readonly(order)
 
-        item = WarehouseItem.objects.get(pk=warehouse_item_id, order_in=order)
-        if not item:
-            raise WarehouseItemNotFoundError(
-                f"No warehouse item with pk={warehouse_item_id} in order '{order.code}'"
-            )
+        item = InboundWarehouseOrderItem.objects.get(
+            pk=order_item_id, warehouse_order=order
+        )
 
-        existing_not_packaged = order.items.filter(
-            stock_product=item.stock_product,
-            package_type__isnull=True,
-            tracking_level=TrackingLevel.FUNGIBLE,
-        ).first()
+        existing_fungible = (
+            order.order_items.filter(
+                stock_product=item.stock_product,
+                package_type__isnull=True,
+                tracking_level=TrackingLevel.FUNGIBLE,
+            )
+            .exclude(pk=item.pk)
+            .first()
+        )
+
         try:
             with transaction.atomic():
-                if not existing_not_packaged:
-                    WarehouseItem.objects.create(
+                if not existing_fungible:
+                    InboundWarehouseOrderItem.objects.create(
+                        warehouse_order=order,
                         stock_product=item.stock_product,
-                        location=item.location,
                         amount=item.amount,
-                        order_in=order,
                         tracking_level=TrackingLevel.FUNGIBLE,
+                        unit_price_at_receipt=item.unit_price_at_receipt,
+                        index=item.index,
                     )
                 else:
-                    existing_not_packaged.amount += item.amount
-                    existing_not_packaged.save()
+                    existing_fungible.amount += item.amount
+                    existing_fungible.save(update_fields=["amount"])
 
                 item.delete()
         except ObjectDoesNotExist as exc:
@@ -863,30 +900,29 @@ class WarehouseService:
     def remove_from_order_to_credit_note(
         cls,
         warehouse_order_code: str,
-        warehouse_item_id: int,
+        order_item_id: int,
         amount: float | Decimal,
         context: RequestContext,
     ) -> InboundWarehouseOrderSchema:
         amount = Decimal(amount)
-        warehouse_item = WarehouseItem.objects.prefetch_related("stock_product").get(
-            pk=warehouse_item_id
-        )
-        stock_product = warehouse_item.stock_product
         warehouse_order = InboundWarehouseOrder.objects.get(code=warehouse_order_code)
-        order = warehouse_order.order
 
-        order_item = InboundOrderItem.objects.filter(
-            order=order, stock_product=stock_product
-        ).get()
         if warehouse_order.state != InboundWarehouseOrderState.DRAFT:
             raise WarehouseGenericError(
                 f"Warehouse order '{warehouse_order.code}' is already confirmed and read-only."
             )
 
+        order_item = InboundWarehouseOrderItem.objects.select_related(
+            "stock_product", "warehouse_order__order"
+        ).get(pk=order_item_id, warehouse_order=warehouse_order)
+
+        stock_product = order_item.stock_product
+        order = warehouse_order.order
+
         with transaction.atomic():
-            if amount > warehouse_item.amount:
+            if amount > order_item.amount:
                 raise WarehouseGenericError(
-                    f"Requested amount ({amount}) exceeds item amount: {warehouse_item.amount} ({warehouse_item.stock_product.name})"
+                    f"Requested amount ({amount}) exceeds item amount: {order_item.amount} ({stock_product.name})"
                 )
 
             note, created = inbound_orders_service.get_or_create_credit_note(
@@ -898,25 +934,25 @@ class WarehouseService:
                     f"Credit Note '{note_model.code}' is already confirmed and read-only"
                 )
 
-            code_model = CreditNoteToSupplier.objects.get(code=note.code)
             existing_item = CreditNoteToSupplierItem.objects.filter(
                 credit_note__code=note.code, stock_product=stock_product
             ).first()
             if existing_item:
                 existing_item.amount += amount
+                existing_item.save()
             else:
-                existing_item = CreditNoteToSupplierItem.objects.create(
+                CreditNoteToSupplierItem.objects.create(
                     stock_product=stock_product,
                     amount=amount,
-                    credit_note=code_model,
-                    unit_price=order_item.unit_price,
+                    credit_note=note_model,
+                    unit_price=order_item.unit_price_at_receipt,
                 )
 
-            if amount == warehouse_item.amount:
-                warehouse_item.delete()
+            if amount == order_item.amount:
+                order_item.delete()
             else:
-                warehouse_item.amount -= amount
-                warehouse_item.save()
+                order_item.amount -= amount
+                order_item.save(update_fields=["amount"])
 
             if created:
                 audit_service.add_entry(
@@ -947,6 +983,47 @@ class WarehouseService:
             raise WarehouseGenericError(
                 f"Warehouse order '{code}' (state={w_order.state}) has to be in draft state in order to be confirmed."
             )
+
+        location = w_order.pickup_location
+        if not location:
+            raise WarehouseGenericError(
+                f"Warehouse order '{code}' has no pickup location set — cannot materialise items."
+            )
+
+        with transaction.atomic():
+            for order_item in w_order.order_items.select_related(
+                "stock_product", "package_type"
+            ).all():
+                batch = None
+                if order_item.batch_barcode:
+                    batch, _ = get_or_create_batch(order_item.batch_barcode)
+
+                item = WarehouseItem.objects.create(
+                    stock_product=order_item.stock_product,
+                    tracking_level=order_item.tracking_level,
+                    amount=order_item.amount,
+                    order_in=w_order,
+                    source_order_item=order_item,
+                    location=location,
+                    package_type=order_item.package_type,
+                    batch=batch,
+                )
+                if order_item.tracking_level in (
+                    TrackingLevel.SERIALIZED_PIECE,
+                    TrackingLevel.SERIALIZED_PACKAGE,
+                ):
+                    item.attach_barcode(
+                        code=generate_warehouse_item_code(), is_primary=True
+                    )
+                audit_service.add_entry(
+                    item,
+                    action=AuditAction.CREATE,
+                    user=context.user_id,
+                    reason=AuditMessages.ORDER_CODE_REFERENCE.CS.format(
+                        order_code=w_order.code
+                    ),
+                )
+
         cls.transition_order(code, InboundWarehouseOrderState.PENDING, context)
         inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
         inbound_orders_service.transition_order(
@@ -968,6 +1045,11 @@ class WarehouseService:
             raise WarehouseGenericError(
                 f"Warehouse order ${code}, state={w_order.state} has to be in pending state in order to be reset to draft."
             )
+
+        with transaction.atomic():
+            # Delete materialised WarehouseItems so they can be re-created on next confirm
+            w_order.items.all().delete()
+
         cls.transition_order(code, InboundWarehouseOrderState.DRAFT, context)
         inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
         inbound_orders_service.transition_order(
@@ -1130,11 +1212,17 @@ class WarehouseService:
 
         with transaction.atomic():
             amount = item.amount
-            if not item.order_in:
-                raise ValueError()
-            unit_price = item.order_in.order.items.get(
-                stock_product=item.stock_product
-            ).unit_price
+            # Prefer unit price from the frozen snapshot; fall back to purchase order item
+            if item.source_order_item:
+                unit_price = item.source_order_item.unit_price_at_receipt
+            else:
+                if item.order_in is None:
+                    raise WarehouseGenericError(
+                        f"Warehouse item '{item.pk}' has no inbound order reference."
+                    )
+                unit_price = item.order_in.order.items.get(
+                    stock_product=item.stock_product
+                ).unit_price
             cls.recalculate_average_purchase_price(
                 item.stock_product.code, amount, unit_price, context=context
             )
@@ -1176,17 +1264,19 @@ class WarehouseService:
         cls,
         parent_code: str,
         context: RequestContext,
+        initial_state: InboundWarehouseOrderState = InboundWarehouseOrderState.DRAFT,
     ) -> InboundWarehouseOrder:
-        parent_order = InboundWarehouseOrder.objects.select_related("order").get(
-            code=parent_code
-        )
+        parent_order = InboundWarehouseOrder.objects.select_related(
+            "order", "pickup_location"
+        ).get(code=parent_code)
         child_code = cls.generate_next_inbound_order_code()
         with transaction.atomic():
             child_order = InboundWarehouseOrder.objects.create(
                 code=child_code,
                 order=parent_order.order,
                 primary_order=parent_order,
-                state=InboundWarehouseOrderState.DRAFT,
+                state=initial_state,
+                pickup_location=parent_order.pickup_location,
             )
             audit_service.add_entry(
                 child_order,
@@ -1218,9 +1308,12 @@ class WarehouseService:
         context: RequestContext,
     ) -> InboundWarehouseOrderSchema:
         """
-        Move a list of (item_id, amount) pairs from the parent warehouse order
-        into a child order.  A new child order is created automatically if none
-        exists yet.
+        Move a list of (item_id, amount) pairs from the parent inbound
+        warehouse order into a child order.
+
+        DRAFT state → item_ids reference InboundWarehouseOrderItem (draft snapshot).
+        PENDING/STARTED state → item_ids reference WarehouseItem (materialised).
+        A new child order is created automatically if none exists yet.
         """
         parent_order = InboundWarehouseOrder.objects.select_related("order").get(
             code=parent_code
@@ -1228,68 +1321,123 @@ class WarehouseService:
 
         existing_child = parent_order.derived_orders.filter(
             state=InboundWarehouseOrderState.DRAFT
+            if parent_order.state == InboundWarehouseOrderState.DRAFT
+            else InboundWarehouseOrderState.PENDING
         ).first()
-        child_order = existing_child or cls.create_child_warehouse_order(
-            parent_code, context
-        )
+        if existing_child:
+            child_order = existing_child
+        elif parent_order.state == InboundWarehouseOrderState.DRAFT:
+            child_order = cls.create_child_warehouse_order(parent_code, context)
+        else:
+            child_order = cls.create_child_warehouse_order(
+                parent_code,
+                context,
+                initial_state=InboundWarehouseOrderState.PENDING,
+            )
 
         with transaction.atomic():
-            for item_id, amount in items:
-                amount = Decimal(str(amount))
-                item = parent_order.items.select_related(
-                    "stock_product", "location", "batch", "package_type"
-                ).get(pk=item_id)
+            if parent_order.state == InboundWarehouseOrderState.DRAFT:
+                # ── Draft mode: move InboundWarehouseOrderItem rows ──────────
+                for order_item_id, amount in items:
+                    amount = Decimal(str(amount))
+                    order_item = parent_order.order_items.select_related(
+                        "stock_product", "package_type"
+                    ).get(pk=order_item_id)
 
-                if amount > item.amount:
-                    raise WarehouseGenericError(
-                        f"Requested offload amount ({amount}) exceeds item amount "
-                        f"({item.amount}) for item id={item_id}."
+                    if amount > order_item.amount:
+                        raise WarehouseGenericError(
+                            f"Requested offload amount ({amount}) exceeds item amount "
+                            f"({order_item.amount}) for order_item id={order_item_id}."
+                        )
+
+                    if amount == order_item.amount:
+                        order_item.warehouse_order = child_order
+                        order_item.save(update_fields=["warehouse_order"])
+                        offloaded = order_item
+                    else:
+                        order_item.amount -= amount
+                        order_item.save(update_fields=["amount"])
+                        offloaded = InboundWarehouseOrderItem.objects.create(
+                            warehouse_order=child_order,
+                            stock_product=order_item.stock_product,
+                            tracking_level=order_item.tracking_level,
+                            amount=amount,
+                            package_type=order_item.package_type,
+                            unit_price_at_receipt=order_item.unit_price_at_receipt,
+                            index=order_item.index,
+                            batch_barcode=order_item.batch_barcode,
+                        )
+
+                    audit_service.add_entry(
+                        offloaded,
+                        action=AuditAction.UPDATE,
+                        user=context.user_id,
+                        reason=AuditMessages.ITEM_OFFLOADED_TO_CHILD_ORDER.CS.format(
+                            amount=amount, child_code=child_order.code
+                        ),
+                        changes={
+                            "warehouse_order": {
+                                "old": parent_code,
+                                "new": child_order.code,
+                            },
+                            "amount": str(amount),
+                        },
                     )
 
-                if amount == item.amount:
-                    item.order_in = child_order
-                    item.save()
-                    offloaded_item = item
-                else:
-                    item.amount -= amount
-                    item.save()
-                    offloaded_item = WarehouseItem.objects.create(
-                        stock_product=item.stock_product,
-                        tracking_level=item.tracking_level,
-                        amount=amount,
-                        location=item.location,
-                        order_in=child_order,
-                        batch=item.batch,
-                        package_type=item.package_type,
+            else:
+                # ── Post-confirmation mode: move WarehouseItem rows ───────────
+                for item_id, amount in items:
+                    amount = Decimal(str(amount))
+                    item = parent_order.items.select_related(
+                        "stock_product", "location", "batch", "package_type"
+                    ).get(pk=item_id)
+
+                    if amount > item.amount:
+                        raise WarehouseGenericError(
+                            f"Requested offload amount ({amount}) exceeds item amount "
+                            f"({item.amount}) for item id={item_id}."
+                        )
+
+                    if amount == item.amount:
+                        item.order_in = child_order
+                        item.save()
+                        offloaded_wh = item
+                    else:
+                        item.amount -= amount
+                        item.save()
+                        offloaded_wh = WarehouseItem.objects.create(
+                            stock_product=item.stock_product,
+                            tracking_level=item.tracking_level,
+                            amount=amount,
+                            location=item.location,
+                            order_in=child_order,
+                            source_order_item=item.source_order_item,
+                            batch=item.batch,
+                            package_type=item.package_type,
+                        )
+
+                    audit_service.add_entry(
+                        offloaded_wh,
+                        action=AuditAction.UPDATE,
+                        user=context.user_id,
+                        reason=AuditMessages.ITEM_OFFLOADED_TO_CHILD_ORDER.CS.format(
+                            amount=amount, child_code=child_order.code
+                        ),
+                        changes={
+                            "order_in": {"old": parent_code, "new": child_order.code},
+                            "amount": str(amount),
+                        },
                     )
 
-                audit_service.add_entry(
-                    offloaded_item,
-                    action=AuditAction.UPDATE,
-                    user=context.user_id,
-                    reason=AuditMessages.ITEM_OFFLOADED_TO_CHILD_ORDER.CS.format(
-                        amount=amount,
-                        child_code=child_order.code,
-                    ),
-                    changes={
-                        "order_in": {"old": parent_code, "new": child_order.code},
-                        "amount": str(amount),
-                    },
-                )
-                audit_service.add_entry(
-                    parent_order,
-                    action=AuditAction.OTHER,
-                    user=context.user_id,
-                    reason=AuditMessages.ITEM_OFFLOADED_TO_CHILD_ORDER.CS.format(
-                        amount=amount,
-                        child_code=child_order.code,
-                    ),
-                    changes={
-                        "item_id": item_id,
-                        "amount": str(amount),
-                        "child_order": child_order.code,
-                    },
-                )
+            audit_service.add_entry(
+                parent_order,
+                action=AuditAction.OTHER,
+                user=context.user_id,
+                reason=AuditMessages.ITEM_OFFLOADED_TO_CHILD_ORDER.CS.format(
+                    amount=sum(a for _, a in items), child_code=child_order.code
+                ),
+                changes={"child_order": child_order.code},
+            )
 
         return cls.get_inbound_warehouse_order(parent_code)
 

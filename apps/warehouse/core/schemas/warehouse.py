@@ -112,12 +112,30 @@ class WarehouseExpandedSchema(BaseSchema):
 
 
 class InboundWarehouseOrderItemSchema(BaseSchema):
+    """Frozen snapshot of a single line configured during order drafting."""
+
     id: int
+    product: ProductSchema
+    unit_of_measure: str
     amount: Decimal
-    warehouse_items: list[WarehouseItemSchema]
+    tracking_level: TrackingLevel
+    package: PackageSchema | None
+    unit_price_at_receipt: Decimal
+    index: int
+    batch_barcode: str | None
+    pending: bool
+    warehouse_item_id: int | None = None
+
+
+class DraftItemAddSchema(Schema):
+    """Payload for adding a line item to a draft inbound warehouse order."""
+
+    product_code: str
+    amount: float
 
 
 class InboundWarehouseOrderSchema(InboundWarehouseOrderBaseSchema):
+    order_items: list[InboundWarehouseOrderItemSchema]
     items: list[WarehouseItemSchema]
     movements: list[WarehouseMovementSchema]
     completed_items_count: int
@@ -211,8 +229,8 @@ class GetOutboundWarehouseOrdersResponse(
 
 
 class UpdateWarehouseOrderDraftItemsRequest(Schema):
-    to_be_removed: list[WarehouseItemSchema]
-    to_be_added: list[WarehouseItemSchema]
+    to_be_removed: list[int]  # IDs of InboundWarehouseOrderItem
+    to_be_added: list[DraftItemAddSchema]
 
 
 class SetupTrackingWarehouseItemRequest(Schema):

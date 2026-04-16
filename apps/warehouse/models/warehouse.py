@@ -80,7 +80,8 @@ class AvailableWarehouseItemManager(
                     InboundWarehouseOrderState.DRAFT,
                     InboundWarehouseOrderState.IN_TRANSIT,
                 )
-            ),
+            )
+            .exclude(location__is_putaway=True),
         )
 
     def filter(self, *args: Any, **kwargs: Any) -> AvailableWarehouseItemQuerySet:
@@ -127,6 +128,14 @@ class WarehouseItem(BaseModel, BarcodeMixin):
         help_text="Order item which brought the item into the warehouse",
         null=True,
         blank=True,
+    )
+    source_order_item = models.ForeignKey(
+        "InboundWarehouseOrderItem",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="warehouse_items",
+        help_text="Frozen snapshot line that produced this item (set at confirmation, never changed)",
     )
     # Optional fields - populated based on tracking_level
     batch = models.ForeignKey(
@@ -322,6 +331,8 @@ class InboundWarehouseOrder(BaseModel):
         related_name="warehouse_orders",
     )
     items: QuerySet[WarehouseItem]
+    order_items: QuerySet["InboundWarehouseOrderItem"]
+    derived_orders: QuerySet["InboundWarehouseOrder"]
     state = models.PositiveIntegerField(
         choices=InboundWarehouseOrderState,
         default=InboundWarehouseOrderState.DRAFT,
@@ -334,9 +345,70 @@ class InboundWarehouseOrder(BaseModel):
         null=True,
         blank=True,
     )
+    pickup_location = models.ForeignKey(
+        WarehouseLocation,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inbound_pickup_orders",
+        help_text="Location where goods are staged upon arrival confirmation",
+    )
 
     class Meta:
         ordering = ["-created"]
 
     def __str__(self) -> str:
         return self.code
+
+
+class InboundWarehouseOrderItem(BaseModel):
+    """
+    Immutable snapshot of a single line item on an inbound warehouse order.
+
+    Created when arrival is confirmed (IN_TRANSIT → DRAFT).  Editable
+    (tracking level, packaging, amounts) only while the warehouse order is
+    in DRAFT state.  Locked at confirmation (DRAFT → PENDING), at which
+    point live WarehouseItem records are materialised from these rows.
+    """
+
+    warehouse_order = models.ForeignKey(
+        InboundWarehouseOrder,
+        on_delete=models.CASCADE,
+        related_name="order_items",
+    )
+    stock_product = models.ForeignKey(
+        StockProduct,
+        null=False,
+        on_delete=models.PROTECT,
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=4)
+    tracking_level = models.CharField(
+        max_length=20,
+        choices=TrackingLevel.choices,
+        default=TrackingLevel.FUNGIBLE,
+    )
+    package_type = models.ForeignKey(
+        PackageType,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="order_items",
+    )
+    unit_price_at_receipt = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        default=0,
+        help_text="Unit price frozen from the purchase order at arrival confirmation",
+    )
+    index = models.PositiveIntegerField(default=0)
+    # Stores the batch barcode string during DRAFT so the actual Batch object
+    # can be created when WarehouseItems are materialised on confirmation.
+    batch_barcode = models.CharField(max_length=200, null=True, blank=True)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["index", "created"]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.amount} × {self.stock_product.name} ({self.warehouse_order.code})"
+        )

@@ -14,43 +14,24 @@
             >{{ item.product.name }}</a
           >
           <q-btn
-            v-if="props.readonly || props.allowMove"
+            v-if="item.warehouse_item_id"
             dense
             flat
             round
             size="10px"
             icon="sym_o_open_in_new"
-            :to="{ name: 'warehouseItemDetail', params: { itemId: item.id } }"
+            :to="{ name: 'warehouseItemDetail', params: { itemId: item.warehouse_item_id } }"
           >
             <q-tooltip :offset="[0, 10]">Detail skladové položky</q-tooltip>
           </q-btn>
         </div>
-        <div class="mb-2">
-          <BarcodeElement
-            v-if="item.primary_barcode"
-            :barcode="item.primary_barcode"
-            :width="1.6"
-            text-align="left"
-          />
-          <span v-else class="text-gray-5 font-mono text-xs bg-gray-2 px-2 py-1 rounded">
-            Není evidováno
-          </span>
-        </div>
         <div class="flex gap-2">
-          <q-badge
-            v-if="pendingStatus !== undefined"
-            class="py-1"
-            :color="pendingStatus ? 'warning' : 'positive'"
-          >
-            {{ pendingStatus ? 'pending' : 'done' }}
+          <q-badge class="py-1" :color="item.pending ? 'warning' : 'positive'">
+            {{ item.pending ? 'K NASKLADNĚNÍ' : 'HOTOVO' }}
           </q-badge>
-          <q-badge class="py-1" :color="item.location.is_putaway ? 'accent' : 'positive'">{{
-            item.location.is_putaway ? 'Příjem' : 'hotovo'
-          }}</q-badge>
-          <q-badge class="py-1" :color="item.location.is_putaway ? 'gray' : 'positive'">{{
-            item.location.code
-          }}</q-badge>
-          <WarehouseItemTypeBadgeGroup :item="item" />
+          <TrackingLevelBadge :level="item.tracking_level" />
+          <PackageTypeBadge v-if="item.package" :package-type="item.package.type" />
+          <BatchBadge v-if="item.batch_barcode" :batch-code="item.batch_barcode" />
         </div>
       </div>
       <div class="light:text-gray-5 dark:text-gray-3 q-gutter-xs ml-auto">
@@ -76,7 +57,6 @@
         >
           <q-tooltip :offset="[0, 10]">Zrušit evidenci položky ⤍ skladem volně</q-tooltip>
         </q-btn>
-
         <q-btn
           v-if="isReadyToBeTracked"
           @click="setItemTrackingDialog = true"
@@ -112,17 +92,17 @@
         </q-btn>
       </div>
       <q-separator vertical class="mx-8" inset />
-      <WarehouseItemAmountBadge :item="item" class="min-w-30" />
+      <WarehouseItemAmountBadge :item="amountBadgeItem" class="min-w-30" />
     </div>
     <InboundWarehouseOrderTrackDialog
       v-model:show="setItemTrackingDialog"
-      :item="item"
+      :item="asOrderItem"
       :tracking-type-in="trackingType"
       @packaged="(items) => $emit('packaged', items)"
     />
     <InboundWarehouseOrderRemoveItemDialog
       v-model:show="removeItemDialog"
-      :item="item"
+      :item="asOrderItem"
       @remove="(amount) => $emit('remove', amount)"
     />
     <ConfirmDialog
@@ -137,12 +117,12 @@
     </ConfirmDialog>
     <LocationSelectionDialog
       v-model:show="moveDialog"
-      :item="item"
+      :item="asOrderItem"
       @confirm="(location) => $emit('moved', location)"
     />
     <OffloadItemToChildOrderDialog
       v-model:show="offloadDialog"
-      :item="item"
+      :item="asOffloadItem"
       :loading="offloadLoading"
       @confirm="onOffload"
     />
@@ -150,14 +130,18 @@
 </template>
 
 <script setup lang="ts">
-import type { WarehouseItemSchema, WarehouseLocationSchema } from '@/client'
+import type {
+  InboundWarehouseOrderItemSchema,
+  WarehouseItemSchema,
+  WarehouseLocationSchema,
+} from '@/client'
 import { warehouseApiRoutesWarehouseOffloadItemsToChildOrder } from '@/client'
 import { computed, ref } from 'vue'
-import BarcodeElement from '../BarcodeElement.vue'
+import BatchBadge from '../warehouse/BatchBadge.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
+import TrackingLevelBadge from '../warehouse/TrackingLevelBadge.vue'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
-import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGroup.vue'
 import InboundWarehouseOrderRemoveItemDialog from './InboundWarehouseOrderRemoveItemDialog.vue'
 import InboundWarehouseOrderTrackDialog, {
   type TrackingType,
@@ -166,29 +150,11 @@ import LocationSelectionDialog from './LocationSelectionDialog.vue'
 import OffloadItemToChildOrderDialog from './OffloadItemToChildOrderDialog.vue'
 
 const props = defineProps<{
-  item: WarehouseItemSchema
+  item: InboundWarehouseOrderItemSchema
   allowMove?: boolean
   readonly?: boolean
   warehouseOrderCode?: string
-  pendingStatus?: boolean
 }>()
-
-// const item = defineModel<WarehouseItemSchema>('item', { required: true })
-
-const setItemTrackingDialog = ref(false)
-
-const trackingType = computed<TrackingType>(() => {
-  if (props.item.package?.type) {
-    return 'package'
-  }
-  return ''
-})
-
-const dissolveDialog = ref(false)
-const removeItemDialog = ref(false)
-const moveDialog = ref(false)
-const offloadDialog = ref(false)
-const offloadLoading = ref(false)
 
 const emit = defineEmits<{
   (e: 'dissolveItem'): void
@@ -197,6 +163,55 @@ const emit = defineEmits<{
   (e: 'moved', location: WarehouseLocationSchema): void
   (e: 'offloaded'): void
 }>()
+
+const dummyLocation = computed(() => ({
+  warehouse_name: '',
+  code: props.item.pending ? 'PRIJEM' : 'HOTOVO',
+  is_putaway: props.item.pending,
+  created: props.item.created,
+  changed: props.item.changed,
+}))
+
+/** Adapter for dialogs using order item ID (dissolve, track, remove) */
+const asOrderItem = computed<WarehouseItemSchema>(() => ({
+  id: props.item.id,
+  product: props.item.product,
+  unit_of_measure: props.item.unit_of_measure,
+  amount: Number(props.item.amount),
+  tracking_level: props.item.tracking_level,
+  package: props.item.package ?? null,
+  location: dummyLocation.value,
+  batch: null,
+  primary_barcode: null,
+  inbound_order_code: null,
+  created: props.item.created,
+  changed: props.item.changed,
+}))
+
+/** Adapter for offload dialog — needs warehouse item ID */
+const asOffloadItem = computed<WarehouseItemSchema>(() => ({
+  ...asOrderItem.value,
+  id: props.item.warehouse_item_id ?? props.item.id,
+}))
+
+const amountBadgeItem = computed(() => ({
+  amount: Number(props.item.amount),
+  unit_of_measure: props.item.unit_of_measure,
+}))
+
+const setItemTrackingDialog = ref(false)
+const dissolveDialog = ref(false)
+const removeItemDialog = ref(false)
+const moveDialog = ref(false)
+const offloadDialog = ref(false)
+const offloadLoading = ref(false)
+
+const trackingType = computed<TrackingType>(() => (props.item.package?.type ? 'package' : ''))
+
+const isRemovable = computed(() => props.item.tracking_level !== 'FUNGIBLE' && !props.readonly)
+const isReadyToBeTracked = computed(
+  () => props.item.tracking_level === 'FUNGIBLE' && !props.readonly,
+)
 
 const onOffload = async (itemId: number, amount: number) => {
   if (!props.warehouseOrderCode) return
@@ -211,11 +226,6 @@ const onOffload = async (itemId: number, amount: number) => {
     offloadLoading.value = false
   }
 }
-
-const isRemovable = computed(() => props.item.tracking_level !== 'FUNGIBLE' && !props.readonly)
-const isReadyToBeTracked = computed(
-  () => props.item.tracking_level === 'FUNGIBLE' && !props.readonly,
-)
 </script>
 
 <style lang="scss" scoped></style>

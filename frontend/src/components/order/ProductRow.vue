@@ -18,7 +18,7 @@
       </div>
     </div>
     <div
-      class="flex flex-col xl:flex-row gap-3 flex-1 items-start xl:items-center justify-start lg:justify-end flex-nowrap min-w-[670px]"
+      class="flex flex-col xl:flex-row gap-3 flex-1 items-start xl:items-center justify-start lg:justify-end flex-nowrap"
     >
       <ProductAvailability :product-code="item.product.code" class="" />
       <q-input
@@ -26,7 +26,6 @@
         :readonly="readonly"
         dense
         outlined
-        class="w-full"
         label="Počet"
         @update:model-value="update('amount')"
         :debounce="500"
@@ -41,7 +40,6 @@
         :readonly="isUnitPriceReadonly"
         dense
         outlined
-        class="max-w-50"
         label="Nákupní cena"
         @update:model-value="update('unit')"
         :debounce="500"
@@ -74,7 +72,6 @@
         @update:model-value="update('total')"
         dense
         outlined
-        class="max-w-40"
         label="Celková cena"
         :debounce="500"
       >

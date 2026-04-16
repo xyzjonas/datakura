@@ -165,7 +165,7 @@ const previewPackagingItems = async () => {
   }
   const result = await warehouseApiRoutesPackagingPackagePreview({
     body: {
-      warehouse_item_id: props.item.id,
+      order_item_id: props.item.id,
       amount: amount.value,
       package_name: selectedPackage.value?.name,
       product_code: props.item.product.code,
@@ -183,7 +183,7 @@ const previewBatchingItems = async () => {
   }
   const result = await warehouseApiRoutesPackagingBatchPreview({
     body: {
-      warehouse_item_id: props.item.id,
+      order_item_id: props.item.id,
       amount: amount.value,
       batch_code: batchCode.value,
       product_code: props.item.product.code,
@@ -201,7 +201,7 @@ const previewSerialItems = async () => {
   }
   const result = await warehouseApiRoutesPackagingSerialPreview({
     body: {
-      warehouse_item_id: props.item.id,
+      order_item_id: props.item.id,
       amount: amount.value,
       product_code: props.item.product.code,
     },

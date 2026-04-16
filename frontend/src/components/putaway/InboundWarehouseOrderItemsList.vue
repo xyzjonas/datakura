@@ -4,18 +4,18 @@
     <TransitionGroup name="list" tag="div" class="flex">
       <div v-for="(item, index) in items" :key="item.id" clickable class="simple_list_item">
         <IndexRectangle :index="index + 1" />
-        <WarehouseItemEditableRow
+        <InboundWarehouseItemEditableRow
           :item="item"
           :readonly="readonly"
           :allow-move="allowMove"
           :warehouse-order-code="warehouseOrderCode"
           @dissolve-item="() => $emit('dissolveItem', item.id)"
-          @packaged="(items) => $emit('packaged', item, items)"
+          @packaged="(newItems) => $emit('packaged', item.id, newItems)"
           @remove="(amount) => $emit('removeItem', item.id, amount)"
-          @moved="(location) => $emit('moved', item.id, location)"
+          @moved="(location) => $emit('moved', item.warehouse_item_id!, location)"
           @offloaded="$emit('offloaded')"
           class="flex-1"
-        ></WarehouseItemEditableRow>
+        ></InboundWarehouseItemEditableRow>
       </div>
     </TransitionGroup>
     <!-- </q-list> -->
@@ -29,21 +29,25 @@
 </template>
 
 <script setup lang="ts">
-import type { WarehouseItemSchema, WarehouseLocationSchema } from '@/client'
+import type {
+  InboundWarehouseOrderItemSchema,
+  WarehouseItemSchema,
+  WarehouseLocationSchema,
+} from '@/client'
 import EmptyPanel from '../EmptyPanel.vue'
-import WarehouseItemEditableRow from './WarehouseItemEditableRow.vue'
+import InboundWarehouseItemEditableRow from './InboundWarehouseItemEditableRow.vue'
 import IndexRectangle from '../IndexRectangle.vue'
 
 defineEmits<{
   (e: 'dissolveItem', itemId: number): void
   (e: 'removeItem', itemId: number, amount: number): void
   (e: 'addItem'): void
-  (e: 'packaged', item: WarehouseItemSchema, items: WarehouseItemSchema[]): void
-  (e: 'moved', itemId: number, location: WarehouseLocationSchema): void
+  (e: 'packaged', orderItemId: number, items: WarehouseItemSchema[]): void
+  (e: 'moved', warehouseItemId: number, location: WarehouseLocationSchema): void
   (e: 'offloaded'): void
 }>()
 defineProps<{
-  items: WarehouseItemSchema[]
+  items: InboundWarehouseOrderItemSchema[]
   readonly?: boolean
   allowMove?: boolean
   warehouseOrderCode?: string

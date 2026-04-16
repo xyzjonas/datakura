@@ -44,6 +44,7 @@ from apps.warehouse.core.schemas.warehouse import (
     WarehouseItemSchema,
     PackageSchema,
     InboundWarehouseOrderSchema,
+    InboundWarehouseOrderItemSchema,
     OutboundWarehouseOrderSchema,
     WarehouseMovementSchema,
     WarehouseLocationSchema,
@@ -79,10 +80,12 @@ from apps.warehouse.models.warehouse import (
     WarehouseItem,
     WarehouseMovement,
     InboundWarehouseOrder,
+    InboundWarehouseOrderItem,
     OutboundWarehouseOrder,
     WarehouseLocation,
     InboundWarehouseOrderState,
     OutboundWarehouseOrderState,
+    TrackingLevel,
     Batch,
 )
 
@@ -589,11 +592,55 @@ def credit_note_supplier_orm_to_schema(
     )
 
 
+def inbound_warehouse_order_item_to_schema(
+    item: InboundWarehouseOrderItem,
+) -> InboundWarehouseOrderItemSchema:
+    linked_items = list(item.warehouse_items.all())
+    is_pending = item.warehouse_order.state == InboundWarehouseOrderState.DRAFT or (
+        bool(linked_items)
+        if item.tracking_level == TrackingLevel.FUNGIBLE
+        else any(linked_item.location.is_putaway for linked_item in linked_items)
+    )
+
+    return InboundWarehouseOrderItemSchema(
+        id=item.pk,
+        product=product_orm_to_schema(item.stock_product),
+        unit_of_measure=item.stock_product.unit_of_measure.name,
+        amount=item.amount,
+        tracking_level=item.tracking_level,  # type: ignore
+        package=package_orm_to_schema(item.package_type),
+        unit_price_at_receipt=item.unit_price_at_receipt,
+        index=item.index,
+        batch_barcode=item.batch_barcode,
+        pending=is_pending,
+        warehouse_item_id=linked_items[0].pk if linked_items else None,
+        created=item.created,
+        changed=item.changed,
+    )
+
+
 def warehouse_inbound_order_orm_to_schema(
     w_order: InboundWarehouseOrder,
 ) -> InboundWarehouseOrderSchema:
-    received_amount = sum(float(item.amount) for item in w_order.order.items.all())
+    order_items = list(
+        w_order.order_items.select_related(
+            "stock_product",
+            "stock_product__unit_of_measure",
+            "package_type",
+        ).all()
+    )
+    order_item_schemas = [
+        inbound_warehouse_order_item_to_schema(item) for item in order_items
+    ]
+
+    # total_amount / remaining_amount should reflect frozen warehouse-order lines,
+    # not live WarehouseItem rows that may later merge or split.
+    total_amount = sum(float(item.amount) for item in order_item_schemas) or sum(
+        float(item.amount) for item in w_order.order.items.all()
+    )
     remaining_amount = sum(
+        float(item.amount) for item in order_item_schemas if item.pending
+    ) or sum(
         float(item.amount)
         for item in w_order.items.filter(location__is_putaway=True).all()
     )
@@ -604,6 +651,7 @@ def warehouse_inbound_order_orm_to_schema(
         code=w_order.code,
         created=w_order.created,
         changed=w_order.changed,
+        order_items=order_item_schemas,
         items=[warehouse_item_orm_to_schema(item) for item in w_order.items.all()],
         movements=[
             warehouse_movement_orm_to_schema(movement)
@@ -618,7 +666,7 @@ def warehouse_inbound_order_orm_to_schema(
                 if not item.location.is_putaway
             ]
         ),
-        total_amount=received_amount,
+        total_amount=total_amount,
         remaining_amount=remaining_amount,
         order_code=w_order.order.code,
         order=InboundOrderBaseSchema(

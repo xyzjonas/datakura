@@ -1,5 +1,5 @@
 <template>
-  <ForegroundPanel class="flex flex-col min-w-[400px] flex-[2]">
+  <ForegroundPanel class="flex flex-col flex-[2]">
     <q-list dense class="mt-2" separator>
       <q-item clickable>
         <q-item-section>Číslo dokladu</q-item-section>

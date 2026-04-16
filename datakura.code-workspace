@@ -25,6 +25,7 @@
         "approve": true,
         "matchCommandLine": true,
       },
+      "npm run generate-api": true,
     },
   },
 }

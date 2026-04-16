@@ -96,7 +96,7 @@ const previewItems = async () => {
   }
   const result = await warehouseApiRoutesPackagingPackagePreview({
     body: {
-      warehouse_item_id: props.item.id,
+      order_item_id: props.item.id,
       amount: amount.value,
       package_name: selectedPackage.value?.name,
       product_code: props.item.product.code,

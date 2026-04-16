@@ -18,6 +18,7 @@ from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrderState,
     OutboundWarehouseOrderState,
+    TrackingLevel,
     WarehouseItem,
     WarehouseMovement,
 )
@@ -26,6 +27,7 @@ from apps.warehouse.tests.factories.order import (
     InboundOrderItemFactory,
 )
 from apps.warehouse.tests.factories.warehouse import (
+    InboundWarehouseOrderItemFactory,
     InboundWarehouseOrderFactory,
     WarehouseOrderOutFactory,
     WarehouseItemFactory,
@@ -342,11 +344,70 @@ def test_transition_inbound_order_from_in_transit_to_draft_creates_items(db, cli
     assert res.status_code == 200
     warehouse_order.refresh_from_db()
     assert warehouse_order.state == InboundWarehouseOrderState.DRAFT
-    assert warehouse_order.items.count() == 2
-    assert all(
-        item.location.code == receiving_location.code
-        for item in warehouse_order.items.all()
+    assert warehouse_order.order_items.count() == 2
+    assert warehouse_order.pickup_location.code == receiving_location.code
+
+
+def test_get_inbound_warehouse_order_marks_draft_order_items_pending(
+    db, client
+) -> None:
+    order = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.DRAFT)
+    order_item = InboundWarehouseOrderItemFactory.it(warehouse_order=order)
+
+    res = client.get(f"orders-incoming/{order.code}")
+
+    assert res.status_code == 200
+    payload = res.json()["data"]
+    returned_item = next(
+        item for item in payload["order_items"] if item["id"] == order_item.pk
     )
+    assert returned_item["pending"] is True
+
+
+def test_get_inbound_warehouse_order_marks_tracked_stored_order_item_done(
+    db, client
+) -> None:
+    order = InboundWarehouseOrderFactory.create_complete(
+        state=InboundWarehouseOrderState.PENDING,
+        is_putaway=False,
+    )
+    order_item = order.order_items.first()
+    warehouse_item = order.items.first()
+    assert order_item is not None
+    assert warehouse_item is not None
+
+    order_item.tracking_level = TrackingLevel.BATCH
+    order_item.save(update_fields=["tracking_level"])
+    warehouse_item.tracking_level = TrackingLevel.BATCH
+    warehouse_item.save(update_fields=["tracking_level"])
+
+    res = client.get(f"orders-incoming/{order.code}")
+
+    assert res.status_code == 200
+    payload = res.json()["data"]
+    returned_item = next(
+        item for item in payload["order_items"] if item["id"] == order_item.pk
+    )
+    assert returned_item["pending"] is False
+
+
+def test_get_inbound_warehouse_order_marks_fungible_order_item_without_live_link_done(
+    db, client
+) -> None:
+    order = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.PENDING)
+    order_item = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=order,
+        tracking_level=TrackingLevel.FUNGIBLE,
+    )
+
+    res = client.get(f"orders-incoming/{order.code}")
+
+    assert res.status_code == 200
+    payload = res.json()["data"]
+    returned_item = next(
+        item for item in payload["order_items"] if item["id"] == order_item.pk
+    )
+    assert returned_item["pending"] is False
 
 
 def test_transition_inbound_order_from_in_transit_to_draft_requires_location(

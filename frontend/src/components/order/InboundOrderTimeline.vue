@@ -1,5 +1,6 @@
 <template>
-  <q-stepper
+  <simple-timeline :items="items" :activeKey="state" />
+  <!-- <q-stepper
     flat
     :model-value="step"
     ref="stepper"
@@ -83,15 +84,50 @@
       error-icon="block"
     >
     </q-step>
-  </q-stepper>
+  </q-stepper> -->
 </template>
 
 <script setup lang="ts">
-import { CANCELLED, INBOUND_ORDER_STATES } from '@/constants/inbound-order'
-import { computed } from 'vue'
+import { INBOUND_ORDER_STATES } from '@/constants/inbound-order'
+// import { computed } from 'vue'
+import SimpleTimeline from '../SimpleTimeline.vue'
 
-const props = defineProps<{ state: string }>()
-const step = computed(() => INBOUND_ORDER_STATES[props.state]?.step ?? CANCELLED)
+defineProps<{ state: string }>()
+// // const step = computed(() => INBOUND_ORDER_STATES[props.state]?.step ?? CANCELLED)
+
+const items = Object.entries(INBOUND_ORDER_STATES).map(([key, value]) => ({
+  title: value.label,
+  caption: value.caption,
+  icon: value.icon,
+  key,
+}))
+// const items = [
+//   {
+//     title: 'Koncept',
+//     caption: 'Čeká na potvrzení',
+//     icon: 'sym_o_ink_pen',
+//   },
+//   {
+//     title: 'Objednáno',
+//     caption: 'Zboží je na cestě',
+//     icon: 'sym_o_delivery_truck_speed',
+//   },
+//   {
+//     title: 'Příjem',
+//     caption: 'Zboží čeká na příjem',
+//     icon: 'sym_o_fact_check',
+//   },
+//   {
+//     title: 'Naskladnění',
+//     caption: 'Zboží je připraveno k naskladnění',
+//     icon: 'sym_o_input',
+//   },
+//   {
+//     title: 'Přijato',
+//     caption: 'Naskladněno',
+//     icon: 'warehouse',
+//   },
+// ]
 </script>
 
 <style lang="scss" scoped>

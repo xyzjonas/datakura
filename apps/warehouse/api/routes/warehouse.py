@@ -144,6 +144,10 @@ def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None =
         QuerySet[InboundWarehouseOrder],
         InboundWarehouseOrder.objects.select_related("order")
         .prefetch_related(
+            "order_items",
+            "order_items__stock_product",
+            "order_items__stock_product__unit_of_measure",
+            "order_items__package_type",
             "items",
             "order__items",
             "warehouse_movements",
@@ -241,7 +245,7 @@ def update_inbound_warehouse_order(
 
 
 @routes.post(
-    "orders-incoming/{code}/items",
+    "orders-incoming/{code}/order-items",
     response={200: GetWarehouseOrderResponse},
 )
 def update_inbound_warehouse_order_items(
@@ -257,18 +261,18 @@ def update_inbound_warehouse_order_items(
 
 
 @routes.post(
-    "orders-incoming/{code}/items/{item_code}",
+    "orders-incoming/{code}/order-items/{item_id}/track",
     response={200: GetWarehouseOrderResponse},
 )
 def track_inbound_warehouse_order_item(
     request: HttpRequest,
     code: str,
-    item_code: str,
+    item_id: int,
     body: SetupTrackingWarehouseItemRequest,
 ):
     order = warehouse_service.setup_tracking_for_inbound_order_item(
         code,
-        item_code,
+        item_id,
         body.to_be_added,
         context=RequestContext.from_django_request(request),
     )
@@ -276,15 +280,12 @@ def track_inbound_warehouse_order_item(
 
 
 @routes.delete(
-    "orders-incoming/{code}/items/{item_id}/dissolve",
+    "orders-incoming/{code}/order-items/{item_id}",
     response={200: GetWarehouseOrderResponse},
 )
 def dissolve_inbound_warehouse_order_item(
     request: HttpRequest, code: str, item_id: int
 ):
-    # user = authenticate(
-    #     request, username=credentials.username, password=credentials.password
-    # )
     order = warehouse_service.dissolve_inbound_order_item(code, item_id)
     return GetWarehouseOrderResponse(data=order)
 

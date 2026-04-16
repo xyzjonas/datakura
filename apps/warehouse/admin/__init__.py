@@ -31,6 +31,7 @@ from apps.warehouse.models.warehouse import (
     WarehouseLocation,
     WarehouseMovement,
     InboundWarehouseOrder,
+    InboundWarehouseOrderItem,
     OutboundWarehouseOrder,
     Batch,
 )
@@ -69,7 +70,11 @@ class WarehouseLocationAdmin(admin.ModelAdmin):
     search_fields = ["code"]
 
 
-admin.site.register(PackageType)
+@admin.register(PackageType)
+class PackageTypeAdmin(admin.ModelAdmin):
+    search_fields = ["code", "name"]
+
+
 admin.site.register(WarehouseMovement)
 
 admin.site.register(ProductType)
@@ -114,6 +119,24 @@ admin.site.register(InvoicePaymentMethod)
 @admin.register(InboundWarehouseOrder)
 class InboundWarehouseOrderAdmin(admin.ModelAdmin):
     search_fields = ["code"]
+
+
+@admin.register(InboundWarehouseOrderItem)
+class InboundWarehouseOrderItemAdmin(admin.ModelAdmin):
+    autocomplete_fields = ["warehouse_order", "stock_product", "package_type"]
+    list_display = [
+        "id",
+        "warehouse_order",
+        "stock_product",
+        "tracking_level",
+        "amount",
+    ]
+    list_filter = ["tracking_level"]
+    search_fields = [
+        "warehouse_order__code",
+        "stock_product__code",
+        "stock_product__name",
+    ]
 
 
 admin.site.register(OutboundWarehouseOrder)

@@ -10,12 +10,12 @@ from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrder,
+    InboundWarehouseOrderItem,
     InboundWarehouseOrderState,
-    WarehouseItem,
 )
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
-    WarehouseItemFactory,
+    InboundWarehouseOrderItemFactory,
 )
 
 
@@ -57,14 +57,29 @@ def test_create_child_order_generates_unique_code(db, context) -> None:
     assert InboundWarehouseOrder.objects.filter(code=child.code).exists()
 
 
+def test_create_child_order_inherits_pickup_location(db, context) -> None:
+    from apps.warehouse.tests.factories.warehouse import WarehouseLocationFactory
+
+    pickup = WarehouseLocationFactory()
+    parent = InboundWarehouseOrderFactory.it(
+        state=InboundWarehouseOrderState.DRAFT, pickup_location=pickup
+    )
+
+    child = warehouse_service.create_child_warehouse_order(parent.code, context)
+
+    assert child.pickup_location == pickup
+
+
 # ---------------------------------------------------------------------------
-# offload_items_to_child_order
+# offload_items_to_child_order (DRAFT mode — operates on InboundWarehouseOrderItem)
 # ---------------------------------------------------------------------------
 
 
 def test_offload_full_item_moves_to_child(db, context) -> None:
     parent = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.DRAFT)
-    item = WarehouseItemFactory.it(order_in=parent, amount=Decimal("10"))
+    item = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=parent, amount=Decimal("10")
+    )
 
     warehouse_service.offload_items_to_child_order(
         parent_code=parent.code,
@@ -73,15 +88,17 @@ def test_offload_full_item_moves_to_child(db, context) -> None:
     )
 
     item.refresh_from_db()
-    assert item.order_in != parent
-    child = item.order_in
+    assert item.warehouse_order != parent
+    child = item.warehouse_order
     assert child is not None
     assert child.primary_order == parent
 
 
 def test_offload_partial_amount_splits_item(db, context) -> None:
     parent = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.DRAFT)
-    item = WarehouseItemFactory.it(order_in=parent, amount=Decimal("10"))
+    item = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=parent, amount=Decimal("10")
+    )
 
     warehouse_service.offload_items_to_child_order(
         parent_code=parent.code,
@@ -91,13 +108,14 @@ def test_offload_partial_amount_splits_item(db, context) -> None:
 
     item.refresh_from_db()
     assert item.amount == Decimal("7")
-    assert item.order_in == parent
+    assert item.warehouse_order == parent
 
-    child_item = WarehouseItem.objects.get(
+    child_item = InboundWarehouseOrderItem.objects.get(
         stock_product=item.stock_product,
         amount=Decimal("3"),
+        warehouse_order__primary_order=parent,
     )
-    assert child_item.order_in.primary_order == parent  # type: ignore
+    assert child_item.warehouse_order.primary_order == parent
 
 
 def test_offload_reuses_existing_draft_child(db, context) -> None:
@@ -107,7 +125,9 @@ def test_offload_reuses_existing_draft_child(db, context) -> None:
         primary_order=parent,
         state=InboundWarehouseOrderState.DRAFT,
     )
-    item = WarehouseItemFactory.it(order_in=parent, amount=Decimal("5"))
+    item = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=parent, amount=Decimal("5")
+    )
 
     warehouse_service.offload_items_to_child_order(
         parent_code=parent.code,
@@ -116,14 +136,16 @@ def test_offload_reuses_existing_draft_child(db, context) -> None:
     )
 
     item.refresh_from_db()
-    assert item.order_in == child
+    assert item.warehouse_order == child
     # No new child order was created
     assert parent.derived_orders.count() == 1
 
 
 def test_offload_exceeds_amount_raises(db, context) -> None:
     parent = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.DRAFT)
-    item = WarehouseItemFactory.it(order_in=parent, amount=Decimal("5"))
+    item = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=parent, amount=Decimal("5")
+    )
 
     with pytest.raises(WarehouseGenericError):
         warehouse_service.offload_items_to_child_order(
@@ -135,8 +157,12 @@ def test_offload_exceeds_amount_raises(db, context) -> None:
 
 def test_offload_multiple_items(db, context) -> None:
     parent = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.DRAFT)
-    item1 = WarehouseItemFactory.it(order_in=parent, amount=Decimal("4"))
-    item2 = WarehouseItemFactory.it(order_in=parent, amount=Decimal("8"))
+    item1 = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=parent, amount=Decimal("4")
+    )
+    item2 = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=parent, amount=Decimal("8")
+    )
 
     warehouse_service.offload_items_to_child_order(
         parent_code=parent.code,
@@ -146,15 +172,16 @@ def test_offload_multiple_items(db, context) -> None:
 
     item1.refresh_from_db()
     item2.refresh_from_db()
-    # item1 fully offloaded
-    assert item1.order_in != parent
-    child = item1.order_in
+    # item1 fully offloaded to child
+    assert item1.warehouse_order != parent
+    child = item1.warehouse_order
     # item2 partially offloaded – original row still in parent
-    assert item2.order_in == parent
+    assert item2.warehouse_order == parent
     assert item2.amount == Decimal("6")
     # The split piece went to the same child
-    offloaded2 = WarehouseItem.objects.get(
-        stock_product=item2.stock_product, order_in=child
+    offloaded2 = InboundWarehouseOrderItem.objects.get(
+        stock_product=item2.stock_product,
+        warehouse_order=child,
     )
     assert offloaded2.amount == Decimal("2")
 
@@ -166,7 +193,9 @@ def test_offload_multiple_items(db, context) -> None:
 
 def test_api_offload_returns_updated_parent_order(db, client) -> None:
     parent = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.DRAFT)
-    item = WarehouseItemFactory.it(order_in=parent, amount=Decimal("10"))
+    item = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=parent, amount=Decimal("10")
+    )
 
     res = client.post(
         f"orders-incoming/{parent.code}/offload",
@@ -180,7 +209,9 @@ def test_api_offload_returns_updated_parent_order(db, client) -> None:
 
 def test_api_offload_partial(db, client) -> None:
     parent = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.DRAFT)
-    item = WarehouseItemFactory.it(order_in=parent, amount=Decimal("20"))
+    item = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=parent, amount=Decimal("20")
+    )
 
     res = client.post(
         f"orders-incoming/{parent.code}/offload",
@@ -194,7 +225,9 @@ def test_api_offload_partial(db, client) -> None:
 
 def test_api_offload_bad_amount_returns_error(db, client) -> None:
     parent = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.DRAFT)
-    item = WarehouseItemFactory.it(order_in=parent, amount=Decimal("5"))
+    item = InboundWarehouseOrderItemFactory.it(
+        warehouse_order=parent, amount=Decimal("5")
+    )
 
     with pytest.raises(WarehouseGenericError):
         client.post(

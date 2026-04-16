@@ -90,9 +90,9 @@
         {
           key: 'todo',
           icon: 'sym_o_call_received',
-          title: `${todoItems.length} položky k naskladnění`,
+          title: `${pendingOrderItems.length} položky k naskladnění`,
         },
-        { key: 'outbound', icon: 'sym_o_call_made', title: `${movements.length} Provedené Pohyby` },
+        { key: 'done', icon: 'sym_o_task_alt', title: `${doneItems.length} hotové položky` },
       ]"
       class="my-5"
     />
@@ -110,20 +110,12 @@
       @offloaded="fetchOrder"
     ></InboundWarehouseOrderItemsList>
 
-    <!-- MOVEMENTS -->
-    <TransitionGroup v-if="activeTabKey === 'outbound'" name="list" tag="div" class="flex">
-      <WarehouseMovementItem
-        v-for="(movement, index) in movements"
-        :key="index"
-        :index="index + 1"
-        :movement="movement"
-      />
-      <q-item v-if="movements.length === 0">
-        <q-item-section>
-          <q-item-label caption>Žádné pohyby nebyly zaznamenány.</q-item-label>
-        </q-item-section>
-      </q-item>
-    </TransitionGroup>
+    <InboundWarehouseOrderItemsList
+      v-if="activeTabKey === 'done'"
+      :items="doneItems"
+      readonly
+      :allow-move="false"
+    ></InboundWarehouseOrderItemsList>
 
     <ConfirmDialog
       v-model:show="confirmDialog"
@@ -188,7 +180,6 @@ import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehou
 import InboundWarehouseOrderTimeline from '@/components/putaway/InboundWarehouseOrderTimeline.vue'
 import ReceivingLocationSelect from '@/components/selects/ReceivingLocationSelect.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
-import WarehouseMovementItem from '@/components/warehouse/WarehouseMovementItem.vue'
 import { useApi } from '@/composables/use-api'
 import { getInboundWarehouseOrderStep } from '@/constants/inbound-warehouse-order'
 import { useQuasar } from 'quasar'
@@ -211,20 +202,25 @@ if (data) {
   order.value = data.data
 }
 
-const todoItems = computed(() => (order.value?.items ?? []).filter((it) => it.location.is_putaway))
-const movements = computed(() => order.value?.movements ?? [])
+const pendingOrderItems = computed(() =>
+  (order.value?.order_items ?? []).filter((item) => item.pending),
+)
+
+const todoItems = computed(() => pendingOrderItems.value)
+
+const doneItems = computed(() => (order.value?.order_items ?? []).filter((item) => !item.pending))
 
 const step = computed(() => getInboundWarehouseOrderStep(order.value))
 const arrivalLocationCode = ref<string>()
 
-const updateOrderItems = async (item: WarehouseItemSchema, toBeAdded: WarehouseItemSchema[]) => {
+const updateOrderItems = async (orderItemId: number, toBeAdded: WarehouseItemSchema[]) => {
   if (!order.value) {
     return
   }
   const response = await warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem({
     path: {
       code: order.value.code,
-      item_code: item.product.code,
+      item_id: orderItemId,
     },
     body: {
       to_be_added: toBeAdded,

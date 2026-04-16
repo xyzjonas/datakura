@@ -28,6 +28,7 @@ export default defineConfig({
       primary_light: '#1976d27b',
       secondary: '#192072', // Midnight
       accent: '#3f84e5', // blue
+      positive: '#30ba78',
       red: '#d92b2b',
       'light-red': '#fee2e2',
       white: '#ffffff',

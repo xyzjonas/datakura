@@ -2,6 +2,7 @@ import type { InboundOrderSchema } from '@/client'
 
 export interface StateConfig {
   label: string
+  caption?: string
   icon: string
   color: string
   step: number
@@ -15,45 +16,35 @@ export const INBOUND_ORDER_STATES: Record<string, StateConfig> = {
     icon: 'sym_o_ink_pen',
     color: 'grey-7',
     step: 1,
+    caption: 'Čeká na potvrzení',
   },
   submitted: {
     label: 'Objednáno',
     icon: 'sym_o_delivery_truck_speed',
     color: 'primary',
     step: 2,
+    caption: 'Zboží je na cestě',
   },
-  // in_transit: {
-  //   label: 'Na cestě',
-  //   icon: 'sym_o_local_shipping',
-  //   color: 'orange',
-  // },
-  // arrived: {
-  //   label: 'Doručeno',
-  //   icon: 'sym_o_warehouse',
-  //   color: 'accent',
-  // },
-  // receiving: {
-  //   label: 'Příjem',
-  //   icon: 'sym_o_inventory',
-  //   color: 'indigo',
-  // },
   receiving: {
     label: 'Příjem',
     icon: 'sym_o_fact_check',
     color: 'orange-8',
     step: 3,
+    caption: 'Zboží čeká na příjem',
   },
   putaway: {
     label: 'Naskladnění',
     icon: 'sym_o_input',
     color: 'cyan-8',
     step: 4,
+    caption: 'Zboží je připraveno k naskladnění',
   },
   completed: {
-    label: 'Dokončeno',
+    label: 'Přijato',
     icon: 'sym_o_check_circle',
     color: 'positive',
     step: 5,
+    caption: 'Zboží bylo naskladněno',
   },
   cancelled: {
     label: 'Zrušeno',

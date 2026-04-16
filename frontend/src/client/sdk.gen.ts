@@ -273,7 +273,7 @@ export const warehouseApiRoutesWarehouseUpdateInboundWarehouseOrderItems = <Thro
                 type: 'apiKey'
             }
         ],
-        url: '/api/v1/warehouse/orders-incoming/{code}/items',
+        url: '/api/v1/warehouse/orders-incoming/{code}/order-items',
         ...options,
         headers: {
             'Content-Type': 'application/json',
@@ -294,7 +294,7 @@ export const warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem = <ThrowO
                 type: 'apiKey'
             }
         ],
-        url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_code}',
+        url: '/api/v1/warehouse/orders-incoming/{code}/order-items/{item_id}/track',
         ...options,
         headers: {
             'Content-Type': 'application/json',
@@ -315,7 +315,7 @@ export const warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem = <Thr
                 type: 'apiKey'
             }
         ],
-        url: '/api/v1/warehouse/orders-incoming/{code}/items/{item_id}/dissolve',
+        url: '/api/v1/warehouse/orders-incoming/{code}/order-items/{item_id}',
         ...options
     });
 };

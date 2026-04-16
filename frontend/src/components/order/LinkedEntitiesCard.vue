@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-2 min-w-80">
+  <div class="flex flex-col gap-2 min-w-80 flex-1">
     <template v-if="showWarehouseOrder">
       <ForegroundPanel
         v-for="order in warehouseOrdersToRender"
