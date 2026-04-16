@@ -3975,6 +3975,27 @@ export type WarehouseApiRoutesProductDuplicateProductResponses = {
 
 export type WarehouseApiRoutesProductDuplicateProductResponse = WarehouseApiRoutesProductDuplicateProductResponses[keyof WarehouseApiRoutesProductDuplicateProductResponses];
 
+export type WarehouseApiRoutesProductRefreshProductBasePriceData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/refresh-base-price';
+};
+
+export type WarehouseApiRoutesProductRefreshProductBasePriceResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductRefreshProductBasePriceResponse = WarehouseApiRoutesProductRefreshProductBasePriceResponses[keyof WarehouseApiRoutesProductRefreshProductBasePriceResponses];
+
 export type WarehouseApiRoutesProductGetProductAuditsData = {
     body?: never;
     path: {

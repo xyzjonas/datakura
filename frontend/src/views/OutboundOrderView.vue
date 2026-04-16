@@ -64,7 +64,7 @@
       />
     </div>
 
-    <ForegroundPanel>
+    <ForegroundPanel v-if="$q.screen.gt.md">
       <OutboundOrderTimeline :state="order.state" />
     </ForegroundPanel>
 

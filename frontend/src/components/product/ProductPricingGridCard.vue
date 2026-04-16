@@ -39,6 +39,17 @@
         flat
         round
         dense
+        icon="sym_o_edit"
+        color="primary"
+        @click="$emit('edit', row.price_id)"
+      >
+        <q-tooltip>Upravit cenu</q-tooltip>
+      </q-btn>
+      <q-btn
+        v-if="row.price_id >= 0"
+        flat
+        round
+        dense
         icon="sym_o_close_small"
         color="negative"
         :loading="deletingPriceId === row.price_id"
@@ -65,7 +76,10 @@ const props = defineProps<{
   deletingPriceId: number | null
 }>()
 
-defineEmits<{ delete: [priceId: number] }>()
+defineEmits<{
+  edit: [priceId: number]
+  delete: [priceId: number]
+}>()
 
 const targetDescription = computed(() => {
   if (props.row.customer?.code) {

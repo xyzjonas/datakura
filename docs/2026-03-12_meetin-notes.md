@@ -33,7 +33,7 @@
 ### Objednavka IN
 
 - pridat novy typ baleni v kroku evidence
-  🚧 - kontrola konzistence mnozstvi polozek (i ceny), objednavame zcestne malo? nebo moc? vykricnik!
+  ✅ - kontrola konzistence mnozstvi polozek (i ceny), objednavame zcestne malo? nebo moc? vykricnik!
   ✅ - moznost editovat celkovou cenu polozky (celkovy! - ne cena za kus) - kus je computed
   ✅- dobropis vs. doposlani
   ✅ - nejdriv: odstranit vsechny polozky do nove prijemky (vazba -> primary) a naskladni co jde
@@ -45,8 +45,9 @@
 
 ### Sklad
 
-- moznost vyhodit polozky do nove prijemky a tam si rozhodnu jestli dobropis nebo jestli to prislo (viz vyse)
-- primarni + n sekundarnich - 1:n vazba (viz vyse)
+✅- moznost vyhodit polozky do nove prijemky a tam si rozhodnu jestli dobropis nebo jestli to prislo (viz vyse)
+✅- primarni + n sekundarnich - 1:n vazba (viz vyse)
+
 - evidovat sarzi nehlede na typ baleni/kus
 
 ### Produkty
@@ -58,14 +59,15 @@
 ### Cenik
 
 - globalni minimalni cena polozka plosna pro kusovy prodej a v objednavce se prepise a zasviti. Moznost vyclenit urcite zakazniky (VIP) - v karte zakaznika
-- cena pro zakaznika na urcity produkt/sortiment - maximalni prio
-- cena globalni sleva - skupiny A, B, C - prio podle vyse
+  ✅ - cena pro zakaznika na urcity produkt/sortiment - maximalni prio
+  ✅- cena globalni sleva - skupiny A, B, C - prio podle vyse
 - i z pohledu produktu, moznost zakazat slevove skupiny pro urcity produkt
 - prumerna cena - prepocet na dotaz. Na klik prepocitat cenove hladiny (neni potreba? computed?)
 
 ### Objednavka
 
-- volnych / skladem + na ceste (objednano) - proklik od tama (z badge) + seznam (modal) objednavek
+✅ - volnych / skladem + na ceste (objednano) - proklik od tama (z badge) + seznam (modal) objednavek
+
 - navazat soubory (vice)
 - prijata objednavka - castecne vydat a vytvorit novou obejdavku (vydejku) na zbytek
 - faktura MUSI byt v db jako table

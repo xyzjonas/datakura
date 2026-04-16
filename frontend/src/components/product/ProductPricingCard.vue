@@ -18,6 +18,7 @@
             :price-type-label="formatPriceType(slotProps.row)"
             :final-price="getFinalPrice(slotProps.row)"
             :deleting-price-id="deletingPriceId"
+            @edit="onEditDynamicPrice"
             @delete="onDeleteDynamicPrice"
           />
         </div>
@@ -40,9 +41,10 @@
             :to="{ name: 'customerDetail', params: { customerCode: slotProps.row.customer.code } }"
             class="link flex"
           >
-            <span class="truncate max-w-30 2xl:max-w-xs">
+            <span class="truncate max-w-30">
               {{ slotProps.row.customer.name }}
             </span>
+            <small class="text-gray-5">{{ slotProps.row.customer.code }}</small>
           </router-link>
           <span v-else>—</span>
         </q-td>
@@ -50,6 +52,17 @@
 
       <template #body-cell-actions="slotProps">
         <q-td :props="slotProps" class="text-right">
+          <q-btn
+            v-if="slotProps.row.price_id >= 0"
+            flat
+            round
+            dense
+            icon="sym_o_edit"
+            color="primary"
+            @click="onEditDynamicPrice(slotProps.row.price_id)"
+          >
+            <q-tooltip>Upravit cenu</q-tooltip>
+          </q-btn>
           <q-btn
             v-if="slotProps.row.price_id >= 0"
             flat
@@ -68,8 +81,16 @@
 
     <AddDynamicPriceDialog
       v-model:show="showAddDialog"
-      :saving="isSaving"
+      :saving="isAdding"
       @submit="onAddDynamicPrice"
+    />
+
+    <UpdateDynamicPriceDialog
+      v-model:show="showEditDialog"
+      :price="selectedEditPrice ?? undefined"
+      :saving="isUpdating"
+      @update:show="onEditDialogVisibilityChange"
+      @submit="onUpdateDynamicPrice"
     />
 
     <ConfirmDialog
@@ -90,12 +111,15 @@
 import {
   warehouseApiRoutesProductAddProductDynamicPrice,
   warehouseApiRoutesProductDeleteProductDynamicPrice,
+  warehouseApiRoutesProductUpdateProductDynamicPrice,
   type DynamicProductPriceCreateSchema,
   type DynamicProductPriceSchema,
+  type DynamicProductPriceUpdateSchema,
   type ProductSchema,
 } from '@/client'
 import AddDynamicPriceDialog from '@/components/product/AddDynamicPriceDialog.vue'
 import ProductPricingGridCard from '@/components/product/ProductPricingGridCard.vue'
+import UpdateDynamicPriceDialog from '@/components/product/UpdateDynamicPriceDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useApi } from '@/composables/use-api'
 import ForegroundPanel from '../ForegroundPanel.vue'
@@ -113,10 +137,24 @@ const { onResponse } = useApi()
 const $q = useQuasar()
 
 const showAddDialog = ref(false)
+const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
-const isSaving = ref(false)
+const isAdding = ref(false)
+const isUpdating = ref(false)
 const deletingPriceId = ref<number | null>(null)
 const pendingDeletePriceId = ref<number | null>(null)
+const pendingEditPriceId = ref<number | null>(null)
+
+const selectedEditPrice = computed<DynamicPriceRow | null>(() => {
+  if (pendingEditPriceId.value === null) {
+    return null
+  }
+
+  const found =
+    product.value.dynamic_prices?.find((price) => price.price_id === pendingEditPriceId.value) ??
+    null
+  return found as DynamicPriceRow | null
+})
 
 const pendingDeletePrice = computed<DynamicPriceRow | null>(() => {
   if (pendingDeletePriceId.value === null) {
@@ -142,7 +180,7 @@ const pendingDeletePriceDescription = computed(() => {
 })
 
 const onAddDynamicPrice = async (body: DynamicProductPriceCreateSchema) => {
-  isSaving.value = true
+  isAdding.value = true
   try {
     const result = await warehouseApiRoutesProductAddProductDynamicPrice({
       path: { product_code: product.value.code },
@@ -157,7 +195,49 @@ const onAddDynamicPrice = async (body: DynamicProductPriceCreateSchema) => {
     showAddDialog.value = false
     $q.notify({ type: 'positive', message: 'Dynamická cena byla přidána.' })
   } finally {
-    isSaving.value = false
+    isAdding.value = false
+  }
+}
+
+const onEditDynamicPrice = (priceId: number) => {
+  if (priceId < 0) {
+    return
+  }
+
+  pendingEditPriceId.value = priceId
+  showEditDialog.value = true
+}
+
+const onUpdateDynamicPrice = async (body: DynamicProductPriceUpdateSchema) => {
+  const priceId = pendingEditPriceId.value
+  if (priceId === null) {
+    return
+  }
+
+  isUpdating.value = true
+  try {
+    const result = await warehouseApiRoutesProductUpdateProductDynamicPrice({
+      path: { product_code: product.value.code, price_id: priceId },
+      body,
+    })
+    const data = onResponse(result)
+    if (!data?.data) {
+      return
+    }
+
+    product.value = data.data
+    showEditDialog.value = false
+    pendingEditPriceId.value = null
+    $q.notify({ type: 'positive', message: 'Dynamicka cena byla upravena.' })
+  } finally {
+    isUpdating.value = false
+  }
+}
+
+const onEditDialogVisibilityChange = (visible: boolean) => {
+  showEditDialog.value = visible
+  if (!visible) {
+    pendingEditPriceId.value = null
   }
 }
 
@@ -225,6 +305,12 @@ const formatPriceType = (row: DynamicProductPriceSchema) => {
 
 const columns: QTableColumn[] = [
   {
+    name: 'actions',
+    label: '',
+    field: 'price_id',
+    align: 'right',
+  },
+  {
     name: 'type',
     label: 'Typ ceny',
     field: 'price_id',
@@ -276,12 +362,6 @@ const columns: QTableColumn[] = [
     align: 'left',
     format: (val) => `${val} Kč`,
     classes: 'text-primary font-bold',
-  },
-  {
-    name: 'actions',
-    label: '',
-    field: 'price_id',
-    align: 'right',
   },
 ]
 </script>

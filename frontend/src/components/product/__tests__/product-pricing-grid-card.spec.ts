@@ -11,7 +11,7 @@ type DynamicPriceRow = DynamicProductPriceSchema & {
 }
 
 describe('ProductPricingGridCard', () => {
-  it('renders customer target and emits delete', async () => {
+  it('renders customer target and emits edit and delete', async () => {
     const row = {
       price_id: 10,
       fixed_price: 170,
@@ -43,7 +43,13 @@ describe('ProductPricingGridCard', () => {
     expect(wrapper.text()).toContain('170 Kč')
     expect(wrapper.text()).toContain('Customer One')
 
-    await wrapper.find('button').trigger('click')
+    const actionButtons = wrapper.findAll('button')
+    expect(actionButtons).toHaveLength(2)
+
+    await actionButtons[0].trigger('click')
+    expect(wrapper.emitted('edit')).toEqual([[10]])
+
+    await actionButtons[1].trigger('click')
     expect(wrapper.emitted('delete')).toEqual([[10]])
   })
 })

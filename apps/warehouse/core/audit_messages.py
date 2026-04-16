@@ -139,6 +139,12 @@ class AuditMessages:
             AuditLanguage.CS: "Produkt byl aktualizován",
         }
     )
+    PRODUCT_BASE_PRICE_ALIGNED_TO_PURCHASE_PRICE = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Base selling price aligned to purchase price",
+            AuditLanguage.CS: "Základní prodejní cena byla nastavena podle nákupní ceny",
+        }
+    )
     MANUAL_CORRECTION = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Manual correction",
