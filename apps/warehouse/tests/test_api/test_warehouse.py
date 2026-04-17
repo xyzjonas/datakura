@@ -84,6 +84,47 @@ def test_get_outbound_warehouse_order(db, client) -> None:
     assert payload["order"]["code"] == linked_order.code
 
 
+def test_get_outbound_warehouse_order_audits(db, client) -> None:
+    order = WarehouseOrderOutFactory.it(state=OutboundWarehouseOrderState.PENDING)
+    source_order_item = OutboundOrderItemFactory.it(order=order.order)
+    item = OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=order,
+        source_order_item=source_order_item,
+        stock_product=source_order_item.stock_product,
+        amount=source_order_item.amount,
+    )
+    location_a = WarehouseLocationFactory.it()
+    location_b = WarehouseLocationFactory.it()
+
+    audit_log = audit_service.add_entry(
+        order,
+        action=AuditAction.UPDATE,
+        reason=AuditMessages.WAREHOUSE_ORDER_ADJUSTED.CS,
+    )
+    movement = WarehouseMovement.objects.create(
+        location_from=location_a,
+        location_to=location_b,
+        outbound_order_code=order,
+        stock_product=item.stock_product,
+        amount=1,
+        item=None,
+    )
+
+    now = timezone.now()
+    AuditLog.objects.filter(pk=audit_log.pk).update(created=now - timedelta(hours=1))  # type: ignore
+    WarehouseMovement.objects.filter(pk=movement.pk).update(moved_at=now)
+
+    res = client.get(f"orders-outgoing/{order.code}/audits")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert len(data) == 2
+    assert data[0]["source"] == "movement"
+    assert data[0]["action"] == AuditAction.TRANSITION
+    assert data[1]["source"] == "audit"
+    assert data[1]["action"] == AuditAction.UPDATE
+
+
 def test_get_inbound_order_item_shows_outbound_link_and_done_when_assigned(
     db, client
 ) -> None:

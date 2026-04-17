@@ -477,6 +477,10 @@ export type WarehouseItemSchema = {
      * Inbound Order Code
      */
     inbound_order_code?: string | null;
+    /**
+     * Outbound Order Code
+     */
+    outbound_order_code?: string | null;
     package?: PackageSchema | null;
     batch?: BatchSchema | null;
     /**
@@ -598,6 +602,10 @@ export type WarehouseItemDetailSchema = {
      * Inbound Order Code
      */
     inbound_order_code?: string | null;
+    /**
+     * Outbound Order Code
+     */
+    outbound_order_code?: string | null;
     package?: PackageSchema | null;
     batch?: BatchSchema | null;
     /**
@@ -1425,6 +1433,21 @@ export type GetOutboundWarehouseOrderResponse = {
 };
 
 /**
+ * GetAuditTimelineResponse
+ */
+export type GetAuditTimelineResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<AuditTimelineEntrySchema>;
+};
+
+/**
  * GetOutboundWarehouseOrderItemCandidatesResponse
  */
 export type GetOutboundWarehouseOrderItemCandidatesResponse = {
@@ -1447,21 +1470,6 @@ export type AssignOutboundWarehouseOrderItemRequest = {
      * Warehouse Item Id
      */
     warehouse_item_id: number;
-};
-
-/**
- * GetAuditTimelineResponse
- */
-export type GetAuditTimelineResponse = {
-    /**
-     * Success
-     */
-    success?: boolean;
-    error?: ErrorInformation | null;
-    /**
-     * Data
-     */
-    data: Array<AuditTimelineEntrySchema>;
 };
 
 /**
@@ -3662,6 +3670,27 @@ export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponses = {
 };
 
 export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponses];
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderAuditsData = {
+    body?: never;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-outgoing/{code}/audits';
+};
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderAuditsResponses = {
+    /**
+     * OK
+     */
+    200: GetAuditTimelineResponse;
+};
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderAuditsResponse = WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderAuditsResponses[keyof WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderAuditsResponses];
 
 export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderItemCandidatesData = {
     body?: never;

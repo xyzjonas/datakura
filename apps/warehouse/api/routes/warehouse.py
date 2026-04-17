@@ -223,6 +223,15 @@ def get_outbound_warehouse_order(request: HttpRequest, code: str):
 
 
 @routes.get(
+    "orders-outgoing/{code}/audits",
+    response={200: GetAuditTimelineResponse},
+)
+def get_outbound_warehouse_order_audits(request: HttpRequest, code: str):
+    order = OutboundWarehouseOrder.objects.get(code=code)
+    return GetAuditTimelineResponse(data=audit_service.get_timeline_for_object(order))
+
+
+@routes.get(
     "orders-outgoing/{code}/order-items/{item_id}/candidates",
     response={200: GetOutboundWarehouseOrderItemCandidatesResponse},
 )

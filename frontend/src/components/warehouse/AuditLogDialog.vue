@@ -20,6 +20,7 @@ import {
   warehouseApiRoutesOutboundOrdersGetOutboundOrderAudits,
   warehouseApiRoutesProductGetProductAudits,
   warehouseApiRoutesWarehouseGetInboundWarehouseOrderAudits,
+  warehouseApiRoutesWarehouseGetOutboundWarehouseOrderAudits,
   type GetAuditTimelineResponse,
 } from '@/client'
 import RightSideDialog from '@/components/layout/RightSideDialog.vue'
@@ -27,7 +28,12 @@ import WarehouseItemAuditTimeline from '@/components/warehouse/WarehouseItemAudi
 import { useApi } from '@/composables/use-api'
 import { ref, watch } from 'vue'
 
-type AuditSource = 'inbound-order' | 'outbound-order' | 'warehouse-inbound-order' | 'product'
+type AuditSource =
+  | 'inbound-order'
+  | 'outbound-order'
+  | 'warehouse-inbound-order'
+  | 'warehouse-outbound-order'
+  | 'product'
 
 type Props = {
   source: AuditSource
@@ -58,6 +64,15 @@ const fetchAudits = async () => {
   try {
     if (props.source === 'warehouse-inbound-order') {
       const response = await warehouseApiRoutesWarehouseGetInboundWarehouseOrderAudits({
+        path: { code: props.code },
+      })
+      const payload = onResponse(response)
+      entries.value = payload?.data ?? []
+      return
+    }
+
+    if (props.source === 'warehouse-outbound-order') {
+      const response = await warehouseApiRoutesWarehouseGetOutboundWarehouseOrderAudits({
         path: { code: props.code },
       })
       const payload = onResponse(response)

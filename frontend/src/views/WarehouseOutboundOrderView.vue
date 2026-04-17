@@ -1,13 +1,17 @@
 <template>
   <div v-if="order" class="flex flex-col gap-2 flex-1">
-    <div class="flex justify-between flex-wrap">
-      <q-breadcrumbs class="mb-5 flex-[3]">
+    <div class="flex justify-between">
+      <q-breadcrumbs class="flex-[3]">
         <q-breadcrumbs-el label="Domů" :to="{ name: 'home' }" />
         <q-breadcrumbs-el label="Výdejky" :to="{ name: 'warehouseOutboundOrders' }" />
         <q-breadcrumbs-el :label="order.code" />
       </q-breadcrumbs>
+      <!-- <OrderProgress :order="order" class="flex-1 h-6 w-full" /> -->
       <div class="flex flex-col items-end gap-3 flex-1">
-        <OrderProgress :order="order" class="flex-1 h-6 w-full" />
+        <OrderProgress :order="order" class="h-6 w-full" />
+        <q-btn flat color="primary" icon-right="sym_o_query_stats" @click="auditDialog = true">
+          <q-tooltip :offset="[0, 10]">Zobrazit historii</q-tooltip>
+        </q-btn>
       </div>
     </div>
 
@@ -107,6 +111,12 @@
       :warehouse-order-code="order.code"
       @updated="replaceOrder"
     />
+    <AuditLogDialog
+      v-model:show="auditDialog"
+      source="warehouse-outbound-order"
+      :code="order.code"
+      title="Historie stavu výdejky"
+    />
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
@@ -126,6 +136,7 @@ import LargeTabs from '@/components/LargeTabs.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
 import OutboundWarehouseOrderItemsList from '@/components/putaway/OutboundWarehouseOrderItemsList.vue'
 import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'
+import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { computed, ref } from 'vue'
 
@@ -155,4 +166,6 @@ const doneItems = computed(() => (order.value?.order_items ?? []).filter((item) 
 const replaceOrder = (nextOrder: OutboundWarehouseOrderSchema) => {
   order.value = nextOrder
 }
+
+const auditDialog = ref(false)
 </script>

@@ -109,6 +109,23 @@
               <span v-else class="text-gray-5">-</span>
             </q-item-section>
           </q-item>
+          <q-item>
+            <q-item-section>Výdejka</q-item-section>
+            <q-item-section avatar>
+              <a
+                v-if="outboundOrderCode"
+                @click="
+                  $router.push({
+                    name: 'warehouseOutboundOrderDetail',
+                    params: { code: outboundOrderCode },
+                  })
+                "
+                class="link"
+                >{{ outboundOrderCode }}</a
+              >
+              <span v-else class="text-gray-5">-</span>
+            </q-item-section>
+          </q-item>
           <q-item v-if="item.batch">
             <q-item-section>Šarže</q-item-section>
             <q-item-section avatar>
@@ -161,8 +178,9 @@ const response = await warehouseApiRoutesWarehouseGetWarehouseItem({
 const data = onResponse(response)
 const item = data?.data
 
-const inboundOrderCode =
-  (item as { inbound_order_code?: string | null } | undefined)?.inbound_order_code ?? null
+const inboundOrderCode = item?.inbound_order_code ?? null
+
+const outboundOrderCode = item?.outbound_order_code ?? null
 
 const auditDialog = ref(false)
 </script>

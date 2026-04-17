@@ -300,6 +300,7 @@ class WarehouseService:
                 "package_type",
                 "package_type__unit_of_measure",
                 "batch",
+                "outbound_assignment__warehouse_order",
             ).get(pk=item_id)
         except WarehouseItem.DoesNotExist as exc:
             raise WarehouseItemNotFoundError(

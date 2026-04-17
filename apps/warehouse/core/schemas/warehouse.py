@@ -61,6 +61,7 @@ class WarehouseItemSchema(BaseSchema):
     location: WarehouseLocationSchema
     tracking_level: TrackingLevel
     inbound_order_code: str | None = None
+    outbound_order_code: str | None = None
     package: PackageSchema | None = None
     batch: BatchSchema | None = None
     primary_barcode: str | None = None
