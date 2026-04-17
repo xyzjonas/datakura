@@ -13,9 +13,11 @@ from apps.warehouse.api.pagination import (
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.warehouse import (
+    AssignOutboundWarehouseOrderItemRequest,
     GetWarehouseLocationResponse,
     GetWarehouseItemResponse,
     GetWarehouseOrderResponse,
+    GetOutboundWarehouseOrderItemCandidatesResponse,
     GetOutboundWarehouseOrderResponse,
     WarehouseOrderCreateSchema,
     InboundWarehouseOrderSchema,
@@ -221,6 +223,39 @@ def get_outbound_warehouse_order(request: HttpRequest, code: str):
 
 
 @routes.get(
+    "orders-outgoing/{code}/order-items/{item_id}/candidates",
+    response={200: GetOutboundWarehouseOrderItemCandidatesResponse},
+)
+def get_outbound_warehouse_order_item_candidates(
+    request: HttpRequest,
+    code: str,
+    item_id: int,
+):
+    return GetOutboundWarehouseOrderItemCandidatesResponse(
+        data=warehouse_service.get_outbound_item_candidates(code, item_id)
+    )
+
+
+@routes.post(
+    "orders-outgoing/{code}/order-items/{item_id}/assign",
+    response={200: GetOutboundWarehouseOrderResponse},
+)
+def assign_outbound_warehouse_order_item(
+    request: HttpRequest,
+    code: str,
+    item_id: int,
+    body: AssignOutboundWarehouseOrderItemRequest,
+):
+    order = warehouse_service.assign_outbound_item(
+        warehouse_order_code=code,
+        order_item_id=item_id,
+        warehouse_item_id=body.warehouse_item_id,
+        context=RequestContext.from_django_request(request),
+    )
+    return GetOutboundWarehouseOrderResponse(data=order)
+
+
+@routes.get(
     "orders-incoming/{code}/audits",
     response={200: GetAuditTimelineResponse},
 )
@@ -362,3 +397,23 @@ def offload_items_to_child_order(
         context=RequestContext.from_django_request(request),
     )
     return GetWarehouseOrderResponse(data=order)
+
+
+@routes.post(
+    "orders-outgoing/{code}/offload",
+    response={200: GetOutboundWarehouseOrderResponse},
+)
+def offload_outbound_items_to_child_order(
+    request: HttpRequest,
+    code: str,
+    body: OffloadItemsToChildOrderRequest,
+):
+    from decimal import Decimal
+
+    items = [(item.item_id, Decimal(str(item.amount))) for item in body.items]
+    order = warehouse_service.offload_outbound_items_to_child_order(
+        parent_code=code,
+        items=items,
+        context=RequestContext.from_django_request(request),
+    )
+    return GetOutboundWarehouseOrderResponse(data=order)

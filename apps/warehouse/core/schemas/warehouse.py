@@ -125,6 +125,7 @@ class InboundWarehouseOrderItemSchema(BaseSchema):
     batch_barcode: str | None
     pending: bool
     warehouse_item_id: int | None = None
+    outbound_order_code: str | None = None
 
 
 class DraftItemAddSchema(Schema):
@@ -146,12 +147,26 @@ class InboundWarehouseOrderSchema(InboundWarehouseOrderBaseSchema):
 
 
 class OutboundWarehouseOrderSchema(OutboundWarehouseOrderBaseSchema):
+    order_items: list["OutboundWarehouseOrderItemSchema"]
     items: list[WarehouseItemSchema]
     movements: list[WarehouseMovementSchema]
     completed_items_count: int
     total_amount: float
     remaining_amount: float
     order: OutboundOrderBaseSchema
+
+
+class OutboundWarehouseOrderItemSchema(BaseSchema):
+    id: int
+    product: ProductSchema
+    unit_of_measure: str
+    amount: Decimal
+    desired_package_type_name: str | None
+    desired_batch_code: str | None
+    warehouse_item_id: int | None = None
+    warehouse_item: WarehouseItemSchema | None = None
+    pending: bool
+    index: int
 
 
 class InboundWarehouseOrderUpdateSchema(Schema):
@@ -259,3 +274,11 @@ class OffloadItemSchema(Schema):
 
 class OffloadItemsToChildOrderRequest(Schema):
     items: list[OffloadItemSchema]
+
+
+class AssignOutboundWarehouseOrderItemRequest(Schema):
+    warehouse_item_id: int
+
+
+class GetOutboundWarehouseOrderItemCandidatesResponse(BaseResponse):
+    data: list[WarehouseItemSchema]

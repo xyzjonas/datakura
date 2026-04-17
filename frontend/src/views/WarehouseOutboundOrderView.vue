@@ -38,24 +38,75 @@
           {{ order.order.code }}
         </a>
       </ForegroundPanel>
+      <ForegroundPanel class="flex-1 flex flex-col gap-2 justify-center">
+        <span class="text-gray-5 text-2xs uppercase">Vazby</span>
+        <a
+          v-if="order.parent_order"
+          class="link"
+          @click="
+            $router.push({
+              name: 'warehouseOutboundOrderDetail',
+              params: { code: order.parent_order.code },
+            })
+          "
+        >
+          Nadřazená: {{ order.parent_order.code }}
+        </a>
+        <a
+          v-for="child in order.child_orders"
+          :key="child.code"
+          class="link"
+          @click="
+            $router.push({ name: 'warehouseOutboundOrderDetail', params: { code: child.code } })
+          "
+        >
+          Podřízená: {{ child.code }}
+        </a>
+        <span
+          v-if="!order.parent_order && (order.child_orders?.length ?? 0) === 0"
+          class="text-gray-5"
+        >
+          Bez návazných výdejek
+        </span>
+      </ForegroundPanel>
     </div>
 
-    <ForegroundPanel>
-      <span class="text-gray-5 text-xs">Pohyby</span>
-      <TransitionGroup name="list" tag="div" class="flex mt-2">
-        <WarehouseMovementItem
-          v-for="(movement, index) in movements"
-          :key="index"
-          :index="index + 1"
-          :movement="movement"
-        />
-        <q-item v-if="movements.length === 0">
-          <q-item-section>
-            <q-item-label caption>Žádné pohyby nebyly zaznamenány.</q-item-label>
-          </q-item-section>
-        </q-item>
-      </TransitionGroup>
-    </ForegroundPanel>
+    <div class="flex items-center justify-between mb-1 mt-3">
+      <div>
+        <span class="text-gray-5 text-xs">Položky k vychystání</span>
+        <div class="text-sm text-gray-6 mt-1">
+          Hotovo {{ doneItems.length }} / {{ order.order_items.length }}
+        </div>
+      </div>
+      <q-badge color="primary">Zbývá {{ order.remaining_amount }}</q-badge>
+    </div>
+
+    <LargeTabs
+      v-model:tab="activeTabKey"
+      :items="[
+        {
+          key: 'todo',
+          icon: 'sym_o_playlist_add_check',
+          title: `${todoItems.length} položky k vychystání`,
+        },
+        { key: 'done', icon: 'sym_o_task_alt', title: `${doneItems.length} přiřazené položky` },
+      ]"
+      class="my-5"
+    />
+
+    <OutboundWarehouseOrderItemsList
+      v-if="activeTabKey === 'todo'"
+      :items="todoItems"
+      :warehouse-order-code="order.code"
+      @updated="replaceOrder"
+    />
+
+    <OutboundWarehouseOrderItemsList
+      v-if="activeTabKey === 'done'"
+      :items="doneItems"
+      :warehouse-order-code="order.code"
+      @updated="replaceOrder"
+    />
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
@@ -71,9 +122,10 @@ import {
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import LargeTabs from '@/components/LargeTabs.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
+import OutboundWarehouseOrderItemsList from '@/components/putaway/OutboundWarehouseOrderItemsList.vue'
 import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'
-import WarehouseMovementItem from '@/components/warehouse/WarehouseMovementItem.vue'
 import { useApi } from '@/composables/use-api'
 import { computed, ref } from 'vue'
 
@@ -90,5 +142,17 @@ if (data) {
   order.value = data.data
 }
 
-const movements = computed(() => order.value?.movements ?? [])
+const activeTabKey = ref('todo')
+
+const pendingOrderItems = computed(() =>
+  (order.value?.order_items ?? []).filter((item) => item.pending),
+)
+
+const todoItems = computed(() => pendingOrderItems.value)
+
+const doneItems = computed(() => (order.value?.order_items ?? []).filter((item) => !item.pending))
+
+const replaceOrder = (nextOrder: OutboundWarehouseOrderSchema) => {
+  order.value = nextOrder
+}
 </script>

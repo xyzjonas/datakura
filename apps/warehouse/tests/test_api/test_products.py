@@ -24,6 +24,12 @@ from apps.warehouse.tests.factories.product import (
     StockProductPriceCustomerFactory,
 )
 from apps.warehouse.tests.factories.customer import CustomerFactory
+from apps.warehouse.tests.factories.warehouse import (
+    InboundWarehouseOrderFactory,
+    WarehouseItemFactory,
+    WarehouseLocationFactory,
+)
+from apps.warehouse.models.warehouse import InboundWarehouseOrderState
 
 
 @pytest.fixture
@@ -257,6 +263,28 @@ def test_duplicate_product(db, client):
     assert duplicated.name == "Duplicated Product"
     assert duplicated.type.name == source.type.name
     assert duplicated.unit_of_measure.name == source.unit_of_measure.name
+
+
+def test_get_product_warehouse_availability_includes_pending_inbound_putaway_stock(
+    db, client
+):
+    product = cast(StockProduct, StockProductFactory())
+    putaway_location = WarehouseLocationFactory(is_putaway=True)
+    inbound_order = InboundWarehouseOrderFactory(
+        state=InboundWarehouseOrderState.PENDING
+    )
+    WarehouseItemFactory(
+        stock_product=product,
+        amount=12,
+        order_in=inbound_order,
+        location=putaway_location,
+    )
+
+    response = client.get(f"/{product.code}/warehouse-availablity")
+
+    assert response.status_code == 200
+    assert response.json()["data"]["total_amount"] == "12"
+    assert response.json()["data"]["available_amount"] == "12"
 
 
 def test_add_product_barcode_switches_primary(db, client):

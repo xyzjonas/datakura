@@ -81,7 +81,24 @@ class AvailableWarehouseItemManager(
                     InboundWarehouseOrderState.IN_TRANSIT,
                 )
             )
-            .exclude(location__is_putaway=True),
+            .exclude(location__is_putaway=True)
+            .exclude(outbound_assignment__isnull=False),
+        )
+
+    def filter(self, *args: Any, **kwargs: Any) -> AvailableWarehouseItemQuerySet:
+        return cast(AvailableWarehouseItemQuerySet, super().filter(*args, **kwargs))
+
+    def total_amount(self, product_code: str | None = None) -> Decimal:
+        return self.get_queryset().total_amount(product_code=product_code)
+
+
+class PhysicalWarehouseItemManager(
+    models.Manager.from_queryset(AvailableWarehouseItemQuerySet)  # type: ignore
+):
+    def get_queryset(self) -> AvailableWarehouseItemQuerySet:
+        return cast(
+            AvailableWarehouseItemQuerySet,
+            super().get_queryset().exclude(outbound_assignment__isnull=False),
         )
 
     def filter(self, *args: Any, **kwargs: Any) -> AvailableWarehouseItemQuerySet:
@@ -96,6 +113,7 @@ class WarehouseItem(BaseModel, BarcodeMixin):
 
     objects = models.Manager()
     available = AvailableWarehouseItemManager()
+    physical_stock = PhysicalWarehouseItemManager()
 
     stock_product = models.ForeignKey(
         StockProduct,
@@ -301,6 +319,9 @@ class OutboundWarehouseOrder(BaseModel):
         blank=True,
     )
     items: QuerySet["WarehouseItem"]
+    order_items: QuerySet["OutboundWarehouseOrderItem"]
+    derived_orders: QuerySet["OutboundWarehouseOrder"]
+    warehouse_movements: QuerySet["WarehouseMovement"]
     state = models.PositiveIntegerField(
         choices=OutboundWarehouseOrderState,
         default=OutboundWarehouseOrderState.DRAFT,
@@ -321,6 +342,57 @@ class OutboundWarehouseOrder(BaseModel):
         return self.code
 
 
+class OutboundWarehouseOrderItem(BaseModel):
+    """Frozen outbound picking requirement linked to exactly one warehouse item when picked."""
+
+    warehouse_order = models.ForeignKey(
+        OutboundWarehouseOrder,
+        on_delete=models.CASCADE,
+        related_name="order_items",
+    )
+    source_order_item = models.ForeignKey(
+        "warehouse.OutboundOrderItem",
+        on_delete=models.CASCADE,
+        related_name="warehouse_order_items",
+    )
+    stock_product = models.ForeignKey(
+        StockProduct,
+        null=False,
+        on_delete=models.PROTECT,
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=4)
+    desired_package_type = models.ForeignKey(
+        PackageType,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="outbound_warehouse_order_items",
+    )
+    desired_batch = models.ForeignKey(
+        Batch,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="outbound_warehouse_order_items",
+    )
+    warehouse_item = models.OneToOneField(
+        WarehouseItem,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="outbound_assignment",
+    )
+    index = models.PositiveIntegerField(default=0)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["index", "created"]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.amount} × {self.stock_product.name} ({self.warehouse_order.code})"
+        )
+
+
 class InboundWarehouseOrder(BaseModel):
     """Warehouse work item - supply - move in the warehouse"""
 
@@ -333,6 +405,7 @@ class InboundWarehouseOrder(BaseModel):
     items: QuerySet[WarehouseItem]
     order_items: QuerySet["InboundWarehouseOrderItem"]
     derived_orders: QuerySet["InboundWarehouseOrder"]
+    warehouse_movements: QuerySet["WarehouseMovement"]
     state = models.PositiveIntegerField(
         choices=InboundWarehouseOrderState,
         default=InboundWarehouseOrderState.DRAFT,

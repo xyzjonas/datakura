@@ -80,6 +80,8 @@ class OutboundOrderItemCreateSchema(Schema):
     total_price: float
     unit_price: float | None = None
     index: int | None = None
+    desired_package_type_name: str | None = None
+    desired_batch_code: str | None = None
 
 
 class OutboundOrderItemPricingDetailsSchema(Schema):
@@ -100,6 +102,8 @@ class OutboundOrderItemSchema(BaseSchema):
     unit_price: float
     total_price: float
     index: int
+    desired_package_type_name: str | None = None
+    desired_batch_code: str | None = None
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None
 
 

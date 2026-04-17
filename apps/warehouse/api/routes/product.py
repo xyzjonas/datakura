@@ -45,7 +45,7 @@ from apps.warehouse.core.transformation import (
     location_orm_to_schema,
 )
 from apps.warehouse.models.product import ProductType, StockProduct
-from apps.warehouse.models.warehouse import WarehouseItem, InboundWarehouseOrderState
+from apps.warehouse.models.warehouse import WarehouseItem
 
 routes = Router(tags=["product"])
 
@@ -286,27 +286,34 @@ def delete_product_dynamic_price(
     "/{product_code}/warehouse-info",
     response={200: GetProductWarehouseInfoResponse},
 )
-def get_product_warehouse_info(request: HttpRequest, product_code: str):
-    # user = authenticate(
-    #     request, username=credentials.username, password=credentials.password
-    # )
+def get_product_warehouse_info(
+    request: HttpRequest,
+    product_code: str,
+    package_type_name: str | None = None,
+    batch_code: str | None = None,
+):
     items = (
-        WarehouseItem.objects.filter(stock_product__code=product_code)
-        .exclude(order_in__state=InboundWarehouseOrderState.DRAFT)
+        WarehouseItem.physical_stock.filter(stock_product__code=product_code)
         .prefetch_related(
             "package_type",
             "stock_product",
             "location",
             "location__warehouse",
+            "batch",
         )
         .all()
     )
+    if package_type_name:
+        items = items.filter(package_type__name=package_type_name)
+    if batch_code:
+        items = items.filter(batch__barcodes__code=batch_code)
 
     warehouses: list[WarehouseExpandedSchema] = []
     warehouse_names = set()
     location_names = set()
 
-    for item in items:
+    filtered_items = list(items)
+    for item in filtered_items:
         warehouse_model = item.location.warehouse
         if warehouse_model.name not in warehouse_names:
             warehouse = WarehouseExpandedSchema(

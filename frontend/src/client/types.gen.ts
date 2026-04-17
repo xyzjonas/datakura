@@ -1055,6 +1055,10 @@ export type InboundWarehouseOrderItemSchema = {
      * Warehouse Item Id
      */
     warehouse_item_id?: number | null;
+    /**
+     * Outbound Order Code
+     */
+    outbound_order_code?: string | null;
 };
 
 /**
@@ -1266,6 +1270,54 @@ export type OutboundWarehouseOrderBaseSchema = {
 };
 
 /**
+ * OutboundWarehouseOrderItemSchema
+ */
+export type OutboundWarehouseOrderItemSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    product: ProductSchema;
+    /**
+     * Unit Of Measure
+     */
+    unit_of_measure: string;
+    /**
+     * Amount
+     */
+    amount: string;
+    /**
+     * Desired Package Type Name
+     */
+    desired_package_type_name: string | null;
+    /**
+     * Desired Batch Code
+     */
+    desired_batch_code: string | null;
+    /**
+     * Warehouse Item Id
+     */
+    warehouse_item_id?: number | null;
+    warehouse_item?: WarehouseItemSchema | null;
+    /**
+     * Pending
+     */
+    pending: boolean;
+    /**
+     * Index
+     */
+    index: number;
+};
+
+/**
  * OutboundWarehouseOrderSchema
  */
 export type OutboundWarehouseOrderSchema = {
@@ -1294,6 +1346,10 @@ export type OutboundWarehouseOrderSchema = {
      * Child Orders
      */
     child_orders?: Array<OutboundWarehouseOrderBaseSchema>;
+    /**
+     * Order Items
+     */
+    order_items: Array<OutboundWarehouseOrderItemSchema>;
     /**
      * Items
      */
@@ -1366,6 +1422,31 @@ export type GetOutboundWarehouseOrderResponse = {
     success?: boolean;
     error?: ErrorInformation | null;
     data: OutboundWarehouseOrderSchema;
+};
+
+/**
+ * GetOutboundWarehouseOrderItemCandidatesResponse
+ */
+export type GetOutboundWarehouseOrderItemCandidatesResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<WarehouseItemSchema>;
+};
+
+/**
+ * AssignOutboundWarehouseOrderItemRequest
+ */
+export type AssignOutboundWarehouseOrderItemRequest = {
+    /**
+     * Warehouse Item Id
+     */
+    warehouse_item_id: number;
 };
 
 /**
@@ -2780,6 +2861,14 @@ export type OutboundOrderItemSchema = {
      * Index
      */
     index: number;
+    /**
+     * Desired Package Type Name
+     */
+    desired_package_type_name?: string | null;
+    /**
+     * Desired Batch Code
+     */
+    desired_batch_code?: string | null;
     pricing_details?: OutboundOrderItemPricingDetailsSchema | null;
 };
 
@@ -2967,6 +3056,14 @@ export type OutboundOrderItemCreateSchema = {
      * Index
      */
     index?: number | null;
+    /**
+     * Desired Package Type Name
+     */
+    desired_package_type_name?: string | null;
+    /**
+     * Desired Batch Code
+     */
+    desired_batch_code?: string | null;
 };
 
 /**
@@ -3566,6 +3663,56 @@ export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponses = {
 
 export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponse = WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponses[keyof WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderResponses];
 
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderItemCandidatesData = {
+    body?: never;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Item Id
+         */
+        item_id: number;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-outgoing/{code}/order-items/{item_id}/candidates';
+};
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderItemCandidatesResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundWarehouseOrderItemCandidatesResponse;
+};
+
+export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderItemCandidatesResponse = WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderItemCandidatesResponses[keyof WarehouseApiRoutesWarehouseGetOutboundWarehouseOrderItemCandidatesResponses];
+
+export type WarehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItemData = {
+    body: AssignOutboundWarehouseOrderItemRequest;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Item Id
+         */
+        item_id: number;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-outgoing/{code}/order-items/{item_id}/assign';
+};
+
+export type WarehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItemResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItemResponse = WarehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItemResponses];
+
 export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrderAuditsData = {
     body?: never;
     path: {
@@ -3745,6 +3892,27 @@ export type WarehouseApiRoutesWarehouseOffloadItemsToChildOrderResponses = {
 };
 
 export type WarehouseApiRoutesWarehouseOffloadItemsToChildOrderResponse = WarehouseApiRoutesWarehouseOffloadItemsToChildOrderResponses[keyof WarehouseApiRoutesWarehouseOffloadItemsToChildOrderResponses];
+
+export type WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderData = {
+    body: OffloadItemsToChildOrderRequest;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/warehouse/orders-outgoing/{code}/offload';
+};
+
+export type WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundWarehouseOrderResponse;
+};
+
+export type WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderResponse = WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderResponses[keyof WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderResponses];
 
 export type WarehouseApiRoutesProductGetTypesData = {
     body?: never;
@@ -3975,27 +4143,6 @@ export type WarehouseApiRoutesProductDuplicateProductResponses = {
 
 export type WarehouseApiRoutesProductDuplicateProductResponse = WarehouseApiRoutesProductDuplicateProductResponses[keyof WarehouseApiRoutesProductDuplicateProductResponses];
 
-export type WarehouseApiRoutesProductRefreshProductBasePriceData = {
-    body?: never;
-    path: {
-        /**
-         * Product Code
-         */
-        product_code: string;
-    };
-    query?: never;
-    url: '/api/v1/products/{product_code}/refresh-base-price';
-};
-
-export type WarehouseApiRoutesProductRefreshProductBasePriceResponses = {
-    /**
-     * OK
-     */
-    200: GetProductResponse;
-};
-
-export type WarehouseApiRoutesProductRefreshProductBasePriceResponse = WarehouseApiRoutesProductRefreshProductBasePriceResponses[keyof WarehouseApiRoutesProductRefreshProductBasePriceResponses];
-
 export type WarehouseApiRoutesProductGetProductAuditsData = {
     body?: never;
     path: {
@@ -4196,7 +4343,16 @@ export type WarehouseApiRoutesProductGetProductWarehouseInfoData = {
          */
         product_code: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Package Type Name
+         */
+        package_type_name?: string | null;
+        /**
+         * Batch Code
+         */
+        batch_code?: string | null;
+    };
     url: '/api/v1/products/{product_code}/warehouse-info';
 };
 

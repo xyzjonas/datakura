@@ -82,14 +82,13 @@
       <TotalWeight :order="order" class="ml-auto mr-5" />
       <TotalPrice :order="order" />
     </div>
-    <ProductsList
+    <OutboundOrderProductsList
       v-model:items="order.items"
       :currency="order.currency"
       :readonly="!isDraft"
       :order-code="order.code"
       :customer-code="order.customer.code"
-      order-type="outbound"
-      @dissolve-item="removeItem"
+      @remove-item="removeItem"
       @reorder-items="reorderItems"
       @add-item="addItemDialog = true"
     />
@@ -165,7 +164,7 @@ import OutboundOrderTimeline from '@/components/order/OutboundOrderTimeline.vue'
 import OutboundOrderDetailsListCard from '@/components/order/OutboundOrderDetailsListCard.vue'
 import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
 import OutboundOrderUpdateOrCreateDialog from '@/components/order/OutboundOrderUpdateOrCreateDialog.vue'
-import ProductsList from '@/components/order/ProductsList.vue'
+import OutboundOrderProductsList from '@/components/order/OutboundOrderProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
 import { useApi } from '@/composables/use-api'
@@ -239,6 +238,8 @@ const reorderItems = async (items: NonNullable<OutboundOrderSchema['items']>) =>
           total_price: item.total_price,
           unit_price: item.unit_price,
           index: item.index,
+          desired_package_type_name: item.desired_package_type_name,
+          desired_batch_code: item.desired_batch_code,
         },
       })
       const data = onResponse(res)

@@ -25,10 +25,13 @@ from apps.warehouse.models.warehouse import (
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
     InboundOrderItemFactory,
+    OutboundOrderFactory,
+    OutboundOrderItemFactory,
 )
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderItemFactory,
     InboundWarehouseOrderFactory,
+    OutboundWarehouseOrderItemFactory,
     WarehouseOrderOutFactory,
     WarehouseItemFactory,
     WarehouseLocationFactory,
@@ -79,6 +82,44 @@ def test_get_outbound_warehouse_order(db, client) -> None:
     payload = res.json()["data"]
     assert payload["code"] == order.code
     assert payload["order"]["code"] == linked_order.code
+
+
+def test_get_inbound_order_item_shows_outbound_link_and_done_when_assigned(
+    db, client
+) -> None:
+    inbound_order = InboundWarehouseOrderFactory.create_complete(
+        state=InboundWarehouseOrderState.PENDING
+    )
+    inbound_item = inbound_order.order_items.first()
+    warehouse_item = inbound_order.items.first()
+    assert inbound_item is not None
+    assert warehouse_item is not None
+
+    outbound_order = OutboundOrderFactory.it()
+    source_order_item = OutboundOrderItemFactory(
+        order=outbound_order,
+        stock_product=warehouse_item.stock_product,
+        amount=warehouse_item.amount,
+    )
+    outbound_warehouse_order = WarehouseOrderOutFactory(
+        order=outbound_order,
+        state=OutboundWarehouseOrderState.STARTED,
+    )
+    OutboundWarehouseOrderItemFactory(
+        warehouse_order=outbound_warehouse_order,
+        source_order_item=source_order_item,
+        stock_product=warehouse_item.stock_product,
+        amount=warehouse_item.amount,
+        warehouse_item=warehouse_item,
+    )
+
+    res = client.get(f"orders-incoming/{inbound_order.code}")
+
+    assert res.status_code == 200
+    payload = res.json()["data"]
+    row = next(i for i in payload["order_items"] if i["id"] == inbound_item.pk)
+    assert row["outbound_order_code"] == outbound_warehouse_order.code
+    assert row["pending"] is False
 
 
 def test_putaway_item_invalid_state(db, client) -> None:

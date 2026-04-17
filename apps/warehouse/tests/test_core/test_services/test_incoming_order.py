@@ -82,7 +82,7 @@ def test_incoming_order_add_item_duplicate_product_fails(db):
 
 def test_incoming_order_update_item(db):
     order = InboundOrderFactory.it()
-    item = InboundOrderItemFactory._(order=order)
+    item = InboundOrderItemFactory.it(order=order)
 
     result = inbound_orders_service.update_item(
         order.code,
@@ -138,7 +138,7 @@ def test_incoming_order_add_item_assigns_next_index(db):
 
 def test_incoming_order_update_item_can_change_index(db):
     order = InboundOrderFactory.it()
-    item = InboundOrderItemFactory._(order=order, index=5)
+    item = InboundOrderItemFactory.it(order=order, index=5)
 
     result = inbound_orders_service.update_item(
         order.code,

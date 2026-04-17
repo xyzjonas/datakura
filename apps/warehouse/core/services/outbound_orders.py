@@ -9,6 +9,7 @@ from django.utils import timezone
 from loguru import logger
 
 from apps.warehouse.core.audit_messages import AuditMessages
+from apps.warehouse.core.packaging import get_package_amount_in_product_uom
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
@@ -26,6 +27,7 @@ from apps.warehouse.core.transformation import (
     outbound_order_orm_to_schema,
 )
 from apps.warehouse.models.audit import AuditAction
+from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import (
     Invoice,
@@ -34,10 +36,14 @@ from apps.warehouse.models.orders import (
     OutboundOrderItem,
     OutboundOrderState,
 )
+from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
+    Batch,
     OutboundWarehouseOrder,
+    OutboundWarehouseOrderItem,
     OutboundWarehouseOrderState,
+    WarehouseItem,
 )
 
 
@@ -52,6 +58,119 @@ def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
 
 
 class OutboundOrdersService:
+    @staticmethod
+    def _get_desired_package_or_none(name: str | None) -> PackageType | None:
+        if not name:
+            return None
+        return PackageType.objects.get(name=name)
+
+    @staticmethod
+    def _get_desired_batch_or_none(batch_code: str | None) -> Batch | None:
+        if not batch_code:
+            return None
+
+        barcode = (
+            Barcode.objects.select_related("content_type")
+            .filter(code=batch_code)
+            .first()
+        )
+        if not barcode or barcode.content_type.model_class() is not Batch:
+            raise WarehouseItemBadRequestError(f"Batch '{batch_code}' does not exist.")
+        return barcode.content_object  # type: ignore[return-value]
+
+    @staticmethod
+    def _validate_desired_packaging(
+        *,
+        stock_product: StockProduct,
+        amount: Decimal,
+        desired_package_type: PackageType | None,
+    ) -> None:
+        if desired_package_type is None:
+            return
+
+        package_amount = get_package_amount_in_product_uom(
+            desired_package_type, stock_product
+        )
+        if not package_amount:
+            raise WarehouseItemBadRequestError(
+                f"Package '{desired_package_type.name}' cannot be converted to product '{stock_product.code}'."
+            )
+
+        normalized_package_amount = Decimal(str(package_amount))
+        if normalized_package_amount <= 0:
+            raise WarehouseItemBadRequestError(
+                f"Package '{desired_package_type.name}' has invalid amount."
+            )
+
+        if amount % normalized_package_amount != 0:
+            raise WarehouseItemBadRequestError(
+                f"Requested amount '{amount}' does not fit package '{desired_package_type.name}'."
+            )
+
+    @classmethod
+    def _build_outbound_warehouse_order_items(
+        cls,
+        *,
+        warehouse_order: OutboundWarehouseOrder,
+    ) -> None:
+        linked_order = warehouse_order.order
+        if linked_order is None:
+            raise WarehouseItemBadRequestError(
+                f"Outbound warehouse order '{warehouse_order.code}' has no linked order."
+            )
+
+        next_index = 0
+        for order_item in linked_order.items.select_related(
+            "stock_product",
+            "desired_package_type",
+            "desired_batch",
+        ).order_by("index", "created"):
+            remaining_amount = Decimal(str(order_item.amount))
+            candidates = WarehouseItem.physical_stock.filter(
+                stock_product=order_item.stock_product,
+            ).order_by("created", "pk")
+
+            if order_item.desired_package_type_id:
+                candidates = candidates.filter(
+                    package_type=order_item.desired_package_type,
+                )
+
+            if order_item.desired_batch_id:
+                candidates = candidates.filter(batch=order_item.desired_batch)
+
+            created_any = False
+            for candidate in candidates:
+                if remaining_amount <= 0:
+                    break
+
+                chunk_amount = min(remaining_amount, Decimal(str(candidate.amount)))
+                OutboundWarehouseOrderItem.objects.create(
+                    warehouse_order=warehouse_order,
+                    source_order_item=order_item,
+                    stock_product=order_item.stock_product,
+                    amount=chunk_amount,
+                    desired_package_type=order_item.desired_package_type,
+                    desired_batch=order_item.desired_batch,
+                    index=next_index,
+                )
+                created_any = True
+                next_index += 1
+                remaining_amount -= chunk_amount
+
+            if remaining_amount > 0 or not created_any:
+                OutboundWarehouseOrderItem.objects.create(
+                    warehouse_order=warehouse_order,
+                    source_order_item=order_item,
+                    stock_product=order_item.stock_product,
+                    amount=remaining_amount
+                    if remaining_amount > 0
+                    else order_item.amount,
+                    desired_package_type=order_item.desired_package_type,
+                    desired_batch=order_item.desired_batch,
+                    index=next_index,
+                )
+                next_index += 1
+
     @staticmethod
     def _with_pricing_details(
         order: OutboundOrderSchema, order_model: OutboundOrder
@@ -227,6 +346,12 @@ class OutboundOrdersService:
     ) -> OutboundOrderItemSchema:
         order = OutboundOrder.objects.get(code=code)
         stock_product = StockProduct.objects.get(code=item.product_code)
+        desired_package_type = OutboundOrdersService._get_desired_package_or_none(
+            item.desired_package_type_name
+        )
+        desired_batch = OutboundOrdersService._get_desired_batch_or_none(
+            item.desired_batch_code
+        )
 
         if OutboundOrderItem.objects.filter(
             order=order, stock_product=stock_product
@@ -239,6 +364,11 @@ class OutboundOrdersService:
             next_index = order.items.count()
             amount = Decimal(str(item.amount))
             total_price = Decimal(str(item.total_price))
+            OutboundOrdersService._validate_desired_packaging(
+                stock_product=stock_product,
+                amount=amount,
+                desired_package_type=desired_package_type,
+            )
             item_model = OutboundOrderItem.objects.create(
                 stock_product=stock_product,
                 amount=amount,
@@ -248,6 +378,8 @@ class OutboundOrdersService:
                     amount, total_price
                 ),
                 index=item.index if item.index is not None else next_index,
+                desired_package_type=desired_package_type,
+                desired_batch=desired_batch,
             )
         selected_unit_price = OutboundOrdersService._compute_unit_price(
             amount, total_price
@@ -269,15 +401,28 @@ class OutboundOrdersService:
         item_model = OutboundOrderItem.objects.get(
             order=order, stock_product__code=item.product_code
         )
+        desired_package_type = OutboundOrdersService._get_desired_package_or_none(
+            item.desired_package_type_name
+        )
+        desired_batch = OutboundOrdersService._get_desired_batch_or_none(
+            item.desired_batch_code
+        )
 
         with transaction.atomic():
             amount = Decimal(str(item.amount))
             total_price = Decimal(str(item.total_price))
+            OutboundOrdersService._validate_desired_packaging(
+                stock_product=item_model.stock_product,
+                amount=amount,
+                desired_package_type=desired_package_type,
+            )
             item_model.amount = amount
             item_model.total_price = total_price
             item_model.unit_price = OutboundOrdersService._compute_unit_price(
                 amount, total_price
             )
+            item_model.desired_package_type = desired_package_type
+            item_model.desired_batch = desired_batch
             if item.index is not None:
                 item_model.index = item.index
             item_model.save()
@@ -362,6 +507,9 @@ class OutboundOrdersService:
                     reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
                         purchase_order_code=code
                     ),
+                )
+                cls._build_outbound_warehouse_order_items(
+                    warehouse_order=warehouse_order
                 )
 
             if new_state == OutboundOrderState.COMPLETED:

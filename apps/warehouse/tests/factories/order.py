@@ -22,7 +22,7 @@ class InboundOrderItemFactory(DjangoModelFactory):
         model = InboundOrderItem
 
     @classmethod
-    def _(cls, **kwargs) -> InboundOrderItem:
+    def it(cls, **kwargs) -> InboundOrderItem:
         return cls(**kwargs)  # type: ignore
 
     stock_product = factory.SubFactory(StockProductFactory)
@@ -60,7 +60,7 @@ class OutboundOrderItemFactory(DjangoModelFactory):
         model = OutboundOrderItem
 
     @classmethod
-    def _(cls, **kwargs) -> OutboundOrderItem:
+    def it(cls, **kwargs) -> OutboundOrderItem:
         return cls(**kwargs)  # type: ignore
 
     stock_product = factory.SubFactory(StockProductFactory)
@@ -68,6 +68,8 @@ class OutboundOrderItemFactory(DjangoModelFactory):
     order = None
     unit_price = factory.Faker("random_int", min=1, max=200, step=1)
     total_price = factory.LazyAttribute(lambda o: o.amount * o.unit_price)
+    desired_package_type = None
+    desired_batch = None
 
 
 class OutboundOrderFactory(DjangoModelFactory):

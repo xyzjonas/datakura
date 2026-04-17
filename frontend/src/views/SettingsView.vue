@@ -36,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import AppSettingsTab from '@/components/settings/AppSettingsTab.vue'
 import MissingSettingsTab from '@/components/settings/MissingSettingsTab.vue'
 import CustomerSettingsTab from '@/components/settings/CustomerSettingsTab.vue'
 import DiscountSettingsTab from '@/components/settings/DiscountSettingsTab.vue'
@@ -50,6 +51,7 @@ const router = useRouter()
 const selectedTabComponent = shallowRef<Component>()
 
 const validTabs = new Set([
+  'app',
   'location',
   'packaging',
   'products',
@@ -80,7 +82,9 @@ watch(
       router.replace({ query: { ...route.query, tab: value } })
     }
 
-    if (value === 'packaging') {
+    if (value === 'app') {
+      selectedTabComponent.value = AppSettingsTab
+    } else if (value === 'packaging') {
       selectedTabComponent.value = PackagingSettingsTab
     } else if (value === 'products') {
       selectedTabComponent.value = ProductSettingsTab
@@ -98,6 +102,11 @@ watch(
 )
 
 const items = [
+  {
+    key: 'app',
+    label: 'aplikace',
+    icon: 'sym_o_settings',
+  },
   {
     key: 'location',
     label: 'Lokace a skladová místa',

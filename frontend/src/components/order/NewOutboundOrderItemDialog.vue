@@ -46,6 +46,12 @@
               <span class="text-sm">{{ currency }}</span>
             </template>
           </q-input>
+          <q-input
+            v-model="batchCode"
+            outlined
+            label="Požadovaná šarže"
+            hint="Volitelné. Zadejte existující kód šarže."
+          />
           <q-btn type="submit" unelevated color="primary" label="přidat" class="h-[3rem] mt-3" />
         </q-form>
       </div>
@@ -81,6 +87,7 @@ const props = defineProps<{
 
 const productUom = ref('')
 const pricingLookup = ref<SellingPriceLookupSchema>()
+const batchCode = ref('')
 
 const item = ref<OutboundOrderItemCreateSchema>({
   product_code: '',
@@ -88,6 +95,8 @@ const item = ref<OutboundOrderItemCreateSchema>({
   amount: 0,
   total_price: 0,
   unit_price: 0,
+  desired_package_type_name: null,
+  desired_batch_code: null,
 })
 
 const product = ref<ProductSchema>()
@@ -148,6 +157,8 @@ const emit = defineEmits<{
 }>()
 
 const addItem = () => {
+  item.value.desired_package_type_name = null
+  item.value.desired_batch_code = batchCode.value || null
   emit('addItem', item.value)
 }
 
@@ -158,7 +169,10 @@ const reset = () => {
     amount: 0,
     total_price: 0,
     unit_price: 0,
+    desired_package_type_name: null,
+    desired_batch_code: null,
   }
+  batchCode.value = ''
   product.value = undefined
   showDialog.value = false
 }

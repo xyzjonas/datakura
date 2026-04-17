@@ -46,6 +46,7 @@ from apps.warehouse.core.schemas.warehouse import (
     InboundWarehouseOrderSchema,
     InboundWarehouseOrderItemSchema,
     OutboundWarehouseOrderSchema,
+    OutboundWarehouseOrderItemSchema,
     WarehouseMovementSchema,
     WarehouseLocationSchema,
     WarehouseLocationDetailSchema,
@@ -384,12 +385,22 @@ def outbound_order_item_orm_to_schema(
     item: OutboundOrderItem,
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None,
 ) -> OutboundOrderItemSchema:
+    desired_batch_barcode = None
+    if item.desired_batch:
+        primary_barcode = item.desired_batch.get_primary_barcode()
+        if primary_barcode:
+            desired_batch_barcode = primary_barcode.code
+
     return OutboundOrderItemSchema(
         product=product_orm_to_schema(item.stock_product),
         amount=float(item.amount),
         unit_price=float(item.unit_price),
         total_price=float(item.total_price),
         index=item.index,
+        desired_package_type_name=item.desired_package_type.name
+        if item.desired_package_type
+        else None,
+        desired_batch_code=desired_batch_barcode,
         pricing_details=pricing_details,
         changed=item.changed,
         created=item.created,
@@ -596,11 +607,26 @@ def inbound_warehouse_order_item_to_schema(
     item: InboundWarehouseOrderItem,
 ) -> InboundWarehouseOrderItemSchema:
     linked_items = list(item.warehouse_items.all())
+    outbound_assignment = next(
+        (
+            linked_item.outbound_assignment
+            for linked_item in linked_items
+            if hasattr(linked_item, "outbound_assignment")
+            and linked_item.outbound_assignment is not None
+        ),
+        None,
+    )
+    outbound_order_code = (
+        outbound_assignment.warehouse_order.code if outbound_assignment else None
+    )
+
     is_pending = item.warehouse_order.state == InboundWarehouseOrderState.DRAFT or (
         bool(linked_items)
         if item.tracking_level == TrackingLevel.FUNGIBLE
         else any(linked_item.location.is_putaway for linked_item in linked_items)
     )
+    if outbound_order_code is not None:
+        is_pending = False
 
     return InboundWarehouseOrderItemSchema(
         id=item.pk,
@@ -614,6 +640,7 @@ def inbound_warehouse_order_item_to_schema(
         batch_barcode=item.batch_barcode,
         pending=is_pending,
         warehouse_item_id=linked_items[0].pk if linked_items else None,
+        outbound_order_code=outbound_order_code,
         created=item.created,
         changed=item.changed,
     )
@@ -762,11 +789,62 @@ def warehouse_outbound_order_orm_to_schema(
             f"Outbound warehouse order {w_order.code} is missing linked outbound order"
         )
 
-    expected_amount = sum(float(item.amount) for item in linked_order.items.all())
-    moved_amount = sum(
-        float(movement.amount) for movement in w_order.warehouse_movements.all()
+    order_items = list(
+        w_order.order_items.select_related(
+            "stock_product",
+            "stock_product__unit_of_measure",
+            "desired_package_type",
+            "desired_batch",
+            "warehouse_item",
+            "warehouse_item__stock_product",
+            "warehouse_item__stock_product__unit_of_measure",
+            "warehouse_item__location",
+            "warehouse_item__location__warehouse",
+            "warehouse_item__package_type",
+            "warehouse_item__package_type__unit_of_measure",
+            "warehouse_item__batch",
+        ).all()
     )
-    remaining_amount = max(0.0, expected_amount - moved_amount)
+
+    order_item_schemas = []
+    assigned_items = []
+    for item in order_items:
+        desired_batch_barcode = None
+        if item.desired_batch:
+            primary_barcode = item.desired_batch.get_primary_barcode()
+            if primary_barcode:
+                desired_batch_barcode = primary_barcode.code
+
+        assigned_item_schema = None
+        if item.warehouse_item:
+            assigned_item_schema = warehouse_item_orm_to_schema(item.warehouse_item)
+            assigned_items.append(assigned_item_schema)
+
+        order_item_schemas.append(
+            OutboundWarehouseOrderItemSchema(
+                id=item.pk,
+                product=product_orm_to_schema(item.stock_product),
+                unit_of_measure=item.stock_product.unit_of_measure.name,
+                amount=item.amount,
+                desired_package_type_name=item.desired_package_type.name
+                if item.desired_package_type
+                else None,
+                desired_batch_code=desired_batch_barcode,
+                warehouse_item_id=item.warehouse_item.pk
+                if item.warehouse_item
+                else None,
+                warehouse_item=assigned_item_schema,
+                pending=item.warehouse_item is None,
+                index=item.index,
+                created=item.created,
+                changed=item.changed,
+            )
+        )
+
+    expected_amount = sum(float(item.amount) for item in order_items)
+    remaining_amount = sum(
+        float(item.amount) for item in order_item_schemas if item.pending
+    )
 
     parent_order = w_order.primary_order
 
@@ -774,12 +852,15 @@ def warehouse_outbound_order_orm_to_schema(
         code=w_order.code,
         created=w_order.created,
         changed=w_order.changed,
-        items=[],
+        order_items=order_item_schemas,
+        items=assigned_items,
         movements=[
             warehouse_movement_orm_to_schema(movement)
             for movement in w_order.warehouse_movements.order_by("-moved_at")
         ],
-        completed_items_count=0,
+        completed_items_count=len(
+            [item for item in order_item_schemas if item.warehouse_item_id is not None]
+        ),
         total_amount=expected_amount,
         remaining_amount=remaining_amount,
         order_code=linked_order.code,

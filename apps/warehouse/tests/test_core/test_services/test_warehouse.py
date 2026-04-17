@@ -261,6 +261,25 @@ def test_get_total_availability_with_incoming_and_booked(db):
     assert result.incoming_amount == pytest.approx(Decimal(20))  # 20 incoming
 
 
+def test_get_warehouse_availability_includes_pending_inbound_items_in_putaway(db):
+    product = StockProductFactory.it()
+    putaway_location = WarehouseLocationFactory(is_putaway=True)
+    inbound_order = InboundWarehouseOrderFactory(
+        state=InboundWarehouseOrderState.PENDING
+    )
+
+    WarehouseItemFactory(
+        stock_product=product,
+        amount=Decimal("12"),
+        order_in=inbound_order,
+        location=putaway_location,
+    )
+
+    assert warehouse_service.get_warehouse_availability(product.code) == pytest.approx(
+        Decimal("12")
+    )
+
+
 def test_update_inbound_order_items(db, context):
     order = InboundWarehouseOrderFactory()
     product = StockProductFactory()

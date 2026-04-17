@@ -9,6 +9,7 @@ from apps.warehouse.models.warehouse import (
     WarehouseItem,
     WarehouseMovement,
     OutboundWarehouseOrder,
+    OutboundWarehouseOrderItem,
     InboundWarehouseOrder,
     InboundWarehouseOrderItem,
     InboundWarehouseOrderState,
@@ -19,6 +20,7 @@ from .order import (
     InboundOrderFactory,
     InboundOrderItemFactory,
     OutboundOrderFactory,
+    OutboundOrderItemFactory,
 )
 from .product import (
     StockProductFactory,
@@ -60,6 +62,24 @@ class WarehouseOrderOutFactory(DjangoModelFactory):
     code = factory.Sequence(lambda n: f"WOUT-{n:06d}")
     order = factory.SubFactory(OutboundOrderFactory)
     state = OutboundWarehouseOrderState.DRAFT
+
+
+class OutboundWarehouseOrderItemFactory(DjangoModelFactory):
+    class Meta:
+        model = OutboundWarehouseOrderItem
+
+    @classmethod
+    def it(cls, **kwargs) -> OutboundWarehouseOrderItem:
+        return cls(**kwargs)  # type: ignore
+
+    warehouse_order = factory.SubFactory(WarehouseOrderOutFactory)
+    source_order_item = factory.SubFactory(OutboundOrderItemFactory)
+    stock_product = factory.LazyAttribute(lambda o: o.source_order_item.stock_product)
+    amount = factory.LazyAttribute(lambda o: o.source_order_item.amount)
+    desired_package_type = None
+    desired_batch = None
+    warehouse_item = None
+    index = factory.Sequence(lambda n: n)
 
 
 class InboundWarehouseOrderFactory(DjangoModelFactory):

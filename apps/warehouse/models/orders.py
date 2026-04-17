@@ -10,6 +10,7 @@ from django.db.models.fields.related import ForeignKey
 from .base import BaseModel
 from .currency import CURRENCY_CHOICES
 from .customer import Customer
+from .packaging import PackageType
 from .product import StockProduct
 
 if TYPE_CHECKING:
@@ -279,6 +280,20 @@ class OutboundOrderItem(BaseModel):
     )
     total_price = models.DecimalField(
         max_digits=12, decimal_places=4, default=Decimal("0")
+    )
+    desired_package_type = models.ForeignKey(
+        PackageType,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="outbound_order_items",
+    )
+    desired_batch = models.ForeignKey(
+        "warehouse.Batch",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="outbound_order_items",
     )
 
     class Meta(BaseModel.Meta):

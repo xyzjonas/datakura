@@ -29,6 +29,19 @@
           <q-badge class="py-1" :color="item.pending ? 'warning' : 'positive'">
             {{ item.pending ? 'K NASKLADNĚNÍ' : 'HOTOVO' }}
           </q-badge>
+          <q-badge
+            v-if="item.outbound_order_code"
+            color="primary"
+            class="py-1 cursor-pointer"
+            @click="
+              $router.push({
+                name: 'warehouseOutboundOrderDetail',
+                params: { code: item.outbound_order_code },
+              })
+            "
+          >
+            VÝDEJKA {{ item.outbound_order_code }}
+          </q-badge>
           <TrackingLevelBadge :level="item.tracking_level" />
           <PackageTypeBadge v-if="item.package" :package-type="item.package.type" />
           <BatchBadge v-if="item.batch_barcode" :batch-code="item.batch_barcode" />
