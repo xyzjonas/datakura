@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ninja import Schema
 
-from .base import BaseSchema, BaseResponse, PaginatedResponse, Response
+from .base import BaseSchema, BaseResponse, EmptyResponse, PaginatedResponse, Response
 from .warehouse import WarehouseItemSchema
 
 
@@ -15,6 +15,16 @@ class PackageTypeSchema(BaseSchema):
 
 class GetPackageTypesResponse(BaseResponse):
     data: list[PackageTypeSchema]
+
+
+class PackageTypeCreateOrUpdateSchema(Schema):
+    name: str
+    amount: float
+    description: str | None = None
+    unit: str | None = None
+
+
+class GetPackageTypeResponse(Response[PackageTypeSchema]): ...
 
 
 class UnitOfMeasureSchema(BaseSchema):
@@ -57,3 +67,6 @@ class PutInSerialRequestSchema(Schema):
 
 class PutInPackageResponse(BaseResponse):
     data: list[WarehouseItemSchema]
+
+
+class DeletePackageTypeResponse(EmptyResponse): ...

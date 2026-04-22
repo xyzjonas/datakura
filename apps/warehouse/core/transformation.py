@@ -32,6 +32,7 @@ from apps.warehouse.core.schemas.invoice import (
     InvoicePaymentMethodSchema,
     InvoiceSchema,
 )
+from apps.warehouse.core.schemas.packaging import PackageTypeSchema
 from apps.warehouse.core.schemas.group import ProductGroupSchema
 from apps.warehouse.core.schemas.type import ProductTypeSchema
 from apps.warehouse.core.schemas.product import (
@@ -339,6 +340,19 @@ def package_orm_to_schema(package_type: PackageType | None) -> PackageSchema | N
         type=package_type.name,
         description=package_type.description,
         amount=float(package_type.amount),
+    )
+
+
+def package_type_orm_to_schema(package_type: PackageType) -> PackageTypeSchema:
+    return PackageTypeSchema(
+        changed=package_type.changed,
+        created=package_type.created,
+        name=package_type.name,
+        description=package_type.description,
+        amount=float(package_type.amount),
+        unit=package_type.unit_of_measure.name
+        if package_type.unit_of_measure
+        else None,
     )
 
 

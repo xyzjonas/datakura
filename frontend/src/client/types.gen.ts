@@ -3130,6 +3130,55 @@ export type PackageTypeSchema = {
 };
 
 /**
+ * GetPackageTypeResponse
+ */
+export type GetPackageTypeResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: PackageTypeSchema;
+};
+
+/**
+ * PackageTypeCreateOrUpdateSchema
+ */
+export type PackageTypeCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Unit
+     */
+    unit?: string | null;
+};
+
+/**
+ * DeletePackageTypeResponse
+ */
+export type DeletePackageTypeResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data?: null;
+};
+
+/**
  * PagedUnitOfMeasureSchema
  */
 export type PagedUnitOfMeasureSchema = {
@@ -5413,6 +5462,64 @@ export type WarehouseApiRoutesPackagingGetPackageTypesResponses = {
 };
 
 export type WarehouseApiRoutesPackagingGetPackageTypesResponse = WarehouseApiRoutesPackagingGetPackageTypesResponses[keyof WarehouseApiRoutesPackagingGetPackageTypesResponses];
+
+export type WarehouseApiRoutesPackagingCreatePackageTypeData = {
+    body: PackageTypeCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/packaging';
+};
+
+export type WarehouseApiRoutesPackagingCreatePackageTypeResponses = {
+    /**
+     * OK
+     */
+    200: GetPackageTypeResponse;
+};
+
+export type WarehouseApiRoutesPackagingCreatePackageTypeResponse = WarehouseApiRoutesPackagingCreatePackageTypeResponses[keyof WarehouseApiRoutesPackagingCreatePackageTypeResponses];
+
+export type WarehouseApiRoutesPackagingDeletePackageTypeData = {
+    body?: never;
+    path: {
+        /**
+         * Package Type Name
+         */
+        package_type_name: string;
+    };
+    query?: never;
+    url: '/api/v1/packaging/{package_type_name}';
+};
+
+export type WarehouseApiRoutesPackagingDeletePackageTypeResponses = {
+    /**
+     * OK
+     */
+    200: DeletePackageTypeResponse;
+};
+
+export type WarehouseApiRoutesPackagingDeletePackageTypeResponse = WarehouseApiRoutesPackagingDeletePackageTypeResponses[keyof WarehouseApiRoutesPackagingDeletePackageTypeResponses];
+
+export type WarehouseApiRoutesPackagingUpdatePackageTypeData = {
+    body: PackageTypeCreateOrUpdateSchema;
+    path: {
+        /**
+         * Package Type Name
+         */
+        package_type_name: string;
+    };
+    query?: never;
+    url: '/api/v1/packaging/{package_type_name}';
+};
+
+export type WarehouseApiRoutesPackagingUpdatePackageTypeResponses = {
+    /**
+     * OK
+     */
+    200: GetPackageTypeResponse;
+};
+
+export type WarehouseApiRoutesPackagingUpdatePackageTypeResponse = WarehouseApiRoutesPackagingUpdatePackageTypeResponses[keyof WarehouseApiRoutesPackagingUpdatePackageTypeResponses];
 
 export type WarehouseApiRoutesPackagingGetUnitsData = {
     body?: never;

@@ -9,9 +9,11 @@ from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import UnitOfMeasurePagination
 from apps.warehouse.core.schemas.packaging import (
+    DeletePackageTypeResponse,
+    GetPackageTypeResponse,
     GetPackageTypesResponse,
     GetUnitOfMeasureResponse,
-    PackageTypeSchema,
+    PackageTypeCreateOrUpdateSchema,
     PutInPackageRequestSchema,
     PutInPackageResponse,
     PutInBatchRequestSchema,
@@ -19,8 +21,10 @@ from apps.warehouse.core.schemas.packaging import (
     UnitOfMeasureSchema,
     UnitOfMeasureCreateOrUpdateSchema,
 )
+from apps.warehouse.core.services.package_types import package_types_service
+from apps.warehouse.core.transformation import package_type_orm_to_schema
 from apps.warehouse.core.services.warehouse import warehouse_service
-from apps.warehouse.models.packaging import PackageType, UnitOfMeasure
+from apps.warehouse.models.packaging import UnitOfMeasure
 
 routes = Router(tags=["packaging"])
 
@@ -29,19 +33,8 @@ routes = Router(tags=["packaging"])
 def get_package_types(request: HttpRequest, search_term: str | None = None):
     return GetPackageTypesResponse(
         data=[
-            PackageTypeSchema(
-                created=package_type.created,
-                changed=package_type.changed,
-                name=package_type.name,
-                amount=float(package_type.amount),
-                description=package_type.description,
-                unit=package_type.unit_of_measure.name
-                if package_type.unit_of_measure
-                else None,
-            )
-            for package_type in PackageType.objects.prefetch_related(
-                "unit_of_measure"
-            ).all()
+            package_type_orm_to_schema(package_type)
+            for package_type in package_types_service.get_package_types(search_term)
         ]
     )
 
@@ -141,3 +134,28 @@ def serial_preview(request: HttpRequest, body: PutInSerialRequestSchema):
             amount=body.amount,
         )
     )
+
+
+@routes.post("", response={200: GetPackageTypeResponse})
+def create_package_type(
+    request: HttpRequest,
+    body: PackageTypeCreateOrUpdateSchema,
+):
+    return GetPackageTypeResponse(data=package_types_service.create_package_type(body))
+
+
+@routes.put("/{package_type_name}", response={200: GetPackageTypeResponse})
+def update_package_type(
+    request: HttpRequest,
+    package_type_name: str,
+    body: PackageTypeCreateOrUpdateSchema,
+):
+    return GetPackageTypeResponse(
+        data=package_types_service.update_package_type(package_type_name, body)
+    )
+
+
+@routes.delete("/{package_type_name}", response={200: DeletePackageTypeResponse})
+def delete_package_type(request: HttpRequest, package_type_name: str):
+    package_types_service.delete_package_type(package_type_name)
+    return DeletePackageTypeResponse(success=True)

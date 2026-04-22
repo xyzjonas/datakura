@@ -52,8 +52,20 @@
 
           <PackageTypeSearchSelect
             v-model="selectedPackage"
+            :key="packageTypeSelectKey"
             v-if="trackingType.value == 'package'"
           />
+
+          <div v-if="trackingType.value == 'package'" class="flex justify-end -mt-1">
+            <q-btn
+              flat
+              dense
+              color="primary"
+              icon="add"
+              label="nový typ balení"
+              @click="openCreatePackageTypeDialog"
+            />
+          </div>
 
           <q-input
             v-model="batchCode"
@@ -89,13 +101,24 @@
       </div>
     </q-card>
   </q-dialog>
+
+  <PackageTypeUpsertDialog
+    v-model:show="showCreatePackageTypeDialog"
+    v-model="packageTypeForm"
+    title="Vytvořit typ balení"
+    submit-label="vytvořit"
+    :loading="creatingPackageType"
+    @submit="createPackageType"
+  />
 </template>
 
 <script setup lang="ts">
 import {
   warehouseApiRoutesPackagingBatchPreview,
+  warehouseApiRoutesPackagingCreatePackageType,
   warehouseApiRoutesPackagingPackagePreview,
   warehouseApiRoutesPackagingSerialPreview,
+  type PackageTypeCreateOrUpdateSchema,
   type PackageTypeSchema,
   type WarehouseItemSchema,
 } from '@/client'
@@ -104,6 +127,7 @@ import { useAppRouter } from '@/composables/use-app-router'
 import { rules } from '@/utils/rules'
 import { computed, ref, watch } from 'vue'
 import PackageTypeSearchSelect from '../selects/PackageTypeSearchSelect.vue'
+import PackageTypeUpsertDialog from '../settings/packaging/PackageTypeUpsertDialog.vue'
 import WarehouseItemPreviewRow from './WarehouseItemPreviewRow.vue'
 
 const { onResponse } = useApi()
@@ -155,6 +179,18 @@ const amount = ref(props.item.amount)
 
 const selectedPackage = ref<PackageTypeSchema>()
 const batchCode = ref('')
+const packageTypeSelectKey = ref(0)
+const showCreatePackageTypeDialog = ref(false)
+const creatingPackageType = ref(false)
+
+const createDefaultPackageTypeForm = (): PackageTypeCreateOrUpdateSchema => ({
+  name: '',
+  description: null,
+  amount: 1,
+  unit: props.item.unit_of_measure || null,
+})
+
+const packageTypeForm = ref<PackageTypeCreateOrUpdateSchema>(createDefaultPackageTypeForm())
 
 const showDialog = defineModel('show', { default: false })
 
@@ -243,8 +279,29 @@ watch([selectedPackage, amount, trackingType, batchCode], () => {
 watch(showDialog, (value) => {
   if (value) {
     amount.value = props.item.amount
+    packageTypeForm.value = createDefaultPackageTypeForm()
   }
 })
+
+const openCreatePackageTypeDialog = () => {
+  packageTypeForm.value = createDefaultPackageTypeForm()
+  showCreatePackageTypeDialog.value = true
+}
+
+const createPackageType = async (body: PackageTypeCreateOrUpdateSchema) => {
+  creatingPackageType.value = true
+  try {
+    const result = await warehouseApiRoutesPackagingCreatePackageType({ body })
+    const response = onResponse(result)
+    if (response?.data) {
+      showCreatePackageTypeDialog.value = false
+      selectedPackage.value = response.data
+      packageTypeSelectKey.value += 1
+    }
+  } finally {
+    creatingPackageType.value = false
+  }
+}
 
 const emit = defineEmits<{
   (e: 'packaged', items: WarehouseItemSchema[]): void
