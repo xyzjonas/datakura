@@ -69,6 +69,12 @@
               label="Blokovat po dnech"
               type="number"
             />
+            <InvoicePaymentMethodSelect
+              v-model="form.default_payment_method_name"
+              label="Výchozí platební metoda"
+              hint="Použije se jako předvyplněná metoda při tvorbě faktury."
+            />
+            <q-checkbox v-model="form.is_self" label="Naše firma (dodavatel na faktuře)" />
           </div>
 
           <!-- Relationships -->
@@ -122,6 +128,7 @@
 
 <script setup lang="ts">
 import type { CustomerCreateOrUpdateSchema, CustomerGroupSchema } from '@/client'
+import InvoicePaymentMethodSelect from '@/components/selects/InvoicePaymentMethodSelect.vue'
 import { rules } from '@/utils/rules'
 
 const showDialog = defineModel<boolean>('show', { default: false })

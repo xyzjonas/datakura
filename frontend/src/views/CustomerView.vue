@@ -20,6 +20,9 @@
                 ({{ customer.discount_group.discount_percent }} %)
               </small>
             </span>
+            <q-badge v-if="customer.is_self" color="positive" text-color="white" class="uppercase">
+              Naše firma
+            </q-badge>
             <span class="text-gray-5">
               <q-btn flat round size="8px" icon="content_copy" />
               <small>kód: </small>{{ customer.code }}
@@ -239,6 +242,8 @@ if (customer.value) {
     price_type: customer.value.price_type,
     invoice_due_days: customer.value.invoice_due_days,
     block_after_due_days: customer.value.block_after_due_days,
+    default_payment_method: customer.value.default_payment_method?.name ?? '',
+    is_self: customer.value.is_self,
     data_collection_agreement: customer.value.data_collection_agreement,
     marketing_data_use_agreement: customer.value.marketing_data_use_agreement,
     is_valid: customer.value.is_valid,
@@ -264,6 +269,7 @@ const editingCustomer = ref<CustomerCreateOrUpdateSchema>({
   customer_type: '',
   price_type: '',
   customer_group_code: '',
+  is_self: false,
 })
 
 const editingContact = ref<ContactPersonCreateOrUpdateSchema>({
@@ -293,6 +299,8 @@ const onEditCustomer = () => {
     price_type: customer.value.price_type,
     invoice_due_days: customer.value.invoice_due_days,
     block_after_due_days: customer.value.block_after_due_days,
+    is_self: customer.value.is_self,
+    default_payment_method_name: customer.value.default_payment_method?.name,
     data_collection_agreement: customer.value.data_collection_agreement,
     marketing_data_use_agreement: customer.value.marketing_data_use_agreement,
     is_valid: customer.value.is_valid,
@@ -332,6 +340,8 @@ const onSaveCustomer = async (body: CustomerCreateOrUpdateSchema) => {
       price_type: customer.value.price_type,
       invoice_due_days: customer.value.invoice_due_days,
       block_after_due_days: customer.value.block_after_due_days,
+      default_payment_method: customer.value.default_payment_method?.name ?? '',
+      is_self: customer.value.is_self,
       data_collection_agreement: customer.value.data_collection_agreement,
       marketing_data_use_agreement: customer.value.marketing_data_use_agreement,
       is_valid: customer.value.is_valid,

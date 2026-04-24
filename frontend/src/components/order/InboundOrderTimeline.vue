@@ -1,6 +1,6 @@
 <template>
-  <simple-timeline :items="items" :activeKey="state" />
-  <!-- <q-stepper
+  <!-- <simple-timeline :items="items" :activeKey="state" /> -->
+  <q-stepper
     flat
     :model-value="step"
     ref="stepper"
@@ -11,6 +11,7 @@
     done-color="positive"
   >
     <q-step
+      v-if="step < 2"
       :name="1"
       title="Koncept"
       caption="Čeká na potvrzení"
@@ -56,6 +57,7 @@
     </q-step>
 
     <q-step
+      v-if="step > 1"
       :name="4"
       title="Naskladnění"
       caption="Zboží je připraveno k naskladění"
@@ -84,23 +86,23 @@
       error-icon="block"
     >
     </q-step>
-  </q-stepper> -->
+  </q-stepper>
 </template>
 
 <script setup lang="ts">
-import { INBOUND_ORDER_STATES } from '@/constants/inbound-order'
-// import { computed } from 'vue'
-import SimpleTimeline from '../SimpleTimeline.vue'
+import { CANCELLED, INBOUND_ORDER_STATES } from '@/constants/inbound-order'
+import { computed } from 'vue'
+// import SimpleTimeline from '../SimpleTimeline.vue'
 
-defineProps<{ state: string }>()
-// // const step = computed(() => INBOUND_ORDER_STATES[props.state]?.step ?? CANCELLED)
+const props = defineProps<{ state: string }>()
+const step = computed(() => INBOUND_ORDER_STATES[props.state]?.step ?? CANCELLED)
 
-const items = Object.entries(INBOUND_ORDER_STATES).map(([key, value]) => ({
-  title: value.label,
-  caption: value.caption,
-  icon: value.icon,
-  key,
-}))
+// const items = Object.entries(INBOUND_ORDER_STATES).map(([key, value]) => ({
+//   title: value.label,
+//   caption: value.caption,
+//   icon: value.icon,
+//   key,
+// }))
 // const items = [
 //   {
 //     title: 'Koncept',

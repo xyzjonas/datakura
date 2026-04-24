@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.core.validators import EmailValidator
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 
 from .base import BaseModel
 
@@ -58,6 +58,7 @@ class Customer(BaseModel):
     price_type = models.CharField(max_length=50, choices=PRICE_TYPE_CHOICES)
     invoice_due_days = models.IntegerField(default=30)
     block_after_due_days = models.IntegerField(default=30)
+    is_self = models.BooleanField(default=False)
 
     # Agreements
     data_collection_agreement = models.BooleanField(default=False)
@@ -92,11 +93,27 @@ class Customer(BaseModel):
         on_delete=models.SET_NULL,
         related_name="discount_customers",
     )
+    default_payment_method = models.ForeignKey(
+        "warehouse.InvoicePaymentMethod",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="default_for_customers",
+    )
     contacts: QuerySet["ContactPerson"]
 
     # Additional Fields
     note = models.TextField(blank=True, null=True)
     register_information = models.TextField(blank=True, null=True)
+
+    class Meta(BaseModel.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["is_self"],
+                condition=Q(is_self=True, is_deleted=False),
+                name="warehouse_single_self_customer",
+            )
+        ]
 
     def __str__(self):
         return self.name

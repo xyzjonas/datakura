@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8" />
+    <title>{{ invoice.code }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 16mm 18mm 16mm;
+        }
+
+        :root {
+            color-scheme: light;
+            --ink: #132238;
+            --muted: #64748b;
+            --line: #d7dee7;
+            --surface: #f6f8fb;
+            --accent: #0f766e;
+            --accent-soft: #dff5f2;
+            --highlight: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 11px;
+            line-height: 1.45;
+            background: white;
+        }
+
+        .page {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 18px 20px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, #eef6f5 100%);
+        }
+
+        .eyebrow {
+            margin: 0 0 6px 0;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        .hero-code {
+            margin-top: 10px;
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 10px;
+        }
+
+        .hero-meta {
+            min-width: 220px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            align-content: start;
+        }
+
+        .meta-card {
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--line);
+        }
+
+        .meta-label {
+            display: block;
+            color: var(--muted);
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .party-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .party-card {
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            min-height: 132px;
+        }
+
+        .party-name {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .party-line {
+            color: var(--muted);
+            margin: 2px 0;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 16px;
+        }
+
+        .summary-panel {
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: white;
+        }
+
+        .summary-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+        }
+
+        .summary-note {
+            color: var(--muted);
+            white-space: pre-wrap;
+        }
+
+        .totals {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .total-row:last-child {
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .total-row strong {
+            font-size: 20px;
+            color: var(--accent);
+        }
+
+        .orders {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .order-section {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            overflow: hidden;
+            page-break-inside: avoid;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .order-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .order-code {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .order-meta {
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .order-state {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: white;
+            border: 1px solid var(--line);
+            color: var(--highlight);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 9px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 12px 16px;
+            color: var(--muted);
+            font-size: 9px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: #fbfcfe;
+        }
+
+        tbody td {
+            padding: 12px 16px;
+            border-top: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fcfdff;
+        }
+
+        .product-name {
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .product-meta {
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .number {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .order-total {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 12px 16px 16px 16px;
+            border-top: 1px solid var(--line);
+            background: #fbfcfe;
+        }
+
+        .order-total-label {
+            color: var(--muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 9px;
+        }
+
+        .order-total-value {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .footer {
+            color: var(--muted);
+            font-size: 9px;
+            text-align: center;
+            padding-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <div>
+                <p class="eyebrow">Faktura</p>
+                <h1>Danovy doklad</h1>
+                <div class="hero-code">{{ invoice.code }}</div>
+            </div>
+            <div class="hero-meta">
+                <div class="meta-card">
+                    <span class="meta-label">Vystaveno</span>
+                    <span class="meta-value">{{ invoice.issued_date|date:"d. m. Y" }}</span>
+                </div>
+                <div class="meta-card">
+                    <span class="meta-label">Splatnost</span>
+                    <span class="meta-value">{{ invoice.due_date|date:"d. m. Y" }}</span>
+                </div>
+                <div class="meta-card">
+                    <span class="meta-label">DUZP</span>
+                    <span class="meta-value">{{ invoice.taxable_supply_date|date:"d. m. Y" }}</span>
+                </div>
+                <div class="meta-card">
+                    <span class="meta-label">Mena</span>
+                    <span class="meta-value">{{ invoice.currency }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="party-grid">
+            <div class="party-card">
+                <p class="eyebrow">Dodavatel</p>
+                {% if invoice.supplier %}
+                    <div class="party-name">{{ invoice.supplier.name }}</div>
+                    {% if invoice.supplier.street or invoice.supplier.city or invoice.supplier.postal_code %}
+                        <div class="party-line">
+                            {{ invoice.supplier.street }}{% if invoice.supplier.street and invoice.supplier.postal_code %}, {% endif %}{{ invoice.supplier.postal_code }} {{ invoice.supplier.city }}
+                        </div>
+                    {% endif %}
+                    {% if invoice.supplier.identification %}
+                        <div class="party-line">ICO: {{ invoice.supplier.identification }}</div>
+                    {% endif %}
+                    {% if invoice.supplier.tax_identification %}
+                        <div class="party-line">DIC: {{ invoice.supplier.tax_identification }}</div>
+                    {% endif %}
+                {% else %}
+                    <div class="party-line">Dodavatel nebyl vyplnen.</div>
+                {% endif %}
+            </div>
+            <div class="party-card">
+                <p class="eyebrow">Odberatel</p>
+                {% if invoice.customer %}
+                    <div class="party-name">{{ invoice.customer.name }}</div>
+                    {% if invoice.customer.street or invoice.customer.city or invoice.customer.postal_code %}
+                        <div class="party-line">
+                            {{ invoice.customer.street }}{% if invoice.customer.street and invoice.customer.postal_code %}, {% endif %}{{ invoice.customer.postal_code }} {{ invoice.customer.city }}
+                        </div>
+                    {% endif %}
+                    {% if invoice.customer.identification %}
+                        <div class="party-line">ICO: {{ invoice.customer.identification }}</div>
+                    {% endif %}
+                    {% if invoice.customer.tax_identification %}
+                        <div class="party-line">DIC: {{ invoice.customer.tax_identification }}</div>
+                    {% endif %}
+                {% else %}
+                    <div class="party-line">Odberatel nebyl vyplnen.</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="summary">
+            <div class="summary-panel">
+                <h3>Poznamka</h3>
+                <div class="summary-note">
+                    {% if invoice.note %}
+                        {{ invoice.note }}
+                    {% else %}
+                        Faktura byla vygenerovana automaticky ze zvolenych vydanych objednavek.
+                    {% endif %}
+                </div>
+            </div>
+            <div class="summary-panel totals">
+                <div class="total-row">
+                    <span>Platebni metoda</span>
+                    <span>{{ invoice.payment_method.name }}</span>
+                </div>
+                {% if invoice.external_code %}
+                    <div class="total-row">
+                        <span>Externi cislo</span>
+                        <span>{{ invoice.external_code }}</span>
+                    </div>
+                {% endif %}
+                {% if invoice.paid_date %}
+                    <div class="total-row">
+                        <span>Uhrazeno</span>
+                        <span>{{ invoice.paid_date|date:"d. m. Y" }}</span>
+                    </div>
+                {% endif %}
+                <div class="total-row">
+                    <span>Celkem k uhrade</span>
+                    <strong>{{ total_amount|floatformat:2 }} {{ invoice.currency }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="orders">
+            {% for section in order_sections %}
+                <article class="order-section">
+                    <div class="order-header">
+                        <div class="order-title">
+                            <span class="order-code">Objednavka {{ section.order.code }}</span>
+                            <span class="order-meta">
+                                {% if section.order.external_code %}
+                                    Externi kod: {{ section.order.external_code }}
+                                {% else %}
+                                    Bez externiho kodu
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="order-state">{{ section.order.state }}</div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Polozka</th>
+                                <th class="number">Mnozstvi</th>
+                                <th class="number">Cena / MJ</th>
+                                <th class="number">Celkem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in section.order.items %}
+                                <tr>
+                                    <td>
+                                        <div class="product-name">{{ item.product.name }}</div>
+                                        <div class="product-meta">{{ item.product.code }}</div>
+                                    </td>
+                                    <td class="number">{{ item.amount|floatformat:4 }} {% if item.product.unit %}{{ item.product.unit }}{% endif %}</td>
+                                    <td class="number">{{ item.unit_price|floatformat:4 }} {{ invoice.currency }}</td>
+                                    <td class="number">{{ item.total_price|floatformat:4 }} {{ invoice.currency }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <div class="order-total">
+                        <span class="order-total-label">Mezisoucet objednavky</span>
+                        <span class="order-total-value">{{ section.total_amount|floatformat:2 }} {{ invoice.currency }}</span>
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+
+        <div class="footer">
+            Dokument byl vygenerovan automaticky systemem Datakura.
+        </div>
+    </div>
+</body>
+</html>

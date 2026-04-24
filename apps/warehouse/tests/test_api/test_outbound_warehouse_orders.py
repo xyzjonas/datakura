@@ -1,6 +1,7 @@
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.warehouse import routes
+from apps.warehouse.models.orders import OutboundOrderState
 from apps.warehouse.models.warehouse import (
     Batch,
     InboundWarehouseOrderState,
@@ -128,6 +129,8 @@ def test_assign_outbound_warehouse_order_item_marks_order_completed(db) -> None:
         WarehouseMovement.objects.filter(outbound_order_code=warehouse_order).count()
         == 1
     )
+    outbound_order.refresh_from_db()
+    assert outbound_order.state == OutboundOrderState.SENT
 
 
 def test_get_outbound_warehouse_item_candidates_include_pending_inbound_putaway_stock(

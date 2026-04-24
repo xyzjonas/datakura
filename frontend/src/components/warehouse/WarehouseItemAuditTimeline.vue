@@ -21,11 +21,11 @@
 
         <div v-if="entry.reason" class="text-body2">{{ entry.reason }}</div>
 
-        <div v-if="entry.object_repr" class="text-caption text-gray-6">
+        <div v-if="entry.object_repr" class="text-caption text-muted">
           Objekt: {{ entry.object_repr }}
         </div>
 
-        <div class="text-caption text-gray-6 flex gap-3 flex-wrap">
+        <div class="text-caption text-muted flex gap-3 flex-wrap">
           <span
             v-if="entry.actor_user"
             class="flex items-center gap-1 text-sm font-bold text-primary"
@@ -38,7 +38,7 @@
           dense
           bordered
           separator
-          class="rounded bg-grey-1 max-w-sm overflow-hidden"
+          class="rounded max-w-sm overflow-hidden"
         >
           <q-item v-for="row in changeRows(entry)" :key="row.key">
             <q-item-section>

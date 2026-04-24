@@ -59,7 +59,8 @@
                 {
                   label: 'Faktury',
                   icon: 'sym_o_attach_money',
-                  routeName: 'submissions',
+                  routeName: 'invoices',
+                  routeMatch: 'invoices,invoiceDetail',
                 },
                 {
                   label: 'Dobropisy',
@@ -116,6 +117,8 @@
           <q-list class="flex flex-col gap-2"> </q-list>
         </q-scroll-area>
 
+        <DrawerSelfCustomerCard />
+
         <q-list class="flex flex-col gap-2">
           <q-item clickable v-ripple @click="toggle" dense class="rounded-md">
             <q-item-section avatar>
@@ -152,6 +155,7 @@ import AppLogo from '../AppLogo.vue'
 import MenuList from '../MenuList.vue'
 import SearchInput from '../SearchInput.vue'
 import BackToTopFab from './BackToTopFab.vue'
+import DrawerSelfCustomerCard from './DrawerSelfCustomerCard.vue'
 import LoginInfo from './LoginInfo.vue'
 import ToggleDrawerButton from './ToggleDrawerButton.vue'
 

@@ -35,6 +35,7 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
+from apps.warehouse.core.services.outbound_orders import outbound_orders_service
 from apps.warehouse.core.transformation import (
     warehouse_inbound_order_orm_to_schema,
     warehouse_outbound_order_orm_to_schema,
@@ -554,6 +555,15 @@ class WarehouseService:
             ),
             changes={"state": {"old": old_state, "new": new_state}},
         )
+
+        if (
+            new_state == OutboundWarehouseOrderState.COMPLETED
+            and warehouse_order.order is not None
+        ):
+            outbound_orders_service.sync_state_after_warehouse_completion(
+                warehouse_order.order,
+                context,
+            )
 
     @classmethod
     def assign_outbound_item(

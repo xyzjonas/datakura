@@ -125,6 +125,36 @@ def test_get_outbound_warehouse_order_audits(db, client) -> None:
     assert data[1]["action"] == AuditAction.UPDATE
 
 
+def test_get_outbound_warehouse_order_audits_formats_transition_state_labels(
+    db, client
+) -> None:
+    order = WarehouseOrderOutFactory.it(state=OutboundWarehouseOrderState.DRAFT)
+
+    audit_service.add_entry(
+        order,
+        action=AuditAction.TRANSITION,
+        reason=AuditMessages.WAREHOUSE_ORDER_STATE_CHANGED.CS.format(
+            old_state=OutboundWarehouseOrderState.DRAFT,
+            new_state=OutboundWarehouseOrderState.STARTED,
+        ),
+        changes={
+            "state": {
+                "old": OutboundWarehouseOrderState.DRAFT,
+                "new": OutboundWarehouseOrderState.STARTED,
+            }
+        },
+    )
+
+    res = client.get(f"orders-outgoing/{order.code}/audits")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert (
+        data[0]["reason"] == "Stav skladové objednávky se změnil z 'Draft' na 'Started'"
+    )
+    assert data[0]["changes"]["state"] == {"old": "Draft", "new": "Started"}
+
+
 def test_get_inbound_order_item_shows_outbound_link_and_done_when_assigned(
     db, client
 ) -> None:
@@ -336,6 +366,36 @@ def test_get_inbound_warehouse_order_audits(db, client) -> None:
     assert data[0]["action"] == AuditAction.TRANSITION
     assert data[1]["source"] == "audit"
     assert data[1]["action"] == AuditAction.UPDATE
+
+
+def test_get_inbound_warehouse_order_audits_formats_transition_state_labels(
+    db, client
+) -> None:
+    order = InboundWarehouseOrderFactory.it(state=InboundWarehouseOrderState.DRAFT)
+
+    audit_service.add_entry(
+        order,
+        action=AuditAction.TRANSITION,
+        reason=AuditMessages.WAREHOUSE_ORDER_STATE_CHANGED.CS.format(
+            old_state=InboundWarehouseOrderState.DRAFT,
+            new_state=InboundWarehouseOrderState.PENDING,
+        ),
+        changes={
+            "state": {
+                "old": InboundWarehouseOrderState.DRAFT,
+                "new": InboundWarehouseOrderState.PENDING,
+            }
+        },
+    )
+
+    res = client.get(f"orders-incoming/{order.code}/audits")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert (
+        data[0]["reason"] == "Stav skladové objednávky se změnil z 'Draft' na 'Pending'"
+    )
+    assert data[0]["changes"]["state"] == {"old": "Draft", "new": "Pending"}
 
 
 def test_get_inbound_warehouse_order_includes_total_and_remaining_amount(

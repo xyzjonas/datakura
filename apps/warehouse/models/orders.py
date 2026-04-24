@@ -55,6 +55,10 @@ class OutboundOrderState(models.IntegerChoices):
     SHIPPING = 5, "Shipping"
     COMPLETED = 6, "Completed"
     CANCELLED = 7, "Cancelled"
+    SENT = 8, "Sent"
+    INVOICED = 9, "Invoiced"
+    WAITING_FOR_PAYMENT = 10, "Waiting for payment"
+    COMPLETED_PAID = 11, "Completed paid"
 
     @classmethod
     def get_label(cls, value):
@@ -68,6 +72,10 @@ class OutboundOrderState(models.IntegerChoices):
             cls.SHIPPING: "shipping",
             cls.COMPLETED: "completed",
             cls.CANCELLED: "cancelled",
+            cls.SENT: "sent",
+            cls.INVOICED: "invoiced",
+            cls.WAITING_FOR_PAYMENT: "waiting_for_payment",
+            cls.COMPLETED_PAID: "completed_paid",
         }
         if member in api_values:
             return api_values[member]

@@ -4,6 +4,7 @@
     outlined
     :label="label"
     :hint="hint"
+    :disable="disable"
     v-model="modelValue"
     :options="options"
     option-label="name"
@@ -38,11 +39,13 @@ withDefaults(
     label?: string
     hint?: string
     required?: boolean
+    disable?: boolean
   }>(),
   {
     label: 'Vyhledat zákazníka',
     hint: 'Vyhledat subjekt podle názvu, kódu, IČO nebo DIČ.',
     required: true,
+    disable: false,
   },
 )
 

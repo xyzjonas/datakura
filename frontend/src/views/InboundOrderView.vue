@@ -89,8 +89,6 @@
         :credit-note="order.credit_note"
         show-invoice
         :invoice="order.invoice"
-        :show-invoice-edit="!!order.invoice"
-        @edit-invoice="openEditInvoiceDialog"
       />
     </div>
 
@@ -162,23 +160,13 @@
     <InvoiceUpsertDialog
       v-model:show="attachInvoiceDialog"
       v-model="invoiceForm"
+      :default-customer="selfCustomer"
       :default-supplier="order.supplier"
+      lock-customer
       title="Připojit fakturu"
       submit-label="Uložit fakturu"
       :loading="invoiceLoading"
       @submit="attachInvoice"
-    />
-    <InvoiceUpsertDialog
-      v-model:show="editInvoiceDialog"
-      v-model="editInvoiceForm"
-      :default-customer="order.invoice?.customer"
-      :default-supplier="order.invoice?.supplier"
-      :require-invoice-file="false"
-      title="Upravit fakturu"
-      submit-label="Uložit změny"
-      :existing-document="order.invoice?.document"
-      :loading="invoiceLoading"
-      @submit="editInvoice"
     />
     <AuditLogDialog
       v-model:show="auditDialog"
@@ -195,6 +183,8 @@
 
 <script setup lang="ts">
 import {
+  type CustomerSchema,
+  type GetCustomerResponse,
   warehouseApiRoutesInboundOrdersAddItemToInboundOrder,
   warehouseApiRoutesInboundOrdersGetInboundOrder,
   warehouseApiRoutesInboundOrdersGetInboundOrderPdf,
@@ -248,6 +238,27 @@ const data = onResponse(response)
 if (data) {
   order.value = data.data
 }
+
+const selfCustomer = ref<CustomerSchema>()
+
+const loadSelfCustomer = async () => {
+  const response = await client.get<{ 200: GetCustomerResponse }>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/customers/self',
+  })
+  const data = onResponse(response)
+  if (data?.data) {
+    selfCustomer.value = data.data
+  }
+}
+
+await loadSelfCustomer()
 
 const addItemDialog = ref(false)
 const auditDialog = ref(false)
@@ -414,32 +425,14 @@ const createDefaultInvoiceForm = (): InvoiceStoreSchema => ({
   taxable_supply_date: new Date().toISOString().split('T')[0],
   payment_method_name: '',
   currency: order.value?.currency ?? 'CZK',
-  customer_code: undefined,
+  customer_code: selfCustomer.value?.code,
   supplier_code: order.value?.supplier.code,
   external_code: undefined,
   paid_date: undefined,
   note: undefined,
 })
 
-const createInvoiceFormFromInvoice = (
-  invoice: NonNullable<InboundOrderSchema['invoice']>,
-): InvoiceStoreSchema => ({
-  code: invoice.code,
-  issued_date: invoice.issued_date,
-  due_date: invoice.due_date,
-  taxable_supply_date: invoice.taxable_supply_date,
-  payment_method_name: invoice.payment_method.name,
-  currency: invoice.currency,
-  customer_code: invoice.customer?.code,
-  supplier_code: invoice.supplier?.code,
-  external_code: invoice.external_code ?? undefined,
-  paid_date: invoice.paid_date ?? undefined,
-  note: invoice.note ?? undefined,
-})
-
 const invoiceForm = ref<InvoiceStoreSchema>(createDefaultInvoiceForm())
-const editInvoiceDialog = ref(false)
-const editInvoiceForm = ref<InvoiceStoreSchema>(createDefaultInvoiceForm())
 
 watch(attachInvoiceDialog, (isOpen) => {
   if (isOpen) {
@@ -475,49 +468,6 @@ const attachInvoice = async (payload: InvoiceUpsertSubmitPayload) => {
       $q.notify({
         type: 'positive',
         message: 'Faktura byla připojena k objednávce.',
-      })
-    }
-  } finally {
-    invoiceLoading.value = false
-  }
-}
-
-const openEditInvoiceDialog = () => {
-  if (!order.value?.invoice) {
-    return
-  }
-  editInvoiceForm.value = createInvoiceFormFromInvoice(order.value.invoice)
-  editInvoiceDialog.value = true
-}
-
-const editInvoice = async (payload: InvoiceUpsertSubmitPayload) => {
-  if (!order.value) {
-    return
-  }
-
-  invoiceLoading.value = true
-  try {
-    const response = await client.post<{ 200: GetInboundOrderResponse }>({
-      ...formDataBodySerializer,
-      security: [
-        {
-          in: 'cookie',
-          name: 'sessionid',
-          type: 'apiKey',
-        },
-      ],
-      headers: { 'Content-Type': null },
-      url: '/api/v1/orders/{order_code}/invoice',
-      path: { order_code: order.value.code },
-      body: toInvoiceMultipartBody(payload),
-    })
-    const data = onResponse(response)
-    if (data?.data) {
-      order.value = data.data
-      editInvoiceDialog.value = false
-      $q.notify({
-        type: 'positive',
-        message: 'Faktura byla upravena.',
       })
     }
   } finally {

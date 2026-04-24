@@ -14,9 +14,9 @@
         </q-item-section>
       </q-item>
     </q-list>
-    <div class="mt-3 ml-3 text-caption text-gray-5">
+    <div class="mt-3 ml-3 text-caption text-muted">
       Aktuální režim:
-      <q-badge :color="scannerMode ? 'primary' : 'grey'">
+      <q-badge :color="scannerMode ? 'secondary' : 'primary'">
         {{ scannerMode ? 'čtečka' : 'webové rozhraní' }}
       </q-badge>
     </div>

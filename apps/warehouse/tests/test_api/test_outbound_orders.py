@@ -14,6 +14,7 @@ from apps.warehouse.models.warehouse import (
     InboundWarehouseOrderState,
     OutboundWarehouseOrder,
     OutboundWarehouseOrderItem,
+    OutboundWarehouseOrderState,
 )
 from apps.warehouse.tests.factories.order import (
     InvoiceFactory,
@@ -29,6 +30,7 @@ from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
     WarehouseItemFactory,
     WarehouseLocationFactory,
+    WarehouseOrderOutFactory,
 )
 
 
@@ -59,6 +61,35 @@ def test_get_outbound_order_audits(db) -> None:
     assert data[0]["source"] == "audit"
     assert data[0]["action"] == AuditAction.UPDATE
     assert data[1]["action"] == AuditAction.CREATE
+
+
+def test_get_outbound_order_audits_formats_transition_state_labels(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+
+    audit_service.add_entry(
+        order,
+        action=AuditAction.TRANSITION,
+        reason=AuditMessages.OUTBOUND_ORDER_STATE_CHANGED.CS.format(
+            old_state=OutboundOrderState.DRAFT,
+            new_state=OutboundOrderState.PICKING,
+        ),
+        changes={
+            "state": {
+                "old": OutboundOrderState.DRAFT,
+                "new": OutboundOrderState.PICKING,
+            }
+        },
+    )
+
+    res = client.get(f"/{order.code}/audits")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert (
+        data[0]["reason"] == "Stav vydané objednávky se změnil z 'Draft' na 'Picking'"
+    )
+    assert data[0]["changes"]["state"] == {"old": "Draft", "new": "Picking"}
 
 
 def test_get_outbound_orders_filter_by_stock_product_code(db) -> None:
@@ -109,17 +140,22 @@ def test_get_outbound_order_includes_invoice(db, settings, tmp_path) -> None:
 
 def test_store_outbound_order_invoice(db) -> None:
     client = TestClient(routes)
-    order = OutboundOrderFactory.it()
+    order = OutboundOrderFactory.it(state=OutboundOrderState.SENT)
+    WarehouseOrderOutFactory.it(
+        order=order,
+        state=OutboundWarehouseOrderState.COMPLETED,
+    )
+    future_due_date = timezone.localdate() + timedelta(days=14)
 
     res = client.post(
         f"/{order.code}/invoice",
         data={
             "code": "INV-POST-S-0001",
-            "issued_date": "2026-04-01",
-            "due_date": "2026-04-15",
+            "issued_date": timezone.localdate().isoformat(),
+            "due_date": future_due_date.isoformat(),
             "payment_method_name": "Bank transfer",
             "external_code": "POST-EXT-S-001",
-            "taxable_supply_date": "2026-04-01",
+            "taxable_supply_date": timezone.localdate().isoformat(),
             "currency": "CZK",
             "note": "Stored through API",
         },
@@ -130,6 +166,7 @@ def test_store_outbound_order_invoice(db) -> None:
     assert data["invoice"]["code"] == "INV-POST-S-0001"
     assert data["invoice"]["payment_method"]["name"] == "Bank transfer"
     assert data["invoice"]["document"] is None
+    assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.INVOICED)
 
 
 def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
@@ -359,6 +396,17 @@ def test_transition_outbound_order_next_creates_warehouse_order(db) -> None:
     assert len(data["warehouse_orders"]) == 1
     assert data["warehouse_orders"][0]["order_code"] == order.code
     assert OutboundWarehouseOrder.objects.filter(order__code=order.code).count() == 1
+
+
+def test_transition_outbound_order_next_skips_packing_and_shipping(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
+
+    res = client.post(f"/{order.code}/transition", json={"action": "next"})
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.SENT)
 
 
 def test_transition_outbound_order_cancel_action(db) -> None:

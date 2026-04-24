@@ -61,6 +61,8 @@
       <OutboundLinkedEntitiesCard
         show-warehouse-orders
         :warehouse-orders="order.warehouse_orders"
+        show-invoice
+        :invoice="order.invoice"
       />
     </div>
 

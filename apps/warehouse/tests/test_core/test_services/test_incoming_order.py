@@ -301,7 +301,7 @@ def test_store_invoice_creates_and_attaches_to_inbound_order(
     settings.MEDIA_URL = "/media/"
 
     order = InboundOrderFactory()
-    customer = CustomerFactoryMinimal()
+    customer = CustomerFactoryMinimal(is_self=True)
     supplier = CustomerFactoryMinimal()
 
     result = inbound_orders_service.store_invoice(
@@ -345,6 +345,7 @@ def test_store_invoice_updates_existing_invoice(db, context, settings, tmp_path)
     settings.MEDIA_ROOT = tmp_path
     settings.MEDIA_URL = "/media/"
 
+    self_customer = CustomerFactoryMinimal(is_self=True)
     invoice = InvoiceFactory.it(code="INV-EXISTING-0001")
     order = InboundOrderFactory.it(invoice=invoice)
 
@@ -370,10 +371,44 @@ def test_store_invoice_updates_existing_invoice(db, context, settings, tmp_path)
     invoice.refresh_from_db()
 
     assert order.invoice_id == invoice.id
-    assert invoice.customer is None
+    assert invoice.customer == self_customer
     assert invoice.supplier is None
     assert invoice.payment_method.name == "Cash"
     assert invoice.external_code == "UPDATED-EXT-001"
     assert invoice.currency == "EUR"
     assert result.invoice is not None
     assert result.invoice.payment_method.name == "Cash"
+
+
+def test_store_invoice_ignores_provided_customer_and_uses_self_customer(
+    db, context, settings, tmp_path
+):
+    settings.MEDIA_ROOT = tmp_path
+    settings.MEDIA_URL = "/media/"
+
+    order = InboundOrderFactory()
+    self_customer = CustomerFactoryMinimal(is_self=True)
+    provided_customer = CustomerFactoryMinimal()
+    supplier = CustomerFactoryMinimal()
+
+    inbound_orders_service.store_invoice(
+        order.code,
+        InvoiceStoreSchema(
+            customer_code=provided_customer.code,
+            supplier_code=supplier.code,
+            code="INV-STORE-0002",
+            issued_date=datetime(2026, 3, 10).date(),
+            due_date=datetime(2026, 3, 31).date(),
+            payment_method_name="Bank transfer",
+            external_code=None,
+            taxable_supply_date=datetime(2026, 3, 10).date(),
+            paid_date=None,
+            currency="CZK",
+            note=None,
+        ),
+        context=context,
+    )
+
+    order.refresh_from_db()
+    assert order.invoice is not None
+    assert order.invoice.customer == self_customer

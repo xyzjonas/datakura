@@ -756,6 +756,28 @@ export type CreditNoteSupplierSchema = {
 };
 
 /**
+ * CustomerDefaultPaymentMethodSchema
+ */
+export type CustomerDefaultPaymentMethodSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * CustomerDiscountGroupSchema
  */
 export type CustomerDiscountGroupSchema = {
@@ -878,6 +900,10 @@ export type CustomerSchema = {
      */
     block_after_due_days: number;
     /**
+     * Is Self
+     */
+    is_self: boolean;
+    /**
      * Data Collection Agreement
      */
     data_collection_agreement: boolean;
@@ -903,6 +929,7 @@ export type CustomerSchema = {
     responsible_user?: string | null;
     group: CustomerGroupSchema;
     discount_group?: CustomerDiscountGroupSchema | null;
+    default_payment_method?: CustomerDefaultPaymentMethodSchema | null;
     /**
      * Contacts
      */
@@ -2215,6 +2242,14 @@ export type CustomerCreateOrUpdateSchema = {
      */
     block_after_due_days?: number;
     /**
+     * Is Self
+     */
+    is_self?: boolean;
+    /**
+     * Default Payment Method Name
+     */
+    default_payment_method_name?: string | null;
+    /**
      * Data Collection Agreement
      */
     data_collection_agreement?: boolean;
@@ -3022,7 +3057,7 @@ export type OutboundOrderCreateOrUpdateSchema = {
 /**
  * OutboundOrderState
  */
-export type OutboundOrderState = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type OutboundOrderState = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 
 /**
  * CreateOutboundOrderItemResponse
@@ -3161,21 +3196,6 @@ export type PackageTypeCreateOrUpdateSchema = {
      * Unit
      */
     unit?: string | null;
-};
-
-/**
- * DeletePackageTypeResponse
- */
-export type DeletePackageTypeResponse = {
-    /**
-     * Success
-     */
-    success?: boolean;
-    error?: ErrorInformation | null;
-    /**
-     * Data
-     */
-    data?: null;
 };
 
 /**
@@ -3339,6 +3359,21 @@ export type PutInSerialRequestSchema = {
 };
 
 /**
+ * DeletePackageTypeResponse
+ */
+export type DeletePackageTypeResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data?: null;
+};
+
+/**
  * PagedCreditNoteSupplierSchema
  */
 export type PagedCreditNoteSupplierSchema = {
@@ -3375,6 +3410,299 @@ export type GetCreditNoteToSupplierResponse = {
     success?: boolean;
     error?: ErrorInformation | null;
     data: CreditNoteSupplierSchema;
+};
+
+/**
+ * PagedInvoiceSchema
+ */
+export type PagedInvoiceSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<InvoiceSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetInvoiceResponse
+ */
+export type GetInvoiceResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: InvoiceDetailSchema;
+};
+
+/**
+ * InvoiceDetailSchema
+ */
+export type InvoiceDetailSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    customer?: CustomerSchema | null;
+    supplier?: CustomerSchema | null;
+    /**
+     * Issued Date
+     */
+    issued_date: string;
+    /**
+     * Due Date
+     */
+    due_date: string;
+    payment_method: InvoicePaymentMethodSchema;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Taxable Supply Date
+     */
+    taxable_supply_date: string;
+    /**
+     * Paid Date
+     */
+    paid_date?: string | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Note
+     */
+    note?: string | null;
+    document?: MediaFileSchema | null;
+    /**
+     * Outbound Orders
+     */
+    outbound_orders?: Array<InvoiceOutboundOrderSchema>;
+    /**
+     * Inbound Orders
+     */
+    inbound_orders?: Array<InvoiceInboundOrderSchema>;
+};
+
+/**
+ * InvoiceInboundOrderItemSchema
+ */
+export type InvoiceInboundOrderItemSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    product: InvoiceOrderProductSchema;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Unit Price
+     */
+    unit_price: number;
+    /**
+     * Total Price
+     */
+    total_price: number;
+    /**
+     * Index
+     */
+    index: number;
+};
+
+/**
+ * InvoiceInboundOrderSchema
+ */
+export type InvoiceInboundOrderSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Items
+     */
+    items?: Array<InvoiceInboundOrderItemSchema>;
+};
+
+/**
+ * InvoiceOrderProductSchema
+ */
+export type InvoiceOrderProductSchema = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Unit
+     */
+    unit?: string | null;
+};
+
+/**
+ * InvoiceOutboundOrderItemSchema
+ */
+export type InvoiceOutboundOrderItemSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    product: InvoiceOrderProductSchema;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Unit Price
+     */
+    unit_price: number;
+    /**
+     * Total Price
+     */
+    total_price: number;
+    /**
+     * Index
+     */
+    index: number;
+};
+
+/**
+ * InvoiceOutboundOrderSchema
+ */
+export type InvoiceOutboundOrderSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Items
+     */
+    items?: Array<InvoiceOutboundOrderItemSchema>;
+};
+
+/**
+ * OutboundInvoiceCreateSchema
+ */
+export type OutboundInvoiceCreateSchema = {
+    /**
+     * Order Codes
+     */
+    order_codes?: Array<string>;
+    /**
+     * Issued Date
+     */
+    issued_date: string;
+    /**
+     * Due Date
+     */
+    due_date: string;
+    /**
+     * Payment Method Name
+     */
+    payment_method_name?: string | null;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Taxable Supply Date
+     */
+    taxable_supply_date: string;
+    /**
+     * Paid Date
+     */
+    paid_date?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
+ * InvoiceMarkPaidSchema
+ */
+export type InvoiceMarkPaidSchema = {
+    /**
+     * Paid Date
+     */
+    paid_date?: string | null;
 };
 
 /**
@@ -4547,6 +4875,10 @@ export type WarehouseApiRoutesCustomerGetCustomersData = {
          */
         is_active?: boolean;
         /**
+         * Is Self
+         */
+        is_self?: boolean | null;
+        /**
          * Page
          */
         page?: number;
@@ -4591,6 +4923,22 @@ export type WarehouseApiRoutesCustomerCreateCustomerResponses = {
 };
 
 export type WarehouseApiRoutesCustomerCreateCustomerResponse = WarehouseApiRoutesCustomerCreateCustomerResponses[keyof WarehouseApiRoutesCustomerCreateCustomerResponses];
+
+export type WarehouseApiRoutesCustomerGetSelfCustomerData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/customers/self';
+};
+
+export type WarehouseApiRoutesCustomerGetSelfCustomerResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerResponse;
+};
+
+export type WarehouseApiRoutesCustomerGetSelfCustomerResponse = WarehouseApiRoutesCustomerGetSelfCustomerResponses[keyof WarehouseApiRoutesCustomerGetSelfCustomerResponses];
 
 export type WarehouseApiRoutesCustomerDeleteCustomerData = {
     body?: never;
@@ -5479,48 +5827,6 @@ export type WarehouseApiRoutesPackagingCreatePackageTypeResponses = {
 
 export type WarehouseApiRoutesPackagingCreatePackageTypeResponse = WarehouseApiRoutesPackagingCreatePackageTypeResponses[keyof WarehouseApiRoutesPackagingCreatePackageTypeResponses];
 
-export type WarehouseApiRoutesPackagingDeletePackageTypeData = {
-    body?: never;
-    path: {
-        /**
-         * Package Type Name
-         */
-        package_type_name: string;
-    };
-    query?: never;
-    url: '/api/v1/packaging/{package_type_name}';
-};
-
-export type WarehouseApiRoutesPackagingDeletePackageTypeResponses = {
-    /**
-     * OK
-     */
-    200: DeletePackageTypeResponse;
-};
-
-export type WarehouseApiRoutesPackagingDeletePackageTypeResponse = WarehouseApiRoutesPackagingDeletePackageTypeResponses[keyof WarehouseApiRoutesPackagingDeletePackageTypeResponses];
-
-export type WarehouseApiRoutesPackagingUpdatePackageTypeData = {
-    body: PackageTypeCreateOrUpdateSchema;
-    path: {
-        /**
-         * Package Type Name
-         */
-        package_type_name: string;
-    };
-    query?: never;
-    url: '/api/v1/packaging/{package_type_name}';
-};
-
-export type WarehouseApiRoutesPackagingUpdatePackageTypeResponses = {
-    /**
-     * OK
-     */
-    200: GetPackageTypeResponse;
-};
-
-export type WarehouseApiRoutesPackagingUpdatePackageTypeResponse = WarehouseApiRoutesPackagingUpdatePackageTypeResponses[keyof WarehouseApiRoutesPackagingUpdatePackageTypeResponses];
-
 export type WarehouseApiRoutesPackagingGetUnitsData = {
     body?: never;
     path?: never;
@@ -5635,6 +5941,48 @@ export type WarehouseApiRoutesPackagingSerialPreviewResponses = {
 
 export type WarehouseApiRoutesPackagingSerialPreviewResponse = WarehouseApiRoutesPackagingSerialPreviewResponses[keyof WarehouseApiRoutesPackagingSerialPreviewResponses];
 
+export type WarehouseApiRoutesPackagingDeletePackageTypeData = {
+    body?: never;
+    path: {
+        /**
+         * Package Type Name
+         */
+        package_type_name: string;
+    };
+    query?: never;
+    url: '/api/v1/packaging/{package_type_name}';
+};
+
+export type WarehouseApiRoutesPackagingDeletePackageTypeResponses = {
+    /**
+     * OK
+     */
+    200: DeletePackageTypeResponse;
+};
+
+export type WarehouseApiRoutesPackagingDeletePackageTypeResponse = WarehouseApiRoutesPackagingDeletePackageTypeResponses[keyof WarehouseApiRoutesPackagingDeletePackageTypeResponses];
+
+export type WarehouseApiRoutesPackagingUpdatePackageTypeData = {
+    body: PackageTypeCreateOrUpdateSchema;
+    path: {
+        /**
+         * Package Type Name
+         */
+        package_type_name: string;
+    };
+    query?: never;
+    url: '/api/v1/packaging/{package_type_name}';
+};
+
+export type WarehouseApiRoutesPackagingUpdatePackageTypeResponses = {
+    /**
+     * OK
+     */
+    200: GetPackageTypeResponse;
+};
+
+export type WarehouseApiRoutesPackagingUpdatePackageTypeResponse = WarehouseApiRoutesPackagingUpdatePackageTypeResponses[keyof WarehouseApiRoutesPackagingUpdatePackageTypeResponses];
+
 export type WarehouseApiRoutesCreditNotesGetCreditNotesToSupplierData = {
     body?: never;
     path?: never;
@@ -5693,6 +6041,226 @@ export type WarehouseApiRoutesAnalyticsGetAnalyticsData = {
 };
 
 export type WarehouseApiRoutesAnalyticsGetAnalyticsResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type WarehouseApiRoutesInvoicesGetOutboundInvoicesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/invoices/outbound';
+};
+
+export type WarehouseApiRoutesInvoicesGetOutboundInvoicesResponses = {
+    /**
+     * OK
+     */
+    200: PagedInvoiceSchema;
+};
+
+export type WarehouseApiRoutesInvoicesGetOutboundInvoicesResponse = WarehouseApiRoutesInvoicesGetOutboundInvoicesResponses[keyof WarehouseApiRoutesInvoicesGetOutboundInvoicesResponses];
+
+export type WarehouseApiRoutesInvoicesCreateOutboundInvoiceData = {
+    body: OutboundInvoiceCreateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/invoices/outbound';
+};
+
+export type WarehouseApiRoutesInvoicesCreateOutboundInvoiceResponses = {
+    /**
+     * OK
+     */
+    200: GetInvoiceResponse;
+};
+
+export type WarehouseApiRoutesInvoicesCreateOutboundInvoiceResponse = WarehouseApiRoutesInvoicesCreateOutboundInvoiceResponses[keyof WarehouseApiRoutesInvoicesCreateOutboundInvoiceResponses];
+
+export type WarehouseApiRoutesInvoicesGetInboundInvoicesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/invoices/inbound';
+};
+
+export type WarehouseApiRoutesInvoicesGetInboundInvoicesResponses = {
+    /**
+     * OK
+     */
+    200: PagedInvoiceSchema;
+};
+
+export type WarehouseApiRoutesInvoicesGetInboundInvoicesResponse = WarehouseApiRoutesInvoicesGetInboundInvoicesResponses[keyof WarehouseApiRoutesInvoicesGetInboundInvoicesResponses];
+
+export type WarehouseApiRoutesInvoicesGetInvoiceData = {
+    body?: never;
+    path: {
+        /**
+         * Invoice Code
+         */
+        invoice_code: string;
+    };
+    query?: never;
+    url: '/api/v1/invoices/{invoice_code}';
+};
+
+export type WarehouseApiRoutesInvoicesGetInvoiceResponses = {
+    /**
+     * OK
+     */
+    200: GetInvoiceResponse;
+};
+
+export type WarehouseApiRoutesInvoicesGetInvoiceResponse = WarehouseApiRoutesInvoicesGetInvoiceResponses[keyof WarehouseApiRoutesInvoicesGetInvoiceResponses];
+
+export type WarehouseApiRoutesInvoicesUpdateInvoiceData = {
+    /**
+     * FormParams
+     */
+    body: {
+        /**
+         * Customer Code
+         */
+        customer_code?: string | null;
+        /**
+         * Supplier Code
+         */
+        supplier_code?: string | null;
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Issued Date
+         */
+        issued_date: string;
+        /**
+         * Due Date
+         */
+        due_date: string;
+        /**
+         * Payment Method Name
+         */
+        payment_method_name: string;
+        /**
+         * External Code
+         */
+        external_code?: string | null;
+        /**
+         * Taxable Supply Date
+         */
+        taxable_supply_date: string;
+        /**
+         * Paid Date
+         */
+        paid_date?: string | null;
+        /**
+         * Currency
+         */
+        currency: string;
+        /**
+         * Note
+         */
+        note?: string | null;
+    };
+    path: {
+        /**
+         * Invoice Code
+         */
+        invoice_code: string;
+    };
+    query?: {
+        /**
+         * Invoice File
+         */
+        invoice_file?: Blob | File | null;
+    };
+    url: '/api/v1/invoices/{invoice_code}';
+};
+
+export type WarehouseApiRoutesInvoicesUpdateInvoiceResponses = {
+    /**
+     * OK
+     */
+    200: GetInvoiceResponse;
+};
+
+export type WarehouseApiRoutesInvoicesUpdateInvoiceResponse = WarehouseApiRoutesInvoicesUpdateInvoiceResponses[keyof WarehouseApiRoutesInvoicesUpdateInvoiceResponses];
+
+export type WarehouseApiRoutesInvoicesMarkInvoicePaidData = {
+    body: InvoiceMarkPaidSchema;
+    path: {
+        /**
+         * Invoice Code
+         */
+        invoice_code: string;
+    };
+    query?: never;
+    url: '/api/v1/invoices/{invoice_code}/mark-paid';
+};
+
+export type WarehouseApiRoutesInvoicesMarkInvoicePaidResponses = {
+    /**
+     * OK
+     */
+    200: GetInvoiceResponse;
+};
+
+export type WarehouseApiRoutesInvoicesMarkInvoicePaidResponse = WarehouseApiRoutesInvoicesMarkInvoicePaidResponses[keyof WarehouseApiRoutesInvoicesMarkInvoicePaidResponses];
+
+export type WarehouseApiRoutesInvoicesGetInvoicePdfData = {
+    body?: never;
+    path: {
+        /**
+         * Invoice Code
+         */
+        invoice_code: string;
+    };
+    query?: never;
+    url: '/api/v1/invoices/{invoice_code}/pdf';
+};
+
+export type WarehouseApiRoutesInvoicesGetInvoicePdfResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type WarehouseApiRoutesInvoicesGetInvoiceHtmlData = {
+    body?: never;
+    path: {
+        /**
+         * Invoice Code
+         */
+        invoice_code: string;
+    };
+    query?: never;
+    url: '/api/v1/invoices/{invoice_code}/html';
+};
+
+export type WarehouseApiRoutesInvoicesGetInvoiceHtmlResponses = {
     /**
      * OK
      */

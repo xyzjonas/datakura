@@ -15,10 +15,11 @@ from apps.warehouse.core.schemas.base_orders import (
     CreditNoteBaseSchema,
 )
 from apps.warehouse.core.schemas.customer import (
-    CustomerSchema,
-    CustomerGroupSchema,
-    CustomerDiscountGroupSchema,
     ContactPersonSchema,
+    CustomerDefaultPaymentMethodSchema,
+    CustomerDiscountGroupSchema,
+    CustomerGroupSchema,
+    CustomerSchema,
 )
 from apps.warehouse.core.schemas.orders import (
     InboundOrderSchema,
@@ -29,6 +30,12 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.invoice import (
+    InvoiceDetailSchema,
+    InvoiceInboundOrderItemSchema,
+    InvoiceInboundOrderSchema,
+    InvoiceOrderProductSchema,
+    InvoiceOutboundOrderItemSchema,
+    InvoiceOutboundOrderSchema,
     InvoicePaymentMethodSchema,
     InvoiceSchema,
 )
@@ -159,6 +166,94 @@ def invoice_orm_to_schema(invoice: Invoice) -> InvoiceSchema:
     )
 
 
+def invoice_outbound_order_item_orm_to_schema(
+    item: OutboundOrderItem,
+) -> InvoiceOutboundOrderItemSchema:
+    return InvoiceOutboundOrderItemSchema(
+        product=InvoiceOrderProductSchema(
+            code=item.stock_product.code,
+            name=item.stock_product.name,
+            unit=item.stock_product.unit_of_measure.name
+            if item.stock_product.unit_of_measure
+            else None,
+        ),
+        amount=float(item.amount),
+        unit_price=float(item.unit_price),
+        total_price=float(item.total_price),
+        index=item.index,
+        changed=item.changed,
+        created=item.created,
+    )
+
+
+def invoice_outbound_order_orm_to_schema(
+    order: OutboundOrder,
+) -> InvoiceOutboundOrderSchema:
+    return InvoiceOutboundOrderSchema(
+        code=order.code,
+        external_code=order.external_code,
+        state=OutboundOrderState.get_label(order.state),
+        currency=order.currency,
+        items=[
+            invoice_outbound_order_item_orm_to_schema(item)
+            for item in order.items.order_by("index", "created").all()
+        ],
+        created=order.created,
+        changed=order.changed,
+    )
+
+
+def invoice_inbound_order_item_orm_to_schema(
+    item: InboundOrderItem,
+) -> InvoiceInboundOrderItemSchema:
+    return InvoiceInboundOrderItemSchema(
+        product=InvoiceOrderProductSchema(
+            code=item.stock_product.code,
+            name=item.stock_product.name,
+            unit=item.stock_product.unit_of_measure.name
+            if item.stock_product.unit_of_measure
+            else None,
+        ),
+        amount=float(item.amount),
+        unit_price=float(item.unit_price),
+        total_price=float(item.total_price),
+        index=item.index,
+        changed=item.changed,
+        created=item.created,
+    )
+
+
+def invoice_inbound_order_orm_to_schema(
+    order: InboundOrder,
+) -> InvoiceInboundOrderSchema:
+    return InvoiceInboundOrderSchema(
+        code=order.code,
+        external_code=order.external_code,
+        state=InboundOrderState.get_label(order.state),
+        currency=order.currency,
+        items=[
+            invoice_inbound_order_item_orm_to_schema(item)
+            for item in order.items.order_by("index", "created").all()
+        ],
+        created=order.created,
+        changed=order.changed,
+    )
+
+
+def invoice_orm_to_detail_schema(invoice: Invoice) -> InvoiceDetailSchema:
+    return InvoiceDetailSchema(
+        **invoice_orm_to_schema(invoice).model_dump(),
+        outbound_orders=[
+            invoice_outbound_order_orm_to_schema(order)
+            for order in invoice.outbound_orders.order_by("created", "code").all()
+        ],
+        inbound_orders=[
+            invoice_inbound_order_orm_to_schema(order)
+            for order in invoice.inbound_orders.order_by("created", "code").all()
+        ],
+    )
+
+
 def batch_orm_to_schema(batch: Batch) -> BatchSchema:
     barcode = batch.get_primary_barcode()
     return BatchSchema(
@@ -218,6 +313,7 @@ def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
         price_type=customer.price_type,
         invoice_due_days=customer.invoice_due_days,
         block_after_due_days=customer.block_after_due_days,
+        is_self=customer.is_self,
         data_collection_agreement=customer.data_collection_agreement,
         marketing_data_use_agreement=customer.marketing_data_use_agreement,
         is_valid=customer.is_valid,
@@ -236,6 +332,14 @@ def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
             is_active=customer.discount_group.is_active,
         )
         if customer.discount_group
+        else None,
+        default_payment_method=CustomerDefaultPaymentMethodSchema(
+            created=customer.default_payment_method.created,
+            changed=customer.default_payment_method.changed,
+            id=customer.default_payment_method.pk,
+            name=customer.default_payment_method.name,
+        )
+        if customer.default_payment_method
         else None,
         contacts=[
             ContactPersonSchema.from_orm(contact) for contact in customer.contacts.all()

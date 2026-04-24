@@ -42,6 +42,12 @@ class AuditMessages:
             AuditLanguage.CS: "Stav příchozí objednávky se změnil z '{old_state}' na '{new_state}'",
         }
     )
+    OUTBOUND_ORDER_STATE_CHANGED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Outbound order state changed from '{old_state}' to '{new_state}'",
+            AuditLanguage.CS: "Stav vydané objednávky se změnil z '{old_state}' na '{new_state}'",
+        }
+    )
     CREDIT_NOTE_STATE_CHANGED = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Credit note state changed from '{old_state}' to '{new_state}'",
@@ -58,6 +64,30 @@ class AuditMessages:
         {
             AuditLanguage.EN: "Invoice '{invoice_code}' stored for inbound order",
             AuditLanguage.CS: "Faktura '{invoice_code}' byla uložena pro příchozí objednávku",
+        }
+    )
+    INVOICE_CREATED_FOR_OUTBOUND_ORDER = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Invoice '{invoice_code}' created for outbound order",
+            AuditLanguage.CS: "Faktura '{invoice_code}' byla vytvořena pro vydanou objednávku",
+        }
+    )
+    INVOICE_STORED_FOR_OUTBOUND_ORDER = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Invoice '{invoice_code}' stored for outbound order",
+            AuditLanguage.CS: "Faktura '{invoice_code}' byla uložena pro vydanou objednávku",
+        }
+    )
+    INVOICE_UPDATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Invoice updated",
+            AuditLanguage.CS: "Faktura byla aktualizována",
+        }
+    )
+    INVOICE_MARKED_AS_PAID = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Invoice marked as paid",
+            AuditLanguage.CS: "Faktura byla označena jako uhrazená",
         }
     )
     ITEM_PARTIALLY_MOVED = LocalizedAuditMessage(

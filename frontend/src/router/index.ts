@@ -7,6 +7,8 @@ import CustomerView from '@/views/CustomerView.vue'
 import GroupsView from '@/views/GroupsView.vue'
 import HomeView from '@/views/HomeView.vue'
 import InboundOrderView from '@/views/InboundOrderView.vue'
+import InvoicesView from '@/views/InvoicesView.vue'
+import InvoiceView from '@/views/InvoiceView.vue'
 import OutboundOrderView from '@/views/OutboundOrderView.vue'
 import LoginView from '@/views/LoginView.vue'
 import OrdersView from '@/views/OrdersView.vue'
@@ -117,6 +119,17 @@ const router = createRouter({
       path: '/outbound-orders/:code',
       name: 'outboundOrderDetail',
       component: OutboundOrderView,
+      props: true,
+    },
+    {
+      path: '/invoices',
+      name: 'invoices',
+      component: InvoicesView,
+    },
+    {
+      path: '/invoices/:code',
+      name: 'invoiceDetail',
+      component: InvoiceView,
       props: true,
     },
     {

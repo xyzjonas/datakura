@@ -59,6 +59,68 @@ def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
 
 class OutboundOrdersService:
     @staticmethod
+    def _has_completed_warehouse_order(order: OutboundOrder) -> bool:
+        warehouse_orders = list(order.warehouse_orders.all())
+        return bool(warehouse_orders) and all(
+            warehouse_order.state == OutboundWarehouseOrderState.COMPLETED
+            for warehouse_order in warehouse_orders
+        )
+
+    @staticmethod
+    def _resolve_invoiced_state(invoice: Invoice) -> OutboundOrderState:
+        if invoice.paid_date is not None:
+            return OutboundOrderState.COMPLETED_PAID
+
+        if invoice.due_date < timezone.localdate():
+            return OutboundOrderState.WAITING_FOR_PAYMENT
+
+        return OutboundOrderState.INVOICED
+
+    @classmethod
+    def sync_state_after_warehouse_completion(
+        cls,
+        order: OutboundOrder,
+        context: RequestContext,
+    ) -> None:
+        if order.state == OutboundOrderState.CANCELLED:
+            return
+
+        target_state = OutboundOrderState.SENT
+        if order.invoice_id is not None:
+            invoice = order.invoice or Invoice.objects.get(pk=order.invoice_id)
+            target_state = cls._resolve_invoiced_state(invoice)
+
+        if order.state != target_state:
+            cls.transition_order(
+                order.code,
+                context=context,
+                target_state=target_state,
+            )
+
+    @classmethod
+    def sync_state_from_invoice(
+        cls,
+        order: OutboundOrder,
+        context: RequestContext,
+    ) -> None:
+        if order.state == OutboundOrderState.CANCELLED or order.invoice_id is None:
+            return
+
+        if not cls._has_completed_warehouse_order(order):
+            raise WarehouseItemBadRequestError(
+                f"Outbound order '{order.code}' must have completed warehouse order before invoicing."
+            )
+
+        invoice = order.invoice or Invoice.objects.get(pk=order.invoice_id)
+        target_state = cls._resolve_invoiced_state(invoice)
+        if order.state != target_state:
+            cls.transition_order(
+                order.code,
+                context=context,
+                target_state=target_state,
+            )
+
+    @staticmethod
     def _get_desired_package_or_none(name: str | None) -> PackageType | None:
         if not name:
             return None
@@ -194,7 +256,12 @@ class OutboundOrdersService:
 
     @staticmethod
     def get_outbound_order(code: str) -> OutboundOrderSchema:
-        order = OutboundOrder.objects.select_related("customer").get(code=code)
+        order = OutboundOrder.objects.select_related(
+            "customer",
+            "invoice__customer",
+            "invoice__supplier",
+            "invoice__payment_method",
+        ).get(code=code)
         schema = outbound_order_orm_to_schema(order)
         return OutboundOrdersService._with_pricing_details(schema, order)
 
@@ -251,7 +318,11 @@ class OutboundOrdersService:
             "invoice__supplier",
             "invoice__payment_method",
         ).exclude(
-            state__in=[OutboundOrderState.CANCELLED, OutboundOrderState.COMPLETED]
+            state__in=[
+                OutboundOrderState.CANCELLED,
+                OutboundOrderState.COMPLETED,
+                OutboundOrderState.COMPLETED_PAID,
+            ]
         )
 
         if search_term:
@@ -470,12 +541,12 @@ class OutboundOrdersService:
                             "Order must have at least one item before confirmation"
                         )
                     new_state = OutboundOrderState.PICKING
-                elif old_state == OutboundOrderState.PICKING:
-                    new_state = OutboundOrderState.PACKING
-                elif old_state == OutboundOrderState.PACKING:
-                    new_state = OutboundOrderState.SHIPPING
-                elif old_state == OutboundOrderState.SHIPPING:
-                    new_state = OutboundOrderState.COMPLETED
+                elif old_state in (
+                    OutboundOrderState.PICKING,
+                    OutboundOrderState.PACKING,
+                    OutboundOrderState.SHIPPING,
+                ):
+                    new_state = OutboundOrderState.SENT
                 else:
                     raise WarehouseItemBadRequestError(
                         f"No next transition available from state '{old_state}'"
@@ -512,7 +583,13 @@ class OutboundOrdersService:
                     warehouse_order=warehouse_order
                 )
 
-            if new_state == OutboundOrderState.COMPLETED:
+            if new_state in (
+                OutboundOrderState.COMPLETED,
+                OutboundOrderState.SENT,
+                OutboundOrderState.INVOICED,
+                OutboundOrderState.WAITING_FOR_PAYMENT,
+                OutboundOrderState.COMPLETED_PAID,
+            ):
                 order.fulfilled_date = timezone.now()
 
             if new_state == OutboundOrderState.CANCELLED:
@@ -526,7 +603,7 @@ class OutboundOrdersService:
                 order,
                 action=AuditAction.TRANSITION,
                 user=context.user_id,
-                reason=AuditMessages.INBOUND_ORDER_STATE_CHANGED.CS.format(
+                reason=AuditMessages.OUTBOUND_ORDER_STATE_CHANGED.CS.format(
                     old_state=old_state, new_state=new_state
                 ),
                 changes={"state": {"old": old_state, "new": new_state}},
@@ -550,8 +627,17 @@ class OutboundOrdersService:
         context: RequestContext,
         invoice_file: UploadedFile | None = None,
     ) -> OutboundOrderSchema:
-        order = OutboundOrder.objects.select_related("invoice").get(code=order_code)
+        order = (
+            OutboundOrder.objects.select_related("invoice")
+            .prefetch_related("warehouse_orders")
+            .get(code=order_code)
+        )
         previous_invoice_code = order.invoice.code if order.invoice else None
+
+        if not cls._has_completed_warehouse_order(order):
+            raise WarehouseItemBadRequestError(
+                f"Outbound order '{order.code}' must have completed warehouse order before invoicing."
+            )
 
         customer = cls._get_customer_or_none(params.customer_code)
         supplier = cls._get_customer_or_none(params.supplier_code)
@@ -592,7 +678,7 @@ class OutboundOrdersService:
                 order,
                 user=context.user_id,
                 action=AuditAction.UPDATE,
-                reason=AuditMessages.INVOICE_STORED_FOR_INBOUND_ORDER.CS.format(
+                reason=AuditMessages.INVOICE_STORED_FOR_OUTBOUND_ORDER.CS.format(
                     invoice_code=invoice.code
                 ),
                 changes={
@@ -602,6 +688,8 @@ class OutboundOrdersService:
                     }
                 },
             )
+
+            cls.sync_state_from_invoice(order, context)
 
         order.refresh_from_db()
         schema = outbound_order_orm_to_schema(order)

@@ -51,29 +51,9 @@
     <ForegroundPanel v-if="showInvoice" class="flex-1 flex justify-center items-center">
       <div v-if="invoice" class="flex flex-col">
         <span class="text-gray-5 text-2xs uppercase">Faktura</span>
-        <div class="flex items-center gap-2">
-          <a
-            v-if="invoice.document?.url"
-            class="link"
-            :href="invoice.document.url"
-            target="_blank"
-            rel="noopener noreferrer"
-            >{{ invoice.code }}</a
-          >
-          <span v-else class="text-gray-5 font-bold">{{ invoice.code }}</span>
-          <q-btn
-            v-if="showInvoiceEdit"
-            dense
-            flat
-            round
-            size="sm"
-            icon="edit"
-            color="primary"
-            @click="emit('edit-invoice')"
-          >
-            <q-tooltip :offset="[0, 10]">Upravit fakturu</q-tooltip>
-          </q-btn>
-        </div>
+        <button class="link text-left" @click="goToInvoice(invoice.code)">
+          {{ invoice.code }}
+        </button>
       </div>
       <span v-else class="text-gray-5">Žádná Faktura</span>
     </ForegroundPanel>
@@ -91,6 +71,7 @@ import type {
   InboundWarehouseOrderBaseSchema,
   InvoiceSchema,
 } from '@/client'
+import { useAppRouter } from '@/composables/use-app-router'
 import type { Optional } from '@/utils/optional'
 import { computed } from 'vue'
 import CreditNoteBadge from '../credit/CreditNoteBadge.vue'
@@ -112,12 +93,9 @@ const props = defineProps<{
   inboundOrder?: InboundOrderSchema
   showInvoice?: boolean
   invoice?: InvoiceSchema | null
-  showInvoiceEdit?: boolean
 }>()
 
-const emit = defineEmits<{
-  (e: 'edit-invoice'): void
-}>()
+const { goToInvoice } = useAppRouter()
 
 const warehouseOrdersToRender = computed(() => {
   if (props.warehouseOrders && props.warehouseOrders.length > 0) {

@@ -49,6 +49,7 @@ class CustomerFactory(DjangoModelFactory):
     price_type = "FIRMA"
     invoice_due_days = 30
     block_after_due_days = 30
+    is_self = False
 
     # Agreements
     data_collection_agreement = True
@@ -63,6 +64,7 @@ class CustomerFactory(DjangoModelFactory):
     responsible_user = factory.SubFactory(UserFactory)
     customer_group = factory.SubFactory(CustomerGroupFactory)
     discount_group = None
+    default_payment_method = None
 
     # Additional Fields
     note = factory.Faker("text", max_nb_chars=200)
@@ -80,8 +82,10 @@ class CustomerFactoryMinimal(DjangoModelFactory):
     code = factory.Sequence(lambda n: f"CUST{n:06d}")
     customer_type = "FIRMY"
     price_type = "FIRMA"
+    is_self = False
     customer_group = factory.SubFactory(CustomerGroupFactory)
     discount_group = None
+    default_payment_method = None
 
 
 class ContactPersonFactory(DjangoModelFactory):

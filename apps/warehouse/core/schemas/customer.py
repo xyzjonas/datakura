@@ -63,6 +63,13 @@ class ContactPersonSchema(BaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CustomerDefaultPaymentMethodSchema(BaseSchema):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CustomerSchema(BaseSchema):
     """Schema for Customer output"""
 
@@ -86,6 +93,7 @@ class CustomerSchema(BaseSchema):
     price_type: str
     invoice_due_days: int
     block_after_due_days: int
+    is_self: bool
 
     # Agreements
     data_collection_agreement: bool
@@ -100,6 +108,7 @@ class CustomerSchema(BaseSchema):
     responsible_user: Optional[str] = None
     group: CustomerGroupSchema
     discount_group: CustomerDiscountGroupSchema | None = None
+    default_payment_method: CustomerDefaultPaymentMethodSchema | None = None
     contacts: list[ContactPersonSchema] = Field(default_factory=list)
 
     # Additional Fields
@@ -186,6 +195,8 @@ class CustomerCreateOrUpdateSchema(Schema):
     price_type: str
     invoice_due_days: int = 30
     block_after_due_days: int = 30
+    is_self: bool = False
+    default_payment_method_name: Optional[str] = None
 
     # Agreements
     data_collection_agreement: bool = False

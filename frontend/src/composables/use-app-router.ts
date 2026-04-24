@@ -30,8 +30,13 @@ export const useAppRouter = () => {
     router.push({ name: 'creditNoteToSupplier', params: { code } })
   }
 
+  const goToInvoice = (code: string) => {
+    router.push({ name: 'invoiceDetail', params: { code } })
+  }
+
   return {
     goToCustomer,
+    goToInvoice,
     goToOrderIn,
     goToOrderOut,
     goToWarehouseOrderIn,

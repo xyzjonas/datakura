@@ -40,42 +40,17 @@
             emit-value
           />
 
-          <div class="flex flex-col gap-2">
-            <span class="text-sm text-grey-7">Typ protistrany pro fakturu</span>
-            <q-btn-group spread unelevated>
-              <q-btn
-                dense
-                type="button"
-                :color="partyType === 'supplier' ? 'primary' : 'grey-4'"
-                :text-color="partyType === 'supplier' ? 'white' : 'dark'"
-                label="Dodavatel"
-                icon="sym_o_domain"
-                @click="partyType = 'supplier'"
-              />
-              <q-btn
-                dense
-                type="button"
-                :color="partyType === 'customer' ? 'primary' : 'grey-4'"
-                :text-color="partyType === 'customer' ? 'white' : 'dark'"
-                label="Odběratel"
-                icon="sym_o_person"
-                @click="partyType = 'customer'"
-              />
-            </q-btn-group>
-          </div>
-
           <CustomerSearchSelect
-            v-if="partyType === 'supplier'"
+            v-model="customer"
+            label="Odběratel"
+            hint="Odběratel je vždy naše firma."
+            :required="true"
+            :disable="lockCustomer"
+          />
+          <CustomerSearchSelect
             v-model="supplier"
             label="Dodavatel"
             hint="Vyberte dodavatele, který fakturu vystavil."
-            :required="true"
-          />
-          <CustomerSearchSelect
-            v-else
-            v-model="customer"
-            label="Odběratel"
-            hint="Vyberte odběratele, pro kterého je faktura vystavena."
             :required="true"
           />
 
@@ -137,10 +112,9 @@
             <q-btn
               type="submit"
               unelevated
-              color="positive"
+              color="primary"
               :loading="loading"
               :label="submitLabel"
-              class="h-[3rem] min-w-[10rem]"
             />
           </div>
         </q-form>
@@ -167,6 +141,7 @@ const props = withDefaults(
     loading?: boolean
     defaultCustomer?: CustomerSchema | null
     defaultSupplier?: CustomerSchema | null
+    lockCustomer?: boolean
     requireInvoiceFile?: boolean
     existingDocument?: MediaFileSchema | null
   }>(),
@@ -176,6 +151,7 @@ const props = withDefaults(
     loading: false,
     defaultCustomer: null,
     defaultSupplier: null,
+    lockCustomer: false,
     requireInvoiceFile: true,
   },
 )
@@ -188,9 +164,16 @@ const customer = ref<CustomerSchema | undefined>()
 const supplier = ref<CustomerSchema | undefined>()
 const invoiceFile = ref<File | null>(null)
 const currencies = ['CZK', 'EUR', 'PLN']
-const partyType = ref<'customer' | 'supplier'>('supplier')
 
 const invoiceFileRule = (val: File | null) => !!val || 'Nahrajte PDF faktury.'
+
+const syncPaymentMethodFromCustomer = (selectedCustomer?: CustomerSchema) => {
+  if (form.value.payment_method_name) {
+    return
+  }
+
+  form.value.payment_method_name = selectedCustomer?.default_payment_method?.name ?? ''
+}
 
 watch(
   () => showDialog.value,
@@ -201,22 +184,20 @@ watch(
     invoiceFile.value = null
     customer.value = props.defaultCustomer ?? undefined
     supplier.value = props.defaultSupplier ?? undefined
-    if (props.defaultCustomer && !props.defaultSupplier) {
-      partyType.value = 'customer'
-    } else {
-      partyType.value = 'supplier'
-    }
+    syncPaymentMethodFromCustomer(customer.value)
   },
+  { immediate: true },
 )
 
-const onSubmit = () => {
-  const selectedCustomerCode = partyType.value === 'customer' ? customer.value?.code : undefined
-  const selectedSupplierCode = partyType.value === 'supplier' ? supplier.value?.code : undefined
+watch(customer, (selectedCustomer) => {
+  syncPaymentMethodFromCustomer(selectedCustomer)
+})
 
+const onSubmit = () => {
   const body: InvoiceStoreSchema = {
     ...form.value,
-    customer_code: selectedCustomerCode,
-    supplier_code: selectedSupplierCode,
+    customer_code: customer.value?.code,
+    supplier_code: supplier.value?.code,
   }
   emit('submit', {
     body,

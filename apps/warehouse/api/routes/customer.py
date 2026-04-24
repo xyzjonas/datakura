@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from typing import cast
-
-from django.db.models import Q, QuerySet
 from django.http import HttpRequest
 from ninja import Router
 from ninja.pagination import paginate
@@ -38,31 +35,14 @@ def get_customers(
     search_term: str | None = None,
     is_deleted: bool = False,
     is_active: bool = True,
+    is_self: bool | None = None,
 ):
-    qs = cast(
-        QuerySet[Customer],
-        Customer.objects.filter(
-            is_deleted=is_deleted, is_valid=is_active
-        ).select_related(
-            "customer_group", "discount_group", "responsible_user", "owner"
-        ),
+    return customer_service.list_customers(
+        search_term=search_term,
+        is_deleted=is_deleted,
+        is_active=is_active,
+        is_self=is_self,
     )
-    if not search_term:
-        return qs.all()
-
-    try:
-        qs.get(code=search_term)
-    except Customer.DoesNotExist:
-        pass
-
-    search_term = search_term.lower()
-    qs = qs.filter(
-        Q(code__icontains=search_term)
-        | Q(name__icontains=search_term)
-        | Q(tax_identification__icontains=search_term)
-        | Q(identification__icontains=search_term)
-    )
-    return qs.all()
 
 
 @routes.post("", response={200: GetCustomerResponse})
@@ -72,11 +52,24 @@ def create_customer(request: HttpRequest, body: CustomerCreateOrUpdateSchema):
     return GetCustomerResponse(data=result)
 
 
+@routes.get("/self", response={200: GetCustomerResponse})
+def get_self_customer(request: HttpRequest):
+    return GetCustomerResponse(data=customer_service.get_self_customer())
+
+
 @routes.get("/{customer_code}", response={200: GetCustomerResponse})
 def get_customer(request: HttpRequest, customer_code: str):
-    customer = Customer.objects.prefetch_related(
-        "contacts", "customer_group", "discount_group", "responsible_user", "owner"
-    ).get(code=customer_code)
+    customer = (
+        Customer.objects.select_related(
+            "customer_group",
+            "discount_group",
+            "responsible_user",
+            "owner",
+            "default_payment_method",
+        )
+        .prefetch_related("contacts")
+        .get(code=customer_code)
+    )
     return GetCustomerResponse(data=customer_orm_to_schema(customer))
 
 
@@ -111,9 +104,17 @@ def assign_customer_discount_group(
         customer.discount_group = None
     customer.save(update_fields=["discount_group", "changed"])
 
-    customer = Customer.objects.prefetch_related(
-        "contacts", "customer_group", "discount_group", "responsible_user", "owner"
-    ).get(code=customer_code)
+    customer = (
+        Customer.objects.select_related(
+            "customer_group",
+            "discount_group",
+            "responsible_user",
+            "owner",
+            "default_payment_method",
+        )
+        .prefetch_related("contacts")
+        .get(code=customer_code)
+    )
     return GetCustomerResponse(data=customer_orm_to_schema(customer))
 
 

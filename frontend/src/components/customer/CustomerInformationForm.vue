@@ -42,6 +42,13 @@
       label="Blokovat po dnech nezaplacení"
     ></q-input>
     <q-input
+      outlined
+      :readonly="readonly"
+      v-model="customer.default_payment_method"
+      label="Výchozí platební metoda"
+    ></q-input>
+    <q-checkbox v-model="customer.is_self" label="Naše firma" disable />
+    <q-input
       type="textarea"
       outlined
       :readonly="readonly"
@@ -62,14 +69,16 @@ interface CustomerIn {
   code: string
   customer_type: string
   price_type: string
-  invoice_due_days: 0
-  block_after_due_days: 0
+  invoice_due_days: number
+  block_after_due_days: number
+  default_payment_method: string
+  is_self: boolean
   data_collection_agreement: boolean
   marketing_data_use_agreement: boolean
   is_valid: boolean
   is_deleted: boolean
-  owner: string
-  responsible_user: string
+  owner: string | null
+  responsible_user: string | null
   group: string
   discount_group: string
   note: string
@@ -82,7 +91,22 @@ const customer = defineModel<CustomerIn>({
     tax_identification: '',
     name: '',
     code: '',
-    responsible_user: '',
+    customer_type: '',
+    price_type: '',
+    invoice_due_days: 0,
+    block_after_due_days: 0,
+    default_payment_method: '',
+    is_self: false,
+    data_collection_agreement: false,
+    marketing_data_use_agreement: false,
+    is_valid: true,
+    is_deleted: false,
+    owner: null,
+    responsible_user: null,
+    group: '',
+    discount_group: '',
+    note: '',
+    register_information: '',
   },
 })
 </script>

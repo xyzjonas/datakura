@@ -37,7 +37,6 @@
 
 <script setup lang="ts">
 import AppSettingsTab from '@/components/settings/AppSettingsTab.vue'
-import MissingSettingsTab from '@/components/settings/MissingSettingsTab.vue'
 import CustomerSettingsTab from '@/components/settings/CustomerSettingsTab.vue'
 import DiscountSettingsTab from '@/components/settings/DiscountSettingsTab.vue'
 import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue'
@@ -94,8 +93,6 @@ watch(
       selectedTabComponent.value = DiscountSettingsTab
     } else if (value === 'payments') {
       selectedTabComponent.value = PaymentSettingsTab
-    } else {
-      selectedTabComponent.value = MissingSettingsTab
     }
   },
   { immediate: true },
@@ -136,11 +133,6 @@ const items = [
     key: 'payments',
     label: 'platby',
     icon: 'sym_o_payments',
-  },
-  {
-    key: 'users',
-    label: 'uživatelé',
-    icon: 'sym_o_group',
   },
 ]
 </script>

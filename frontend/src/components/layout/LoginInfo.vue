@@ -4,7 +4,7 @@
       <span class="light:text-primary font-bold dark:text-light capitalize">{{
         user.username
       }}</span>
-      <span class="text-xs text-gray-5 capitalize">{{ user.group ?? 'Anonym' }}</span>
+      <span class="text-xs text-muted capitalize">{{ user.group ?? 'Anonym' }}</span>
     </div>
     <!-- <q-avatar rounded size="36px" class="rounded-full">
       <img

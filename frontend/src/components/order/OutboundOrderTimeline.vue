@@ -10,6 +10,7 @@
     done-color="positive"
   >
     <q-step
+      v-if="step < 2"
       :name="1"
       title="Koncept"
       caption="Čeká na potvrzení"
@@ -56,10 +57,10 @@
 
     <q-step
       :name="4"
-      title="Balení"
-      caption="Zboží se balí"
-      icon="sym_o_inventory_2"
-      active-icon="sym_o_inventory_2"
+      title="Odesláno"
+      caption="Výdejka dokončena"
+      icon="sym_o_send"
+      active-icon="sym_o_send"
       active-color="accent"
       :done="step > 4"
       :header-nav="step > 4"
@@ -70,11 +71,12 @@
     </q-step>
 
     <q-step
+      v-if="step > 3"
       :name="5"
-      title="Expedice"
-      caption="Zboží je na cestě"
-      icon="sym_o_local_shipping"
-      active-icon="sym_o_local_shipping"
+      title="Vyfakturováno"
+      caption="Faktura vystavena"
+      icon="sym_o_receipt_long"
+      active-icon="sym_o_receipt_long"
       active-color="accent"
       :done="step > 5"
       :header-nav="step > 5"
@@ -85,14 +87,30 @@
     </q-step>
 
     <q-step
+      v-if="step > 5"
       :name="6"
-      title="Dokončeno"
-      caption="Objednávka splněna"
+      title="Čeká na úhradu"
+      caption="Po splatnosti bez úhrady"
+      icon="sym_o_hourglass_top"
+      active-icon="sym_o_hourglass_top"
+      active-color="warning"
+      :done="step > 6"
+      :header-nav="step > 6"
+      :error="step >= CANCELLED"
+      error-color="negative"
+      error-icon="block"
+    >
+    </q-step>
+
+    <q-step
+      :name="7"
+      title="Dokončeno / uhrazeno"
+      caption="Objednávka uzavřena"
       icon="sym_o_check_circle"
       active-icon="sym_o_check_circle"
       active-color="positive"
-      :done="step >= 6"
-      :header-nav="step > 5"
+      :done="step >= 7"
+      :header-nav="step > 6"
       :error="step >= CANCELLED"
       error-color="negative"
       error-icon="block"

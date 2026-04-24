@@ -7,6 +7,7 @@ from apps.warehouse.core.schemas.customer import GetCustomersResponse
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.tests.factories.product import PriceGroupFactory
 from apps.warehouse.tests.factories.customer import CustomerFactoryWithContacts
+from apps.warehouse.tests.factories.order import InvoicePaymentMethodFactory
 from apps.warehouse.api.routes.customer import routes
 
 
@@ -30,6 +31,46 @@ def test_get_all_customers(db, client) -> None:
     assert customer.name == customer_model.name
     assert customer.customer_type == customer_model.customer_type
     assert customer.code == customer_model.code
+
+
+def test_get_self_customer(db, client) -> None:
+    self_customer = cast(Customer, CustomerFactoryWithContacts(is_self=True))
+
+    res = client.get("/self")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["code"] == self_customer.code
+    assert data["is_self"] is True
+
+
+def test_get_customers_filter_self_returns_paginated_single_item(db, client) -> None:
+    self_customer = cast(Customer, CustomerFactoryWithContacts(is_self=True))
+    CustomerFactoryWithContacts(is_self=False)
+
+    res = client.get("/?is_self=true")
+
+    assert res.status_code == 200
+    response = GetCustomersResponse(**res.data)
+    assert response.count == 1
+    assert response.next is None
+    assert response.previous is None
+    assert len(response.data) == 1
+    assert response.data[0].code == self_customer.code
+    assert response.data[0].is_self is True
+
+
+def test_get_customers_filter_self_returns_empty_array_when_missing(db, client) -> None:
+    CustomerFactoryWithContacts(is_self=False)
+
+    res = client.get("/?is_self=true")
+
+    assert res.status_code == 200
+    response = GetCustomersResponse(**res.data)
+    assert response.count == 0
+    assert response.next is None
+    assert response.previous is None
+    assert response.data == []
 
 
 @pytest.mark.parametrize("flag", ["false", "False", "0"])
@@ -156,6 +197,7 @@ def test_create_customer(db, client) -> None:
     from apps.warehouse.tests.factories.customer import CustomerGroupFactory
 
     group = CustomerGroupFactory()
+    payment_method = InvoicePaymentMethodFactory.it(name="Bank transfer")
 
     res = client.post(
         "/",
@@ -171,6 +213,8 @@ def test_create_customer(db, client) -> None:
             "city": "Prague",
             "postal_code": "11000",
             "state": "CZ",
+            "is_self": True,
+            "default_payment_method_name": payment_method.name,
         },
     )
 
@@ -180,11 +224,14 @@ def test_create_customer(db, client) -> None:
     assert data["name"] == "New Customer Inc."
     assert data["customer_type"] == "FIRMA"
     assert data["group"]["code"] == group.code
+    assert data["is_self"] is True
+    assert data["default_payment_method"]["name"] == payment_method.name
 
 
 def test_update_customer(db, client) -> None:
     """Test updating an existing customer"""
     customer = cast(Customer, CustomerFactoryWithContacts())
+    payment_method = InvoicePaymentMethodFactory.it(name="Cash")
 
     res = client.put(
         f"/{customer.code}",
@@ -196,6 +243,8 @@ def test_update_customer(db, client) -> None:
             "customer_group_code": customer.customer_group.code,
             "email": "newemail@example.com",
             "phone": "+999999999",
+            "is_self": True,
+            "default_payment_method_name": payment_method.name,
         },
     )
 
@@ -204,6 +253,8 @@ def test_update_customer(db, client) -> None:
     assert data["name"] == "Updated Customer Name"
     assert data["email"] == "newemail@example.com"
     assert data["phone"] == "+999999999"
+    assert data["is_self"] is True
+    assert data["default_payment_method"]["name"] == payment_method.name
 
 
 def test_delete_customer_soft_delete(db, client) -> None:

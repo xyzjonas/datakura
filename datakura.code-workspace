@@ -26,6 +26,7 @@
         "matchCommandLine": true,
       },
       "npm run generate-api": true,
+      "npm exec": true,
     },
   },
 }

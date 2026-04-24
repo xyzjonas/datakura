@@ -94,6 +94,11 @@
           /></a>
         </q-td>
       </template>
+      <template #body-cell-partner="props">
+        <q-td>
+          <CustomerLink :customer="props.row[partnerField]" />
+        </q-td>
+      </template>
     </q-table>
   </div>
 </template>
@@ -113,6 +118,7 @@ import { calculateTotalPrice } from '@/utils/total-price'
 import { type QTableColumn, type QTableProps } from 'quasar'
 import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
+import CustomerLink from '../links/CustomerLink.vue'
 
 const { page, pageSize, search, stockProductCode } = useQueryProducts()
 

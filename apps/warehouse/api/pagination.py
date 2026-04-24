@@ -18,7 +18,10 @@ from apps.warehouse.core.schemas.type import (
 )
 from apps.warehouse.core.schemas.orders import GetInboundOrdersResponse
 from apps.warehouse.core.schemas.orders import GetOutboundOrdersResponse
-from apps.warehouse.core.schemas.invoice import GetInvoicePaymentMethodsResponse
+from apps.warehouse.core.schemas.invoice import (
+    GetInvoicePaymentMethodsResponse,
+    GetInvoicesResponse,
+)
 from apps.warehouse.core.schemas.packaging import (
     GetUnitOfMeasuresResponse,
     UnitOfMeasureSchema,
@@ -44,12 +47,14 @@ from apps.warehouse.core.transformation import (
     credit_note_supplier_orm_to_schema,
     location_orm_to_schema,
     invoice_payment_method_orm_to_schema,
+    invoice_orm_to_schema,
 )
 from apps.warehouse.models.customer import Customer, CustomerGroup
 from apps.warehouse.models.orders import (
     InboundOrder,
     OutboundOrder,
     CreditNoteToSupplier,
+    Invoice,
     InvoicePaymentMethod,
 )
 from apps.warehouse.models.product import StockProduct, ProductGroup, ProductType
@@ -203,6 +208,36 @@ class OutgoingOrdersPagination(PaginationBase):
 
         return {
             "data": [outbound_order_orm_to_schema(order) for order in items],
+            "count": count,
+            "next": pagination.page + 1
+            if offset + pagination.page_size < count
+            else None,
+            "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
+
+
+class InvoicesPagination(PaginationBase):
+    items_attribute: str = "data"
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 20
+
+    class Output(GetInvoicesResponse): ...
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[Invoice],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        offset = (pagination.page - 1) * pagination.page_size
+        items = queryset[offset : offset + pagination.page_size]
+        count = queryset.count()
+
+        return {
+            "data": [invoice_orm_to_schema(invoice) for invoice in items],
             "count": count,
             "next": pagination.page + 1
             if offset + pagination.page_size < count

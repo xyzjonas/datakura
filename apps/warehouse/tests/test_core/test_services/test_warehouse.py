@@ -225,6 +225,26 @@ def test_get_booked_availability_excludes_completed(db):
     assert booked == pytest.approx(Decimal(5))
 
 
+def test_get_booked_availability_excludes_completed_paid(db):
+    product = StockProductFactory.it()
+    paid_order = OutboundOrderFactory(state=OutboundOrderState.COMPLETED_PAID)
+    OutboundOrderItemFactory.create(
+        stock_product=product,
+        amount=Decimal(8),
+        order=paid_order,
+    )
+
+    active_order = OutboundOrderFactory(state=OutboundOrderState.PICKING)
+    OutboundOrderItemFactory.create(
+        stock_product=product,
+        amount=Decimal(3),
+        order=active_order,
+    )
+
+    booked = warehouse_service.get_booked_availability(product.code)
+    assert booked == pytest.approx(Decimal(3))
+
+
 def test_get_total_availability_with_incoming_and_booked(db):
     """Test total availability with incoming items and booked items"""
     product = StockProductFactory.it()

@@ -1,13 +1,33 @@
 from datetime import timedelta
 
 from django.utils import timezone
+import pytest
 
 from apps.warehouse.core.audit_messages import AuditMessages
-from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.services.audit import (
+    audit_log_to_timeline_entry,
+    audit_service,
+)
 from apps.warehouse.models.audit import AuditAction, AuditLog, create_audit_log
+from apps.warehouse.models.orders import (
+    CreditNoteState,
+    InboundOrderState,
+    OutboundOrderState,
+)
+from apps.warehouse.models.warehouse import (
+    InboundWarehouseOrderState,
+    OutboundWarehouseOrderState,
+)
 from apps.warehouse.models.warehouse import WarehouseMovement
+from apps.warehouse.tests.factories.order import (
+    CreditNoteSupplierFactory,
+    InboundOrderFactory,
+    OutboundOrderFactory,
+)
 from apps.warehouse.tests.factories.user import UserFactory
 from apps.warehouse.tests.factories.warehouse import (
+    InboundWarehouseOrderFactory,
+    WarehouseOrderOutFactory,
     WarehouseItemFactory,
     WarehouseLocationFactory,
 )
@@ -74,3 +94,82 @@ def test_timeline_includes_related_movements_and_is_ordered(db):
     assert timeline[1].source == "audit"
     assert timeline[1].id == log.pk
     assert timeline[1].action == AuditAction.CREATE
+
+
+@pytest.mark.parametrize(
+    (
+        "factory",
+        "old_state",
+        "new_state",
+        "reason_template",
+        "expected_old",
+        "expected_new",
+    ),
+    [
+        (
+            InboundOrderFactory.it,
+            InboundOrderState.DRAFT,
+            InboundOrderState.RECEIVING,
+            AuditMessages.INBOUND_ORDER_STATE_CHANGED.CS,
+            "Draft",
+            "Receiving",
+        ),
+        (
+            OutboundOrderFactory.it,
+            OutboundOrderState.DRAFT,
+            OutboundOrderState.PICKING,
+            AuditMessages.OUTBOUND_ORDER_STATE_CHANGED.CS,
+            "Draft",
+            "Picking",
+        ),
+        (
+            InboundWarehouseOrderFactory.it,
+            InboundWarehouseOrderState.DRAFT,
+            InboundWarehouseOrderState.PENDING,
+            AuditMessages.WAREHOUSE_ORDER_STATE_CHANGED.CS,
+            "Draft",
+            "Pending",
+        ),
+        (
+            WarehouseOrderOutFactory.it,
+            OutboundWarehouseOrderState.DRAFT,
+            OutboundWarehouseOrderState.STARTED,
+            AuditMessages.WAREHOUSE_ORDER_STATE_CHANGED.CS,
+            "Draft",
+            "Started",
+        ),
+        (
+            CreditNoteSupplierFactory,
+            CreditNoteState.DRAFT,
+            CreditNoteState.CONFIRMED,
+            AuditMessages.CREDIT_NOTE_STATE_CHANGED.CS,
+            "Draft",
+            "Confirmed",
+        ),
+    ],
+)
+def test_timeline_formats_choice_labels_for_state_transitions(
+    db,
+    factory,
+    old_state,
+    new_state,
+    reason_template,
+    expected_old,
+    expected_new,
+):
+    obj = factory(state=old_state)
+
+    log = create_audit_log(
+        obj=obj,
+        action=AuditAction.TRANSITION,
+        changes={"state": {"old": old_state, "new": new_state}},
+        reason=reason_template.format(old_state=old_state, new_state=new_state),
+    )
+
+    entry = audit_log_to_timeline_entry(log)
+
+    assert entry.reason == reason_template.format(
+        old_state=expected_old,
+        new_state=expected_new,
+    )
+    assert entry.changes["state"] == {"old": expected_old, "new": expected_new}

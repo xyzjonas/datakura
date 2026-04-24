@@ -92,6 +92,15 @@ class OrdersService:
         return Customer.objects.get(code=customer_code)
 
     @staticmethod
+    def _get_self_customer() -> Customer:
+        try:
+            return Customer.objects.get(is_self=True, is_deleted=False)
+        except Customer.DoesNotExist as exc:
+            raise WarehouseItemBadRequestError(
+                "Set exactly one active customer as self before storing inbound invoices."
+            ) from exc
+
+    @staticmethod
     def generate_next_incoming_order_code() -> str:
         now = timezone.now()
         dt_range = _get_month_range(now)
@@ -389,7 +398,7 @@ class OrdersService:
         order = InboundOrder.objects.select_related("invoice").get(code=order_code)
         previous_invoice_code = order.invoice.code if order.invoice else None
 
-        customer = cls._get_customer_or_none(params.customer_code)
+        customer = cls._get_self_customer()
         supplier = cls._get_customer_or_none(params.supplier_code)
         payment_method, _ = InvoicePaymentMethod.objects.get_or_create(
             name=params.payment_method_name

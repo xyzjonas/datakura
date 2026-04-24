@@ -8,6 +8,8 @@ from apps.warehouse.api.routes.inbound_orders import routes
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
+from apps.warehouse.models.orders import InboundOrderState
+from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.order import InboundOrderFactory, InvoiceFactory
 from apps.warehouse.tests.factories.order import InboundOrderItemFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
@@ -40,6 +42,35 @@ def test_get_inbound_order_audits(db) -> None:
     assert data[0]["source"] == "audit"
     assert data[0]["action"] == AuditAction.UPDATE
     assert data[1]["action"] == AuditAction.CREATE
+
+
+def test_get_inbound_order_audits_formats_transition_state_labels(db) -> None:
+    client = TestClient(routes)
+    order = InboundOrderFactory.it(state=InboundOrderState.DRAFT)
+
+    audit_service.add_entry(
+        order,
+        action=AuditAction.TRANSITION,
+        reason=AuditMessages.INBOUND_ORDER_STATE_CHANGED.CS.format(
+            old_state=InboundOrderState.DRAFT,
+            new_state=InboundOrderState.RECEIVING,
+        ),
+        changes={
+            "state": {
+                "old": InboundOrderState.DRAFT,
+                "new": InboundOrderState.RECEIVING,
+            }
+        },
+    )
+
+    res = client.get(f"/{order.code}/audits")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data[0]["reason"] == (
+        "Stav příchozí objednávky se změnil z 'Draft' na 'Receiving'"
+    )
+    assert data[0]["changes"]["state"] == {"old": "Draft", "new": "Receiving"}
 
 
 def test_get_inbound_orders_filter_by_stock_product_code(db) -> None:
@@ -118,6 +149,7 @@ def test_get_inbound_order_includes_invoice(db, settings, tmp_path) -> None:
 def test_store_inbound_order_invoice(db) -> None:
     client = TestClient(routes)
     order = InboundOrderFactory.it()
+    self_customer = CustomerFactory(is_self=True)
 
     res = client.post(
         f"/{order.code}/invoice",
@@ -136,6 +168,7 @@ def test_store_inbound_order_invoice(db) -> None:
     assert res.status_code == 200
     data = res.json()["data"]
     assert data["invoice"]["code"] == "INV-POST-0001"
+    assert data["invoice"]["customer"]["code"] == self_customer.code
     assert data["invoice"]["payment_method"]["name"] == "Bank transfer"
     assert data["invoice"]["document"] is None
 
@@ -148,6 +181,7 @@ def test_store_inbound_order_invoice_stores_uploaded_document(
 
     client = TestClient(routes)
     order = InboundOrderFactory.it()
+    self_customer = CustomerFactory(is_self=True)
 
     res = client.post(
         f"/{order.code}/invoice",
@@ -171,6 +205,7 @@ def test_store_inbound_order_invoice_stores_uploaded_document(
     assert res.status_code == 200
     data = res.json()["data"]
     assert data["invoice"]["code"] == "INV-POST-0002"
+    assert data["invoice"]["customer"]["code"] == self_customer.code
     assert data["invoice"]["document"]["name"] == "invoice.pdf"
     assert data["invoice"]["document"]["url"].endswith("invoice.pdf")
 
@@ -181,6 +216,7 @@ def test_store_inbound_order_invoice_replaces_existing_document(
     settings.MEDIA_ROOT = tmp_path
     settings.MEDIA_URL = "/media/"
 
+    self_customer = CustomerFactory(is_self=True)
     invoice = InvoiceFactory.it(code="INV-POST-0003")
     invoice.document.save(
         "old.pdf",
@@ -216,6 +252,7 @@ def test_store_inbound_order_invoice_replaces_existing_document(
     assert res.status_code == 200
     data = res.json()["data"]
     assert data["invoice"]["code"] == "INV-POST-0003"
+    assert data["invoice"]["customer"]["code"] == self_customer.code
     assert data["invoice"]["document"]["name"] == "new.pdf"
     assert data["invoice"]["document"]["url"].endswith("new.pdf")
 
