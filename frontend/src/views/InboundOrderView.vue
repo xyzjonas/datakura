@@ -28,7 +28,7 @@
       </div>
       <div class="flex gap-2 items-center">
         <q-btn
-          v-if="getInboundOrderStep(order) === 1"
+          v-if="isInboundOrderEditable(order)"
           unelevated
           color="primary"
           icon="edit"
@@ -100,7 +100,7 @@
       <div class="flex items-center gap-2">
         <h2>Položky objednávky</h2>
         <q-btn
-          v-if="getInboundOrderStep(order) === 1"
+          v-if="isInboundOrderEditable(order)"
           flat
           color="primary"
           icon="sym_o_add"
@@ -116,7 +116,7 @@
       <ProductsList
         v-model:items="order.items"
         :currency="order.currency"
-        :readonly="getInboundOrderStep(order) > 1"
+        :readonly="!isInboundOrderEditable(order)"
         :order-code="order.code"
         order-type="inbound"
         @dissolve-item="removeItem"
@@ -220,7 +220,7 @@ import TotalWeight from '@/components/order/TotalWeight.vue'
 import PrintDropdownButton from '@/components/PrintDropdownButton.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
-import { getInboundOrderStep } from '@/constants/inbound-order'
+import { getInboundOrderStep, isInboundOrderEditable } from '@/constants/inbound-order'
 import type { InvoiceUpsertSubmitPayload } from '@/components/order/invoice-upload'
 import { toInvoiceMultipartBody } from '@/components/order/invoice-upload'
 import { useQuasar } from 'quasar'

@@ -11,7 +11,6 @@ from apps.warehouse.core.schemas.product import ProductSchema, GetProductsRespon
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.barcode import Barcode
-from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.product import PriceGroup
 from apps.warehouse.models.product import StockProductPrice
@@ -428,7 +427,7 @@ def test_get_product_selling_price_lookup(
     expected_reason_fragment: str,
 ):
     product = cast(StockProduct, StockProductFactory(base_price=200))
-    customer = cast(Customer, CustomerFactory())
+    customer = CustomerFactory.it()
 
     if discount_mode == "customer":
         StockProductPriceCustomerFactory(
@@ -468,7 +467,7 @@ def test_get_product_selling_price_lookup_customer_override_with_zero_base_price
     client,
 ):
     product = cast(StockProduct, StockProductFactory(base_price=0))
-    customer = cast(Customer, CustomerFactory())
+    customer = CustomerFactory.it()
     StockProductPriceCustomerFactory(
         product=product,
         customer=customer,
@@ -488,7 +487,7 @@ def test_get_product_selling_price_lookup_customer_override_with_zero_base_price
 
 def test_upsert_customer_price_override_creates_new_override(db, client):
     product = cast(StockProduct, StockProductFactory(base_price=200))
-    customer = cast(Customer, CustomerFactory())
+    customer = CustomerFactory.it()
 
     response = client.post(
         f"/{product.code}/selling-price/override",
@@ -510,7 +509,7 @@ def test_upsert_customer_price_override_creates_new_override(db, client):
 
 def test_upsert_customer_price_override_updates_existing_override(db, client):
     product = cast(StockProduct, StockProductFactory(base_price=200))
-    customer = cast(Customer, CustomerFactory())
+    customer = CustomerFactory.it()
     existing = StockProductPriceCustomerFactory(
         product=product,
         customer=customer,

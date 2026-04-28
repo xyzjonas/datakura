@@ -1,10 +1,12 @@
 from datetime import datetime
-from typing import cast
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
+from apps.warehouse.core.exceptions import (
+    WarehouseItemBadRequestError,
+    WarehouseOrderNotEditableError,
+)
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
     InboundOrderItemCreateSchema,
@@ -19,7 +21,6 @@ from apps.warehouse.models.orders import (
     CreditNoteToSupplierItem,
     CreditNoteToSupplier,
 )
-from apps.warehouse.models.product import StockProduct
 from apps.warehouse.tests.factories.customer import CustomerFactoryMinimal
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
@@ -28,11 +29,12 @@ from apps.warehouse.tests.factories.order import (
     InvoiceFactory,
 )
 from apps.warehouse.tests.factories.product import StockProductFactory
+from apps.warehouse.tests.factories.warehouse import InboundWarehouseOrderFactory
 
 
 def test_incoming_order_add_item(db):
-    product = cast(StockProduct, StockProductFactory())
-    order = cast(InboundOrder, InboundOrderFactory())
+    product = StockProductFactory.it()
+    order = InboundOrderFactory.it()
 
     inbound_orders_service.add_item(
         order.code,
@@ -45,16 +47,18 @@ def test_incoming_order_add_item(db):
     )
 
     assert order.items.count() == 1
-    assert order.items.first().amount == 121
-    assert order.items.first().total_price == 999
-    assert float(order.items.first().unit_price) == pytest.approx(999 / 121)
-    assert order.items.first().stock_product.code == product.code
-    assert order.items.first().stock_product.name == product.name
+    created_item = order.items.first()
+    assert created_item is not None
+    assert created_item.amount == 121
+    assert created_item.total_price == 999
+    assert float(created_item.unit_price) == pytest.approx(999 / 121)
+    assert created_item.stock_product.code == product.code
+    assert created_item.stock_product.name == product.name
 
 
 def test_incoming_order_add_item_duplicate_product_fails(db):
-    product = cast(StockProduct, StockProductFactory())
-    order = cast(InboundOrder, InboundOrderFactory())
+    product = StockProductFactory.it()
+    order = InboundOrderFactory.it()
 
     inbound_orders_service.add_item(
         order.code,
@@ -157,10 +161,9 @@ def test_incoming_order_update_item_can_change_index(db):
 
 
 def test_incoming_order_remove_item(db):
-    order = cast(InboundOrder, InboundOrderFactory())
-    items = InboundOrderItemFactory.create_batch(10, order=order)
-
-    item = cast(InboundOrderItem, items[0])
+    order = InboundOrderFactory.it()
+    item = InboundOrderItemFactory.it(order=order)
+    InboundOrderItemFactory.create_batch(9, order=order)
 
     assert inbound_orders_service.remove_item(order.code, item.stock_product.code)
 
@@ -168,8 +171,8 @@ def test_incoming_order_remove_item(db):
 
 
 def test_incoming_order_remove_2_items_same_product(db):
-    order = cast(InboundOrder, InboundOrderFactory())
-    product = cast(StockProduct, StockProductFactory())
+    order = InboundOrderFactory.it()
+    product = StockProductFactory.it()
     InboundOrderItemFactory.create_batch(2, order=order, stock_product=product)
 
     assert order.items.count() == 2
@@ -193,7 +196,7 @@ def test_generate_next_incoming_order_code_100(db):
 
 
 def test_create_empty_incoming(db, context):
-    customer = CustomerFactoryMinimal()
+    customer = CustomerFactoryMinimal.it()
     incoming_order = inbound_orders_service.update_or_create_incoming(
         InboundOrderCreateOrUpdateSchema(
             currency="CZK",
@@ -217,7 +220,7 @@ def test_edit_incoming(db, context):
     order = InboundOrderFactory(currency="CZK")
     InboundOrderItemFactory.create_batch(10, order=order)
 
-    new_customer = CustomerFactoryMinimal()
+    new_customer = CustomerFactoryMinimal.it()
     incoming_order = inbound_orders_service.update_or_create_incoming(
         InboundOrderCreateOrUpdateSchema(
             currency="EUR",
@@ -237,6 +240,121 @@ def test_edit_incoming(db, context):
     assert incoming_order.supplier.name == new_customer.name
     assert incoming_order.supplier.identification == new_customer.identification
     assert len(incoming_order.items) == 10
+
+
+def test_edit_submitted_incoming_without_warehouse_order(db, context):
+    order = InboundOrderFactory(
+        currency="CZK",
+        state=InboundOrderState.SUBMITTED,
+    )
+
+    new_customer = CustomerFactoryMinimal.it()
+    incoming_order = inbound_orders_service.update_or_create_incoming(
+        InboundOrderCreateOrUpdateSchema(
+            currency="EUR",
+            description="still editable",
+            external_code="12345",
+            supplier_code=new_customer.code,
+            supplier_name=new_customer.name,
+        ),
+        code=order.code,
+        context=context,
+    )
+
+    assert incoming_order.code == order.code
+    assert incoming_order.currency == "EUR"
+    assert incoming_order.description == "still editable"
+
+
+@pytest.mark.parametrize(
+    ("operation", "needs_existing_item"),
+    [
+        ("update_order", False),
+        ("add_item", False),
+        ("update_item", True),
+        ("remove_item", True),
+        ("store_invoice", False),
+    ],
+)
+def test_incoming_order_mutations_blocked_after_warehouse_order_created(
+    db,
+    context,
+    operation: str,
+    needs_existing_item: bool,
+):
+    order = InboundOrderFactory.it(state=InboundOrderState.SUBMITTED)
+    existing_item: InboundOrderItem | None = None
+    if needs_existing_item:
+        existing_item = InboundOrderItemFactory.it(order=order)
+    InboundWarehouseOrderFactory(order=order)
+    product = StockProductFactory.it()
+    CustomerFactoryMinimal.it(is_self=True)
+
+    with pytest.raises(WarehouseOrderNotEditableError, match="read only"):
+        if operation == "update_order":
+            replacement_supplier = CustomerFactoryMinimal.it()
+            inbound_orders_service.update_or_create_incoming(
+                InboundOrderCreateOrUpdateSchema(
+                    currency="EUR",
+                    description="blocked",
+                    external_code="12345",
+                    supplier_code=replacement_supplier.code,
+                    supplier_name=replacement_supplier.name,
+                ),
+                code=order.code,
+                context=context,
+            )
+        elif operation == "add_item":
+            inbound_orders_service.add_item(
+                order.code,
+                InboundOrderItemCreateSchema(
+                    product_code=product.code,
+                    product_name=product.name,
+                    total_price=100,
+                    amount=2,
+                ),
+            )
+        elif operation == "update_item":
+            assert existing_item is not None
+            inbound_orders_service.update_item(
+                order.code,
+                InboundOrderItemCreateSchema(
+                    product_code=existing_item.stock_product.code,
+                    product_name=existing_item.stock_product.name,
+                    total_price=555,
+                    amount=7,
+                ),
+            )
+        elif operation == "remove_item":
+            assert existing_item is not None
+            inbound_orders_service.remove_item(
+                order.code, existing_item.stock_product.code
+            )
+        elif operation == "store_invoice":
+            inbound_orders_service.store_invoice(
+                order.code,
+                InvoiceStoreSchema(
+                    customer_code=None,
+                    supplier_code=order.supplier.code,
+                    code="INV-BLOCKED-0001",
+                    issued_date=datetime(2026, 3, 10).date(),
+                    due_date=datetime(2026, 3, 31).date(),
+                    payment_method_name="Bank transfer",
+                    external_code="SUP-INV-001",
+                    taxable_supply_date=datetime(2026, 3, 10).date(),
+                    paid_date=None,
+                    currency="CZK",
+                    note="Blocked invoice",
+                ),
+                context=context,
+                invoice_file=SimpleUploadedFile(
+                    "invoice.pdf",
+                    b"%PDF-1.4 blocked invoice",
+                    content_type="application/pdf",
+                ),
+            )
+        else:
+            raise AssertionError(f"Unexpected operation: {operation}")
 
 
 def test_transition_order(db, context):
@@ -301,8 +419,8 @@ def test_store_invoice_creates_and_attaches_to_inbound_order(
     settings.MEDIA_URL = "/media/"
 
     order = InboundOrderFactory()
-    customer = CustomerFactoryMinimal(is_self=True)
-    supplier = CustomerFactoryMinimal()
+    customer = CustomerFactoryMinimal.it(is_self=True)
+    supplier = CustomerFactoryMinimal.it()
 
     result = inbound_orders_service.store_invoice(
         order.code,
@@ -345,7 +463,7 @@ def test_store_invoice_updates_existing_invoice(db, context, settings, tmp_path)
     settings.MEDIA_ROOT = tmp_path
     settings.MEDIA_URL = "/media/"
 
-    self_customer = CustomerFactoryMinimal(is_self=True)
+    self_customer = CustomerFactoryMinimal.it(is_self=True)
     invoice = InvoiceFactory.it(code="INV-EXISTING-0001")
     order = InboundOrderFactory.it(invoice=invoice)
 
@@ -370,7 +488,7 @@ def test_store_invoice_updates_existing_invoice(db, context, settings, tmp_path)
     order.refresh_from_db()
     invoice.refresh_from_db()
 
-    assert order.invoice_id == invoice.id
+    assert order.invoice == invoice
     assert invoice.customer == self_customer
     assert invoice.supplier is None
     assert invoice.payment_method.name == "Cash"
@@ -387,9 +505,9 @@ def test_store_invoice_ignores_provided_customer_and_uses_self_customer(
     settings.MEDIA_URL = "/media/"
 
     order = InboundOrderFactory()
-    self_customer = CustomerFactoryMinimal(is_self=True)
-    provided_customer = CustomerFactoryMinimal()
-    supplier = CustomerFactoryMinimal()
+    self_customer = CustomerFactoryMinimal.it(is_self=True)
+    provided_customer = CustomerFactoryMinimal.it()
+    supplier = CustomerFactoryMinimal.it()
 
     inbound_orders_service.store_invoice(
         order.code,

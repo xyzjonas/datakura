@@ -1,18 +1,32 @@
 from datetime import timedelta
+from typing import Any
 
+import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.inbound_orders import routes
 from apps.warehouse.core.audit_messages import AuditMessages
+from apps.warehouse.core.exceptions import WarehouseOrderNotEditableError
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
-from apps.warehouse.models.orders import InboundOrderState
+from apps.warehouse.models.orders import InboundOrder, InboundOrderState
 from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.order import InboundOrderFactory, InvoiceFactory
 from apps.warehouse.tests.factories.order import InboundOrderItemFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
+from apps.warehouse.tests.factories.warehouse import InboundWarehouseOrderFactory
+
+
+def _build_add_item_payload(_order: InboundOrder) -> dict[str, Any]:
+    product = StockProductFactory.it()
+    return {
+        "product_code": product.code,
+        "product_name": product.name,
+        "amount": 2,
+        "total_price": 20,
+    }
 
 
 def test_get_inbound_order_audits(db) -> None:
@@ -287,3 +301,100 @@ def test_update_inbound_order_item_without_index_keeps_existing_index(db) -> Non
 
     assert update_res.status_code == 200
     assert update_res.json()["data"]["index"] == 3
+
+
+def test_update_inbound_order_allows_submitted_order_without_warehouse_order(
+    db,
+) -> None:
+    client = TestClient(routes)
+    supplier = CustomerFactory()
+    order = InboundOrderFactory.it(state=InboundOrderState.SUBMITTED)
+
+    res = client.put(
+        f"/{order.code}",
+        json={
+            "currency": "EUR",
+            "description": "Still editable",
+            "external_code": "EDIT-001",
+            "supplier_code": supplier.code,
+            "supplier_name": supplier.name,
+        },
+    )
+
+    assert res.status_code == 200
+    assert res.json()["data"]["description"] == "Still editable"
+    assert res.json()["data"]["state"] == InboundOrderState.get_label(
+        InboundOrderState.SUBMITTED
+    )
+
+
+@pytest.mark.parametrize(
+    ("method", "path_suffix", "payload_factory"),
+    [
+        (
+            "put",
+            "",
+            lambda order: {
+                "currency": "EUR",
+                "description": "Blocked update",
+                "external_code": "EDIT-002",
+                "supplier_code": order.supplier.code,
+                "supplier_name": order.supplier.name,
+            },
+        ),
+        (
+            "post",
+            "/items",
+            _build_add_item_payload,
+        ),
+        (
+            "put",
+            "/items",
+            lambda order: {
+                "product_code": order.items.first().stock_product.code,
+                "product_name": order.items.first().stock_product.name,
+                "amount": 4,
+                "total_price": 48,
+            },
+        ),
+        (
+            "delete",
+            "/items/{product_code}",
+            lambda order: None,
+        ),
+        (
+            "post",
+            "/invoice",
+            lambda order: {
+                "code": "INV-POST-LOCKED",
+                "issued_date": "2026-04-01",
+                "due_date": "2026-04-15",
+                "payment_method_name": "Bank transfer",
+                "taxable_supply_date": "2026-04-01",
+                "currency": "CZK",
+            },
+        ),
+    ],
+)
+def test_inbound_order_mutation_routes_block_after_warehouse_order_created(
+    db,
+    method: str,
+    path_suffix: str,
+    payload_factory,
+) -> None:
+    client = TestClient(routes)
+    order = InboundOrderFactory.it(state=InboundOrderState.SUBMITTED)
+    item = InboundOrderItemFactory.it(order=order)
+    InboundWarehouseOrderFactory(order=order)
+
+    path = f"/{order.code}{path_suffix}"
+    if "{product_code}" in path:
+        path = path.format(product_code=item.stock_product.code)
+
+    kwargs = {}
+    payload = payload_factory(order)
+    if payload is not None:
+        kwargs["json" if path_suffix != "/invoice" else "data"] = payload
+
+    with pytest.raises(WarehouseOrderNotEditableError, match="read only"):
+        getattr(client, method)(path, **kwargs)

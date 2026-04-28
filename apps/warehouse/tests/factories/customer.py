@@ -28,6 +28,10 @@ class CustomerFactory(DjangoModelFactory):
         model = Customer
         django_get_or_create = ("code",)
 
+    @classmethod
+    def it(cls, **kwargs) -> Customer:
+        return cls(**kwargs)  # type: ignore
+
     # Basic Information
     name = factory.Faker("company")
     email = factory.Faker("company_email")
@@ -77,6 +81,10 @@ class CustomerFactoryMinimal(DjangoModelFactory):
     class Meta:
         model = Customer
         django_get_or_create = ("code",)
+
+    @classmethod
+    def it(cls, **kwargs) -> Customer:
+        return cls(**kwargs)  # type: ignore
 
     name = factory.Faker("company")
     code = factory.Sequence(lambda n: f"CUST{n:06d}")

@@ -9,7 +9,10 @@ from django.template.loader import get_template
 from django.utils import timezone
 from loguru import logger
 
-from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
+from apps.warehouse.core.exceptions import (
+    WarehouseItemBadRequestError,
+    WarehouseOrderNotEditableError,
+)
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
@@ -101,6 +104,31 @@ class OrdersService:
             ) from exc
 
     @staticmethod
+    def _is_inbound_order_editable(order: InboundOrder) -> bool:
+        return (
+            order.state
+            in (
+                InboundOrderState.DRAFT,
+                InboundOrderState.SUBMITTED,
+            )
+            and not order.warehouse_orders.exists()
+        )
+
+    @classmethod
+    def _ensure_inbound_order_editable(cls, order: InboundOrder) -> None:
+        if cls._is_inbound_order_editable(order):
+            return
+
+        if order.warehouse_orders.exists():
+            raise WarehouseOrderNotEditableError(
+                f"Inbound order '{order.code}' is read only once a warehouse order exists."
+            )
+
+        raise WarehouseOrderNotEditableError(
+            f"Inbound order '{order.code}' is not editable in state '{InboundOrderState(order.state)}'."
+        )
+
+    @staticmethod
     def generate_next_incoming_order_code() -> str:
         now = timezone.now()
         dt_range = _get_month_range(now)
@@ -129,6 +157,7 @@ class OrdersService:
         previous_order_schema = None
         existing_order = InboundOrder.objects.filter(code=code).first()
         if existing_order:
+            OrdersService._ensure_inbound_order_editable(existing_order)
             previous_order_schema = inbound_order_orm_to_schema(existing_order)
 
         supplier = Customer.objects.get(code=params.supplier_code)
@@ -179,6 +208,7 @@ class OrdersService:
         code: str, item: InboundOrderItemCreateSchema
     ) -> InboundOrderItemSchema:
         order = InboundOrder.objects.get(code=code)
+        OrdersService._ensure_inbound_order_editable(order)
         stock_product = StockProduct.objects.get(code=item.product_code)
 
         if InboundOrderItem.objects.filter(
@@ -208,6 +238,7 @@ class OrdersService:
         code: str, item: InboundOrderItemCreateSchema
     ) -> InboundOrderItemSchema:
         order = InboundOrder.objects.get(code=code)
+        OrdersService._ensure_inbound_order_editable(order)
         item_model = InboundOrderItem.objects.get(
             order=order, stock_product__code=item.product_code
         )
@@ -229,6 +260,7 @@ class OrdersService:
     @staticmethod
     def remove_item(code: str, product_code: str) -> bool:
         order = InboundOrder.objects.get(code=code)
+        OrdersService._ensure_inbound_order_editable(order)
         items = InboundOrderItem.objects.filter(
             order=order, stock_product__code=product_code
         )
@@ -396,6 +428,7 @@ class OrdersService:
         invoice_file: UploadedFile | None = None,
     ) -> InboundOrderSchema:
         order = InboundOrder.objects.select_related("invoice").get(code=order_code)
+        cls._ensure_inbound_order_editable(order)
         previous_invoice_code = order.invoice.code if order.invoice else None
 
         customer = cls._get_self_customer()

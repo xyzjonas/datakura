@@ -62,3 +62,10 @@ export const INBOUND_ORDER_STATES: Record<string, StateConfig> = {
 export const getInboundOrderStep = (order: Pick<InboundOrderSchema, 'state'>) => {
   return INBOUND_ORDER_STATES[order.state]?.step ?? CANCELLED
 }
+
+export const isInboundOrderEditable = (
+  order: Pick<InboundOrderSchema, 'state' | 'warehouse_orders'>,
+) => {
+  const warehouseOrderCount = order.warehouse_orders?.length ?? 0
+  return ['draft', 'submitted'].includes(order.state) && warehouseOrderCount === 0
+}
