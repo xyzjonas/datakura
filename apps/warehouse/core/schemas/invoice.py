@@ -57,7 +57,7 @@ class InvoiceStoreSchema(Schema):
 class OutboundInvoiceCreateSchema(Schema):
     order_codes: list[str] = Field(default_factory=list)
     issued_date: date
-    due_date: date
+    due_date: date | None = None
     payment_method_name: str | None = None
     external_code: str | None = None
     taxable_supply_date: date

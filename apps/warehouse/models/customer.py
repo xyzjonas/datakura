@@ -56,7 +56,7 @@ class Customer(BaseModel):
     # Business Settings
     customer_type = models.CharField(max_length=50, choices=CUSTOMER_TYPE_CHOICES)
     price_type = models.CharField(max_length=50, choices=PRICE_TYPE_CHOICES)
-    invoice_due_days = models.IntegerField(default=30)
+    invoice_due_days = models.IntegerField(default=14)
     block_after_due_days = models.IntegerField(default=30)
     is_self = models.BooleanField(default=False)
 

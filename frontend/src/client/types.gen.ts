@@ -3672,7 +3672,7 @@ export type OutboundInvoiceCreateSchema = {
     /**
      * Due Date
      */
-    due_date: string;
+    due_date?: string | null;
     /**
      * Payment Method Name
      */

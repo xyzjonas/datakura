@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -198,6 +198,47 @@ def test_create_outbound_invoice_uses_customer_default_payment_method(db) -> Non
     data = response.json()["data"]
     assert data["payment_method"]["name"] == payment_method.name
     assert data["supplier"]["code"] == supplier.code
+
+
+@pytest.mark.parametrize("invoice_due_days", [0, 21])
+def test_create_outbound_invoice_uses_customer_default_due_days_when_due_date_missing(
+    db,
+    invoice_due_days: int,
+) -> None:
+    client = TestClient(routes)
+    payment_method = InvoicePaymentMethodFactory.it(name="Bank transfer")
+    customer = CustomerFactory(
+        default_payment_method=payment_method,
+        invoice_due_days=invoice_due_days,
+    )
+    CustomerFactory(is_self=True)
+    order = OutboundOrderFactory.it(
+        customer=customer,
+        currency="CZK",
+        invoice=None,
+        state=OutboundOrderState.SUBMITTED,
+    )
+    WarehouseOrderOutFactory.it(
+        order=order,
+        state=OutboundWarehouseOrderState.COMPLETED,
+    )
+
+    issued_date = date(2026, 4, 1)
+
+    response = client.post(
+        "/outbound",
+        json={
+            "order_codes": [order.code],
+            "issued_date": issued_date.isoformat(),
+            "taxable_supply_date": issued_date.isoformat(),
+        },
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["data"]["due_date"]
+        == (issued_date + timedelta(days=invoice_due_days)).isoformat()
+    )
 
 
 def test_create_outbound_invoice_rejects_mixed_customers(db) -> None:

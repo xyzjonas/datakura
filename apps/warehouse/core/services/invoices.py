@@ -1,5 +1,5 @@
 from calendar import monthrange
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from django.db import transaction
@@ -184,6 +184,17 @@ class InvoicesService:
         )
 
     @staticmethod
+    def _resolve_due_date(
+        customer: Customer,
+        issued_date: date,
+        due_date: date | None,
+    ) -> date:
+        if due_date is not None:
+            return due_date
+
+        return issued_date + timedelta(days=customer.invoice_due_days)
+
+    @staticmethod
     def _ordered_unique_codes(order_codes: list[str]) -> list[str]:
         return list(dict.fromkeys(order_codes))
 
@@ -319,6 +330,7 @@ class InvoicesService:
         payment_method = cls._resolve_payment_method(
             customer, params.payment_method_name
         )
+        due_date = cls._resolve_due_date(customer, params.issued_date, params.due_date)
         invoice_code = cls.generate_next_outbound_invoice_code()
         currency = ordered_orders[0].currency
 
@@ -328,7 +340,7 @@ class InvoicesService:
                 supplier=supplier,
                 code=invoice_code,
                 issued_date=params.issued_date,
-                due_date=params.due_date,
+                due_date=due_date,
                 payment_method=payment_method,
                 external_code=params.external_code,
                 taxable_supply_date=params.taxable_supply_date,

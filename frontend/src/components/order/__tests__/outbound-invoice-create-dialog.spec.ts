@@ -1,6 +1,6 @@
 import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-vitest'
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import OutboundInvoiceCreateDialog from '../OutboundInvoiceCreateDialog.vue'
 
 installQuasarPlugin()
@@ -88,6 +88,9 @@ const selectedOrders = [
 
 describe('OutboundInvoiceCreateDialog', () => {
   it('prefills customer payment method and shows readonly supplier', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-10T08:30:00Z'))
+
     const wrapper = mount(OutboundInvoiceCreateDialog, {
       props: {
         show: true,
@@ -119,11 +122,19 @@ describe('OutboundInvoiceCreateDialog', () => {
     expect(paymentMethod.attributes('data-model-value')).toBe('Bank transfer')
     expect(paymentMethod.attributes('data-placeholder')).toBe('Bank transfer')
 
+    const dueDateInput = wrapper
+      .findAll('[data-label="Splatnost"]')
+      .find((node) => node.attributes('data-model-value') === '2026-05-01')
+
+    expect(dueDateInput).toBeTruthy()
+
     const supplierInput = wrapper
       .findAll('[data-label="Dodavatel"]')
       .find((node) => node.attributes('data-model-value') === 'Our Firm')
 
     expect(supplierInput).toBeTruthy()
     expect(supplierInput?.attributes('data-readonly')).toBe('')
+
+    vi.useRealTimers()
   })
 })

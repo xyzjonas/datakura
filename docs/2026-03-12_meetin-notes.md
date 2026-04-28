@@ -32,14 +32,14 @@
 ### Objednavka IN
 
 - pridat novy typ baleni v kroku evidence
-✅ - kontrola konzistence mnozstvi polozek (i ceny), objednavame zcestne malo? nebo moc? vykricnik!
-✅ - moznost editovat celkovou cenu polozky (celkovy! - ne cena za kus) - kus je computed
-✅- dobropis vs. doposlani
-✅ - nejdriv: odstranit vsechny polozky do nove prijemky (vazba -> primary) a naskladni co jde
-✅ - doposlani - bude doreseno v nove sekundarni prijemce
-✅ - dobropis - bude (muze byt) doreseno v nove sekundarni prijemce
-✅ - potvrzuju pred prijmem fyzickym - v kancelari potvrdim objednavku (na zaklade prijate faktury) a vytvorim prijemku (virtualni) "ceka na dodani"
-✅ faktury jako pdf prikladat k objednavce - neni potreba mit v db
+  ✅ - kontrola konzistence mnozstvi polozek (i ceny), objednavame zcestne malo? nebo moc? vykricnik!
+  ✅ - moznost editovat celkovou cenu polozky (celkovy! - ne cena za kus) - kus je computed
+  ✅- dobropis vs. doposlani
+  ✅ - nejdriv: odstranit vsechny polozky do nove prijemky (vazba -> primary) a naskladni co jde
+  ✅ - doposlani - bude doreseno v nove sekundarni prijemce
+  ✅ - dobropis - bude (muze byt) doreseno v nove sekundarni prijemce
+  ✅ - potvrzuju pred prijmem fyzickym - v kancelari potvrdim objednavku (na zaklade prijate faktury) a vytvorim prijemku (virtualni) "ceka na dodani"
+  ✅ faktury jako pdf prikladat k objednavce - neni potreba mit v db
 
 ### Sklad
 
@@ -67,7 +67,28 @@
 ✅ - volnych / skladem + na ceste (objednano) - proklik od tama (z badge) + seznam (modal) objednavek
 
 - navazat soubory (vice)
-✅- prijata objednavka - castecne vydat a vytvorit novou objednavku (vydejku) na zbytek
-✅- faktura MUSI byt v db jako table
-✅- faktura navazana na VICE objednavek (souhrnna faktura)
-✅- faktury (vazby) vytvaret manualne z jedne nebo vice objednavek
+  ✅- prijata objednavka - castecne vydat a vytvorit novou objednavku (vydejku) na zbytek
+  ✅- faktura MUSI byt v db jako table
+  ✅- faktura navazana na VICE objednavek (souhrnna faktura)
+  ✅- faktury (vazby) vytvaret manualne z jedne nebo vice objednavek
+
+# 2026-04-27 MEETING NOTES
+
+✅- editrace prijate dokud neni prijemka
+
+- nove baleni popis haze chyba
+- UX mozna - action btns -> FAB
+- multiselect na tisk stitku v prijemce
+
+## vydej
+
+- vydej partial item quantities (19.6)
+- tisk dodaciho listu (vydejka)
+- seznam vyfiltrovat podle odberatele
+  ✅- zakaznik prefill splatnosti v kalendarnich dnech, zakladni hodnota 10 kalendarnich
+
+# more
+
+- export produktu do tabulky a zpet po editaci (manualni korekce cen)
+- snapshot skladu (v manualnim intervlu (e.g. 1x za mesic) -> primarne celkova hodnota zbozi)
+- vratky (to be discussed)
