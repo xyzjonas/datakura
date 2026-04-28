@@ -37,7 +37,12 @@
       </div>
     </div>
 
-    <OutboundOrdersTable v-model:selected-orders="selectedOrders" :invoice-mode="invoiceMode" />
+    <OutboundOrdersTable
+      v-model:selected-orders="selectedOrders"
+      v-model:customer-filter="customerFilter"
+      :invoice-mode="invoiceMode"
+      @apply-customer-filter="applyCustomerFilter"
+    />
 
     <NewOrderDialog
       v-model="newOrderDialog"
@@ -79,11 +84,16 @@ const { onResponse } = useApi()
 const newOrderDialog = ref(false)
 const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
 const selectedOrders = ref<OutboundOrderSchema[]>([])
+const customerFilter = ref<CustomerSchema>()
 const invoiceMode = ref(false)
 const invoiceDialog = ref(false)
 const invoiceLoading = ref(false)
 const selfCustomer = ref<CustomerSchema>()
 const $q = useQuasar()
+
+const applyCustomerFilter = (customer?: CustomerSchema) => {
+  customerFilter.value = customer
+}
 
 const loadSelfCustomer = async () => {
   const response = await client.get<{ 200: GetCustomerResponse }>({

@@ -1,6 +1,7 @@
 <template>
   <q-select
     ref="itemSelect"
+    :dense="dense"
     outlined
     :label="label"
     :hint="hint"
@@ -40,12 +41,14 @@ withDefaults(
     hint?: string
     required?: boolean
     disable?: boolean
+    dense?: boolean
   }>(),
   {
     label: 'Vyhledat zákazníka',
-    hint: 'Vyhledat subjekt podle názvu, kódu, IČO nebo DIČ.',
+    hint: undefined,
     required: true,
     disable: false,
+    dense: false,
   },
 )
 

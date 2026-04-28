@@ -33,12 +33,14 @@ def get_outbound_orders(
     request: HttpRequest,
     search_term: str | None = None,
     stock_product_code: str | None = None,
+    customer_code: str | None = None,
 ):
     qs = cast(
         QuerySet[OutboundOrder],
         outbound_orders_service.get_outbound_orders(
             search_term=search_term,
             stock_product_code=stock_product_code,
+            customer_code=customer_code,
         ),
     )
     return qs.all()

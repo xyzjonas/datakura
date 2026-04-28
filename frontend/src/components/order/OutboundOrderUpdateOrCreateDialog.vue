@@ -8,7 +8,10 @@
           <q-btn flat round icon="close" v-close-popup class="ml-auto" />
         </div>
         <q-form class="flex flex-col gap-2" @submit="addItem">
-          <CustomerSearchSelect v-model="customer" />
+          <CustomerSearchSelect
+            v-model="customer"
+            hint="Vyhledat subjekt podle názvu, kódu, IČO nebo DIČ."
+          />
           <q-input
             v-model.trim="item.external_code"
             outlined

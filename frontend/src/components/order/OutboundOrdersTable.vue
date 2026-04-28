@@ -22,6 +22,15 @@
           :debounce="300"
           class="min-w-[260px] flex-1"
         />
+        <CustomerSearchSelect
+          v-model="customerFilter"
+          label="Odberatel"
+          dense
+          placeholder="Vyhledat subjekt podle názvu, kódu, IČO nebo DIČ."
+          :hint="undefined"
+          :required="false"
+          class="min-w-[260px] flex-1"
+        />
         <StockProductSearchSelect
           v-model="stockProductCode"
           label="Produkt v objednavce"
@@ -104,7 +113,21 @@
 
     <template #body-cell-customer="props">
       <q-td>
-        <CustomerLink :customer="props.row.customer" />
+        <div class="flex items-center gap-1">
+          <q-btn
+            flat
+            round
+            dense
+            color="primary"
+            size="sm"
+            icon="sym_o_filter_alt"
+            aria-label="Filtrovat odberatele"
+            @click.stop="emit('applyCustomerFilter', props.row.customer)"
+          >
+            <q-tooltip>Filtrovat tohoto odberatele</q-tooltip>
+          </q-btn>
+          <CustomerLink :customer="props.row.customer" />
+        </div>
       </q-td>
     </template>
 
@@ -134,12 +157,14 @@
 <script setup lang="ts">
 import {
   warehouseApiRoutesOutboundOrdersGetOutboundOrders,
+  type CustomerSchema,
   type OutboundOrderSchema,
 } from '@/client'
 import OutboundOrderGridCard from '@/components/order/OutboundOrderGridCard.vue'
 import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
 import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
+import CustomerSearchSelect from '@/components/selects/CustomerSearchSelect.vue'
 import StockProductSearchSelect from '@/components/selects/StockProductSearchSelect.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'
@@ -165,7 +190,12 @@ const props = withDefaults(
   },
 )
 
+const emit = defineEmits<{
+  applyCustomerFilter: [customer: CustomerSchema | undefined]
+}>()
+
 const selectedOrders = defineModel<OutboundOrderSchema[]>('selectedOrders', { default: [] })
+const customerFilter = defineModel<CustomerSchema | undefined>('customerFilter')
 
 const { page, pageSize, search, stockProductCode } = useQueryProducts()
 const { onResponse } = useApi()
@@ -189,6 +219,7 @@ const fetchOrders = async () => {
         page: page.value,
         page_size: pageSize.value,
         search_term: search.value,
+        customer_code: customerFilter.value?.code,
         stock_product_code: stockProductCode.value ?? undefined,
       },
     })
@@ -229,6 +260,7 @@ const onPaginationChange = async (requestProp: { pagination: QTableProps['pagina
 }
 
 watch(search, fetchOrders)
+watch(() => customerFilter.value?.code, fetchOrders)
 watch(stockProductCode, fetchOrders)
 
 watch(

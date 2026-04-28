@@ -21,6 +21,7 @@ from apps.warehouse.tests.factories.order import (
     OutboundOrderFactory,
     OutboundOrderItemFactory,
 )
+from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.packaging import PackageTypeFactory
 from apps.warehouse.tests.factories.product import (
     StockProductFactory,
@@ -32,6 +33,7 @@ from apps.warehouse.tests.factories.warehouse import (
     WarehouseLocationFactory,
     WarehouseOrderOutFactory,
 )
+import pytest
 
 
 def test_get_outbound_order_audits(db) -> None:
@@ -92,18 +94,34 @@ def test_get_outbound_order_audits_formats_transition_state_labels(db) -> None:
     assert data[0]["changes"]["state"] == {"old": "Draft", "new": "Picking"}
 
 
-def test_get_outbound_orders_filter_by_stock_product_code(db) -> None:
+@pytest.mark.parametrize(
+    ("query_param", "expected_value"),
+    [("stock_product_code", "product"), ("customer_code", "customer")],
+)
+def test_get_outbound_orders_supports_filtering(
+    db, query_param: str, expected_value: str
+) -> None:
     client = TestClient(routes)
     shared_product = StockProductFactory()
     other_product = StockProductFactory()
+    matching_customer = CustomerFactory()
+    other_customer = CustomerFactory()
 
-    matching_order = OutboundOrderFactory.it(code="SORD-MATCH-0001")
-    non_matching_order = OutboundOrderFactory.it(code="SORD-OTHER-0001")
+    matching_order = OutboundOrderFactory.it(
+        code="SORD-MATCH-0001", customer=matching_customer
+    )
+    non_matching_order = OutboundOrderFactory.it(
+        code="SORD-OTHER-0001",
+        customer=other_customer,
+    )
 
     OutboundOrderItemFactory(order=matching_order, stock_product=shared_product)
     OutboundOrderItemFactory(order=non_matching_order, stock_product=other_product)
 
-    res = client.get(f"/?stock_product_code={shared_product.code}")
+    query_value = (
+        shared_product.code if expected_value == "product" else matching_customer.code
+    )
+    res = client.get(f"/?{query_param}={query_value}")
 
     assert res.status_code == 200
     data = res.json()["data"]

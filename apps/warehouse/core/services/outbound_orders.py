@@ -311,6 +311,7 @@ class OutboundOrdersService:
     def get_outbound_orders(
         search_term: str | None = None,
         stock_product_code: str | None = None,
+        customer_code: str | None = None,
     ) -> QuerySet[OutboundOrder]:
         qs = OutboundOrder.objects.select_related(
             "customer",
@@ -335,6 +336,9 @@ class OutboundOrdersService:
 
         if stock_product_code:
             qs = qs.filter(items__stock_product__code=stock_product_code).distinct()
+
+        if customer_code:
+            qs = qs.filter(customer__code=customer_code)
 
         return qs
 

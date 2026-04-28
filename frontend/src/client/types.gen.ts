@@ -5529,6 +5529,10 @@ export type WarehouseApiRoutesOutboundOrdersGetOutboundOrdersData = {
          */
         stock_product_code?: string | null;
         /**
+         * Customer Code
+         */
+        customer_code?: string | null;
+        /**
          * Page
          */
         page?: number;
