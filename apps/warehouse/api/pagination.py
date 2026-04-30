@@ -10,6 +10,7 @@ from apps.warehouse.core.schemas.customer import (
     GetCustomersResponse,
     GetCustomerGroupsResponse,
 )
+from apps.warehouse.core.schemas.analytics import GetInventorySnapshotsResponse
 from apps.warehouse.core.schemas.group import (
     GetProductGroupsResponse,
 )
@@ -49,6 +50,7 @@ from apps.warehouse.core.transformation import (
     invoice_payment_method_orm_to_schema,
     invoice_orm_to_schema,
 )
+from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
 from apps.warehouse.models.customer import Customer, CustomerGroup
 from apps.warehouse.models.orders import (
     InboundOrder,
@@ -60,10 +62,44 @@ from apps.warehouse.models.orders import (
 from apps.warehouse.models.product import StockProduct, ProductGroup, ProductType
 from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.warehouse import (
+    InventorySnapshot,
     InboundWarehouseOrder,
     OutboundWarehouseOrder,
     WarehouseLocation,
 )
+
+
+class InventorySnapshotsPagination(PaginationBase):
+    items_attribute: str = "data"
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 20
+
+    class Output(GetInventorySnapshotsResponse): ...
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[InventorySnapshot],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        offset = (pagination.page - 1) * pagination.page_size
+        items = queryset[offset : offset + pagination.page_size]
+        count = queryset.count()
+
+        return {
+            "data": [
+                inventory_snapshot_service._to_summary_schema(snapshot)
+                for snapshot in items
+            ],
+            "count": count,
+            "next": pagination.page + 1
+            if offset + pagination.page_size < count
+            else None,
+            "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
 
 
 class StockProductPagination(PaginationBase):

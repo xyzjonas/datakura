@@ -6,7 +6,7 @@
 import type { TrackingLevel } from '@/client'
 import { computed } from 'vue'
 
-const props = defineProps<{ level: TrackingLevel }>()
+const props = defineProps<{ level: TrackingLevel | string }>()
 
 const label = computed(() => {
   switch (props.level) {

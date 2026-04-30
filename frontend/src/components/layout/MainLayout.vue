@@ -89,6 +89,12 @@
                   routeName: 'warehouseOutboundOrders',
                   routeMatch: 'warehouseOutboundOrders,warehouseOutboundOrderDetail',
                 },
+                {
+                  label: 'Snapshoty',
+                  icon: 'sym_o_history',
+                  routeName: 'inventorySnapshots',
+                  routeMatch: 'inventorySnapshots,inventorySnapshotDetail',
+                },
               ]"
             />
             <q-item-label header class="text-gray-4">Zákazník</q-item-label>

@@ -43,14 +43,7 @@
           {{ item.warehouse_item.location.code }}
         </span>
         <WarehouseItemTypeBadgeGroup :item="item.warehouse_item" />
-        <q-btn
-          dense
-          flat
-          round
-          size="10px"
-          icon="sym_o_open_in_new"
-          :to="{ name: 'warehouseItemDetail', params: { itemId: item.warehouse_item.id } }"
-        />
+        <WarehouseItemLink :item-id="item.warehouse_item.id" />
       </div>
     </div>
 
@@ -104,6 +97,7 @@ import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGroup.vue'
 import OffloadItemToChildOrderDialog from './OffloadItemToChildOrderDialog.vue'
 import OutboundWarehousePickDialog from './OutboundWarehousePickDialog.vue'
+import WarehouseItemLink from '../links/WarehouseItemLink.vue'
 
 const props = defineProps<{
   warehouseOrderCode: string

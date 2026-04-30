@@ -7,6 +7,8 @@ import CustomerView from '@/views/CustomerView.vue'
 import GroupsView from '@/views/GroupsView.vue'
 import HomeView from '@/views/HomeView.vue'
 import InboundOrderView from '@/views/InboundOrderView.vue'
+import InventorySnapshotView from '@/views/InventorySnapshotView.vue'
+import InventorySnapshotsView from '@/views/InventorySnapshotsView.vue'
 import InvoicesView from '@/views/InvoicesView.vue'
 import InvoiceView from '@/views/InvoiceView.vue'
 import OutboundOrderView from '@/views/OutboundOrderView.vue'
@@ -59,6 +61,17 @@ const router = createRouter({
       path: '/warehouses',
       name: 'warehouses',
       component: WarehouseView,
+    },
+    {
+      path: '/warehouse/snapshots',
+      name: 'inventorySnapshots',
+      component: InventorySnapshotsView,
+    },
+    {
+      path: '/warehouse/snapshots/:snapshotId',
+      name: 'inventorySnapshotDetail',
+      component: InventorySnapshotView,
+      props: true,
     },
     {
       path: '/warehouse/warehouse-items/:itemId',

@@ -3413,6 +3413,278 @@ export type GetCreditNoteToSupplierResponse = {
 };
 
 /**
+ * GetLatestInventoryValueResponse
+ */
+export type GetLatestInventoryValueResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: LatestInventoryValueSchema;
+};
+
+/**
+ * InventorySnapshotCurrencyTotal
+ */
+export type InventorySnapshotCurrencyTotal = {
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Value
+     */
+    value: string;
+};
+
+/**
+ * InventorySnapshotSummarySchema
+ */
+export type InventorySnapshotSummarySchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Captured At
+     */
+    captured_at: string;
+    /**
+     * Trigger Source
+     */
+    trigger_source: string;
+    /**
+     * Cadence
+     */
+    cadence?: string | null;
+    /**
+     * Bucket Key
+     */
+    bucket_key?: string | null;
+    /**
+     * Line Count
+     */
+    line_count: number;
+    /**
+     * Purchase Totals
+     */
+    purchase_totals: Array<InventorySnapshotCurrencyTotal>;
+    /**
+     * Receipt Totals
+     */
+    receipt_totals: Array<InventorySnapshotCurrencyTotal>;
+    /**
+     * Receipt Unpriced Line Count
+     */
+    receipt_unpriced_line_count: number;
+    /**
+     * Receipt Complete
+     */
+    receipt_complete: boolean;
+};
+
+/**
+ * LatestInventoryValueSchema
+ */
+export type LatestInventoryValueSchema = {
+    snapshot?: InventorySnapshotSummarySchema | null;
+};
+
+/**
+ * PagedInventorySnapshotSummarySchema
+ */
+export type PagedInventorySnapshotSummarySchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<InventorySnapshotSummarySchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetInventorySnapshotResponse
+ */
+export type GetInventorySnapshotResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: InventorySnapshotDetailSchema;
+};
+
+/**
+ * InventorySnapshotDetailSchema
+ */
+export type InventorySnapshotDetailSchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Captured At
+     */
+    captured_at: string;
+    /**
+     * Trigger Source
+     */
+    trigger_source: string;
+    /**
+     * Cadence
+     */
+    cadence?: string | null;
+    /**
+     * Bucket Key
+     */
+    bucket_key?: string | null;
+    /**
+     * Line Count
+     */
+    line_count: number;
+    /**
+     * Purchase Totals
+     */
+    purchase_totals: Array<InventorySnapshotCurrencyTotal>;
+    /**
+     * Receipt Totals
+     */
+    receipt_totals: Array<InventorySnapshotCurrencyTotal>;
+    /**
+     * Receipt Unpriced Line Count
+     */
+    receipt_unpriced_line_count: number;
+    /**
+     * Receipt Complete
+     */
+    receipt_complete: boolean;
+    /**
+     * Lines
+     */
+    lines: Array<InventorySnapshotLineSchema>;
+};
+
+/**
+ * InventorySnapshotLineSchema
+ */
+export type InventorySnapshotLineSchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Warehouse Item Id
+     */
+    warehouse_item_id?: number | null;
+    /**
+     * Warehouse Item Id At Snapshot
+     */
+    warehouse_item_id_at_snapshot: number;
+    /**
+     * Product Code
+     */
+    product_code: string;
+    /**
+     * Product Name
+     */
+    product_name: string;
+    /**
+     * Location Code
+     */
+    location_code: string;
+    /**
+     * Quantity
+     */
+    quantity: string;
+    /**
+     * Unit Of Measure
+     */
+    unit_of_measure: string;
+    /**
+     * Tracking Level
+     */
+    tracking_level: string;
+    /**
+     * Purchase Currency
+     */
+    purchase_currency: string;
+    /**
+     * Purchase Unit Price
+     */
+    purchase_unit_price: string;
+    /**
+     * Purchase Line Value
+     */
+    purchase_line_value: string;
+    /**
+     * Receipt Currency
+     */
+    receipt_currency?: string | null;
+    /**
+     * Receipt Unit Price
+     */
+    receipt_unit_price?: string | null;
+    /**
+     * Receipt Line Value
+     */
+    receipt_line_value?: string | null;
+    /**
+     * Receipt Price Available
+     */
+    receipt_price_available: boolean;
+    /**
+     * Receipt Price Fallback Reason
+     */
+    receipt_price_fallback_reason?: string | null;
+};
+
+/**
+ * InventorySnapshotCreateSchema
+ */
+export type InventorySnapshotCreateSchema = {
+    /**
+     * Cadence
+     */
+    cadence?: string | null;
+    /**
+     * Force
+     */
+    force?: boolean;
+};
+
+/**
  * PagedInvoiceSchema
  */
 export type PagedInvoiceSchema = {
@@ -6037,19 +6309,83 @@ export type WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses = {
 
 export type WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponse = WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses[keyof WarehouseApiRoutesCreditNotesGetCreditNoteToSupplierResponses];
 
-export type WarehouseApiRoutesAnalyticsGetAnalyticsData = {
+export type WarehouseApiRoutesAnalyticsGetInventoryValueData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/api/v1/analytics/inventory-value';
 };
 
-export type WarehouseApiRoutesAnalyticsGetAnalyticsResponses = {
+export type WarehouseApiRoutesAnalyticsGetInventoryValueResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: GetLatestInventoryValueResponse;
 };
+
+export type WarehouseApiRoutesAnalyticsGetInventoryValueResponse = WarehouseApiRoutesAnalyticsGetInventoryValueResponses[keyof WarehouseApiRoutesAnalyticsGetInventoryValueResponses];
+
+export type WarehouseApiRoutesAnalyticsGetInventorySnapshotsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/analytics/inventory-snapshots';
+};
+
+export type WarehouseApiRoutesAnalyticsGetInventorySnapshotsResponses = {
+    /**
+     * OK
+     */
+    200: PagedInventorySnapshotSummarySchema;
+};
+
+export type WarehouseApiRoutesAnalyticsGetInventorySnapshotsResponse = WarehouseApiRoutesAnalyticsGetInventorySnapshotsResponses[keyof WarehouseApiRoutesAnalyticsGetInventorySnapshotsResponses];
+
+export type WarehouseApiRoutesAnalyticsCreateInventorySnapshotData = {
+    body: InventorySnapshotCreateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/analytics/inventory-snapshots';
+};
+
+export type WarehouseApiRoutesAnalyticsCreateInventorySnapshotResponses = {
+    /**
+     * OK
+     */
+    200: GetInventorySnapshotResponse;
+};
+
+export type WarehouseApiRoutesAnalyticsCreateInventorySnapshotResponse = WarehouseApiRoutesAnalyticsCreateInventorySnapshotResponses[keyof WarehouseApiRoutesAnalyticsCreateInventorySnapshotResponses];
+
+export type WarehouseApiRoutesAnalyticsGetInventorySnapshotData = {
+    body?: never;
+    path: {
+        /**
+         * Snapshot Id
+         */
+        snapshot_id: number;
+    };
+    query?: never;
+    url: '/api/v1/analytics/inventory-snapshots/{snapshot_id}';
+};
+
+export type WarehouseApiRoutesAnalyticsGetInventorySnapshotResponses = {
+    /**
+     * OK
+     */
+    200: GetInventorySnapshotResponse;
+};
+
+export type WarehouseApiRoutesAnalyticsGetInventorySnapshotResponse = WarehouseApiRoutesAnalyticsGetInventorySnapshotResponses[keyof WarehouseApiRoutesAnalyticsGetInventorySnapshotResponses];
 
 export type WarehouseApiRoutesInvoicesGetOutboundInvoicesData = {
     body?: never;

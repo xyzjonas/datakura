@@ -8,10 +8,12 @@ from typing import Any, cast
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import QuerySet, Sum
+from django.utils import timezone
 from django.utils.functional import cached_property
 
 from .barcode import BarcodeMixin
 from .base import BaseModel
+from .currency import CURRENCY_CHOICES
 from .orders import InboundOrder, OutboundOrder
 from .packaging import PackageType
 from .product import StockProduct, UnitOfMeasure
@@ -485,3 +487,116 @@ class InboundWarehouseOrderItem(BaseModel):
         return (
             f"{self.amount} × {self.stock_product.name} ({self.warehouse_order.code})"
         )
+
+
+class InventorySnapshotTriggerSource(models.TextChoices):
+    MANUAL = "manual", "Manual"
+    SCHEDULED = "scheduled", "Scheduled"
+
+
+class InventorySnapshot(BaseModel):
+    captured_at = models.DateTimeField(default=timezone.now, db_index=True)
+    trigger_source = models.CharField(
+        max_length=32,
+        choices=InventorySnapshotTriggerSource.choices,
+        default=InventorySnapshotTriggerSource.MANUAL,
+    )
+    cadence = models.CharField(max_length=32, null=True, blank=True)
+    bucket_key = models.CharField(max_length=64, null=True, blank=True, db_index=True)
+    line_count = models.PositiveIntegerField(default=0)
+    purchase_totals_by_currency = models.JSONField(default=dict, blank=True)
+    receipt_totals_by_currency = models.JSONField(default=dict, blank=True)
+    receipt_unpriced_line_count = models.PositiveIntegerField(default=0)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["-captured_at", "-created"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["trigger_source", "cadence", "bucket_key"],
+                condition=models.Q(
+                    trigger_source=InventorySnapshotTriggerSource.SCHEDULED,
+                    cadence__isnull=False,
+                    bucket_key__isnull=False,
+                ),
+                name="warehouse_inventorysnapshot_scheduled_bucket_unique",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"Snapshot #{self.pk} @ {self.captured_at.isoformat()}"
+
+
+class InventorySnapshotLine(BaseModel):
+    snapshot = models.ForeignKey(
+        InventorySnapshot,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    warehouse_item = models.ForeignKey(
+        WarehouseItem,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inventory_snapshot_lines",
+    )
+    warehouse_item_id_at_snapshot = models.PositiveBigIntegerField()
+    stock_product = models.ForeignKey(
+        StockProduct,
+        on_delete=models.PROTECT,
+        related_name="inventory_snapshot_lines",
+    )
+    product_code = models.CharField(max_length=255)
+    product_name = models.CharField(max_length=255)
+    location = models.ForeignKey(
+        WarehouseLocation,
+        on_delete=models.PROTECT,
+        related_name="inventory_snapshot_lines",
+    )
+    location_code = models.CharField(max_length=50)
+    source_order_item = models.ForeignKey(
+        InboundWarehouseOrderItem,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inventory_snapshot_lines",
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=4)
+    unit_of_measure = models.CharField(max_length=64)
+    tracking_level = models.CharField(max_length=20, choices=TrackingLevel.choices)
+    purchase_currency = models.CharField(
+        max_length=3,
+        choices=CURRENCY_CHOICES,
+        default="CZK",
+    )
+    purchase_unit_price = models.DecimalField(max_digits=10, decimal_places=4)
+    purchase_line_value = models.DecimalField(max_digits=14, decimal_places=4)
+    receipt_currency = models.CharField(
+        max_length=3,
+        choices=CURRENCY_CHOICES,
+        null=True,
+        blank=True,
+    )
+    receipt_unit_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        null=True,
+        blank=True,
+    )
+    receipt_line_value = models.DecimalField(
+        max_digits=14,
+        decimal_places=4,
+        null=True,
+        blank=True,
+    )
+    receipt_price_available = models.BooleanField(default=False)
+    receipt_price_fallback_reason = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+    )
+
+    class Meta(BaseModel.Meta):
+        ordering = ["product_code", "location_code", "warehouse_item_id_at_snapshot"]
+
+    def __str__(self) -> str:
+        return f"Snapshot line #{self.pk} - {self.product_code} @ {self.location_code}"
