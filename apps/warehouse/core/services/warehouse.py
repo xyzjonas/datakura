@@ -1362,6 +1362,36 @@ class WarehouseService:
         return cls.get_inbound_warehouse_order(warehouse_order_code)
 
     @classmethod
+    def _recalculate_purchase_prices_for_confirmed_order(
+        cls,
+        order_items: list[InboundWarehouseOrderItem],
+        context: RequestContext,
+    ) -> None:
+        adjustments_by_product: dict[str, dict[str, Decimal]] = {}
+
+        for order_item in order_items:
+            product_code = order_item.stock_product.code
+            adjustment = adjustments_by_product.setdefault(
+                product_code,
+                {"amount": Decimal("0"), "total_cost": Decimal("0")},
+            )
+            adjustment["amount"] += order_item.amount
+            adjustment["total_cost"] += (
+                order_item.amount * order_item.unit_price_at_receipt
+            )
+
+        for product_code, adjustment in adjustments_by_product.items():
+            if adjustment["amount"] <= 0:
+                continue
+
+            cls.recalculate_average_purchase_price(
+                product_code=product_code,
+                amount=adjustment["amount"],
+                unit_price=adjustment["total_cost"] / adjustment["amount"],
+                context=context,
+            )
+
+    @classmethod
     def confirm_draft(cls, code: str, context: RequestContext) -> None:
         w_order = cls.get_inbound_warehouse_order_model(code)
         if w_order.state != InboundWarehouseOrderState.DRAFT:
@@ -1375,10 +1405,17 @@ class WarehouseService:
                 f"Warehouse order '{code}' has no pickup location set — cannot materialise items."
             )
 
+        order_items = list(
+            w_order.order_items.select_related("stock_product", "package_type").all()
+        )
+
         with transaction.atomic():
-            for order_item in w_order.order_items.select_related(
-                "stock_product", "package_type"
-            ).all():
+            cls._recalculate_purchase_prices_for_confirmed_order(
+                order_items,
+                context=context,
+            )
+
+            for order_item in order_items:
                 batch = None
                 if order_item.batch_barcode:
                     batch, _ = get_or_create_batch(order_item.batch_barcode)
@@ -1424,30 +1461,6 @@ class WarehouseService:
             )
 
     @classmethod
-    def reset_to_draft(cls, code: str, context: RequestContext) -> None:
-        w_order = cls.get_inbound_warehouse_order_model(code)
-        if w_order.state != InboundWarehouseOrderState.PENDING:
-            raise WarehouseGenericError(
-                f"Warehouse order ${code}, state={w_order.state} has to be in pending state in order to be reset to draft."
-            )
-
-        with transaction.atomic():
-            # Delete materialised WarehouseItems so they can be re-created on next confirm
-            w_order.items.all().delete()
-
-        cls.transition_order(code, InboundWarehouseOrderState.DRAFT, context)
-        inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
-        inbound_orders_service.transition_order(
-            inbound_order.code,
-            context=context,
-            target_state=InboundOrderState.RECEIVING,
-        )
-        if credit_note := getattr(inbound_order, "credit_note", None):
-            inbound_orders_service.transition_credit_note(
-                credit_note.code, CreditNoteState.DRAFT, context=context
-            )
-
-    @classmethod
     def transition_inbound_order(
         cls,
         code: str,
@@ -1466,10 +1479,6 @@ class WarehouseService:
 
         if current_state == InboundWarehouseOrderState.DRAFT:
             cls.confirm_draft(code, context=context)
-            return
-
-        if current_state == InboundWarehouseOrderState.PENDING:
-            cls.reset_to_draft(code, context=context)
             return
 
         raise WarehouseGenericError(
@@ -1502,8 +1511,9 @@ class WarehouseService:
                 )
                 return
 
-            cls.reset_to_draft(code, context=context)
-            return
+            raise WarehouseGenericError(
+                f"Unsupported state transition '{current_state}' -> '{target_state}'"
+            )
 
         if target_state == InboundWarehouseOrderState.PENDING:
             cls.confirm_draft(code, context=context)
@@ -1596,22 +1606,6 @@ class WarehouseService:
         new_location = WarehouseLocation.objects.get(code=new_location_code)
 
         with transaction.atomic():
-            amount = item.amount
-            # Prefer unit price from the frozen snapshot; fall back to purchase order item
-            if item.source_order_item:
-                unit_price = item.source_order_item.unit_price_at_receipt
-            else:
-                if item.order_in is None:
-                    raise WarehouseGenericError(
-                        f"Warehouse item '{item.pk}' has no inbound order reference."
-                    )
-                unit_price = item.order_in.order.items.get(
-                    stock_product=item.stock_product
-                ).unit_price
-            cls.recalculate_average_purchase_price(
-                item.stock_product.code, amount, unit_price, context=context
-            )
-
             movement_service.move_item(item, context, new_location)
 
             if warehouse_order.items.filter(location__is_putaway=True).count() == 0:

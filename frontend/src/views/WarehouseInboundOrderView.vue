@@ -47,21 +47,6 @@
           @click="confirmDialog = true"
           class="ml-auto"
         />
-        <MissingMarker
-          v-if="step === 2"
-          text="#TODO: změna tam a zpět? Přepočet ceny by měl proběhnout zde."
-          class="text-nowrap"
-        >
-          <q-btn
-            v-if="step === 2"
-            unelevated
-            color="primary"
-            icon="sym_o_restart_alt"
-            label="editovat"
-            @click="resetDialog = true"
-            class="ml-auto"
-          />
-        </MissingMarker>
       </div>
     </div>
     <div class="flex gap-2">
@@ -134,18 +119,6 @@
         na příjmu může začít s přesunem zboží. Po tomto kroku již nebude možné příjemku upravovat.
       </span>
     </ConfirmDialog>
-    <ConfirmDialog
-      v-model:show="resetDialog"
-      title="Resetovat příjemku"
-      @confirm="transitionOrder('draft')"
-    >
-      <span>
-        Příjemka bude zpátky označena jako <InboundWarehouseOrderStateBadge state="draft" /> a bude
-        možné ji opět editovat. Pracovník na příjmu nebude schopen pokračovat s přesunem zboží.<br /><small
-          >Není možné vrátit rozpracovanou příjemku.</small
-        >
-      </span>
-    </ConfirmDialog>
     <AuditLogDialog
       v-model:show="auditDialog"
       source="warehouse-inbound-order"
@@ -172,7 +145,6 @@ import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import LargeTabs from '@/components/LargeTabs.vue'
-import MissingMarker from '@/components/MissingMarker.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
 import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehouseOrderItemsList.vue'
@@ -233,7 +205,6 @@ const updateOrderItems = async (orderItemId: number, toBeAdded: WarehouseItemSch
 }
 
 const confirmDialog = ref(false)
-const resetDialog = ref(false)
 const auditDialog = ref(false)
 const transitionOrder = async (locationCode: string | undefined = undefined) => {
   if (!order.value) {
@@ -264,6 +235,14 @@ const transitionOrder = async (locationCode: string | undefined = undefined) => 
     message: 'Nový stav zaznamenán',
     caption: `Příjemka ${order.value.code}`,
   })
+  if (order.value.state === 'pending') {
+    $q.notify({
+      type: 'positive',
+      message: 'Průměrné nákupní ceny položek byly aktualizovány',
+      caption: `Příjemka ${order.value.code}`,
+      timeout: 5000,
+    })
+  }
 }
 
 const onConfirmDialog = async () => {

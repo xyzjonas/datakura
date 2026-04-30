@@ -87,6 +87,32 @@ def test_confirm_arrival_requires_in_transit_state(db, context):
         warehouse_service.confirm_arrival(order.code, location.code, context=context)
 
 
+def test_confirm_draft_recalculates_average_purchase_price(db, context):
+    product = StockProductFactory.it(purchase_price=Decimal("10.00"))
+    WarehouseItemFactory(
+        stock_product=product,
+        amount=Decimal("5.00"),
+        order_in=InboundWarehouseOrderFactory(
+            state=InboundWarehouseOrderState.COMPLETED
+        ),
+        location=WarehouseLocationFactory(is_putaway=False),
+    )
+    warehouse_order = InboundWarehouseOrderFactory.create_complete(
+        product=product,
+        amount=Decimal("3.00"),
+        unit_price=Decimal("20.00"),
+        state=InboundWarehouseOrderState.DRAFT,
+    )
+
+    warehouse_service.confirm_draft(warehouse_order.code, context=context)
+
+    product.refresh_from_db()
+    warehouse_order.refresh_from_db()
+    assert product.purchase_price == Decimal("13.75")
+    assert warehouse_order.state == InboundWarehouseOrderState.PENDING
+    assert warehouse_order.items.count() == 1
+
+
 @pytest.mark.parametrize("items_amount, amount", [(3, 99), (0, 10), (3, 1.2)])
 def test_get_warehouse_availability(db, items_amount, amount):
     product = StockProductFactory.it()
@@ -633,6 +659,52 @@ def test_putaway_item_unpackaged_merge(db, context):
 
     with pytest.raises(WarehouseItem.DoesNotExist):
         assert WarehouseItem.objects.get(pk=old_pk)
+
+
+def test_putaway_item_does_not_recalculate_average_purchase_price(db, context):
+    product = StockProductFactory.it(purchase_price=Decimal("13.75"))
+    putaway_location = WarehouseLocationFactory(is_putaway=True)
+    new_location = WarehouseLocationFactory(is_putaway=False)
+    warehouse_order = InboundWarehouseOrderFactory(
+        state=InboundWarehouseOrderState.PENDING
+    )
+    source_order_item = InboundWarehouseOrderItemFactory(
+        warehouse_order=warehouse_order,
+        stock_product=product,
+        amount=Decimal("3.00"),
+        unit_price_at_receipt=Decimal("20.00"),
+    )
+    item = WarehouseItemFactory(
+        stock_product=product,
+        order_in=warehouse_order,
+        source_order_item=source_order_item,
+        amount=Decimal("3.00"),
+        location=putaway_location,
+    )
+    InboundOrderItemFactory(
+        order=warehouse_order.order,
+        stock_product=product,
+        amount=Decimal("3.00"),
+        unit_price=Decimal("20.00"),
+    )
+
+    warehouse_service.putaway_item(
+        item.pk, warehouse_order.code, new_location.code, context=context
+    )
+
+    product.refresh_from_db()
+    assert product.purchase_price == Decimal("13.75")
+
+
+def test_transition_inbound_order_from_pending_is_disallowed(db, context):
+    warehouse_order = InboundWarehouseOrderFactory(
+        state=InboundWarehouseOrderState.PENDING
+    )
+
+    with pytest.raises(WarehouseGenericError, match="Unsupported transition"):
+        warehouse_service.transition_inbound_order(
+            warehouse_order.code, context=context
+        )
 
 
 @pytest.mark.parametrize(

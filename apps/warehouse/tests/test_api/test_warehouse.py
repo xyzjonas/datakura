@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 from typing import cast
 
 import pytest
@@ -28,6 +29,7 @@ from apps.warehouse.tests.factories.order import (
     OutboundOrderFactory,
     OutboundOrderItemFactory,
 )
+from apps.warehouse.tests.factories.product import StockProductFactory
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderItemFactory,
     InboundWarehouseOrderFactory,
@@ -490,6 +492,37 @@ def test_transition_inbound_order_from_in_transit_to_draft_creates_items(db, cli
     assert warehouse_order.pickup_location.code == receiving_location.code
 
 
+def test_transition_inbound_order_from_draft_to_pending_recalculates_purchase_price(
+    db, client
+):
+    product = StockProductFactory.it(purchase_price=Decimal("10.00"))
+    WarehouseItemFactory(
+        stock_product=product,
+        amount=Decimal("5.00"),
+        order_in=InboundWarehouseOrderFactory(
+            state=InboundWarehouseOrderState.COMPLETED
+        ),
+        location=WarehouseLocationFactory(is_putaway=False),
+    )
+    warehouse_order = InboundWarehouseOrderFactory.create_complete(
+        product=product,
+        amount=Decimal("3.00"),
+        unit_price=Decimal("20.00"),
+        state=InboundWarehouseOrderState.DRAFT,
+    )
+
+    res = client.post(
+        f"orders-incoming/{warehouse_order.code}/transition",
+        json={},
+    )
+
+    assert res.status_code == 200
+    product.refresh_from_db()
+    warehouse_order.refresh_from_db()
+    assert product.purchase_price == Decimal("13.75")
+    assert warehouse_order.state == InboundWarehouseOrderState.PENDING
+
+
 def test_get_inbound_warehouse_order_marks_draft_order_items_pending(
     db, client
 ) -> None:
@@ -563,6 +596,18 @@ def test_transition_inbound_order_from_in_transit_to_draft_requires_location(
     )
 
     with pytest.raises(WarehouseGenericError):
+        client.post(
+            f"orders-incoming/{warehouse_order.code}/transition",
+            json={},
+        )
+
+
+def test_transition_inbound_order_from_pending_is_disallowed(db, client):
+    warehouse_order = InboundWarehouseOrderFactory(
+        state=InboundWarehouseOrderState.PENDING
+    )
+
+    with pytest.raises(WarehouseGenericError, match="Unsupported transition"):
         client.post(
             f"orders-incoming/{warehouse_order.code}/transition",
             json={},
