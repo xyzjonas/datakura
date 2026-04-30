@@ -84,7 +84,7 @@
 
 - vydej partial item quantities (19.6)
 - tisk dodaciho listu (vydejka)
-- seznam vyfiltrovat podle odberatele
+  ✅- seznam vyfiltrovat podle odberatele
   ✅- zakaznik prefill splatnosti v kalendarnich dnech, zakladni hodnota 10 kalendarnich
 
 # more
@@ -92,3 +92,8 @@
 - export produktu do tabulky a zpet po editaci (manualni korekce cen)
 - snapshot skladu (v manualnim intervlu (e.g. 1x za mesic) -> primarne celkova hodnota zbozi)
 - vratky (to be discussed)
+
+# 29.4.2026
+
+- uprava vydejky -ze smeru objednavky, upravim JENOM objednavku (uberu pocet, zmenim cenu, pridam polozky) - musi se to propsat do vydejky
+- kalkulace
