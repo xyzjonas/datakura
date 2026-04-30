@@ -17,7 +17,9 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     rows: [
       'Přidána možnost ukládání skladových snapshotů (stav skladu v konkrétním okamžiku).',
       'Přidána možnost filtrování přijatých objednávek podle zákazníka.',
-      'Oprava: vydané objednávky je možné libovolně editovat dokud není vystvořen skladový doklad (příjemka)',
+      'Přidána možnost nastavení výchozí tiskárny pro tisk dokladů.',
+      'Oprava: vydané objednávky je možné libovolně editovat dokud není vytvořen skladový doklad (příjemka).',
+      'Oprava: správné načtení aplikace po přihlášení, už není potřeba vždy manuálně obnovit (refresh) stránku.',
     ],
   },
 ]

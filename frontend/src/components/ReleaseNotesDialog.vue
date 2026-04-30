@@ -41,9 +41,10 @@
         <q-btn
           v-if="!showAll"
           color="primary"
-          label="Potvrdit"
+          label="Přečteno"
           unelevated
           @click="acknowledgeWhatsNew"
+          padding="6px 24px"
         />
         <q-btn v-else flat color="primary" label="Zavřít" @click="show = false" />
       </q-card-actions>
