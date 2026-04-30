@@ -5,11 +5,7 @@ import { nextTick } from 'vue'
 import App from '../App.vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-vitest'
-import {
-  APP_VERSION,
-  getInitialLastAcknowledgedVersion,
-  lastAcknowledgedVersion,
-} from '../utils/version'
+import { APP_VERSION, useVersion } from '../utils/version'
 
 installQuasarPlugin()
 
@@ -37,9 +33,11 @@ const quasarStubs = {
 }
 
 describe('App', () => {
+  const { lastAcknowledgedVersion } = useVersion()
+
   beforeEach(() => {
     localStorage.clear()
-    lastAcknowledgedVersion.value = getInitialLastAcknowledgedVersion()
+    lastAcknowledgedVersion.value = ''
   })
 
   it('mounts renders properly', async () => {

@@ -1,4 +1,5 @@
 import { useLocalStorage } from '@vueuse/core'
+import { computed } from 'vue'
 
 export type ChangelogEntry = {
   version: string
@@ -7,11 +8,11 @@ export type ChangelogEntry = {
 }
 
 export const APP_VERSION = '0.0.1dev1'
-export const LAST_ACKNOWLEDGED_VERSION_STORAGE_KEY = 'app-last-acknowledged-version'
+export const STORAGE_KEY = 'app-last-acknowledged-version'
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
-    version: APP_VERSION,
+    version: '0.0.1dev1',
     releaseDate: '2024-06-30',
     rows: [
       'Přidána možnost ukládání skladových snapshotů (stav skladu v konkrétním okamžiku).',
@@ -19,37 +20,42 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       'Oprava: vydané objednávky je možné libovolně editovat dokud není vystvořen skladový doklad (příjemka)',
     ],
   },
-  {
-    version: '0.0.1dev0',
-    releaseDate: '2024-06-29',
-    rows: ['Initial release.'],
-  },
 ]
 
-export const getInitialLastAcknowledgedVersion = () =>
-  CHANGELOG_ENTRIES[1]?.version ?? CHANGELOG_ENTRIES[0]?.version ?? APP_VERSION
+export const useVersion = () => {
+  const lastAcknowledgedVersion = useLocalStorage<string>(STORAGE_KEY, '')
 
-export const getPendingChangelogEntries = (lastAcknowledgedVersion?: string | null) => {
-  if (!lastAcknowledgedVersion) {
-    return CHANGELOG_ENTRIES
+  const getPendingChangelogEntries = (acknowledgedVersion?: string | null) => {
+    if (!acknowledgedVersion) {
+      return CHANGELOG_ENTRIES
+    }
+
+    const lastAcknowledgedIndex = CHANGELOG_ENTRIES.findIndex(
+      ({ version }) => version === acknowledgedVersion,
+    )
+
+    if (lastAcknowledgedIndex === 0) {
+      return []
+    }
+
+    if (lastAcknowledgedIndex === -1) {
+      return CHANGELOG_ENTRIES
+    }
+
+    return CHANGELOG_ENTRIES.slice(0, lastAcknowledgedIndex)
   }
 
-  const lastAcknowledgedIndex = CHANGELOG_ENTRIES.findIndex(
-    ({ version }) => version === lastAcknowledgedVersion,
+  const pendingChangelogEntries = computed(() =>
+    getPendingChangelogEntries(lastAcknowledgedVersion.value),
   )
 
-  if (lastAcknowledgedIndex === 0) {
-    return []
+  const syncLatestAcknowledgedVersion = () => {
+    lastAcknowledgedVersion.value = APP_VERSION
   }
 
-  if (lastAcknowledgedIndex === -1) {
-    return CHANGELOG_ENTRIES
+  return {
+    lastAcknowledgedVersion,
+    pendingChangelogEntries,
+    syncLatestAcknowledgedVersion,
   }
-
-  return CHANGELOG_ENTRIES.slice(0, lastAcknowledgedIndex)
 }
-
-export const lastAcknowledgedVersion = useLocalStorage<string>(
-  LAST_ACKNOWLEDGED_VERSION_STORAGE_KEY,
-  getInitialLastAcknowledgedVersion(),
-)

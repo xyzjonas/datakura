@@ -2,7 +2,13 @@
   <div class="flex flex-1 gap-5">
     <div class="flex flex-col h-full min-w-xs">
       <q-scroll-area class="flex-1 p-2">
-        <h1 class="mb-5 text-lg">NASTAVENÍ</h1>
+        <h1 class="text-lg">NASTAVENÍ</h1>
+        <p class="flex gap-1 items-center text-muted text-xs">
+          verze aplikace <strong>{{ APP_VERSION }}</strong>
+          <q-btn flat dense icon="help" size="xs" @click="showWhatsNewDialog = !showWhatsNewDialog">
+            <q-tooltip :offset="[0, 10]">Zobrazit celý CHANGELOG</q-tooltip>
+          </q-btn>
+        </p>
         <q-list class="flex flex-col gap-1">
           <q-item
             v-for="item in items"
@@ -33,6 +39,7 @@
       </Suspense>
     </div>
   </div>
+  <ReleaseNotesDialog v-model:show="showWhatsNewDialog" show-all />
 </template>
 
 <script setup lang="ts">
@@ -42,8 +49,10 @@ import DiscountSettingsTab from '@/components/settings/DiscountSettingsTab.vue'
 import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue'
 import PaymentSettingsTab from '@/components/settings/PaymentSettingsTab.vue'
 import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
-import { computed, shallowRef, watch, type Component } from 'vue'
+import { computed, ref, shallowRef, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { APP_VERSION } from '@/utils/version'
+import ReleaseNotesDialog from '@/components/ReleaseNotesDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -135,6 +144,8 @@ const items = [
     icon: 'sym_o_payments',
   },
 ]
+
+const showWhatsNewDialog = ref(false)
 </script>
 
 <style lang="scss" scoped></style>
