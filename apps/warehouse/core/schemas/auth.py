@@ -5,6 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from .base import BaseResponse
+from .printer import PrinterSchema
 
 
 class LoginFormSchema(BaseModel):
@@ -17,6 +18,7 @@ class AuthData(BaseModel):
     username: str
     group: str | None = None
     expiry_date: datetime
+    default_printer: PrinterSchema | None = None
 
 
 class SigninResponse(BaseResponse):

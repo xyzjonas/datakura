@@ -40,6 +40,7 @@ from apps.warehouse.core.schemas.invoice import (
     InvoiceSchema,
 )
 from apps.warehouse.core.schemas.packaging import PackageTypeSchema
+from apps.warehouse.core.schemas.printer import PrinterSchema
 from apps.warehouse.core.schemas.group import ProductGroupSchema
 from apps.warehouse.core.schemas.type import ProductTypeSchema
 from apps.warehouse.core.schemas.product import (
@@ -78,6 +79,7 @@ from apps.warehouse.models.orders import (
     InvoicePaymentMethod,
 )
 from apps.warehouse.models.packaging import PackageType
+from apps.warehouse.models.printer import Printer
 from apps.warehouse.models.product import (
     StockProduct,
     StockProductPrice,
@@ -135,6 +137,15 @@ def invoice_payment_method_orm_to_schema(
         name=payment_method.name,
         created=payment_method.created,
         changed=payment_method.changed,
+    )
+
+
+def printer_orm_to_schema(printer: Printer) -> PrinterSchema:
+    return PrinterSchema(
+        code=printer.code,
+        description=printer.description,
+        created=printer.created,
+        changed=printer.changed,
     )
 
 

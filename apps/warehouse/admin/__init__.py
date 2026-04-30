@@ -17,6 +17,7 @@ from apps.warehouse.models.orders import (
     InvoicePaymentMethod,
 )
 from apps.warehouse.models.packaging import PackageType
+from apps.warehouse.models.printer import Printer, UserAppSettings
 from apps.warehouse.models.product import (
     StockProduct,
     UnitOfMeasure,
@@ -114,6 +115,12 @@ admin.site.register(OutboundOrder)
 admin.site.register(OutboundOrderItem)
 admin.site.register(Invoice)
 admin.site.register(InvoicePaymentMethod)
+admin.site.register(UserAppSettings)
+
+
+@admin.register(Printer)
+class PrinterAdmin(admin.ModelAdmin):
+    search_fields = ["code", "description"]
 
 
 @admin.register(InboundWarehouseOrder)

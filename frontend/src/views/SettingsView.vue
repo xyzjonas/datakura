@@ -48,6 +48,7 @@ import CustomerSettingsTab from '@/components/settings/CustomerSettingsTab.vue'
 import DiscountSettingsTab from '@/components/settings/DiscountSettingsTab.vue'
 import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue'
 import PaymentSettingsTab from '@/components/settings/PaymentSettingsTab.vue'
+import PrintersSettingsTab from '@/components/settings/PrintersSettingsTab.vue'
 import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
 import { computed, ref, shallowRef, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -66,6 +67,7 @@ const validTabs = new Set([
   'customers',
   'discounts',
   'payments',
+  'printers',
   'users',
 ])
 
@@ -102,6 +104,8 @@ watch(
       selectedTabComponent.value = DiscountSettingsTab
     } else if (value === 'payments') {
       selectedTabComponent.value = PaymentSettingsTab
+    } else if (value === 'printers') {
+      selectedTabComponent.value = PrintersSettingsTab
     }
   },
   { immediate: true },
@@ -110,27 +114,27 @@ watch(
 const items = [
   {
     key: 'app',
-    label: 'aplikace',
+    label: 'přizpůsobení',
     icon: 'sym_o_settings',
   },
-  {
-    key: 'location',
-    label: 'Lokace a skladová místa',
-    icon: 'sym_o_home_work',
-  },
+  // {
+  //   key: 'location',
+  //   label: 'Lokace a skladová místa',
+  //   icon: 'sym_o_home_work',
+  // },
   {
     key: 'packaging',
-    label: 'balení',
+    label: 'jednotky a balení',
     icon: 'sym_o_package_2',
   },
   {
     key: 'products',
-    label: 'produkty',
+    label: 'typy zboží',
     icon: 'sym_o_shopping_cart',
   },
   {
     key: 'customers',
-    label: 'zákazníci',
+    label: 'zákaznícké skupiny',
     icon: 'sym_o_groups',
   },
   {
@@ -140,8 +144,13 @@ const items = [
   },
   {
     key: 'payments',
-    label: 'platby',
+    label: 'platebné metody',
     icon: 'sym_o_payments',
+  },
+  {
+    key: 'printers',
+    label: 'tiskárny',
+    icon: 'sym_o_print',
   },
 ]
 

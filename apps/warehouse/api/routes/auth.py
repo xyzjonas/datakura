@@ -13,6 +13,11 @@ from apps.warehouse.core.schemas.auth import (
     WhoamiResponse,
     AuthData,
 )
+from apps.warehouse.core.schemas.printer import (
+    SetDefaultPrinterRequestSchema,
+    SetDefaultPrinterResponse,
+)
+from apps.warehouse.core.services.printers import printers_service
 
 
 routes = Router(tags=["auth"])
@@ -47,6 +52,7 @@ def login_user(request: HttpRequest, credentials: LoginFormSchema):
                 user_id=user.id,
                 group=get_user_group(user),
                 expiry_date=request.session.get_expiry_date(),
+                default_printer=printers_service.get_default_printer(cast(User, user)),
             ),
         )
     else:
@@ -71,7 +77,22 @@ def whoami(request: HttpRequest):
                 user_id=request.user.id,
                 group=get_user_group(request.user),
                 expiry_date=request.session.get_expiry_date(),
+                default_printer=printers_service.get_default_printer(
+                    cast(User, request.user)
+                ),
             )
         )
 
     return 401, SigninResponse(success=False, message="Invalid credentials")
+
+
+@routes.post("default-printer", response={200: SetDefaultPrinterResponse})
+def set_default_printer(
+    request: HttpRequest,
+    body: SetDefaultPrinterRequestSchema,
+):
+    return SetDefaultPrinterResponse(
+        data=printers_service.set_default_printer(
+            cast(User, request.user), body.printer_code
+        )
+    )

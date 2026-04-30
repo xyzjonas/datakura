@@ -67,7 +67,8 @@ const postLogin = () => {
         const decodedRoute = JSON.parse(decodeURIComponent(route.query.redirect as string))
         router.push(decodedRoute)
       } else {
-        router.push({ name: 'home' })
+        window.location.href = '/' // using location.href to force full page reload and state reset, preventing potential issues after login
+        // router.push({ name: 'home' })
       }
     })
     .finally(() => (loading.value = false))

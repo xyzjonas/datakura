@@ -24,6 +24,7 @@ export type AuthData = {
      * Expiry Date
      */
     expiry_date: string;
+    default_printer?: PrinterSchema | null;
 };
 
 /**
@@ -42,6 +43,28 @@ export type ErrorInformation = {
      * Exception
      */
     exception?: string | null;
+};
+
+/**
+ * PrinterSchema
+ */
+export type PrinterSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Description
+     */
+    description?: string | null;
 };
 
 /**
@@ -99,6 +122,28 @@ export type WhoamiResponse = {
     success?: boolean;
     error?: ErrorInformation | null;
     data: AuthData;
+};
+
+/**
+ * SetDefaultPrinterResponse
+ */
+export type SetDefaultPrinterResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data?: PrinterSchema | null;
+};
+
+/**
+ * SetDefaultPrinterRequestSchema
+ */
+export type SetDefaultPrinterRequestSchema = {
+    /**
+     * Printer Code
+     */
+    printer_code?: string | null;
 };
 
 /**
@@ -4026,6 +4071,59 @@ export type InvoicePaymentMethodCreateOrUpdateSchema = {
     name: string;
 };
 
+/**
+ * GetPrintersResponse
+ */
+export type GetPrintersResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<PrinterSchema>;
+};
+
+/**
+ * GetPrinterResponse
+ */
+export type GetPrinterResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: PrinterSchema;
+};
+
+/**
+ * PrinterCreateOrUpdateSchema
+ */
+export type PrinterCreateOrUpdateSchema = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+};
+
+/**
+ * DeletePrinterResponse
+ */
+export type DeletePrinterResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: PrinterSchema;
+};
+
 export type WarehouseApiRoutesAuthLoginUserData = {
     body: LoginFormSchema;
     path?: never;
@@ -4091,6 +4189,22 @@ export type WarehouseApiRoutesAuthWhoamiResponses = {
 };
 
 export type WarehouseApiRoutesAuthWhoamiResponse = WarehouseApiRoutesAuthWhoamiResponses[keyof WarehouseApiRoutesAuthWhoamiResponses];
+
+export type WarehouseApiRoutesAuthSetDefaultPrinterData = {
+    body: SetDefaultPrinterRequestSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/default-printer';
+};
+
+export type WarehouseApiRoutesAuthSetDefaultPrinterResponses = {
+    /**
+     * OK
+     */
+    200: SetDefaultPrinterResponse;
+};
+
+export type WarehouseApiRoutesAuthSetDefaultPrinterResponse = WarehouseApiRoutesAuthSetDefaultPrinterResponses[keyof WarehouseApiRoutesAuthSetDefaultPrinterResponses];
 
 export type WarehouseApiRoutesWarehouseGetWarehousesData = {
     body?: never;
@@ -6693,3 +6807,82 @@ export type WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodRes
 };
 
 export type WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponse = WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponses[keyof WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponses];
+
+export type WarehouseApiRoutesPrintersGetPrintersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+    };
+    url: '/api/v1/printers';
+};
+
+export type WarehouseApiRoutesPrintersGetPrintersResponses = {
+    /**
+     * OK
+     */
+    200: GetPrintersResponse;
+};
+
+export type WarehouseApiRoutesPrintersGetPrintersResponse = WarehouseApiRoutesPrintersGetPrintersResponses[keyof WarehouseApiRoutesPrintersGetPrintersResponses];
+
+export type WarehouseApiRoutesPrintersCreatePrinterData = {
+    body: PrinterCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/printers';
+};
+
+export type WarehouseApiRoutesPrintersCreatePrinterResponses = {
+    /**
+     * OK
+     */
+    200: GetPrinterResponse;
+};
+
+export type WarehouseApiRoutesPrintersCreatePrinterResponse = WarehouseApiRoutesPrintersCreatePrinterResponses[keyof WarehouseApiRoutesPrintersCreatePrinterResponses];
+
+export type WarehouseApiRoutesPrintersDeletePrinterData = {
+    body?: never;
+    path: {
+        /**
+         * Printer Code
+         */
+        printer_code: string;
+    };
+    query?: never;
+    url: '/api/v1/printers/{printer_code}';
+};
+
+export type WarehouseApiRoutesPrintersDeletePrinterResponses = {
+    /**
+     * OK
+     */
+    200: DeletePrinterResponse;
+};
+
+export type WarehouseApiRoutesPrintersDeletePrinterResponse = WarehouseApiRoutesPrintersDeletePrinterResponses[keyof WarehouseApiRoutesPrintersDeletePrinterResponses];
+
+export type WarehouseApiRoutesPrintersUpdatePrinterData = {
+    body: PrinterCreateOrUpdateSchema;
+    path: {
+        /**
+         * Printer Code
+         */
+        printer_code: string;
+    };
+    query?: never;
+    url: '/api/v1/printers/{printer_code}';
+};
+
+export type WarehouseApiRoutesPrintersUpdatePrinterResponses = {
+    /**
+     * OK
+     */
+    200: GetPrinterResponse;
+};
+
+export type WarehouseApiRoutesPrintersUpdatePrinterResponse = WarehouseApiRoutesPrintersUpdatePrinterResponses[keyof WarehouseApiRoutesPrintersUpdatePrinterResponses];
