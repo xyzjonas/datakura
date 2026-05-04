@@ -66,6 +66,7 @@ class ProductSchema(BaseSchema):
     unit_weight: float
     base_price: float
     purchase_price: float
+    no_discount: bool
     currency: str
     customs_declaration_group: str | None = None
     attributes: dict[str, str] = Field(default_factory=dict)
@@ -83,6 +84,7 @@ class ProductCreateOrUpdateSchema(Schema):
     unit_weight: float = 0
     base_price: float = 0
     purchase_price: float = 0
+    no_discount: bool = False
     currency: str = "CZK"
     customs_declaration_group: str | None = None
     attributes: dict[str, str] = Field(default_factory=dict)

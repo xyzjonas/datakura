@@ -55,6 +55,7 @@ class StockProductFactory(DjangoModelFactory):
     purchase_price = factory.Faker(
         "pydecimal", left_digits=4, right_digits=2, min_value=1, max_value=10000
     )
+    no_discount = False
 
 
 class PriceGroupFactory(DjangoModelFactory):

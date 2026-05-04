@@ -132,6 +132,7 @@ const createDefaultForm = (): ProductCreateOrUpdateSchema => ({
   unit_weight: 0,
   base_price: 0,
   purchase_price: 0,
+  no_discount: false,
   currency: 'CZK',
   customs_declaration_group: '',
   attributes: {},

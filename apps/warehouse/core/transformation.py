@@ -390,6 +390,7 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         currency=product.currency,
         base_price=float(product.base_price),
         purchase_price=float(product.purchase_price),
+        no_discount=product.no_discount,
         customs_declaration_group=product.customs_declaration_group,
         attributes=product.attributes,
         barcodes=product.get_barcodes(),

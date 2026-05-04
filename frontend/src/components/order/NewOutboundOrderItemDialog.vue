@@ -31,6 +31,7 @@
             :avg-purchase-price="pricingContext.avgPurchasePrice"
             :discount-percent="pricingContext.discountPercent"
             :reason="pricingContext.reason"
+            :price-source="pricingContext.source"
             @update:model-value="recalcTotalFromUnit"
           />
           <q-input
@@ -138,6 +139,7 @@ const pricingContext = computed(() => ({
   avgPurchasePrice: product.value?.purchase_price ?? 0,
   discountPercent: pricingLookup.value?.discount_percent ?? 0,
   reason: pricingLookup.value?.reason ?? 'Base selling price',
+  source: pricingLookup.value?.source ?? 'BASE_PRICE',
 }))
 
 const recalcTotalFromUnit = () => {

@@ -52,6 +52,7 @@ class StockProduct(BaseModel, BarcodeMixin):
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    no_discount = models.BooleanField(default=False)
 
     customs_declaration_group = models.CharField(max_length=255, null=True, blank=True)
 

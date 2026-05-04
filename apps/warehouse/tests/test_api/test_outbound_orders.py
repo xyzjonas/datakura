@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import cast
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
@@ -9,6 +10,7 @@ from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.orders import OutboundOrderState
+from apps.warehouse.models.product import PriceGroup
 from apps.warehouse.models.warehouse import (
     Batch,
     InboundWarehouseOrderState,
@@ -24,6 +26,7 @@ from apps.warehouse.tests.factories.order import (
 from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.packaging import PackageTypeFactory
 from apps.warehouse.tests.factories.product import (
+    PriceGroupFactory,
     StockProductFactory,
     StockProductPriceCustomerFactory,
 )
@@ -232,6 +235,38 @@ def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
     delete_res = client.delete(f"/{order.code}/items/{product.code}")
     assert delete_res.status_code == 200
     assert delete_res.json()["success"] is True
+
+
+def test_add_outbound_order_item_pricing_details_explain_no_discount_product(
+    db,
+) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    order.customer.discount_group = cast(
+        PriceGroup,
+        PriceGroupFactory(discount_percent=20),
+    )
+    order.customer.save(update_fields=["discount_group", "changed"])
+    product = StockProductFactory(base_price=150, purchase_price=90, no_discount=True)
+
+    response = client.post(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 2,
+            "total_price": 300,
+            "index": 0,
+        },
+    )
+
+    assert response.status_code == 200
+    pricing_details = response.json()["data"]["pricing_details"]
+    assert pricing_details["base_price"] == 150.0
+    assert pricing_details["suggested_unit_price"] == 150.0
+    assert pricing_details["discount_percent"] == 0.0
+    assert pricing_details["source"] == "NO_DISCOUNT"
+    assert "disabled" in pricing_details["reason"]
 
 
 def test_update_outbound_order_item_without_index_keeps_existing_index(db) -> None:

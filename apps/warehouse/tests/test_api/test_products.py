@@ -71,6 +71,7 @@ def test_get_all_one_product(db, client):
                             "unit_weight": product.unit_weight,
                             "base_price": product.base_price,
                             "purchase_price": product.purchase_price,
+                            "no_discount": product.no_discount,
                             "currency": product.currency,
                             "attributes": product.attributes,
                         }
@@ -182,6 +183,7 @@ def test_create_product(db, client):
             "unit_weight": 123.45,
             "base_price": 100,
             "purchase_price": 80,
+            "no_discount": True,
             "currency": "CZK",
             "customs_declaration_group": "ABC123",
             "attributes": {"color": "blue"},
@@ -197,6 +199,7 @@ def test_create_product(db, client):
     assert float(product.unit_weight) == 123.45
     assert float(product.base_price) == 100
     assert float(product.purchase_price) == 80
+    assert product.no_discount is True
     assert product.currency == "CZK"
     assert product.customs_declaration_group == "ABC123"
     assert product.attributes == {"color": "blue"}
@@ -217,6 +220,7 @@ def test_update_product(db, client):
             "unit_weight": 12,
             "base_price": 110,
             "purchase_price": 90,
+            "no_discount": True,
             "currency": "CZK",
             "customs_declaration_group": "DEF456",
             "attributes": {"size": "L"},
@@ -232,6 +236,7 @@ def test_update_product(db, client):
     assert product.unit_of_measure.name == "kg"
     assert float(product.base_price) == 110
     assert float(product.purchase_price) == 90
+    assert product.no_discount is True
     assert product.customs_declaration_group == "DEF456"
     assert product.attributes == {"size": "L"}
 
@@ -250,6 +255,7 @@ def test_duplicate_product(db, client):
             "unit_weight": float(source.unit_weight),
             "base_price": float(source.base_price),
             "purchase_price": float(source.purchase_price),
+            "no_discount": source.no_discount,
             "currency": source.currency,
             "customs_declaration_group": source.customs_declaration_group,
             "attributes": source.attributes,
@@ -353,6 +359,15 @@ def test_get_product_returns_dynamic_prices(db, client):
     assert customer_for_override.code in codes
     assert all("fixed_price" in item for item in data["dynamic_prices"])
     assert all("discount_percent" in item for item in data["dynamic_prices"])
+
+
+def test_get_product_includes_no_discount_flag(db, client):
+    product = cast(StockProduct, StockProductFactory(no_discount=True))
+
+    response = client.get(f"/{product.code}")
+
+    assert response.status_code == 200
+    assert response.json()["data"]["no_discount"] is True
 
 
 def test_add_customer_dynamic_price(db, client):
@@ -483,6 +498,66 @@ def test_get_product_selling_price_lookup_customer_override_with_zero_base_price
     assert data["base_price"] == 0.0
     assert data["final_price"] == 42.0
     assert data["discount_percent"] == 0.0
+
+
+def test_get_product_selling_price_lookup_skips_discount_group_for_no_discount_product(
+    db,
+    client,
+):
+    product = cast(StockProduct, StockProductFactory(base_price=200, no_discount=True))
+    customer = CustomerFactory.it()
+    customer.discount_group = cast(
+        PriceGroup,
+        PriceGroupFactory(
+            code="GROUP-NODISC",
+            name="No Discount Group",
+            discount_percent=25,
+        ),
+    )
+    customer.save(update_fields=["discount_group", "changed"])
+
+    response = client.get(
+        f"/{product.code}/selling-price?customer_code={customer.code}"
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["base_price"] == 200.0
+    assert data["final_price"] == 200.0
+    assert data["discount_percent"] == 0.0
+    assert data["source"] == "NO_DISCOUNT"
+    assert "disabled" in data["reason"]
+
+
+def test_get_product_selling_price_lookup_keeps_customer_override_for_no_discount_product(
+    db,
+    client,
+):
+    product = cast(StockProduct, StockProductFactory(base_price=200, no_discount=True))
+    customer = CustomerFactory.it()
+    customer.discount_group = cast(
+        PriceGroup,
+        PriceGroupFactory(
+            code="GROUP-OVERRIDE",
+            name="Override Group",
+            discount_percent=25,
+        ),
+    )
+    customer.save(update_fields=["discount_group", "changed"])
+    StockProductPriceCustomerFactory(
+        product=product,
+        customer=customer,
+        fixed_price=150,
+    )
+
+    response = client.get(
+        f"/{product.code}/selling-price?customer_code={customer.code}"
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["final_price"] == 150.0
+    assert data["source"] == "CUSTOMER_OVERRIDE"
 
 
 def test_upsert_customer_price_override_creates_new_override(db, client):

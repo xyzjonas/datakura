@@ -78,6 +78,14 @@
             </q-item-section>
           </q-item>
           <q-item>
+            <q-item-section>Slevové skupiny</q-item-section>
+            <q-item-section avatar>
+              <q-badge :color="product.no_discount ? 'negative' : 'positive'">
+                {{ product.no_discount ? 'Zakázáno' : 'Povoleno' }}
+              </q-badge>
+            </q-item-section>
+          </q-item>
+          <q-item>
             <q-item-section>Celní nomenklatura</q-item-section>
             <q-item-section avatar :class="{ 'text-gray-5': true }">{{
               product.customs_declaration_group ?? '-'
@@ -196,6 +204,7 @@ const toFormSchema = (item: ProductSchema): ProductCreateOrUpdateSchema => ({
   unit_weight: item.unit_weight,
   base_price: item.base_price,
   purchase_price: item.purchase_price,
+  no_discount: item.no_discount,
   currency: item.currency,
   customs_declaration_group: item.customs_declaration_group ?? '',
   attributes: item.attributes ?? {},
@@ -210,6 +219,7 @@ const editForm = ref<ProductCreateOrUpdateSchema>({
   unit_weight: 0,
   base_price: 0,
   purchase_price: 0,
+  no_discount: false,
   currency: 'CZK',
   customs_declaration_group: '',
   attributes: {},

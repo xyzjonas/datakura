@@ -21,6 +21,9 @@
               <div class="text-xs mb-1">
                 Sleva: {{ discountPercent.toFixed(2) }}% ({{ reason }})
               </div>
+              <div v-if="isNoDiscountProduct" class="text-xs mb-1 text-negative">
+                Sleva nepoužita: slevové skupiny nejsou pro tento produkt povoleny.
+              </div>
               <div class="text-xs mb-1">
                 Navržená cena: {{ suggestedPrice.toFixed(2) }} {{ currency }}
               </div>
@@ -164,6 +167,8 @@ const marginText = computed(() => {
   const sign = marginAmount.value >= 0 ? '+' : ''
   return `${sign}${marginAmount.value.toFixed(2)} (${sign}${marginPercent.value.toFixed(1)}%)`
 })
+
+const isNoDiscountProduct = computed(() => props.priceSource === 'NO_DISCOUNT')
 
 const isOverridden = computed(
   () => Math.abs(resolvedModelValue.value - props.suggestedPrice) >= 0.01,

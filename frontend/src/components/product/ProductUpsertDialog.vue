@@ -102,6 +102,17 @@
             </q-list>
           </div>
 
+          <q-toggle
+            v-model="form.no_discount"
+            color="negative"
+            checked-icon="sym_o_money_off"
+            label="Zakázat slevové skupiny"
+            class="mt-3"
+          />
+          <div class="text-sm text-muted -mt-1">
+            Systém ignoruje slevové skupiny a nabídne jen základní nebo zákaznickou cenu.
+          </div>
+          <q-separator />
           <div class="md:col-span-2 mt-2 flex justify-end">
             <q-btn
               type="submit"
@@ -171,6 +182,7 @@ const syncAttributesFromForm = () => {
 
 watch(showDialog, (visible) => {
   if (visible) {
+    form.value.no_discount ??= false
     syncAttributesFromForm()
   }
 })

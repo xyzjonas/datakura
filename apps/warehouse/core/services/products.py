@@ -64,19 +64,25 @@ class StockProductsService:
                     "CUSTOMER_OVERRIDE",
                 )
 
-            if customer.discount_group and customer.discount_group.is_active:
-                discount_percent = Decimal(
-                    str(customer.discount_group.discount_percent)
-                )
-                final_price = base_price * (
-                    Decimal("1") - discount_percent / Decimal("100")
-                )
-                return (
-                    final_price,
-                    discount_percent,
-                    f"Discount group {customer.discount_group.code}",
-                    "CUSTOMER_GROUP",
-                )
+        if product.no_discount:
+            return (
+                base_price,
+                Decimal("0"),
+                "Discount groups disabled for this product",
+                "NO_DISCOUNT",
+            )
+
+        if customer and customer.discount_group and customer.discount_group.is_active:
+            discount_percent = Decimal(str(customer.discount_group.discount_percent))
+            final_price = base_price * (
+                Decimal("1") - discount_percent / Decimal("100")
+            )
+            return (
+                final_price,
+                discount_percent,
+                f"Discount group {customer.discount_group.code}",
+                "CUSTOMER_GROUP",
+            )
 
         return base_price, Decimal("0"), "Base selling price", "BASE_PRICE"
 
@@ -119,6 +125,7 @@ class StockProductsService:
             "currency": params.currency,
             "purchase_price": Decimal(str(params.purchase_price or 0)),
             "base_price": Decimal(str(params.base_price or 0)),
+            "no_discount": params.no_discount,
             "customs_declaration_group": params.customs_declaration_group,
             "attributes": params.attributes,
         }

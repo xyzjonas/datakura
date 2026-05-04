@@ -461,6 +461,10 @@ export type ProductSchema = {
      */
     purchase_price: number;
     /**
+     * No Discount
+     */
+    no_discount: boolean;
+    /**
      * Currency
      */
     currency: string;
@@ -1784,6 +1788,10 @@ export type ProductCreateOrUpdateSchema = {
      */
     purchase_price?: number;
     /**
+     * No Discount
+     */
+    no_discount?: boolean;
+    /**
      * Currency
      */
     currency?: string;
@@ -1895,6 +1903,10 @@ export type ProductDuplicateSchema = {
      * Purchase Price
      */
     purchase_price?: number;
+    /**
+     * No Discount
+     */
+    no_discount?: boolean;
     /**
      * Currency
      */
