@@ -107,7 +107,7 @@
             color="negative"
             checked-icon="sym_o_money_off"
             label="Zakázat slevové skupiny"
-            class="mt-3"
+            class="mt-1 translate-x-[-4px]"
           />
           <div class="text-sm text-muted -mt-1">
             Systém ignoruje slevové skupiny a nabídne jen základní nebo zákaznickou cenu.

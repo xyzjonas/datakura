@@ -3,6 +3,7 @@
     <DemoGraphWidget
       :title="widgetTitle"
       :subtitle="widgetSubtitle"
+      :caption="latestSnapshot ? formatDateLong(latestSnapshot.captured_at) : undefined"
       :data="chartData"
       data-key="value"
       data-label="Hodnota skladu"
@@ -33,6 +34,7 @@ import {
 import DemoGraphWidget from './DemoGraphWidget.vue'
 import { formatMoney } from '@/views/inventory-snapshot'
 import { computed, onMounted, ref } from 'vue'
+import { formatDateLong } from '@/utils/date'
 
 const loading = ref(true)
 const errorMessage = ref<string | null>(null)

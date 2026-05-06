@@ -4,7 +4,8 @@
     @click="onClick"
     :class="['panel', to ? 'hover:cursor-pointer' : '', 'relative']"
   >
-    <div class="p-5">
+    <div :class="[caption ? 'p-5 pt-4' : 'p-5']">
+      <small v-if="caption" class="text-gray-5">{{ caption }}</small>
       <h2>{{ title }}</h2>
       <h5 class="text-gray-5">{{ subtitle }}</h5>
     </div>
@@ -33,6 +34,7 @@ import { useRouter, type RouteLocationRaw } from 'vue-router'
 
 const props = defineProps<{
   title: string
+  caption?: string
   subtitle?: string
   data: Partial<Record<string, unknown>>[]
   dataKey: string
