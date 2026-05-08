@@ -9,7 +9,7 @@ installQuasarPlugin()
 describe('OutboundOrderTimeline', () => {
   it('does not render packing or shipping steps', () => {
     const wrapper = mount(OutboundOrderTimeline, {
-      props: { state: 'sent' },
+      props: { order: { state: 'sent' } },
       global: {
         stubs: {
           QStepper: { template: '<div><slot /></div>' },

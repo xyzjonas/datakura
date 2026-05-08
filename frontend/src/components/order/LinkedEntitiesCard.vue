@@ -1,110 +1,311 @@
 <template>
-  <div class="flex flex-col gap-2 min-w-80 flex-1">
-    <template v-if="showWarehouseOrder">
-      <ForegroundPanel
-        v-for="order in warehouseOrdersToRender"
-        :key="order.code"
-        class="flex-1 flex justify-center items-center"
-      >
-        <InboundWarehouseOrderBadge :order="order" />
-      </ForegroundPanel>
-      <ForegroundPanel
-        v-if="warehouseOrdersToRender.length === 0"
-        class="flex-1 flex justify-center items-center"
-      >
-        <span class="text-gray-5">Žádná Příjemka</span>
-      </ForegroundPanel>
+  <ForegroundPanel class="flex flex-col gap-2 min-w-80">
+    <template #header>
+      <span class="text-xs text-muted">SOUVISEJÍCÍ DOKLADY</span>
     </template>
 
-    <ForegroundPanel
-      v-if="showParentWarehouseOrder"
-      class="flex-1 flex flex-col justify-center items-center gap-2"
-    >
-      <InboundWarehouseOrderBadge
-        v-if="parentWarehouseOrder"
-        :order="parentWarehouseOrder"
-        label="Nadřazená příjemka"
-      />
-      <span v-else class="text-gray-5">Žádná nadřazená příjemka</span>
-    </ForegroundPanel>
-
-    <template v-if="showChildWarehouseOrders">
-      <ForegroundPanel
-        v-for="order in childWarehouseOrdersToRender"
-        :key="`child-${order.code}`"
-        class="flex-1 flex flex-col justify-center items-center gap-2"
-      >
-        <InboundWarehouseOrderBadge :order="order" label="Podřízená příjemka" />
-      </ForegroundPanel>
-      <ForegroundPanel
-        v-if="childWarehouseOrdersToRender.length === 0"
-        class="flex-1 flex justify-center items-center"
-      >
-        <span class="text-gray-5">Žádné podřízené příjemky</span>
-      </ForegroundPanel>
-    </template>
-
-    <ForegroundPanel v-if="showInboundOrder" class="flex-1 flex justify-center items-center">
-      <InboundOrderBadge v-if="inboundOrder" :order="inboundOrder" />
+    <template v-if="showInboundOrder">
+      <h3 class="text-xs uppercase mb-1">Vydaná objednávka</h3>
+      <div v-if="inboundOrder" class="flex items-center justify-between">
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_receipt" color="primary" />
+          <a class="link" @click="goToOrderIn(inboundOrder.code)">{{ inboundOrder.code }}</a>
+        </span>
+        <InboundOrderStateBadge :state="inboundOrder.state" />
+      </div>
       <span v-else class="text-gray-5">Žádná Příchozí Objednávka</span>
-    </ForegroundPanel>
-    <ForegroundPanel v-if="showInvoice" class="flex-1 flex justify-center items-center">
-      <div v-if="invoice" class="flex flex-col">
-        <span class="text-gray-5 text-2xs uppercase">Faktura</span>
-        <button class="link text-left" @click="goToInvoice(invoice.code)">
-          {{ invoice.code }}
-        </button>
+    </template>
+
+    <template v-if="showOutboundOrder">
+      <h3 class="text-xs uppercase mb-1">Přijatá Objednávka</h3>
+      <div
+        v-if="outboundOrder"
+        :key="outboundOrder.code"
+        class="flex items-center justify-between py-1"
+      >
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_receipt" size="16px" color="primary" />
+          <a class="link" @click="goToOrderOut(outboundOrder.code)">{{ outboundOrder.code }}</a>
+        </span>
+        <OutboundOrderStateBadge :state="outboundOrder.state" />
+      </div>
+      <span v-else class="text-gray-5">Žádná objednávka</span>
+    </template>
+
+    <template v-if="showInboundWarehouseOrders">
+      <q-separator v-if="showInboundOrder || showOutboundOrder" class="my-2" />
+      <h3 class="text-xs uppercase mb-1">Příjemky</h3>
+      <div
+        v-for="order in inboundWarehouseOrdersToRender"
+        :key="order.code"
+        class="flex items-center justify-between py-1"
+      >
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_output" size="16px" color="primary" />
+          <a class="link" @click="goToWarehouseOrderIn(order.code)">{{ order.code }}</a>
+        </span>
+        <InboundWarehouseOrderStateBadge :state="order.state"></InboundWarehouseOrderStateBadge>
+      </div>
+      <span v-if="inboundWarehouseOrdersToRender.length === 0" class="text-gray-5"
+        >Žádná Příjemka</span
+      >
+    </template>
+
+    <template v-if="showParentInboundWarehouseOrder">
+      <q-separator
+        v-if="showInboundWarehouseOrders || showInboundOrder || showOutboundOrder"
+        class="my-2"
+      />
+      <h3 class="text-xs uppercase mb-1">Nadřazená příjemka</h3>
+      <div
+        v-if="parentInboundWarehouseOrder"
+        :key="parentInboundWarehouseOrder.code"
+        class="flex items-center justify-between py-1"
+      >
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_input" size="16px" color="primary" />
+          <a class="link" @click="goToWarehouseOrderIn(parentInboundWarehouseOrder.code)">{{
+            parentInboundWarehouseOrder.code
+          }}</a>
+        </span>
+        <InboundWarehouseOrderStateBadge
+          :state="parentInboundWarehouseOrder.state"
+        ></InboundWarehouseOrderStateBadge>
+      </div>
+      <span v-else class="text-gray-5">Žádná nadřazená příjemka</span>
+    </template>
+
+    <template v-if="showChildInboundWarehouseOrders">
+      <q-separator
+        v-if="
+          showInboundWarehouseOrders ||
+          showParentInboundWarehouseOrder ||
+          showInboundOrder ||
+          showOutboundOrder
+        "
+        class="my-2"
+      />
+      <h3 class="text-xs uppercase mb-1">Podřízené příjemky</h3>
+      <div
+        v-for="order in childInboundWarehouseOrdersToRender"
+        :key="order.code"
+        class="flex items-center justify-between py-1"
+      >
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_input" size="16px" color="primary" />
+          <a class="link" @click="goToWarehouseOrderIn(order.code)">{{ order.code }}</a>
+        </span>
+        <InboundWarehouseOrderStateBadge :state="order.state"></InboundWarehouseOrderStateBadge>
+      </div>
+      <span v-if="childInboundWarehouseOrdersToRender.length === 0" class="text-gray-5"
+        >Žádné podřízené příjemky</span
+      >
+    </template>
+
+    <template v-if="showOutboundWarehouseOrders">
+      <q-separator
+        v-if="
+          showInboundWarehouseOrders ||
+          showParentInboundWarehouseOrder ||
+          showChildInboundWarehouseOrders ||
+          showInboundOrder ||
+          showOutboundOrder
+        "
+        class="my-2"
+      />
+      <h3 class="text-xs uppercase mb-1">Výdejky</h3>
+      <div
+        v-for="order in outboundWarehouseOrdersToRender"
+        :key="order.code"
+        class="flex items-center justify-between py-1"
+      >
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_output" size="16px" color="primary" />
+          <a class="link" @click="goToWarehouseOrderOut(order.code)">{{ order.code }}</a>
+        </span>
+        <OutboundWarehouseOrderStateBadge :state="order.state" />
+      </div>
+      <span v-if="outboundWarehouseOrdersToRender.length === 0" class="text-gray-5"
+        >Žádná Výdejka</span
+      >
+    </template>
+
+    <template v-if="showParentOutboundWarehouseOrder">
+      <q-separator
+        v-if="
+          showInboundWarehouseOrders ||
+          showParentInboundWarehouseOrder ||
+          showChildInboundWarehouseOrders ||
+          showOutboundWarehouseOrders ||
+          showInboundOrder ||
+          showOutboundOrder
+        "
+        class="my-2"
+      />
+      <h3 class="text-xs uppercase mb-1">Nadřazená výdejka</h3>
+      <div
+        v-if="parentOutboundWarehouseOrder"
+        :key="parentOutboundWarehouseOrder.code"
+        class="flex items-center justify-between py-1"
+      >
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_output" size="16px" color="primary" />
+          <a class="link" @click="goToWarehouseOrderOut(parentOutboundWarehouseOrder.code)">{{
+            parentOutboundWarehouseOrder.code
+          }}</a>
+        </span>
+        <OutboundWarehouseOrderStateBadge :state="parentOutboundWarehouseOrder.state" />
+      </div>
+      <span v-else class="text-gray-5">Žádná nadřazená výdejka</span>
+    </template>
+
+    <template v-if="showChildOutboundWarehouseOrders">
+      <q-separator
+        v-if="
+          showInboundWarehouseOrders ||
+          showParentInboundWarehouseOrder ||
+          showChildInboundWarehouseOrders ||
+          showOutboundWarehouseOrders ||
+          showParentOutboundWarehouseOrder ||
+          showInboundOrder ||
+          showOutboundOrder
+        "
+        class="my-2"
+      />
+      <h3 class="text-xs uppercase mb-1">Podřízené výdejky</h3>
+      <div
+        v-for="order in childOutboundWarehouseOrdersToRender"
+        :key="order.code"
+        class="flex items-center justify-between py-1"
+      >
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_output" size="16px" color="primary" />
+          <a class="link" @click="goToWarehouseOrderOut(order.code)">{{ order.code }}</a>
+        </span>
+        <OutboundWarehouseOrderStateBadge :state="order.state" />
+      </div>
+      <span v-if="childOutboundWarehouseOrdersToRender.length === 0" class="text-gray-5"
+        >Žádné podřízené výdejky</span
+      >
+    </template>
+
+    <template v-if="showInvoice">
+      <q-separator
+        v-if="
+          showInboundWarehouseOrders ||
+          showParentInboundWarehouseOrder ||
+          showChildInboundWarehouseOrders ||
+          showOutboundWarehouseOrders ||
+          showParentOutboundWarehouseOrder ||
+          showChildOutboundWarehouseOrders ||
+          showInboundOrder ||
+          showOutboundOrder
+        "
+        class="my-2"
+      />
+      <h3 class="text-xs uppercase mb-1">Faktura</h3>
+      <div v-if="invoice" class="flex items-center justify-between">
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_receipt_long" size="16px" color="primary" />
+          <a class="link" @click="goToInvoice(invoice.code)">{{ invoice.code }}</a>
+        </span>
+        <span class="text-xs font-600" :class="invoice.paid_date ? 'text-green-600' : 'text-muted'">
+          {{ invoice.paid_date ? 'Zaplaceno' : 'Nezaplaceno' }}
+        </span>
       </div>
       <span v-else class="text-gray-5">Žádná Faktura</span>
-    </ForegroundPanel>
-    <ForegroundPanel v-if="showCreditNote" class="flex-1 flex justify-center items-center">
-      <CreditNoteBadge v-if="creditNote" :note="creditNote" />
-      <span v-else class="text-gray-5">Žádný Dopbropis</span>
-    </ForegroundPanel>
-  </div>
+    </template>
+
+    <template v-if="showCreditNote">
+      <q-separator
+        v-if="
+          showInboundWarehouseOrders ||
+          showParentInboundWarehouseOrder ||
+          showChildInboundWarehouseOrders ||
+          showOutboundWarehouseOrders ||
+          showParentOutboundWarehouseOrder ||
+          showChildOutboundWarehouseOrders ||
+          showInboundOrder ||
+          showOutboundOrder ||
+          showInvoice
+        "
+        class="my-2"
+      />
+      <h3 class="text-xs uppercase mb-1">Dobropis</h3>
+      <div v-if="creditNote" class="flex items-center justify-between">
+        <span class="flex items-center gap-1">
+          <q-icon name="sym_o_receipt_long" size="16px" color="primary" />
+          <a class="link" @click="goToCreditNote(creditNote.code)">{{ creditNote.code }}</a>
+        </span>
+        <GenericStateBadge :state="creditNote.state" />
+      </div>
+      <span v-else class="text-gray-5">Žádný Dobropis</span>
+    </template>
+  </ForegroundPanel>
 </template>
 
 <script setup lang="ts">
 import type {
   CreditNoteBaseSchema,
-  InboundOrderSchema,
+  InboundOrderBaseSchema,
   InboundWarehouseOrderBaseSchema,
   InvoiceSchema,
+  OutboundOrderBaseSchema,
+  OutboundWarehouseOrderBaseSchema,
 } from '@/client'
 import { useAppRouter } from '@/composables/use-app-router'
 import type { Optional } from '@/utils/optional'
 import { computed } from 'vue'
-import CreditNoteBadge from '../credit/CreditNoteBadge.vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
-import InboundWarehouseOrderBadge from '../putaway/InboundWarehouseOrderBadge.vue'
-import InboundOrderBadge from './InboundOrderBadge.vue'
+import GenericStateBadge from '../GenericStateBadge.vue'
+import InboundWarehouseOrderStateBadge from '../putaway/InboundWarehouseOrderStateBadge.vue'
+import OutboundWarehouseOrderStateBadge from '../putaway/OutboundWarehouseOrderStateBadge.vue'
+import InboundOrderStateBadge from './InboundOrderStateBadge.vue'
+import OutboundOrderStateBadge from './OutboundOrderStateBadge.vue'
 
 const props = defineProps<{
-  showCreditNote?: boolean
-  creditNote?: Optional<CreditNoteBaseSchema>
-  showWarehouseOrder?: boolean
-  warehouseOrder?: Optional<InboundWarehouseOrderBaseSchema>
-  warehouseOrders?: Optional<InboundWarehouseOrderBaseSchema[]>
-  showParentWarehouseOrder?: boolean
-  parentWarehouseOrder?: Optional<InboundWarehouseOrderBaseSchema>
-  showChildWarehouseOrders?: boolean
-  childWarehouseOrders?: Optional<InboundWarehouseOrderBaseSchema[]>
+  showInboundWarehouseOrders?: boolean
+  inboundWarehouseOrder?: Optional<InboundWarehouseOrderBaseSchema>
+  inboundWarehouseOrders?: Optional<InboundWarehouseOrderBaseSchema[]>
+  showParentInboundWarehouseOrder?: boolean
+  parentInboundWarehouseOrder?: Optional<InboundWarehouseOrderBaseSchema>
+  showChildInboundWarehouseOrders?: boolean
+  childInboundWarehouseOrders?: Optional<InboundWarehouseOrderBaseSchema[]>
+  showOutboundWarehouseOrders?: boolean
+  outboundWarehouseOrders?: Optional<OutboundWarehouseOrderBaseSchema[]>
+  showParentOutboundWarehouseOrder?: boolean
+  parentOutboundWarehouseOrder?: Optional<OutboundWarehouseOrderBaseSchema>
+  showChildOutboundWarehouseOrders?: boolean
+  childOutboundWarehouseOrders?: Optional<OutboundWarehouseOrderBaseSchema[]>
   showInboundOrder?: boolean
-  inboundOrder?: InboundOrderSchema
+  inboundOrder?: InboundOrderBaseSchema | null
+  showOutboundOrder?: boolean
+  outboundOrder?: OutboundOrderBaseSchema | null
   showInvoice?: boolean
   invoice?: InvoiceSchema | null
+  showCreditNote?: boolean
+  creditNote?: Optional<CreditNoteBaseSchema>
 }>()
 
-const { goToInvoice } = useAppRouter()
+const {
+  goToInvoice,
+  goToWarehouseOrderOut,
+  goToWarehouseOrderIn,
+  goToOrderOut,
+  goToOrderIn,
+  goToCreditNote,
+} = useAppRouter()
 
-const warehouseOrdersToRender = computed(() => {
-  if (props.warehouseOrders && props.warehouseOrders.length > 0) {
-    return props.warehouseOrders
+const inboundWarehouseOrdersToRender = computed(() => {
+  if (props.inboundWarehouseOrders && props.inboundWarehouseOrders.length > 0) {
+    return props.inboundWarehouseOrders
   }
-  return props.warehouseOrder ? [props.warehouseOrder] : []
+  return props.inboundWarehouseOrder ? [props.inboundWarehouseOrder] : []
 })
 
-const childWarehouseOrdersToRender = computed(() => props.childWarehouseOrders ?? [])
+const childInboundWarehouseOrdersToRender = computed(() => props.childInboundWarehouseOrders ?? [])
+const outboundWarehouseOrdersToRender = computed(() => props.outboundWarehouseOrders ?? [])
+const childOutboundWarehouseOrdersToRender = computed(
+  () => props.childOutboundWarehouseOrders ?? [],
+)
 </script>
-
-<style lang="scss" scoped></style>

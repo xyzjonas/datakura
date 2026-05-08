@@ -106,7 +106,11 @@ def store_outbound_order_invoice(
 def add_item_to_outbound_order(
     request: HttpRequest, order_code: str, item: OutboundOrderItemCreateSchema
 ):
-    new_item = outbound_orders_service.add_item(order_code, item)
+    new_item = outbound_orders_service.add_item(
+        order_code,
+        item,
+        context=RequestContext.from_django_request(request),
+    )
     return CreateOutboundOrderItemResponse(data=new_item)
 
 
@@ -116,7 +120,11 @@ def add_item_to_outbound_order(
 def update_item_in_outbound_order(
     request: HttpRequest, order_code: str, item: OutboundOrderItemCreateSchema
 ):
-    updated_item = outbound_orders_service.update_item(order_code, item)
+    updated_item = outbound_orders_service.update_item(
+        order_code,
+        item,
+        context=RequestContext.from_django_request(request),
+    )
     return CreateOutboundOrderItemResponse(data=updated_item)
 
 
@@ -136,5 +144,9 @@ def transition_outbound_order(
 def remove_items_from_outbound_order(
     request: HttpRequest, order_code: str, product_code: str
 ):
-    result = outbound_orders_service.remove_item(order_code, product_code)
+    result = outbound_orders_service.remove_item(
+        order_code,
+        product_code,
+        context=RequestContext.from_django_request(request),
+    )
     return EmptyResponse(success=result)

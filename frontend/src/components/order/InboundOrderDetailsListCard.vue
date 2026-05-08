@@ -1,11 +1,14 @@
 <template>
-  <ForegroundPanel class="flex flex-col flex-[2]">
+  <ForegroundPanel class="flex flex-col">
+    <template #header>
+      <span class="text-xs text-muted">INFORMACE O DOKLADU</span>
+    </template>
     <q-list dense class="mt-2" separator>
       <q-item clickable>
         <q-item-section>Číslo dokladu</q-item-section>
         <q-item-section avatar>
           <span class="flex gap-1">
-            {{ order.code }}
+            <span class="font-bold">{{ order.code }}</span>
             <CopyToClipBoardButton v-if="order.code" :text="order.code" />
           </span>
         </q-item-section>
@@ -39,11 +42,6 @@
       <q-item clickable>
         <q-item-section>Datum zrušení</q-item-section>
         <q-item-section avatar>{{ formatDateLong(order.cancelled_date) }}</q-item-section>
-      </q-item>
-      <q-item v-if="order.note">
-        <div class="description overflow-y-auto overflow-x-hidden h-30 w-full">
-          {{ order.note }}
-        </div>
       </q-item>
     </q-list>
   </ForegroundPanel>

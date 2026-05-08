@@ -1,37 +1,35 @@
 <template>
-  <div class="px-2 pb-2">
-    <q-card
-      flat
-      class="rounded border border-white/10 bg-white/6 text-white shadow-none flex flex-col p-3"
-    >
-      <div class="flex gap-3 items-center">
-        <div
-          class="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-3 bg-primary/15 text-primary"
-        >
-          <q-icon name="sym_o_badge" size="22px" />
-        </div>
-        <div class="flex flex-col">
-          <div class="text-2xs font-medium uppercase tracking-[0.12em] text-gray-4">
-            Vlastní firma
-          </div>
-          <div v-if="selfCustomer" class="mt-1 truncate text-base font-semibold text-white">
-            {{ selfCustomer.name }}
-          </div>
-          <div v-else class="mt-1 truncate text-base font-semibold text-white">Nenastaveno</div>
-        </div>
+  <q-card
+    flat
+    class="rounded border border-white/10 bg-white/6 text-white shadow-none flex flex-col p-3"
+  >
+    <div class="flex gap-3 items-center">
+      <div
+        class="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-3 bg-primary/15 text-primary"
+      >
+        <q-icon name="sym_o_badge" size="22px" />
       </div>
-      <q-tooltip class="w-sm text-3">
-        <span v-if="selfCustomer">
-          Tato firma je nastavená jako vlastní a systém ji použije v interních dokladech.
-        </span>
+      <div class="flex flex-col">
+        <div class="text-2xs font-medium uppercase tracking-[0.12em] text-gray-4">
+          Vlastní firma
+        </div>
+        <div v-if="selfCustomer" class="mt-1 truncate text-base font-semibold text-white">
+          {{ selfCustomer.name }}
+        </div>
+        <div v-else class="mt-1 truncate text-base font-semibold text-white">Nenastaveno</div>
+      </div>
+    </div>
+    <q-tooltip class="w-sm text-3">
+      <span v-if="selfCustomer">
+        Tato firma je nastavená jako vlastní a systém ji použije v interních dokladech.
+      </span>
 
-        <span v-else>
-          Vlastní firma zatím není nastavená. V seznamu zákazníků označte jednu firmu jako vlastní,
-          aby ji šlo použít v příjemkách, fakturách a dalších dokladech.
-        </span>
-      </q-tooltip>
-    </q-card>
-  </div>
+      <span v-else>
+        Vlastní firma zatím není nastavená. V seznamu zákazníků označte jednu firmu jako vlastní,
+        aby ji šlo použít v příjemkách, fakturách a dalších dokladech.
+      </span>
+    </q-tooltip>
+  </q-card>
 </template>
 
 <script setup lang="ts">

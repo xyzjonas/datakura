@@ -29,7 +29,7 @@
   <EmptyPanel v-else icon="sym_o_apps_outage">
     <div class="flex flex-col gap-2 items-start py-10">
       <h3 class="uppercase">Žádné položky</h3>
-      <span class="link uppercase" @click="$emit('addItem')">přidat položku</span>
+      <span v-if="!readonly" class="link uppercase" @click="$emit('addItem')">přidat položku</span>
     </div>
   </EmptyPanel>
 </template>

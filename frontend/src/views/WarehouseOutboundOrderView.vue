@@ -1,5 +1,5 @@
 <template>
-  <div v-if="order" class="flex flex-col gap-2 flex-1">
+  <div v-if="order" class="flex flex-col gap-5 flex-1">
     <div class="flex justify-between">
       <q-breadcrumbs class="flex-[3]">
         <q-breadcrumbs-el label="Domů" :to="{ name: 'home' }" />
@@ -31,48 +31,19 @@
       </div>
     </div>
 
-    <div class="flex gap-2">
-      <CustomerCard :customer="order.order.customer" title="Odběratel" class="flex-[3]" />
-      <ForegroundPanel class="flex-1 flex flex-col justify-center items-center gap-2">
-        <span class="text-gray-5 text-2xs uppercase">Objednávka</span>
-        <a
-          class="link text-lg"
-          @click="$router.push({ name: 'outboundOrderDetail', params: { code: order.order.code } })"
-        >
-          {{ order.order.code }}
-        </a>
-      </ForegroundPanel>
-      <ForegroundPanel class="flex-1 flex flex-col gap-2 justify-center">
-        <span class="text-gray-5 text-2xs uppercase">Vazby</span>
-        <a
-          v-if="order.parent_order"
-          class="link"
-          @click="
-            $router.push({
-              name: 'warehouseOutboundOrderDetail',
-              params: { code: order.parent_order.code },
-            })
-          "
-        >
-          Nadřazená: {{ order.parent_order.code }}
-        </a>
-        <a
-          v-for="child in order.child_orders"
-          :key="child.code"
-          class="link"
-          @click="
-            $router.push({ name: 'warehouseOutboundOrderDetail', params: { code: child.code } })
-          "
-        >
-          Podřízená: {{ child.code }}
-        </a>
-        <span
-          v-if="!order.parent_order && (order.child_orders?.length ?? 0) === 0"
-          class="text-gray-5"
-        >
-          Bez návazných výdejek
-        </span>
-      </ForegroundPanel>
+    <div class="flex gap-5">
+      <CustomerCard :customer="order.order.customer" title="Odběratel" class="flex-1" />
+
+      <LinkedEntitiesCard
+        :show-outbound-order="true"
+        :outbound-order="order.order"
+        :warehouse-orders="order.child_orders"
+        :show-child-outbound-warehouse-orders="order.child_orders && order.child_orders.length > 0"
+        :child-outbound-warehouse-orders="order.child_orders"
+        :show-parent-outbound-warehouse-order="!!order.parent_order"
+        :parent-outbound-warehouse-order="order.parent_order"
+        class="flex-1"
+      />
     </div>
 
     <div class="flex items-center justify-between mb-1 mt-3">
@@ -133,6 +104,7 @@ import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import LargeTabs from '@/components/LargeTabs.vue'
+import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
 import OutboundWarehouseOrderItemsList from '@/components/putaway/OutboundWarehouseOrderItemsList.vue'
 import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'

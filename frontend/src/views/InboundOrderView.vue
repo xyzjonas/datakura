@@ -1,5 +1,5 @@
 <template>
-  <div v-if="order" class="w-full flex flex-col gap-2">
+  <div v-if="order" class="w-full flex flex-col gap-5">
     <div class="flex justify-between">
       <q-breadcrumbs class="mb-5">
         <q-breadcrumbs-el label="Home" :to="{ name: 'home' }" />
@@ -14,7 +14,7 @@
       </q-btn>
     </div>
 
-    <div class="mb-2 flex justify-between items-start md:items-center flex-col md:flex-row gap-2">
+    <div class="mb-2 flex justify-between items-start md:items-center flex-col md:flex-row gap-5">
       <div class="flex gap-2 items-center">
         <div>
           <span class="text-gray-5 flex items-center gap-1">VYDANÁ OBJEDNÁVKA</span>
@@ -79,18 +79,21 @@
         />
       </div>
     </div>
-    <div class="flex gap-2 flex-col md:flex-row">
-      <InboundOrderDetailsListCard :order="order" />
+    <div class="flex gap-5 flex-col md:flex-row">
+      <InboundOrderDetailsListCard :order="order" class="flex-1" />
       <CustomerCard :customer="order.supplier" title="DODAVATEL" class="flex-1" />
       <LinkedEntitiesCard
-        show-warehouse-order
-        :warehouse-orders="order.warehouse_orders"
+        show-inbound-warehouse-orders
+        :inbound-warehouse-orders="order.warehouse_orders"
         show-credit-note
         :credit-note="order.credit_note"
         show-invoice
         :invoice="order.invoice"
+        class="flex-1"
       />
     </div>
+
+    <CommentCard v-if="order.note">{{ order.note }}</CommentCard>
 
     <ForegroundPanel v-if="$q.screen.gt.md">
       <InboundOrderTimeline :state="order.state" />
@@ -225,6 +228,7 @@ import type { InvoiceUpsertSubmitPayload } from '@/components/order/invoice-uplo
 import { toInvoiceMultipartBody } from '@/components/order/invoice-upload'
 import { useQuasar } from 'quasar'
 import { ref, watch } from 'vue'
+import CommentCard from '@/components/CommentCard.vue'
 
 const props = defineProps<{ code: string }>()
 const order = ref<InboundOrderSchema>()

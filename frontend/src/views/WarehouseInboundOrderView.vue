@@ -50,16 +50,16 @@
       </div>
     </div>
     <div class="flex gap-2">
-      <CustomerCard :customer="order.order.supplier" title="Dodavatel" class="flex-[3]" />
+      <CustomerCard :customer="order.order.supplier" title="Dodavatel" class="flex-1" />
       <LinkedEntitiesCard
         show-inbound-order
         :inbound-order="order.order"
         show-credit-note
         :credit-note="order.credit_note"
-        :show-parent-warehouse-order="!!order.parent_order"
-        :parent-warehouse-order="order.parent_order"
-        :show-child-warehouse-orders="!!order.child_orders?.length"
-        :child-warehouse-orders="order.child_orders"
+        :show-parent-inbound-warehouse-order="!!order.parent_order"
+        :parent-inbound-warehouse-order="order.parent_order"
+        :show-child-inbound-warehouse-orders="!!order.child_orders?.length"
+        :child-inbound-warehouse-orders="order.child_orders"
         class="flex-1"
       />
     </div>

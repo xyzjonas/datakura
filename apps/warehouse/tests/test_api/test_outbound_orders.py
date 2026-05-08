@@ -6,6 +6,7 @@ from django.utils import timezone
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.outbound_orders import routes
+from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
@@ -32,6 +33,7 @@ from apps.warehouse.tests.factories.product import (
 )
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
+    OutboundWarehouseOrderItemFactory,
     WarehouseItemFactory,
     WarehouseLocationFactory,
     WarehouseOrderOutFactory,
@@ -301,6 +303,170 @@ def test_update_outbound_order_item_without_index_keeps_existing_index(db) -> No
     assert update_res.json()["data"]["index"] == 4
 
 
+def test_update_outbound_order_item_syncs_open_warehouse_requirement(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
+    product = StockProductFactory()
+    source_item = OutboundOrderItemFactory.it(
+        order=order,
+        stock_product=product,
+        amount=4,
+        total_price=40,
+        unit_price=10,
+    )
+    warehouse_order = WarehouseOrderOutFactory.it(
+        order=order,
+        state=OutboundWarehouseOrderState.PENDING,
+    )
+    requirement = OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_item,
+        stock_product=product,
+        amount=4,
+    )
+
+    response = client.put(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 6,
+            "total_price": 60,
+            "index": 0,
+        },
+    )
+
+    assert response.status_code == 200
+    requirement.refresh_from_db()
+    source_item.refresh_from_db()
+    assert float(source_item.amount) == 6.0
+    assert float(requirement.amount) == 6.0
+    assert requirement.warehouse_order_id == warehouse_order.id
+
+
+def test_add_outbound_order_item_creates_child_warehouse_order_after_completed_pick(
+    db,
+) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.SENT)
+    completed_warehouse_order = WarehouseOrderOutFactory.it(
+        order=order,
+        state=OutboundWarehouseOrderState.COMPLETED,
+    )
+    product = StockProductFactory.it()
+
+    response = client.post(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 3,
+            "total_price": 90,
+            "index": 0,
+        },
+    )
+
+    assert response.status_code == 200
+    child_order = (
+        OutboundWarehouseOrder.objects.filter(order=order)
+        .exclude(pk=completed_warehouse_order.pk)
+        .get()
+    )
+    assert child_order.primary_order_id == completed_warehouse_order.id
+    child_requirement = OutboundWarehouseOrderItem.objects.get(
+        warehouse_order=child_order,
+        source_order_item__stock_product=product,
+    )
+    assert float(child_requirement.amount) == 3.0
+
+
+def test_update_outbound_order_item_cannot_decrease_below_assigned_amount(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
+    product = StockProductFactory()
+    source_item = OutboundOrderItemFactory(
+        order=order,
+        stock_product=product,
+        amount=4,
+        total_price=40,
+        unit_price=10,
+    )
+    warehouse_order = WarehouseOrderOutFactory.it(
+        order=order,
+        state=OutboundWarehouseOrderState.PENDING,
+    )
+    assigned_item = WarehouseItemFactory.it(stock_product=product, amount=4)
+    OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_item,
+        stock_product=product,
+        amount=4,
+        warehouse_item=assigned_item,
+    )
+
+    with pytest.raises(
+        WarehouseItemBadRequestError,
+        match="Assigned warehouse items prevent decreasing amount below already assigned quantity",
+    ):
+        client.put(
+            f"/{order.code}/items",
+            json={
+                "product_code": product.code,
+                "product_name": product.name,
+                "amount": 2,
+                "total_price": 20,
+                "index": 0,
+            },
+        )
+
+
+def test_remove_outbound_order_item_cannot_remove_assigned_requirement(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
+    product = StockProductFactory()
+    source_item = OutboundOrderItemFactory(order=order, stock_product=product, amount=4)
+    warehouse_order = WarehouseOrderOutFactory.it(
+        order=order,
+        state=OutboundWarehouseOrderState.PENDING,
+    )
+    assigned_item = WarehouseItemFactory.it(stock_product=product, amount=4)
+    OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_item,
+        stock_product=product,
+        amount=4,
+        warehouse_item=assigned_item,
+    )
+
+    with pytest.raises(
+        WarehouseItemBadRequestError,
+        match="Assigned warehouse items prevent removing this order item",
+    ):
+        client.delete(f"/{order.code}/items/{product.code}")
+
+
+def test_update_outbound_order_rejects_changes_after_invoice(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.INVOICED)
+
+    with pytest.raises(
+        WarehouseItemBadRequestError,
+        match="can no longer be edited",
+    ):
+        client.put(
+            f"/{order.code}",
+            json={
+                "external_code": order.external_code,
+                "description": "Updated after invoice",
+                "note": order.note,
+                "currency": order.currency,
+                "customer_code": order.customer.code,
+                "customer_name": order.customer.name,
+                "requested_delivery_date": None,
+            },
+        )
+
+
 def test_add_outbound_order_item_with_desired_package_and_batch(db) -> None:
     client = TestClient(routes)
     order = OutboundOrderFactory.it()
@@ -471,3 +637,11 @@ def test_transition_outbound_order_cancel_action(db) -> None:
     assert res.status_code == 200
     data = res.json()["data"]
     assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.CANCELLED)
+
+
+def test_transition_outbound_order_cancel_rejects_invoiced_order(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.INVOICED)
+
+    with pytest.raises(WarehouseItemBadRequestError, match="can no longer be edited"):
+        client.post(f"/{order.code}/transition", json={"action": "cancel"})

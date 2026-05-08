@@ -55,7 +55,7 @@
 - globalni minimalni cena polozka plosna pro kusovy prodej a v objednavce se prepise a zasviti. Moznost vyclenit urcite zakazniky (VIP) - v karte zakaznika
   ✅ - cena pro zakaznika na urcity produkt/sortiment - maximalni prio
   ✅- cena globalni sleva - skupiny A, B, C - prio podle vyse
-- i z pohledu produktu, moznost zakazat slevove skupiny pro urcity produkt
+  ✅- i z pohledu produktu, moznost zakazat slevove skupiny pro urcity produkt
   ✅- prumerna cena - prepocet na dotaz. Na klik prepocitat cenove hladiny - NENI potreba => computed
 
 ### Objednavka

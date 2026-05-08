@@ -13,7 +13,7 @@
 
       <div class="flex flex-wrap items-center gap-2">
         <q-btn
-          unelevated
+          outline
           :color="invoiceMode ? 'grey-8' : 'secondary'"
           :icon="invoiceMode ? 'sym_o_close' : 'sym_o_receipt_long'"
           :label="invoiceMode ? 'ukončit výběr' : 'fakturace'"

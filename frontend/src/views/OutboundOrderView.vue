@@ -1,5 +1,5 @@
 <template>
-  <div v-if="order" class="w-full flex flex-col gap-2">
+  <div v-if="order" class="w-full flex flex-col gap-5">
     <div class="flex justify-between">
       <q-breadcrumbs class="mb-5">
         <q-breadcrumbs-el label="Home" :to="{ name: 'home' }" />
@@ -28,7 +28,7 @@
       </div>
       <div class="flex gap-2 items-center">
         <q-btn
-          v-if="isDraft"
+          v-if="isEditable"
           unelevated
           color="primary"
           icon="edit"
@@ -36,7 +36,7 @@
           @click="editOrderDialog = true"
         ></q-btn>
         <q-btn
-          v-if="isDraft"
+          v-if="canConfirm"
           unelevated
           color="positive"
           icon="sym_o_order_approve"
@@ -45,7 +45,7 @@
           :disable="!order.items?.length"
         />
         <q-btn
-          v-if="order.state !== 'cancelled'"
+          v-if="canCancel"
           unelevated
           color="negative"
           label="Uzavřít"
@@ -55,25 +55,26 @@
       </div>
     </div>
 
-    <div class="flex gap-2">
-      <OutboundOrderDetailsListCard :order="order" />
+    <div class="flex gap-5">
+      <OutboundOrderDetailsListCard :order="order" class="flex-[2]" />
       <CustomerCard :customer="order.customer" title="ODBĚRATEL" class="flex-1" />
-      <OutboundLinkedEntitiesCard
-        show-warehouse-orders
-        :warehouse-orders="order.warehouse_orders"
+      <LinkedEntitiesCard
+        show-outbound-warehouse-orders
+        :outbound-warehouse-orders="order.warehouse_orders"
         show-invoice
         :invoice="order.invoice"
+        class="flex-1"
       />
     </div>
 
-    <ForegroundPanel v-if="$q.screen.gt.md">
-      <OutboundOrderTimeline :state="order.state" />
-    </ForegroundPanel>
+    <CommentCard v-if="order.note">{{ order.note }}</CommentCard>
+
+    <OutboundOrderTimeline :order="order" />
 
     <div class="flex items-center gap-2 mt-5">
       <h2>Položky objednávky</h2>
       <q-btn
-        v-if="isDraft"
+        v-if="isEditable"
         flat
         color="primary"
         icon="sym_o_add"
@@ -87,7 +88,7 @@
     <OutboundOrderProductsList
       v-model:items="order.items"
       :currency="order.currency"
-      :readonly="!isDraft"
+      :readonly="!isEditable"
       :order-code="order.code"
       :customer-code="order.customer.code"
       @remove-item="removeItem"
@@ -161,7 +162,7 @@ import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import NewOutboundOrderItemDialog from '@/components/order/NewOutboundOrderItemDialog.vue'
-import OutboundLinkedEntitiesCard from '@/components/order/OutboundLinkedEntitiesCard.vue'
+import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import OutboundOrderTimeline from '@/components/order/OutboundOrderTimeline.vue'
 import OutboundOrderDetailsListCard from '@/components/order/OutboundOrderDetailsListCard.vue'
 import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
@@ -171,6 +172,7 @@ import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
 import { useApi } from '@/composables/use-api'
 import { ref, computed } from 'vue'
+import CommentCard from '@/components/CommentCard.vue'
 
 const props = defineProps<{ code: string }>()
 const order = ref<OutboundOrderSchema>()
@@ -185,7 +187,18 @@ if (data) {
   order.value = data.data
 }
 
-const isDraft = computed(() => order.value?.state === 'draft')
+const isEditable = computed(() => {
+  if (!order.value) {
+    return false
+  }
+
+  return !['cancelled', 'completed', 'invoiced', 'waiting_for_payment', 'completed_paid'].includes(
+    order.value.state,
+  )
+})
+
+const canConfirm = computed(() => ['draft', 'submitted'].includes(order.value?.state ?? ''))
+const canCancel = computed(() => isEditable.value)
 
 const addItemDialog = ref(false)
 const addItemDialogComponent = ref<InstanceType<typeof NewOutboundOrderItemDialog>>()

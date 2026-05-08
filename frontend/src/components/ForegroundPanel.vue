@@ -11,9 +11,15 @@
       active ? 'active' : '',
       active && flat ? 'active-flat' : '',
       clickable ? 'clickable' : '',
+      'relative',
     ]"
   >
-    <slot></slot>
+    <div v-if="$slots.header" class="bg-muted absolute top-0 left-0 right-0 p-1 px-3 rounded-t">
+      <slot name="header"></slot>
+    </div>
+    <div :class="[$slots.header ? 'mt-[30px]' : '', 'h-full']">
+      <slot></slot>
+    </div>
   </div>
 </template>
 

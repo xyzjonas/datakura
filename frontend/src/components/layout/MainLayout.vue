@@ -123,9 +123,7 @@
           <q-list class="flex flex-col gap-2"> </q-list>
         </q-scroll-area>
 
-        <DrawerSelfCustomerCard />
-
-        <q-list class="flex flex-col gap-2">
+        <q-list class="flex flex-col gap-2 mb-3">
           <q-item clickable v-ripple @click="toggle" dense class="rounded-md">
             <q-item-section avatar>
               <q-icon :name="isDark ? 'light_mode' : 'dark_mode'" />
@@ -134,6 +132,8 @@
             <q-item-section>{{ isDark ? 'Light Mode' : 'Dark Mode' }}</q-item-section>
           </q-item>
         </q-list>
+
+        <DrawerSelfCustomerCard />
       </div>
     </q-drawer>
 

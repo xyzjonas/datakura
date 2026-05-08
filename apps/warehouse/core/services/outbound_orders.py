@@ -58,6 +58,12 @@ def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
 
 
 class OutboundOrdersService:
+    _EDITABLE_WAREHOUSE_ORDER_STATES = (
+        OutboundWarehouseOrderState.DRAFT,
+        OutboundWarehouseOrderState.PENDING,
+        OutboundWarehouseOrderState.STARTED,
+    )
+
     @staticmethod
     def _has_completed_warehouse_order(order: OutboundOrder) -> bool:
         warehouse_orders = list(order.warehouse_orders.all())
@@ -358,6 +364,227 @@ class OutboundOrdersService:
         return f"OP{now.year}{now.month:02d}{orders_this_month + 1:04d}"
 
     @staticmethod
+    def _assert_order_editable(order: OutboundOrder) -> None:
+        if order.state in (
+            OutboundOrderState.CANCELLED,
+            OutboundOrderState.COMPLETED,
+            OutboundOrderState.INVOICED,
+            OutboundOrderState.WAITING_FOR_PAYMENT,
+            OutboundOrderState.COMPLETED_PAID,
+        ):
+            raise WarehouseItemBadRequestError(
+                f"Outbound order '{order.code}' can no longer be edited (state={order.state})."
+            )
+
+    @staticmethod
+    def _requires_warehouse_sync(order: OutboundOrder) -> bool:
+        return order.warehouse_orders.exists() or order.state not in (
+            OutboundOrderState.DRAFT,
+            OutboundOrderState.SUBMITTED,
+        )
+
+    @classmethod
+    def _find_open_warehouse_order(
+        cls,
+        order: OutboundOrder,
+    ) -> OutboundWarehouseOrder | None:
+        return (
+            order.warehouse_orders.filter(
+                state__in=cls._EDITABLE_WAREHOUSE_ORDER_STATES,
+            )
+            .order_by("-created", "-pk")
+            .first()
+        )
+
+    @classmethod
+    def _create_outbound_warehouse_order(
+        cls,
+        order: OutboundOrder,
+        context: RequestContext,
+        primary_order: OutboundWarehouseOrder | None = None,
+    ) -> OutboundWarehouseOrder:
+        warehouse_order = OutboundWarehouseOrder.objects.create(
+            code=cls.generate_next_outbound_warehouse_order_code(),
+            order=order,
+            primary_order=primary_order,
+            state=OutboundWarehouseOrderState.PENDING,
+        )
+        audit_service.add_entry(
+            warehouse_order,
+            action=AuditAction.CREATE,
+            user=context.user_id,
+            reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
+                purchase_order_code=order.code
+            ),
+        )
+
+        if primary_order is not None:
+            audit_service.add_entry(
+                warehouse_order,
+                action=AuditAction.OTHER,
+                user=context.user_id,
+                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
+                    child_code=warehouse_order.code,
+                    parent_code=primary_order.code,
+                ),
+                changes={"parent_order": primary_order.code},
+            )
+            audit_service.add_entry(
+                primary_order,
+                action=AuditAction.OTHER,
+                user=context.user_id,
+                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
+                    child_code=warehouse_order.code,
+                    parent_code=primary_order.code,
+                ),
+                changes={"child_order": warehouse_order.code},
+            )
+
+        outbound_orders_service.transition_order(
+            order.code, context, target_state=OutboundOrderState.PICKING
+        )
+
+        return warehouse_order
+
+    @classmethod
+    def _ensure_editable_warehouse_order(
+        cls,
+        order: OutboundOrder,
+        context: RequestContext,
+    ) -> OutboundWarehouseOrder:
+        open_order = cls._find_open_warehouse_order(order)
+        if open_order is not None:
+            return open_order
+
+        latest_order = order.warehouse_orders.order_by("-created", "-pk").first()
+        if latest_order is None:
+            warehouse_order = cls._create_outbound_warehouse_order(order, context)
+            cls._build_outbound_warehouse_order_items(warehouse_order=warehouse_order)
+            return warehouse_order
+
+        return cls._create_outbound_warehouse_order(
+            order,
+            context,
+            primary_order=latest_order,
+        )
+
+    @staticmethod
+    def _get_assigned_warehouse_requirements(
+        order_item: OutboundOrderItem,
+    ) -> QuerySet[OutboundWarehouseOrderItem]:
+        return order_item.warehouse_order_items.filter(warehouse_item__isnull=False)
+
+    @classmethod
+    def _get_assigned_amount(cls, order_item: OutboundOrderItem) -> Decimal:
+        return sum(
+            (
+                Decimal(str(requirement.amount))
+                for requirement in cls._get_assigned_warehouse_requirements(order_item)
+            ),
+            Decimal(0),
+        )
+
+    @classmethod
+    def _assert_assigned_requirements_compatible(
+        cls,
+        order_item: OutboundOrderItem,
+    ) -> None:
+        assigned_requirements = cls._get_assigned_warehouse_requirements(order_item)
+        if not assigned_requirements.exists():
+            return
+
+        target_signature = (
+            order_item.desired_package_type_id,
+            order_item.desired_batch_id,
+        )
+        assigned_signatures = set(
+            assigned_requirements.values_list(
+                "desired_package_type_id",
+                "desired_batch_id",
+            )
+        )
+        if assigned_signatures != {target_signature}:
+            raise WarehouseItemBadRequestError(
+                "Assigned warehouse items prevent changing package or batch requirements."
+            )
+
+    @classmethod
+    def _sync_order_item_to_warehouse_orders(
+        cls,
+        *,
+        order: OutboundOrder,
+        order_item: OutboundOrderItem,
+        context: RequestContext,
+    ) -> None:
+        if not cls._requires_warehouse_sync(order):
+            return
+
+        cls._assert_assigned_requirements_compatible(order_item)
+
+        assigned_amount = cls._get_assigned_amount(order_item)
+        requested_amount = Decimal(str(order_item.amount))
+        if requested_amount < assigned_amount:
+            raise WarehouseItemBadRequestError(
+                "Assigned warehouse items prevent decreasing amount below already assigned quantity."
+            )
+
+        remaining_amount = requested_amount - assigned_amount
+        pending_requirements = list(
+            order_item.warehouse_order_items.select_related("warehouse_order")
+            .filter(
+                warehouse_item__isnull=True,
+                warehouse_order__state__in=cls._EDITABLE_WAREHOUSE_ORDER_STATES,
+            )
+            .order_by("created", "pk")
+        )
+
+        if remaining_amount == 0:
+            if pending_requirements:
+                OutboundWarehouseOrderItem.objects.filter(
+                    pk__in=[requirement.pk for requirement in pending_requirements]
+                ).delete()
+            return
+
+        target_order = cls._find_open_warehouse_order(order)
+        if target_order is None:
+            target_order = cls._ensure_editable_warehouse_order(order, context)
+
+        primary_requirement = pending_requirements[0] if pending_requirements else None
+        if primary_requirement is None:
+            OutboundWarehouseOrderItem.objects.create(
+                warehouse_order=target_order,
+                source_order_item=order_item,
+                stock_product=order_item.stock_product,
+                amount=remaining_amount,
+                desired_package_type=order_item.desired_package_type,
+                desired_batch=order_item.desired_batch,
+                index=order_item.index,
+            )
+        else:
+            primary_requirement.warehouse_order = target_order
+            primary_requirement.stock_product = order_item.stock_product
+            primary_requirement.amount = remaining_amount
+            primary_requirement.desired_package_type = order_item.desired_package_type
+            primary_requirement.desired_batch = order_item.desired_batch
+            primary_requirement.index = order_item.index
+            primary_requirement.save(
+                update_fields=[
+                    "warehouse_order",
+                    "stock_product",
+                    "amount",
+                    "desired_package_type",
+                    "desired_batch",
+                    "index",
+                    "changed",
+                ]
+            )
+
+        if len(pending_requirements) > 1:
+            OutboundWarehouseOrderItem.objects.filter(
+                pk__in=[requirement.pk for requirement in pending_requirements[1:]]
+            ).delete()
+
+    @staticmethod
     def update_or_create_outgoing(
         params: OutboundOrderCreateOrUpdateSchema,
         context: RequestContext,
@@ -369,6 +596,7 @@ class OutboundOrdersService:
         previous_order_schema = None
         existing_order = OutboundOrder.objects.filter(code=code).first()
         if existing_order:
+            OutboundOrdersService._assert_order_editable(existing_order)
             previous_order_schema = outbound_order_orm_to_schema(existing_order)
 
         customer = Customer.objects.get(code=params.customer_code)
@@ -415,18 +643,22 @@ class OutboundOrdersService:
         schema = outbound_order_orm_to_schema(order)
         return OutboundOrdersService._with_pricing_details(schema, order)
 
-    @staticmethod
+    @classmethod
     def add_item(
-        code: str, item: OutboundOrderItemCreateSchema
+        cls,
+        code: str,
+        item: OutboundOrderItemCreateSchema,
+        context: RequestContext,
     ) -> OutboundOrderItemSchema:
-        order = OutboundOrder.objects.get(code=code)
+        order = OutboundOrder.objects.prefetch_related("warehouse_orders").get(
+            code=code
+        )
+        cls._assert_order_editable(order)
         stock_product = StockProduct.objects.get(code=item.product_code)
-        desired_package_type = OutboundOrdersService._get_desired_package_or_none(
+        desired_package_type = cls._get_desired_package_or_none(
             item.desired_package_type_name
         )
-        desired_batch = OutboundOrdersService._get_desired_batch_or_none(
-            item.desired_batch_code
-        )
+        desired_batch = cls._get_desired_batch_or_none(item.desired_batch_code)
 
         if OutboundOrderItem.objects.filter(
             order=order, stock_product=stock_product
@@ -439,7 +671,7 @@ class OutboundOrdersService:
             next_index = order.items.count()
             amount = Decimal(str(item.amount))
             total_price = Decimal(str(item.total_price))
-            OutboundOrdersService._validate_desired_packaging(
+            cls._validate_desired_packaging(
                 stock_product=stock_product,
                 amount=amount,
                 desired_package_type=desired_package_type,
@@ -449,17 +681,18 @@ class OutboundOrdersService:
                 amount=amount,
                 order=order,
                 total_price=total_price,
-                unit_price=OutboundOrdersService._compute_unit_price(
-                    amount, total_price
-                ),
+                unit_price=cls._compute_unit_price(amount, total_price),
                 index=item.index if item.index is not None else next_index,
                 desired_package_type=desired_package_type,
                 desired_batch=desired_batch,
             )
-        selected_unit_price = OutboundOrdersService._compute_unit_price(
-            amount, total_price
-        )
-        pricing_details = OutboundOrdersService._build_item_pricing_details(
+            cls._sync_order_item_to_warehouse_orders(
+                order=order,
+                order_item=item_model,
+                context=context,
+            )
+        selected_unit_price = cls._compute_unit_price(amount, total_price)
+        pricing_details = cls._build_item_pricing_details(
             order=order,
             stock_product=stock_product,
             selected_unit_price=selected_unit_price,
@@ -468,25 +701,29 @@ class OutboundOrdersService:
             item_model, pricing_details=pricing_details
         )
 
-    @staticmethod
+    @classmethod
     def update_item(
-        code: str, item: OutboundOrderItemCreateSchema
+        cls,
+        code: str,
+        item: OutboundOrderItemCreateSchema,
+        context: RequestContext,
     ) -> OutboundOrderItemSchema:
-        order = OutboundOrder.objects.get(code=code)
+        order = OutboundOrder.objects.prefetch_related("warehouse_orders").get(
+            code=code
+        )
+        cls._assert_order_editable(order)
         item_model = OutboundOrderItem.objects.get(
             order=order, stock_product__code=item.product_code
         )
-        desired_package_type = OutboundOrdersService._get_desired_package_or_none(
+        desired_package_type = cls._get_desired_package_or_none(
             item.desired_package_type_name
         )
-        desired_batch = OutboundOrdersService._get_desired_batch_or_none(
-            item.desired_batch_code
-        )
+        desired_batch = cls._get_desired_batch_or_none(item.desired_batch_code)
 
         with transaction.atomic():
             amount = Decimal(str(item.amount))
             total_price = Decimal(str(item.total_price))
-            OutboundOrdersService._validate_desired_packaging(
+            cls._validate_desired_packaging(
                 stock_product=item_model.stock_product,
                 amount=amount,
                 desired_package_type=desired_package_type,
@@ -501,7 +738,12 @@ class OutboundOrdersService:
             if item.index is not None:
                 item_model.index = item.index
             item_model.save()
-        pricing_details = OutboundOrdersService._build_item_pricing_details(
+            cls._sync_order_item_to_warehouse_orders(
+                order=order,
+                order_item=item_model,
+                context=context,
+            )
+        pricing_details = cls._build_item_pricing_details(
             order=order,
             stock_product=item_model.stock_product,
             selected_unit_price=item_model.unit_price,
@@ -510,14 +752,28 @@ class OutboundOrdersService:
             item_model, pricing_details=pricing_details
         )
 
-    @staticmethod
-    def remove_item(code: str, product_code: str) -> bool:
-        order = OutboundOrder.objects.get(code=code)
-        items = OutboundOrderItem.objects.filter(
-            order=order, stock_product__code=product_code
+    @classmethod
+    def remove_item(
+        cls,
+        code: str,
+        product_code: str,
+        context: RequestContext,
+    ) -> bool:
+        order = OutboundOrder.objects.prefetch_related("warehouse_orders").get(
+            code=code
         )
+        cls._assert_order_editable(order)
+        item_model = OutboundOrderItem.objects.get(
+            order=order,
+            stock_product__code=product_code,
+        )
+        if cls._get_assigned_warehouse_requirements(item_model).exists():
+            raise WarehouseItemBadRequestError(
+                "Assigned warehouse items prevent removing this order item."
+            )
+
         with transaction.atomic():
-            items.delete()
+            item_model.delete()
 
         return True
 
@@ -534,6 +790,7 @@ class OutboundOrdersService:
 
         if target_state is None:
             if action == "cancel":
+                cls._assert_order_editable(order)
                 new_state = OutboundOrderState.CANCELLED
             elif action == "next":
                 if old_state in (
