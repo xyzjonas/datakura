@@ -154,6 +154,7 @@ class OutboundWarehouseOrderSchema(OutboundWarehouseOrderBaseSchema):
     completed_items_count: int
     total_amount: float
     remaining_amount: float
+    total_price_at_shipment: Decimal
     order: OutboundOrderBaseSchema
 
 
@@ -168,6 +169,7 @@ class OutboundWarehouseOrderItemSchema(BaseSchema):
     warehouse_item: WarehouseItemSchema | None = None
     pending: bool
     index: int
+    price_at_shipment: Decimal | None = None
 
 
 class InboundWarehouseOrderUpdateSchema(Schema):

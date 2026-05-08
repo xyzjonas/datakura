@@ -1,6 +1,6 @@
 [project]
 name = "datakura"
-version = "0.0.1dev1"
+version = "0.0.1dev2"
 description = "datakura"
 readme = "README.md"
 requires-python = ">=3.14"

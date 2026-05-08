@@ -181,6 +181,15 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
   {
+    name: 'total_price_at_shipment',
+    field: (order: OutboundWarehouseOrderSchema) =>
+      Number(order.total_price_at_shipment) > 0
+        ? `${Number(order.total_price_at_shipment).toFixed(2)} CZK`
+        : '—',
+    label: 'Cena výdeje',
+    align: 'right',
+  },
+  {
     name: 'customer',
     field: (order: OutboundWarehouseOrderSchema) => order.order.customer.name,
     label: 'Odběratel',

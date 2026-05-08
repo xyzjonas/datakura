@@ -44,6 +44,9 @@
         </span>
         <WarehouseItemTypeBadgeGroup :item="item.warehouse_item" />
         <WarehouseItemLink :item-id="item.warehouse_item.id" />
+        <span v-if="item.price_at_shipment != null" class="font-medium text-gray-7">
+          Cena při výdeji: {{ Number(item.price_at_shipment).toFixed(2) }} CZK
+        </span>
       </div>
     </div>
 

@@ -384,6 +384,13 @@ class OutboundWarehouseOrderItem(BaseModel):
         on_delete=models.SET_NULL,
         related_name="outbound_assignment",
     )
+    price_at_shipment = models.DecimalField(
+        max_digits=14,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        help_text="Total cost at shipment time: amount × avg purchase price at the moment of picking. Frozen for tax/accounting.",
+    )
     index = models.PositiveIntegerField(default=0)
 
     class Meta(BaseModel.Meta):

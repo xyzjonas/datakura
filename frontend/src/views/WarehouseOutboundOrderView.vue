@@ -53,7 +53,13 @@
           Hotovo {{ doneItems.length }} / {{ order.order_items.length }}
         </div>
       </div>
-      <q-badge color="primary">Zbývá {{ order.remaining_amount }}</q-badge>
+      <div class="flex flex-col items-end gap-1">
+        <q-badge color="primary">Zbývá {{ order.remaining_amount }}</q-badge>
+        <span v-if="order.total_price_at_shipment" class="text-sm text-gray-6">
+          Celková cena výdeje:
+          <strong>{{ Number(order.total_price_at_shipment).toFixed(2) }} CZK</strong>
+        </span>
+      </div>
     </div>
 
     <LargeTabs

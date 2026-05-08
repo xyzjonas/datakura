@@ -1,3 +1,5 @@
+import pytest
+from decimal import Decimal
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.warehouse import routes
@@ -201,3 +203,129 @@ def test_offload_outbound_items_to_child_order_moves_requirement(db) -> None:
     requirement.refresh_from_db()
     assert requirement.warehouse_order.primary_order_id == warehouse_order.pk
     assert requirement.warehouse_order_id != warehouse_order.pk
+
+
+def test_assign_outbound_warehouse_order_item_freezes_price_at_shipment(db) -> None:
+    """price_at_shipment = amount × product.purchase_price at time of picking"""
+    client = TestClient(routes)
+
+    product = StockProductFactory.it(purchase_price=Decimal("12.50"))
+    outbound_order = OutboundOrderFactory.it()
+    source_order_item = OutboundOrderItemFactory.it(
+        order=outbound_order,
+        stock_product=product,
+        amount=4,
+    )
+    warehouse_order: OutboundWarehouseOrder = WarehouseOrderOutFactory.it(
+        order=outbound_order, state=OutboundWarehouseOrderState.PENDING
+    )
+    requirement: OutboundWarehouseOrderItem = OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_order_item,
+        stock_product=product,
+        amount=4,
+    )
+    source_inbound = InboundWarehouseOrderFactory(
+        state=InboundWarehouseOrderState.PENDING
+    )
+    location = WarehouseLocationFactory(is_putaway=False)
+    matching_item: WarehouseItem = WarehouseItemFactory.it(
+        order_in=source_inbound,
+        stock_product=product,
+        amount=4,
+        location=location,
+    )
+
+    res = client.post(
+        f"/orders-outgoing/{warehouse_order.code}/order-items/{requirement.pk}/assign",
+        json={"warehouse_item_id": matching_item.pk},
+    )
+
+    assert res.status_code == 200
+    requirement.refresh_from_db()
+    # price_at_shipment must be frozen: amount(4) × purchase_price(12.50) = 50.00
+    assert requirement.price_at_shipment == Decimal("50.00")
+
+    data = res.json()["data"]
+    order_item_data = next(i for i in data["order_items"] if i["id"] == requirement.pk)
+    assert order_item_data["price_at_shipment"] is not None
+    assert float(order_item_data["price_at_shipment"]) == pytest.approx(50.00)
+
+
+def test_total_price_at_shipment_is_sum_of_assigned_items(db) -> None:
+    """total_price_at_shipment on order = sum of price_at_shipment of assigned items"""
+    client = TestClient(routes)
+
+    product = StockProductFactory.it(purchase_price=Decimal("10.00"))
+    outbound_order = OutboundOrderFactory.it()
+    source_item_a = OutboundOrderItemFactory.it(
+        order=outbound_order, stock_product=product, amount=3
+    )
+    source_item_b = OutboundOrderItemFactory.it(
+        order=outbound_order, stock_product=product, amount=2
+    )
+    warehouse_order: OutboundWarehouseOrder = WarehouseOrderOutFactory.it(
+        order=outbound_order, state=OutboundWarehouseOrderState.PENDING
+    )
+    req_a: OutboundWarehouseOrderItem = OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_item_a,
+        stock_product=product,
+        amount=3,
+    )
+    req_b: OutboundWarehouseOrderItem = OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_item_b,
+        stock_product=product,
+        amount=2,
+    )
+    source_inbound = InboundWarehouseOrderFactory(
+        state=InboundWarehouseOrderState.PENDING
+    )
+    location = WarehouseLocationFactory(is_putaway=False)
+    item_a: WarehouseItem = WarehouseItemFactory.it(
+        order_in=source_inbound, stock_product=product, amount=3, location=location
+    )
+    item_b: WarehouseItem = WarehouseItemFactory.it(
+        order_in=source_inbound, stock_product=product, amount=2, location=location
+    )
+
+    # Assign only first item
+    client.post(
+        f"/orders-outgoing/{warehouse_order.code}/order-items/{req_a.pk}/assign",
+        json={"warehouse_item_id": item_a.pk},
+    )
+    res = client.post(
+        f"/orders-outgoing/{warehouse_order.code}/order-items/{req_b.pk}/assign",
+        json={"warehouse_item_id": item_b.pk},
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    # 3×10 + 2×10 = 50
+    assert float(data["total_price_at_shipment"]) == pytest.approx(50.00)
+
+
+def test_price_at_shipment_is_null_for_unassigned_items(db) -> None:
+    """Unassigned order items have price_at_shipment=null in API response"""
+    client = TestClient(routes)
+    product = StockProductFactory.it()
+    outbound_order = OutboundOrderFactory.it()
+    source_order_item = OutboundOrderItemFactory.it(
+        order=outbound_order, stock_product=product, amount=4
+    )
+    warehouse_order: OutboundWarehouseOrder = WarehouseOrderOutFactory.it(
+        order=outbound_order, state=OutboundWarehouseOrderState.PENDING
+    )
+    OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_order_item,
+        stock_product=product,
+        amount=4,
+    )
+
+    res = client.get(f"/orders-outgoing/{warehouse_order.code}")
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["order_items"][0]["price_at_shipment"] is None
+    assert float(data["total_price_at_shipment"]) == 0.0

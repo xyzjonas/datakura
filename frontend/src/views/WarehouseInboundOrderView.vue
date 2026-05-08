@@ -1,5 +1,5 @@
 <template>
-  <div v-if="order" class="flex flex-col gap-2 flex-1">
+  <div v-if="order" class="flex flex-col gap-5 flex-1">
     <div class="flex justify-between flex-wrap">
       <q-breadcrumbs class="mb-5 flex-[3]">
         <q-breadcrumbs-el label="Domů" :to="{ name: 'home' }" />
@@ -49,7 +49,7 @@
         />
       </div>
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-5">
       <CustomerCard :customer="order.order.supplier" title="Dodavatel" class="flex-1" />
       <LinkedEntitiesCard
         show-inbound-order

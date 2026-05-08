@@ -1399,6 +1399,10 @@ export type OutboundWarehouseOrderItemSchema = {
      * Index
      */
     index: number;
+    /**
+     * Price At Shipment
+     */
+    price_at_shipment?: string | null;
 };
 
 /**
@@ -1454,6 +1458,10 @@ export type OutboundWarehouseOrderSchema = {
      * Remaining Amount
      */
     remaining_amount: number;
+    /**
+     * Total Price At Shipment
+     */
+    total_price_at_shipment: string;
     order: OutboundOrderBaseSchema;
 };
 

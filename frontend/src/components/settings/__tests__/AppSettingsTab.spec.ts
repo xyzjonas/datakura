@@ -103,7 +103,7 @@ describe('AppSettingsTab', () => {
     expect(wrapper.text()).toContain('ZEBRA-01')
 
     await wrapper.get('[data-test="select-printer"]').trigger('click')
-    await wrapper.get('[data-label="uložit výchozí tiskárnu"]').trigger('click')
+    await wrapper.get('[data-label="nastavit jako výchozí"]').trigger('click')
     await flushPromises()
 
     expect(mocks.setDefaultPrinter).toHaveBeenCalledWith({

@@ -969,6 +969,7 @@ def warehouse_outbound_order_orm_to_schema(
                 warehouse_item=assigned_item_schema,
                 pending=item.warehouse_item is None,
                 index=item.index,
+                price_at_shipment=item.price_at_shipment,
                 created=item.created,
                 changed=item.changed,
             )
@@ -977,6 +978,14 @@ def warehouse_outbound_order_orm_to_schema(
     expected_amount = sum(float(item.amount) for item in order_items)
     remaining_amount = sum(
         float(item.amount) for item in order_item_schemas if item.pending
+    )
+    total_price_at_shipment = sum(
+        (
+            item.price_at_shipment
+            for item in order_item_schemas
+            if item.price_at_shipment is not None
+        ),
+        Decimal("0"),
     )
 
     parent_order = w_order.primary_order
@@ -996,6 +1005,7 @@ def warehouse_outbound_order_orm_to_schema(
         ),
         total_amount=expected_amount,
         remaining_amount=remaining_amount,
+        total_price_at_shipment=total_price_at_shipment,
         order_code=linked_order.code,
         order=OutboundOrderBaseSchema(
             code=linked_order.code,

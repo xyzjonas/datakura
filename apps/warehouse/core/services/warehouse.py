@@ -619,7 +619,12 @@ class WarehouseService:
                 context=context,
             )
             order_item.warehouse_item = assigned_item
-            order_item.save(update_fields=["warehouse_item", "changed"])
+            order_item.price_at_shipment = (
+                requested_amount * assigned_item.stock_product.purchase_price
+            )
+            order_item.save(
+                update_fields=["warehouse_item", "price_at_shipment", "changed"]
+            )
 
             WarehouseMovement.objects.create(
                 location_from=assigned_item.location,

@@ -59,9 +59,9 @@
               hint="Lze vyhledat podle kódu nebo popisu"
             />
 
-            <div class="flex flex-wrap gap-3 justify-end">
+            <div class="flex flex-wrap gap-3">
               <q-btn
-                flat
+                unelevated
                 color="primary"
                 icon="add"
                 label="nová tiskárna"
@@ -69,7 +69,7 @@
               />
               <q-btn
                 v-if="currentPrinter"
-                flat
+                outline
                 color="negative"
                 icon="delete"
                 label="odebrat přiřazení"
@@ -77,13 +77,14 @@
                 @click="clearDefaultPrinter"
               />
               <q-btn
-                unelevated
+                flat
                 color="primary"
                 icon="save"
-                label="uložit výchozí tiskárnu"
+                label="nastavit jako výchozí"
                 :loading="savingDefaultPrinter"
                 :disable="!selectedPrinterCode || selectedPrinterCode === currentPrinter?.code"
                 @click="saveDefaultPrinter"
+                class="ml-auto"
               />
             </div>
           </div>

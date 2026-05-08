@@ -62,11 +62,11 @@
                   routeName: 'invoices',
                   routeMatch: 'invoices,invoiceDetail',
                 },
-                {
-                  label: 'Dobropisy',
-                  icon: 'sym_o_undo',
-                  routeName: 'creditNotes',
-                },
+                // {
+                //   label: 'Dobropisy',
+                //   icon: 'sym_o_undo',
+                //   routeName: 'creditNotes',
+                // },
               ]"
             />
             <q-item-label header class="text-gray-4">Sklad</q-item-label>

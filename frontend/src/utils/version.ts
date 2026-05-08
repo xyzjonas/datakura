@@ -16,6 +16,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     releaseDate: '2026-05-07',
     rows: [
       'Přidána možnost zakázání slevových skupin pro konkrétní produkt.',
+      'Sledování ceny při výdeji zboží (cena zboží v okamžiku, kdy je skladová položka přiřazena).',
       'Oprava: přijaté objednávky je možné libovolně editovat dokud není daná objednávka vyfakturována.',
     ],
   },

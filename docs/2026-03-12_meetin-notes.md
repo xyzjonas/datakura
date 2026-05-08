@@ -92,5 +92,6 @@
 
 # 29.4.2026
 
-- uprava vydejky -ze smeru objednavky, upravim JENOM objednavku (uberu pocet, zmenim cenu, pridam polozky) - musi se to propsat do vydejky
+✅ - uprava vydejky -ze smeru objednavky, upravim JENOM objednavku (uberu pocet, zmenim cenu, pridam polozky) - musi se to propsat do vydejky
+
 - kalkulace
