@@ -9,6 +9,7 @@ export default defineConfig({
       'w-full flex items-center gap-5 border-b light:border-grey-5 dark:border-b-dark-4 light:hover:bg-light-3 dark:hover:bg-dark-9 py-2 rounded px-3',
     'text-muted': 'light:text-gray-6 dark:text-gray-3',
     'bg-muted': 'light:bg-gray-2 dark:bg-dark-1',
+    h1: 'text-primary text-2xl md:text-4xl',
   },
   presets: [
     // Tailwind-like utility classes, replacement for Bootstrap's utility classes.

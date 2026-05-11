@@ -7,7 +7,7 @@
           {{ customer.customer_type.toLowerCase() }}
         </span>
         <div class="flex items-center flex-nowrap justify-between">
-          <h1 class="text-primary mb-1">{{ customer.name }}</h1>
+          <h1 class="h1">{{ customer.name }}</h1>
           <div class="flex flex-col items-end flex-nowrap gap-1">
             <span class="flex items-center gap-1 flex-nowrap whitespace-nowrap">
               <q-icon name="groups"></q-icon>

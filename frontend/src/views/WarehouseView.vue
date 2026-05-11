@@ -1,7 +1,7 @@
 <template>
-  <div class="w-full flex gap-2">
-    <ForegroundPanel class="min-w-[312px]">
-      <div class="flex flex-col items-start">
+  <div class="flex flex-col xl:flex-row gap-5 flex-nowrap flex-1">
+    <ForegroundPanel class="min-w-[312px] flex-1">
+      <div class="flex flex-col items-start flex-[2]">
         <SearchInput
           v-model="locationSearch"
           placeholder="Vyhledat skladové místo"
@@ -47,7 +47,13 @@
         flat
         :pagination="{ rowsPerPage: 20 }"
         class="bg-transparent"
+        :grid="$q.screen.lt.md"
       >
+        <template #item="props">
+          <div class="q-pa-xs col-12">
+            <WarehouseItemGridCard :item="props.row" :aggregate="aggregate" show-product-name />
+          </div>
+        </template>
         <template #top-right>
           <SearchInput v-model="itemSearch" placeholder="Vyhledat položku" clearable></SearchInput>
         </template>
@@ -130,6 +136,7 @@ import EmptyPanel from '@/components/EmptyPanel.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import PackageTypeBadge from '@/components/PackageTypeBadge.vue'
 import WarehouseItemCountBadge from '@/components/product/WarehouseItemCountBadge.vue'
+import WarehouseItemGridCard from '@/components/product/WarehouseItemGridCard.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import TrackingLevelBadge from '@/components/warehouse/TrackingLevelBadge.vue'
 import { useQueryWarehouse } from '@/composables/query/use-warehouse-query'

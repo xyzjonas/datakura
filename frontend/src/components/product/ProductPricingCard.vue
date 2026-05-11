@@ -1,11 +1,12 @@
 <template>
-  <ForegroundPanel no-padding class="flex flex-col p-2">
-    <!-- <h2 class="mb-4">Ceník</h2> -->
+  <ForegroundPanel :body-class="['flex', 'flex-col']">
+    <template #header>
+      <span class="text-muted">CENÍK</span>
+    </template>
     <q-table
       :rows="prices"
       :columns="columns"
       flat
-      title="Ceník"
       :pagination="{ rowsPerPage: 5 }"
       class="bg-transparent"
       no-data-label="Prodejní cena není nastavena!"
@@ -22,16 +23,6 @@
             @delete="onDeleteDynamicPrice"
           />
         </div>
-      </template>
-
-      <template #top-right>
-        <q-btn
-          outline
-          color="primary"
-          icon="attach_money"
-          label="přidat cenu"
-          @click="showAddDialog = true"
-        ></q-btn>
       </template>
 
       <template #body-cell-customer="slotProps">
@@ -78,6 +69,15 @@
         </q-td>
       </template>
     </q-table>
+
+    <q-btn
+      outline
+      color="primary"
+      icon="attach_money"
+      label="přidat cenu"
+      @click="showAddDialog = true"
+      class="mt-auto self-end"
+    ></q-btn>
 
     <AddDynamicPriceDialog
       v-model:show="showAddDialog"

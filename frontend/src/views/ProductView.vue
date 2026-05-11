@@ -27,15 +27,18 @@
         />
       </div>
     </div>
-    <div class="flex gap-2 flex-wrap">
+    <div class="flex gap-5 flex-wrap">
       <ForegroundPanel class="flex flex-col min-w-[312px] flex-1">
+        <template #header>
+          <span class="text-muted">DETAIL PRODUKTU</span>
+        </template>
         <span class="text-gray-5 flex items-center gap-1 mb-1">
           <span>
             <ProductTypeIcon :type="product.type" />
             {{ product.type }}
           </span>
         </span>
-        <h1 class="text-primary mb-1">{{ product.name }}</h1>
+        <h1 class="h1 mb-1">{{ product.name }}</h1>
         <span class="flex items-center gap-1 mb-3">
           <small class="text-gray-5">kód:</small>
           <h5>{{ product.code }}</h5>

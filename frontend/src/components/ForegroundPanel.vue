@@ -17,14 +17,29 @@
     <div v-if="$slots.header" class="bg-muted absolute top-0 left-0 right-0 p-1 px-3 rounded-t">
       <slot name="header"></slot>
     </div>
-    <div :class="[$slots.header ? 'mt-[30px]' : '', 'h-full']">
+    <div :class="[$slots.header ? 'pt-[30px]' : '', 'h-full', ...bodyClass]">
       <slot></slot>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{ active?: boolean; clickable?: boolean; noPadding?: boolean; flat?: boolean }>()
+withDefaults(
+  defineProps<{
+    active?: boolean
+    clickable?: boolean
+    noPadding?: boolean
+    flat?: boolean
+    bodyClass?: string[]
+  }>(),
+  {
+    active: false,
+    clickable: false,
+    noPadding: false,
+    flat: false,
+    bodyClass: () => [],
+  },
+)
 </script>
 
 <style lang="scss" scoped>

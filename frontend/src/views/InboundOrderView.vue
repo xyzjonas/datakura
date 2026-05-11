@@ -18,7 +18,7 @@
       <div class="flex gap-2 items-center">
         <div>
           <span class="text-gray-5 flex items-center gap-1">VYDANÁ OBJEDNÁVKA</span>
-          <h1 class="text-primary mb-1 text-3xl md:text-5xl">{{ order.code }}</h1>
+          <h1 class="h1 mb-1">{{ order.code }}</h1>
           <div class="flex items-center gap-1">
             <h5>{{ order.code }}</h5>
             <CopyToClipBoardButton v-if="order.code" :text="order.code" />

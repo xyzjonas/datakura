@@ -14,13 +14,24 @@
     <q-separator />
 
     <q-card-section class="space-y-2">
+      <div v-if="showProductName" class="flex items-center justify-between gap-2">
+        <span class="text-gray-5">Produkt</span>
+        <a
+          class="link truncate max-w-48 text-right"
+          @click="
+            $router.push({ name: 'productDetail', params: { productCode: item.product.code } })
+          "
+          >{{ item.product.name }}</a
+        >
+      </div>
       <div v-if="!aggregate" class="flex items-center justify-between gap-2">
         <span class="text-gray-5">EAN</span>
         <a
           class="link truncate max-w-48 text-right"
           @click="$router.push({ name: 'warehouseItemDetail', params: { itemId: item.id } })"
         >
-          {{ item.primary_barcode ?? '-' }}
+          <q-icon name="sym_o_barcode" size="xs" class="translate-y-[-1px]" />
+          {{ item.primary_barcode?.toUpperCase() ?? `#${item.id}` }}
         </a>
       </div>
 
@@ -60,6 +71,7 @@ import WarehouseItemCountBadge from './WarehouseItemCountBadge.vue'
 const props = defineProps<{
   item: WarehouseItemSchema | WarehouseItemSchemaWithCount
   aggregate: boolean
+  showProductName?: boolean
 }>()
 
 const hasItemsCount = (

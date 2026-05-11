@@ -10,7 +10,7 @@
       <div class="flex gap-2 items-center">
         <div>
           <span class="text-gray-5 flex items-center gap-1">DOBROPIS</span>
-          <h1 class="text-primary mb-1 text-5xl">{{ credit_note.code }}</h1>
+          <h1 class="h1 mb-1">{{ credit_note.code }}</h1>
           <div class="flex items-center gap-1">
             <h5>{{ credit_note.code }}</h5>
             <CopyToClipBoardButton v-if="credit_note.code" :text="credit_note.code" />

@@ -32,7 +32,7 @@
     <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
       <div>
         <span class="flex items-center gap-1 text-muted">FAKTURA</span>
-        <h1 class="mb-1 text-5xl text-primary">{{ invoice.code }}</h1>
+        <h1 class="mb-1 h1">{{ invoice.code }}</h1>
         <div class="flex flex-wrap items-center gap-2 text-muted">
           <span>{{ invoice.issued_date }}</span>
           <span>/</span>
