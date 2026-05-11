@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
@@ -36,8 +36,14 @@ describe('App', () => {
   const { lastAcknowledgedVersion } = useVersion()
 
   beforeEach(() => {
+    vi.useFakeTimers()
     localStorage.clear()
     lastAcknowledgedVersion.value = ''
+  })
+
+  afterEach(() => {
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
   })
 
   it('mounts renders properly', async () => {
@@ -67,6 +73,7 @@ describe('App', () => {
       },
     })
 
+    await vi.advanceTimersByTimeAsync(2000)
     await nextTick()
 
     expect(wrapper.get('[data-test="whats-new-dialog"]').text()).toContain('Co je nového?')
@@ -92,6 +99,7 @@ describe('App', () => {
       },
     })
 
+    await vi.advanceTimersByTimeAsync(2000)
     await nextTick()
 
     expect(wrapper.find('[data-test="whats-new-dialog"]').exists()).toBe(false)

@@ -37,7 +37,10 @@ export function isBaseResponse(obj: unknown | undefined): obj is BaseResponse {
 export const useApi = () => {
   const $q = useQuasar()
 
-  const onResponse = <D>(response: ResponseStub<D>): D | undefined => {
+  const onResponse = <D>(
+    response: ResponseStub<D>,
+    options?: { hideNotification?: boolean },
+  ): D | undefined => {
     if (response.response.ok) {
       return response.data
     }
@@ -54,6 +57,9 @@ export const useApi = () => {
       caption = localeVersion?.caption ?? `${response.error.error.exception}`
     }
 
+    if (options?.hideNotification) {
+      return undefined
+    }
     $q.notify({
       message: message,
       caption: `${statusCode}: ${caption}`,

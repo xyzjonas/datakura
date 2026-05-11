@@ -22,12 +22,23 @@ import { client } from './client/client.gen'
 import { getCsrfFromCookie, getCsrfToken } from './utils/csrf'
 import ReleaseNotesDialog from '@/components/ReleaseNotesDialog.vue'
 import { useVersion } from './utils/version'
+import { useRouter } from 'vue-router'
 
 const showWhatsNewDialog = ref(false)
 const { pendingChangelogEntries } = useVersion()
+const { currentRoute } = useRouter()
+
+const showOrNotToShow = () => {
+  if (currentRoute.value.name === 'logout' || currentRoute.value.name === 'login') {
+    // Don't show the dialog if we're already on the release notes page
+    showWhatsNewDialog.value = false
+    return
+  }
+  showWhatsNewDialog.value = pendingChangelogEntries.value.length > 0
+}
 
 onMounted(() => {
-  showWhatsNewDialog.value = pendingChangelogEntries.value.length > 0
+  setTimeout(showOrNotToShow, 2000)
 
   let csrfToken
   if (import.meta.env.MODE === 'development') {

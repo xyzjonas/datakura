@@ -51,7 +51,7 @@ const loadSelfCustomer = async () => {
         page_size: 1,
       },
     })
-    const data = onResponse(response)
+    const data = onResponse(response, { hideNotification: true })
     selfCustomer.value = data?.data[0]
   } catch {
     selfCustomer.value = undefined
