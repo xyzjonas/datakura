@@ -150,7 +150,7 @@ def printer_orm_to_schema(printer: Printer) -> PrinterSchema:
 
 
 def invoice_document_to_schema(invoice: Invoice) -> MediaFileSchema | None:
-    if not invoice.document:
+    if not invoice.document or not invoice.document.name:
         return None
     return MediaFileSchema(
         name=Path(invoice.document.name).name,
@@ -171,7 +171,7 @@ def invoice_orm_to_schema(invoice: Invoice) -> InvoiceSchema:
         paid_date=invoice.paid_date,
         currency=invoice.currency,
         note=invoice.note,
-        document=invoice_document_to_schema(invoice),
+        document=invoice_document_to_schema(invoice) if invoice.document else None,
         created=invoice.created,
         changed=invoice.changed,
     )
