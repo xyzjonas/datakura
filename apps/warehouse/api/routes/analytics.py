@@ -6,9 +6,11 @@ from apps.warehouse.api.pagination import InventorySnapshotsPagination
 from apps.warehouse.core.schemas.analytics import (
     GetInventorySnapshotResponse,
     GetLatestInventoryValueResponse,
+    GetRecentActivityResponse,
     InventorySnapshotCreateSchema,
     InventorySnapshotSummarySchema,
 )
+from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
 
 routes = Router(tags=["analytics"])
@@ -19,6 +21,11 @@ def get_inventory_value(request: HttpRequest):
     return GetLatestInventoryValueResponse(
         data=inventory_snapshot_service.get_latest_snapshot_value()
     )
+
+
+@routes.get("/recent-activity", response={200: GetRecentActivityResponse})
+def get_recent_activity(request: HttpRequest):
+    return GetRecentActivityResponse(data=audit_service.get_recent_activity(limit=15))
 
 
 @routes.get(

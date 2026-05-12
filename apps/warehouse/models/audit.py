@@ -18,7 +18,7 @@ class AuditAction(models.TextChoices):
     OTHER = "other", "Other"
 
 
-class AuditLogQuerySet(models.QuerySet):
+class AuditLogQuerySet(models.QuerySet["AuditLog"]):
     def for_object(self, obj: models.Model):
         if getattr(obj, "pk", None) is None:
             return self.none()
@@ -27,7 +27,7 @@ class AuditLogQuerySet(models.QuerySet):
         return self.filter(content_type=content_type, object_id=obj.pk)
 
 
-class AuditLogManager(models.Manager):
+class AuditLogManager(models.Manager.from_queryset(AuditLogQuerySet)):  # type: ignore
     def get_queryset(self):
         return AuditLogQuerySet(self.model, using=self._db)
 

@@ -65,6 +65,15 @@ class LatestInventoryValueSchema(BaseModel):
     snapshot: InventorySnapshotSummarySchema | None = None
 
 
+class RecentActivityEntrySchema(BaseModel):
+    id: int
+    happened_at: datetime
+    message: str
+    object_repr: str | None = None
+    actor_user: str | None = None
+    action: str | None = None
+
+
 class GetInventorySnapshotResponse(Response[InventorySnapshotDetailSchema]):
     data: InventorySnapshotDetailSchema
 
@@ -75,3 +84,7 @@ class GetInventorySnapshotsResponse(PaginatedResponse[InventorySnapshotSummarySc
 
 class GetLatestInventoryValueResponse(BaseResponse):
     data: LatestInventoryValueSchema
+
+
+class GetRecentActivityResponse(BaseResponse):
+    data: list[RecentActivityEntrySchema]

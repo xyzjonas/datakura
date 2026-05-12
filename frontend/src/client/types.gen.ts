@@ -3565,6 +3565,51 @@ export type LatestInventoryValueSchema = {
 };
 
 /**
+ * GetRecentActivityResponse
+ */
+export type GetRecentActivityResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<RecentActivityEntrySchema>;
+};
+
+/**
+ * RecentActivityEntrySchema
+ */
+export type RecentActivityEntrySchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Happened At
+     */
+    happened_at: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Object Repr
+     */
+    object_repr?: string | null;
+    /**
+     * Actor User
+     */
+    actor_user?: string | null;
+    /**
+     * Action
+     */
+    action?: string | null;
+};
+
+/**
  * PagedInventorySnapshotSummarySchema
  */
 export type PagedInventorySnapshotSummarySchema = {
@@ -6458,6 +6503,22 @@ export type WarehouseApiRoutesAnalyticsGetInventoryValueResponses = {
 };
 
 export type WarehouseApiRoutesAnalyticsGetInventoryValueResponse = WarehouseApiRoutesAnalyticsGetInventoryValueResponses[keyof WarehouseApiRoutesAnalyticsGetInventoryValueResponses];
+
+export type WarehouseApiRoutesAnalyticsGetRecentActivityData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/analytics/recent-activity';
+};
+
+export type WarehouseApiRoutesAnalyticsGetRecentActivityResponses = {
+    /**
+     * OK
+     */
+    200: GetRecentActivityResponse;
+};
+
+export type WarehouseApiRoutesAnalyticsGetRecentActivityResponse = WarehouseApiRoutesAnalyticsGetRecentActivityResponses[keyof WarehouseApiRoutesAnalyticsGetRecentActivityResponses];
 
 export type WarehouseApiRoutesAnalyticsGetInventorySnapshotsData = {
     body?: never;

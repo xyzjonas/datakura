@@ -1,11 +1,15 @@
+from datetime import timedelta
 from decimal import Decimal
 from typing import cast
 
 import pytest
+from django.utils import timezone
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.analytics import routes
+from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
+from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.orders import InboundOrder
 from apps.warehouse.models.warehouse import InboundWarehouseOrderState
 from apps.warehouse.tests.factories.product import StockProductFactory
@@ -152,3 +156,48 @@ def test_get_inventory_value_api_returns_latest_snapshot_summary(db, client):
     payload = response.json()["data"]["snapshot"]
     assert payload["id"] == snapshot.id
     assert payload["purchase_totals"] == [{"currency": "CZK", "value": "14.0000"}]
+
+
+def test_get_recent_activity_api_returns_latest_fifteen_entries(db, client):
+    product = StockProductFactory(code="ACTIVITY-001")
+    now = timezone.now()
+
+    newest_log = None
+    for index in range(16):
+        log = audit_service.add_entry(
+            product,
+            action=AuditAction.UPDATE,
+            reason=f"Aktivita {index}",
+        )
+        AuditLog.objects.filter(pk=log.pk).update(
+            created=now - timedelta(minutes=index)
+        )  # type: ignore
+        if index == 0:
+            newest_log = log
+
+    response = client.get("recent-activity")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert len(payload) == 15
+    assert payload[0]["message"] == "Aktivita 0"
+    assert payload[-1]["message"] == "Aktivita 14"
+    assert payload[0]["id"] == newest_log.pk
+
+
+def test_get_recent_activity_api_uses_fallback_message_when_reason_missing(db, client):
+    product = StockProductFactory(code="ACTIVITY-002", name="Fallback produkt")
+    log = audit_service.add_entry(
+        product,
+        action=AuditAction.CREATE,
+        reason=None,
+        object_repr="Fallback produkt",
+    )
+    AuditLog.objects.filter(pk=log.pk).update(created=timezone.now())  # type: ignore
+
+    response = client.get("recent-activity")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload[0]["message"] == "Vytvořen záznam: Fallback produkt"
+    assert payload[0]["object_repr"] == "Fallback produkt"

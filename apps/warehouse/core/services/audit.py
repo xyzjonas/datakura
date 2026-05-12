@@ -6,6 +6,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.contrib.auth.models import User
 from django.db import models
 
+from apps.warehouse.core.schemas.analytics import RecentActivityEntrySchema
 from apps.warehouse.core.schemas.audit import AuditTimelineEntrySchema
 from apps.warehouse.models.audit import AuditAction, AuditLog, create_audit_log
 from apps.warehouse.models.warehouse import WarehouseMovement
@@ -151,6 +152,41 @@ def movement_to_timeline_entry(movement: WarehouseMovement) -> AuditTimelineEntr
     )
 
 
+def _fallback_recent_activity_message(log: AuditLog) -> str:
+    action_labels = {
+        AuditAction.CREATE: "Vytvořen záznam",
+        AuditAction.UPDATE: "Záznam upraven",
+        AuditAction.DELETE: "Záznam smazán",
+        AuditAction.TRANSITION: "Stav záznamu změněn",
+        AuditAction.ACCESS: "Záznam zobrazen",
+        AuditAction.OTHER: "Provedena akce nad záznamem",
+    }
+    action_text = action_labels.get(
+        AuditAction(log.action), "Provedena akce nad záznamem"
+    )
+
+    if log.object_repr:
+        return f"{action_text}: {log.object_repr}"
+
+    return action_text
+
+
+def audit_log_to_recent_activity_entry(log: AuditLog) -> RecentActivityEntrySchema:
+    raw_changes, changes = _normalize_choice_changes(log)
+
+    return RecentActivityEntrySchema(
+        id=log.pk,
+        happened_at=log.created,
+        message=(
+            _normalize_reason(log.reason, raw_changes, changes)
+            or _fallback_recent_activity_message(log)
+        ),
+        object_repr=log.object_repr,
+        actor_user=log.user.username if log.user else None,
+        action=log.action,
+    )
+
+
 class AuditService:
     @staticmethod
     def add_entry(
@@ -175,6 +211,11 @@ class AuditService:
     @staticmethod
     def get_logs_for_object(obj: models.Model):
         return AuditLog.objects.for_object(obj).select_related("content_type", "user")  # type: ignore
+
+    @staticmethod
+    def get_recent_activity(limit: int = 15) -> list[RecentActivityEntrySchema]:
+        logs = AuditLog.objects.select_related("user").order_by("-created")[:limit]
+        return [audit_log_to_recent_activity_entry(log) for log in logs]
 
     @staticmethod
     def _get_related_movements_queryset(obj: models.Model):
