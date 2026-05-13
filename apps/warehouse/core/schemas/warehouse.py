@@ -281,7 +281,27 @@ class OffloadItemsToChildOrderRequest(Schema):
 
 class AssignOutboundWarehouseOrderItemRequest(Schema):
     warehouse_item_id: int
+    amount: Decimal | None = None  # Optional: for partial picks
 
 
 class GetOutboundWarehouseOrderItemCandidatesResponse(BaseResponse):
     data: list[WarehouseItemSchema]
+
+
+class BarcodeLookupRequest(Schema):
+    barcode: str
+    product_code: str | None = None
+
+
+class BarcodeLookupResponse(Schema):
+    found: bool
+    entity_type: str | None = None  # "warehouse_item", "batch", "location", "product"
+    warehouse_item: WarehouseItemSchema | None = None
+    batch: BatchSchema | None = None
+    location: WarehouseLocationSchema | None = None
+    product: ProductSchema | None = None
+    matching_items: list[WarehouseItemSchema] | None = None
+
+
+class BarcodeLookupResponseWrapper(BaseResponse):
+    data: BarcodeLookupResponse

@@ -74,7 +74,7 @@
     v-model:show="pickDialog"
     :warehouse-order-code="warehouseOrderCode"
     :item="item"
-    @confirm="assignWarehouseItem"
+    @confirm="reloadOrder"
   />
 
   <OffloadItemToChildOrderDialog
@@ -86,7 +86,6 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItem,
   warehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrder,
   type OutboundWarehouseOrderItemSchema,
   type OutboundWarehouseOrderSchema,
@@ -142,10 +141,11 @@ const offloadItem = computed<WarehouseItemSchema>(() => ({
   changed: props.item.changed,
 }))
 
-const assignWarehouseItem = async (warehouseItemId: number) => {
-  const response = await warehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItem({
-    path: { code: props.warehouseOrderCode, item_id: props.item.id },
-    body: { warehouse_item_id: warehouseItemId },
+const reloadOrder = async () => {
+  // Dialog handles the assignment, just need to reload the order
+  const { warehouseApiRoutesWarehouseGetOutboundWarehouseOrder } = await import('@/client')
+  const response = await warehouseApiRoutesWarehouseGetOutboundWarehouseOrder({
+    path: { code: props.warehouseOrderCode },
   })
   const data = onResponse(response)
   if (data?.data) {

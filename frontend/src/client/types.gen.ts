@@ -668,6 +668,54 @@ export type WarehouseItemDetailSchema = {
 };
 
 /**
+ * BarcodeLookupResponse
+ */
+export type BarcodeLookupResponse = {
+    /**
+     * Found
+     */
+    found: boolean;
+    /**
+     * Entity Type
+     */
+    entity_type?: string | null;
+    warehouse_item?: WarehouseItemSchema | null;
+    batch?: BatchSchema | null;
+    location?: WarehouseLocationSchema | null;
+    product?: ProductSchema | null;
+    /**
+     * Matching Items
+     */
+    matching_items?: Array<WarehouseItemSchema> | null;
+};
+
+/**
+ * BarcodeLookupResponseWrapper
+ */
+export type BarcodeLookupResponseWrapper = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: BarcodeLookupResponse;
+};
+
+/**
+ * BarcodeLookupRequest
+ */
+export type BarcodeLookupRequest = {
+    /**
+     * Barcode
+     */
+    barcode: string;
+    /**
+     * Product Code
+     */
+    product_code?: string | null;
+};
+
+/**
  * ContactPersonSchema
  * Schema for ContactPerson output
  */
@@ -1554,6 +1602,10 @@ export type AssignOutboundWarehouseOrderItemRequest = {
      * Warehouse Item Id
      */
     warehouse_item_id: number;
+    /**
+     * Amount
+     */
+    amount?: number | string | null;
 };
 
 /**
@@ -4361,6 +4413,22 @@ export type WarehouseApiRoutesWarehouseGetWarehouseItemResponses = {
 };
 
 export type WarehouseApiRoutesWarehouseGetWarehouseItemResponse = WarehouseApiRoutesWarehouseGetWarehouseItemResponses[keyof WarehouseApiRoutesWarehouseGetWarehouseItemResponses];
+
+export type WarehouseApiRoutesWarehouseBarcodeLookupData = {
+    body: BarcodeLookupRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/warehouse/barcode-lookup';
+};
+
+export type WarehouseApiRoutesWarehouseBarcodeLookupResponses = {
+    /**
+     * OK
+     */
+    200: BarcodeLookupResponseWrapper;
+};
+
+export type WarehouseApiRoutesWarehouseBarcodeLookupResponse = WarehouseApiRoutesWarehouseBarcodeLookupResponses[keyof WarehouseApiRoutesWarehouseBarcodeLookupResponses];
 
 export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData = {
     body?: never;

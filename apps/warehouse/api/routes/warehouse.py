@@ -32,6 +32,8 @@ from apps.warehouse.core.schemas.warehouse import (
     GetWarehousesWithCountsResponse,
     WarehouseWithCountsSchema,
     OffloadItemsToChildOrderRequest,
+    BarcodeLookupRequest,
+    BarcodeLookupResponseWrapper,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.warehouse import warehouse_service
@@ -118,6 +120,18 @@ def get_warehouse_location(request: HttpRequest, warehouse_location_code: str):
 def get_warehouse_item(request: HttpRequest, item_id: int):
     item = warehouse_service.get_warehouse_item_detail(item_id)
     return GetWarehouseItemResponse(data=item)
+
+
+@routes.post(
+    "barcode-lookup",
+    response={200: BarcodeLookupResponseWrapper},
+)
+def barcode_lookup(request: HttpRequest, body: BarcodeLookupRequest):
+    result = warehouse_service.barcode_lookup(
+        barcode=body.barcode,
+        product_code=body.product_code,
+    )
+    return BarcodeLookupResponseWrapper(data=result)
 
 
 @routes.post(
@@ -260,6 +274,7 @@ def assign_outbound_warehouse_order_item(
         order_item_id=item_id,
         warehouse_item_id=body.warehouse_item_id,
         context=RequestContext.from_django_request(request),
+        amount=body.amount,
     )
     return GetOutboundWarehouseOrderResponse(data=order)
 

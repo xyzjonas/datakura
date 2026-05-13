@@ -32,6 +32,7 @@ from apps.warehouse.core.schemas.warehouse import (
     InboundWarehouseOrderUpdateSchema,
     BatchSchema,
     DraftItemAddSchema,
+    BarcodeLookupResponse,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
@@ -43,6 +44,7 @@ from apps.warehouse.core.transformation import (
     package_orm_to_schema,
     location_orm_to_schema,
     warehouse_item_orm_to_schema,
+    batch_orm_to_schema,
 )
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.barcode import BarcodeType, Barcode
@@ -320,6 +322,149 @@ class WarehouseService:
         )
 
     @staticmethod
+    def barcode_lookup(
+        barcode: str, product_code: str | None = None
+    ) -> BarcodeLookupResponse:
+        """
+        Look up a barcode and identify what entity it represents.
+        Returns details about the scanned entity and matching warehouse items if applicable.
+        """
+        # Try to find the barcode in the database
+        barcode_obj = (
+            Barcode.objects.select_related("content_type").filter(code=barcode).first()
+        )
+
+        if not barcode_obj:
+            return BarcodeLookupResponse(
+                found=False,
+                entity_type=None,
+                warehouse_item=None,
+                batch=None,
+                location=None,
+                product=None,
+                matching_items=None,
+            )
+
+        # Determine what type of entity this barcode points to
+        content_type = barcode_obj.content_type
+        model_class = content_type.model_class()
+
+        if not model_class:
+            return BarcodeLookupResponse(
+                found=False,
+                entity_type=None,
+                warehouse_item=None,
+                batch=None,
+                location=None,
+                product=None,
+                matching_items=None,
+            )
+
+        # Fetch the actual object
+        entity = model_class.objects.filter(pk=barcode_obj.object_id).first()  # type: ignore[attr-defined]
+
+        if not entity:
+            return BarcodeLookupResponse(
+                found=False,
+                entity_type=None,
+                warehouse_item=None,
+                batch=None,
+                location=None,
+                product=None,
+                matching_items=None,
+            )
+
+        # Build response based on entity type
+        response = BarcodeLookupResponse(
+            found=True,
+            entity_type=None,
+            warehouse_item=None,
+            batch=None,
+            location=None,
+            product=None,
+            matching_items=None,
+        )
+
+        if isinstance(entity, WarehouseItem):
+            response.entity_type = "warehouse_item"
+            response.warehouse_item = warehouse_item_orm_to_schema(
+                WarehouseItem.objects.select_related(
+                    "stock_product",
+                    "stock_product__unit_of_measure",
+                    "location",
+                    "location__warehouse",
+                    "batch",
+                    "package_type",
+                    "package_type__unit_of_measure",
+                ).get(pk=entity.pk)
+            )
+
+        elif isinstance(entity, Batch):
+            response.entity_type = "batch"
+            response.batch = batch_orm_to_schema(entity)
+
+            # Find matching warehouse items with this batch
+            items_qs = WarehouseItem.available.select_related(
+                "stock_product",
+                "stock_product__unit_of_measure",
+                "location",
+                "location__warehouse",
+                "batch",
+                "package_type",
+                "package_type__unit_of_measure",
+            ).filter(batch=entity)
+
+            if product_code:
+                items_qs = items_qs.filter(stock_product__code=product_code)
+
+            response.matching_items = [
+                warehouse_item_orm_to_schema(item) for item in items_qs[:20]
+            ]
+
+        elif isinstance(entity, WarehouseLocation):
+            response.entity_type = "location"
+            response.location = location_orm_to_schema(entity)
+
+            # Find available warehouse items at this location
+            items_qs = WarehouseItem.available.select_related(
+                "stock_product",
+                "stock_product__unit_of_measure",
+                "location",
+                "location__warehouse",
+                "batch",
+                "package_type",
+                "package_type__unit_of_measure",
+            ).filter(location=entity)
+
+            if product_code:
+                items_qs = items_qs.filter(stock_product__code=product_code)
+
+            response.matching_items = [
+                warehouse_item_orm_to_schema(item) for item in items_qs[:20]
+            ]
+
+        elif isinstance(entity, StockProduct):
+            response.entity_type = "product"
+            response.product = product_orm_to_schema(entity)
+
+            # Find available warehouse items of this product
+            items_qs = WarehouseItem.available.select_related(
+                "stock_product",
+                "stock_product__unit_of_measure",
+                "location",
+                "location__warehouse",
+                "batch",
+                "package_type",
+                "package_type__unit_of_measure",
+            ).filter(stock_product=entity)
+
+            response.matching_items = [
+                warehouse_item_orm_to_schema(item) for item in items_qs[:20]
+            ]
+
+        return response
+
+    @staticmethod
     def create_warehouse_movement(
         item_id: int, warehouse_order_code: str, new_location_code: str
     ) -> None:
@@ -572,6 +717,7 @@ class WarehouseService:
         order_item_id: int,
         warehouse_item_id: int,
         context: RequestContext,
+        amount: Decimal | None = None,
     ) -> OutboundWarehouseOrderSchema:
         warehouse_order = OutboundWarehouseOrder.objects.select_related("order").get(
             code=warehouse_order_code
@@ -611,7 +757,9 @@ class WarehouseService:
                 f"Warehouse item '{warehouse_item_id}' does not match outbound requirement."
             )
 
-        requested_amount = Decimal(str(order_item.amount))
+        requested_amount = (
+            amount if amount is not None else Decimal(str(order_item.amount))
+        )
         with transaction.atomic():
             assigned_item = cls._split_outbound_pick_item(
                 candidate,
