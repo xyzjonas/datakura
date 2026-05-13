@@ -355,13 +355,45 @@ class OutboundOrdersService:
         return Customer.objects.get(code=customer_code)
 
     @staticmethod
-    def generate_next_outgoing_order_code() -> str:
+    def _generate_next_monthly_code(
+        *,
+        queryset: QuerySet[OutboundOrder],
+        field_name: str,
+        prefix: str,
+    ) -> str:
         now = timezone.now()
         dt_range = _get_month_range(now)
-        orders_this_month = OutboundOrder.objects.filter(
-            created__range=dt_range
-        ).count()
-        return f"OP{now.year}{now.month:02d}{orders_this_month + 1:04d}"
+        monthly_prefix = f"{prefix}{now.year}{now.month:02d}"
+        last_code = (
+            queryset.filter(
+                created__range=dt_range, **{f"{field_name}__startswith": monthly_prefix}
+            )
+            .exclude(**{field_name: ""})
+            .order_by(f"-{field_name}")
+            .values_list(field_name, flat=True)
+            .first()
+        )
+        next_number = 1
+        if last_code:
+            next_number = int(str(last_code)[len(monthly_prefix) :]) + 1
+
+        return f"{monthly_prefix}{next_number:04d}"
+
+    @classmethod
+    def generate_next_outgoing_order_code(cls) -> str:
+        return cls._generate_next_monthly_code(
+            queryset=OutboundOrder.objects.all(),
+            field_name="code",
+            prefix="OV",
+        )
+
+    @classmethod
+    def generate_next_calculation_code(cls) -> str:
+        return cls._generate_next_monthly_code(
+            queryset=OutboundOrder.objects.exclude(calculation_code__isnull=True),
+            field_name="calculation_code",
+            prefix="K",
+        )
 
     @staticmethod
     def _assert_order_editable(order: OutboundOrder) -> None:
@@ -591,7 +623,7 @@ class OutboundOrdersService:
         code: str | None = None,
     ) -> OutboundOrderSchema:
         if code is None:
-            code = OutboundOrdersService.generate_next_outgoing_order_code()
+            code = OutboundOrdersService.generate_next_calculation_code()
 
         previous_order_schema = None
         existing_order = OutboundOrder.objects.filter(code=code).first()
@@ -604,6 +636,7 @@ class OutboundOrdersService:
             order, created = OutboundOrder.objects.update_or_create(
                 code=code,
                 defaults=dict(
+                    calculation_code=code,
                     external_code=params.external_code,
                     description=params.description,
                     note=params.note,
@@ -820,6 +853,14 @@ class OutboundOrdersService:
             new_state = target_state
 
         with transaction.atomic():
+            if new_state == OutboundOrderState.PICKING and old_state in (
+                OutboundOrderState.DRAFT,
+                OutboundOrderState.SUBMITTED,
+            ):
+                if not order.calculation_code:
+                    order.calculation_code = order.code
+                order.code = cls.generate_next_outgoing_order_code()
+
             order.state = new_state
 
             if (
@@ -837,7 +878,7 @@ class OutboundOrdersService:
                     action=AuditAction.CREATE,
                     user=context.user_id,
                     reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
-                        purchase_order_code=code
+                        purchase_order_code=order.code
                     ),
                 )
                 cls._build_outbound_warehouse_order_items(

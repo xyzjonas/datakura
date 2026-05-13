@@ -52,7 +52,7 @@ import ForegroundPanel from '../ForegroundPanel.vue'
 import { useQuasar } from 'quasar'
 
 const STEPS = [
-  { step: 1, title: 'Koncept', caption: 'Čeká na potvrzení', icon: 'sym_o_ink_pen' },
+  { step: 1, title: 'Kalkulace', caption: 'Čeká na potvrzení', icon: 'sym_o_ink_pen' },
   {
     step: 2,
     title: 'Potvrzeno',

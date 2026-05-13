@@ -103,7 +103,12 @@ describe('outbound invoice helpers', () => {
     expect(
       getOutboundInvoiceSelectionBlockReason(buildOrder({ invoice: { code: 'INV-1' } as never })),
     ).toBe('already-invoiced')
-    expect(getOutboundInvoiceSelectionBlockReason(buildOrder({ state: 'draft' }))).toBe('draft')
+    expect(getOutboundInvoiceSelectionBlockReason(buildOrder({ state: 'draft' }))).toBe(
+      'calculation',
+    )
+    expect(
+      getOutboundInvoiceSelectionBlockReason(buildOrder({ state: 'calculation' as never })),
+    ).toBe('calculation')
     expect(getOutboundInvoiceSelectionBlockReason(buildOrder({ warehouse_orders: [] }))).toBe(
       'warehouse-not-completed',
     )

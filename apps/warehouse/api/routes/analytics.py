@@ -25,7 +25,7 @@ def get_inventory_value(request: HttpRequest):
 
 @routes.get("/recent-activity", response={200: GetRecentActivityResponse})
 def get_recent_activity(request: HttpRequest):
-    return GetRecentActivityResponse(data=audit_service.get_recent_activity(limit=15))
+    return GetRecentActivityResponse(data=audit_service.get_recent_activity(limit=8))
 
 
 @routes.get(

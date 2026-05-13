@@ -179,9 +179,9 @@ def test_get_recent_activity_api_returns_latest_fifteen_entries(db, client):
 
     assert response.status_code == 200
     payload = response.json()["data"]
-    assert len(payload) == 15
+    assert len(payload) == 8
     assert payload[0]["message"] == "Aktivita 0"
-    assert payload[-1]["message"] == "Aktivita 14"
+    assert payload[-1]["message"] == "Aktivita 7"
     assert payload[0]["id"] == newest_log.pk
 
 

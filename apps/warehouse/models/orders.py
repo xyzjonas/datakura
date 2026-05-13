@@ -48,7 +48,7 @@ class InboundOrderState(models.IntegerChoices):
 
 
 class OutboundOrderState(models.IntegerChoices):
-    DRAFT = 1, "Draft"
+    DRAFT = 1, "Calculation"
     SUBMITTED = 2, "Submitted"
     PICKING = 3, "Picking"
     PACKING = 4, "Packing"
@@ -65,7 +65,7 @@ class OutboundOrderState(models.IntegerChoices):
         """Return the API string for a given state value."""
         member = value if isinstance(value, cls) else cls(value)
         api_values = {
-            cls.DRAFT: "draft",
+            cls.DRAFT: "calculation",
             cls.SUBMITTED: "submitted",
             cls.PICKING: "picking",
             cls.PACKING: "packing",
@@ -232,6 +232,12 @@ class OutboundOrder(BaseModel):
     """Outgoing order, or "sales" order"""
 
     code = models.CharField(max_length=50, null=False, unique=True)
+    calculation_code = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        unique=True,
+    )
     external_code = models.CharField(
         max_length=50, null=True, blank=True
     )  # todo: add unique constraint

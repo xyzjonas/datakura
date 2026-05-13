@@ -7,10 +7,17 @@ export type ChangelogEntry = {
   rows: string[]
 }
 
-export const APP_VERSION = '0.0.1dev2'
+export const APP_VERSION = '0.0.1dev3'
 export const STORAGE_KEY = 'app-last-acknowledged-version'
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+  {
+    version: '0.0.1dev3',
+    releaseDate: '2026-05-12',
+    rows: [
+      'Koncept vydané objednávky se nyní nazývá "Kalkulace" a má svoji vlastní číselnou řadu.',
+    ],
+  },
   {
     version: '0.0.1dev2',
     releaseDate: '2026-05-07',

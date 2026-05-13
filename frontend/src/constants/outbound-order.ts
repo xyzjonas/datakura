@@ -10,8 +10,14 @@ export interface StateConfig {
 export const CANCELLED = 99
 
 export const OUTBOUND_ORDER_STATES: Record<string, StateConfig> = {
+  calculation: {
+    label: 'Kalkulace',
+    icon: 'sym_o_ink_pen',
+    color: 'grey-7',
+    step: 1,
+  },
   draft: {
-    label: 'Koncept',
+    label: 'Kalkulace',
     icon: 'sym_o_ink_pen',
     color: 'grey-7',
     step: 1,

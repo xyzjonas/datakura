@@ -119,7 +119,7 @@ def test_timeline_includes_related_movements_and_is_ordered(db):
             OutboundOrderState.DRAFT,
             OutboundOrderState.PICKING,
             AuditMessages.OUTBOUND_ORDER_STATE_CHANGED.CS,
-            "Draft",
+            "Calculation",
             "Picking",
         ),
         (

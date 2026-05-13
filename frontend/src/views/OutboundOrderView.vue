@@ -197,7 +197,9 @@ const isEditable = computed(() => {
   )
 })
 
-const canConfirm = computed(() => ['draft', 'submitted'].includes(order.value?.state ?? ''))
+const canConfirm = computed(() =>
+  ['draft', 'calculation', 'submitted'].includes(order.value?.state ?? ''),
+)
 const canCancel = computed(() => isEditable.value)
 
 const addItemDialog = ref(false)

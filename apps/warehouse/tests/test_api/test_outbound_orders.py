@@ -10,7 +10,7 @@ from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
-from apps.warehouse.models.orders import OutboundOrderState
+from apps.warehouse.models.orders import OutboundOrder, OutboundOrderState
 from apps.warehouse.models.product import PriceGroup
 from apps.warehouse.models.warehouse import (
     Batch,
@@ -94,9 +94,37 @@ def test_get_outbound_order_audits_formats_transition_state_labels(db) -> None:
     assert res.status_code == 200
     data = res.json()["data"]
     assert (
-        data[0]["reason"] == "Stav vydané objednávky se změnil z 'Draft' na 'Picking'"
+        data[0]["reason"]
+        == "Stav vydané objednávky se změnil z 'Calculation' na 'Picking'"
     )
-    assert data[0]["changes"]["state"] == {"old": "Draft", "new": "Picking"}
+    assert data[0]["changes"]["state"] == {"old": "Calculation", "new": "Picking"}
+
+
+def test_create_outbound_order_uses_calculation_code_and_state(db) -> None:
+    client = TestClient(routes)
+    customer = CustomerFactory()
+
+    response = client.post(
+        "",
+        json={
+            "external_code": "OUT-CALC-001",
+            "description": "Calculation order",
+            "note": "Draft calculation",
+            "currency": "CZK",
+            "customer_code": customer.code,
+            "customer_name": customer.name,
+            "requested_delivery_date": None,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.DRAFT)
+    assert data["code"].startswith("K")
+
+    order = OutboundOrder.objects.get(code=data["code"])
+    assert order.code == data["code"]
+    assert order.calculation_code == data["code"]
 
 
 @pytest.mark.parametrize(
@@ -604,6 +632,7 @@ def test_get_outbound_order_contains_item_pricing_details(db) -> None:
 def test_transition_outbound_order_next_creates_warehouse_order(db) -> None:
     client = TestClient(routes)
     order = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+    original_code = order.code
     product = StockProductFactory()
     OutboundOrderItemFactory(order=order, stock_product=product, amount=2)
 
@@ -612,9 +641,33 @@ def test_transition_outbound_order_next_creates_warehouse_order(db) -> None:
     assert res.status_code == 200
     data = res.json()["data"]
     assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.PICKING)
+    assert data["code"].startswith("OV")
+    assert data["code"] != order.code
     assert len(data["warehouse_orders"]) == 1
-    assert data["warehouse_orders"][0]["order_code"] == order.code
-    assert OutboundWarehouseOrder.objects.filter(order__code=order.code).count() == 1
+    assert data["warehouse_orders"][0]["order_code"] == data["code"]
+
+    order.refresh_from_db()
+    assert order.code == data["code"]
+    assert order.calculation_code == original_code
+    assert OutboundWarehouseOrder.objects.filter(order=order).count() == 1
+
+
+def test_transition_outbound_order_next_preserves_calculation_code(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(
+        code="K2026050007",
+        calculation_code="K2026050007",
+        state=OutboundOrderState.DRAFT,
+    )
+    product = StockProductFactory()
+    OutboundOrderItemFactory(order=order, stock_product=product, amount=2)
+
+    response = client.post(f"/{order.code}/transition", json={"action": "next"})
+
+    assert response.status_code == 200
+    order.refresh_from_db()
+    assert order.code.startswith("OV")
+    assert order.calculation_code == "K2026050007"
 
 
 def test_transition_outbound_order_next_skips_packing_and_shipping(db) -> None:
