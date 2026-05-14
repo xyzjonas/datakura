@@ -1,5 +1,5 @@
 <template>
-  <ForegroundPanel class="flex flex-col flex-1" :flat="flat">
+  <ForegroundPanel no-padding class="flex flex-col flex-1" :flat="flat">
     <div class="mb-2">
       <h2>Objednávky s tímto produktem</h2>
       <span class="text-gray-5"

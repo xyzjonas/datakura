@@ -7,7 +7,7 @@
 <script setup lang="ts">
 import JsBarcode from 'jsbarcode'
 import { useQuasar } from 'quasar'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -30,26 +30,42 @@ const barcodeElement = ref<SVGElement>()
 
 const $q = useQuasar()
 
-onMounted(() => {
-  if (barcodeElement.value) {
-    JsBarcode(barcodeElement.value, props.barcode, {
-      // background: 'red',
-      fontSize: props.fontSize,
-      margin: 0,
-      ean128: false,
-      marginBottom: 0,
-      flat: true,
-      height: props.height,
-      width: props.width,
-      marginTop: 0,
-      textPosition: 'bottom',
-      displayValue: props.displayValue,
-      textAlign: props.textAlign,
-      background: $q.dark.isActive ? 'var(--q-dark-page)' : 'white',
-      lineColor: $q.dark.isActive ? 'white' : 'black',
-    })
+const renderBarcode = () => {
+  if (!barcodeElement.value) {
+    return
   }
-})
+
+  JsBarcode(barcodeElement.value, props.barcode, {
+    fontSize: props.fontSize,
+    margin: 0,
+    ean128: false,
+    marginBottom: 0,
+    flat: true,
+    height: props.height,
+    width: props.width,
+    marginTop: 0,
+    textPosition: 'bottom',
+    displayValue: props.displayValue,
+    textAlign: props.textAlign,
+    background: $q.dark.isActive ? 'var(--q-dark-page)' : 'white',
+    lineColor: $q.dark.isActive ? 'white' : 'black',
+  })
+}
+
+watch(
+  [
+    () => props.barcode,
+    () => props.fontSize,
+    () => props.width,
+    () => props.height,
+    () => props.displayValue,
+    () => props.textAlign,
+    () => $q.dark.isActive,
+  ],
+  renderBarcode,
+  { immediate: true },
+)
+onMounted(renderBarcode)
 </script>
 
 <style lang="scss" scoped></style>

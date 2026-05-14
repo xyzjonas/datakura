@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction
 from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.core.schemas.product import (
     ProductBarcodeCreateSchema,
+    ProductBarcodeUpdateSchema,
     ProductCreateOrUpdateSchema,
     ProductDuplicateSchema,
     CustomerPriceOverrideUpsertSchema,
@@ -18,7 +19,7 @@ from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.core.transformation import get_product_by_code
-from apps.warehouse.models.barcode import BarcodeType
+from apps.warehouse.models.barcode import Barcode, BarcodeType
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.product import (
@@ -368,6 +369,63 @@ class StockProductsService:
         except ValueError as exc:
             raise WarehouseGenericError(str(exc))
 
+        return get_product_by_code(product_code)
+
+    @staticmethod
+    @transaction.atomic
+    def update_barcode(
+        product_code: str,
+        barcode_id: int,
+        params: ProductBarcodeUpdateSchema,
+    ):
+        product = StockProduct.objects.get(code=product_code)
+        barcode = Barcode.objects.get(pk=barcode_id, object_id=product.pk)
+
+        if params.code is not None and params.code != barcode.code:
+            if Barcode.objects.filter(code=params.code).exists():
+                raise WarehouseGenericError(f"Barcode {params.code} already exists")
+            barcode.code = params.code
+
+        if params.barcode_type is not None:
+            barcode.barcode_type = BarcodeType(params.barcode_type)
+
+        if params.is_primary is not None and params.is_primary:
+            from django.contrib.contenttypes.models import ContentType
+
+            ct = ContentType.objects.get_for_model(product)
+            Barcode.objects.filter(
+                content_type=ct, object_id=product.pk, is_primary=True
+            ).update(is_primary=False)
+            barcode.is_primary = True
+        elif params.is_primary is not None:
+            barcode.is_primary = False
+
+        barcode.save()
+        return get_product_by_code(product_code)
+
+    @staticmethod
+    @transaction.atomic
+    def delete_barcode(product_code: str, barcode_id: int):
+        product = StockProduct.objects.get(code=product_code)
+        barcode = Barcode.objects.get(pk=barcode_id, object_id=product.pk)
+        barcode.delete()
+        return get_product_by_code(product_code)
+
+    @staticmethod
+    @transaction.atomic
+    def set_primary_barcode(product_code: str, barcode_id: int):
+        product = StockProduct.objects.get(code=product_code)
+        barcode = Barcode.objects.get(pk=barcode_id, object_id=product.pk)
+
+        from django.contrib.contenttypes.models import ContentType
+
+        ct = ContentType.objects.get_for_model(product)
+        Barcode.objects.filter(
+            content_type=ct, object_id=product.pk, is_primary=True
+        ).update(is_primary=False)
+
+        barcode.is_primary = True
+        barcode.save()
         return get_product_by_code(product_code)
 
 

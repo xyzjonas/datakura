@@ -27,9 +27,9 @@
           <span :class="{ 'font-bold text-red': location === prop.node.label }">{{
             prop.node.label
           }}</span>
-          <span class="mx-2 font-thin text-gray-5">|</span>
-          <span class="font-thin">{{ prop.node.count.toFixed(2) }}</span>
-          <span class="ml-1 font-thin text-[10px] text-gray-5">{{ productUnit }}</span>
+          <span class="mx-2 font-normal text-muted">|</span>
+          <span class="font-normal">{{ prop.node.count.toFixed(2) }}</span>
+          <span class="font-normal ml-1 text-xs text-muted">{{ productUnit }}</span>
         </div>
       </template>
     </q-tree>

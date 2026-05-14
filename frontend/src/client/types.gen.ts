@@ -297,6 +297,10 @@ export type BarcodeSchema = {
      */
     changed: string;
     /**
+     * Id
+     */
+    id: number;
+    /**
      * Code
      */
     code: string;
@@ -1984,6 +1988,66 @@ export type ProductDuplicateSchema = {
 };
 
 /**
+ * BarcodeGenerateResponseSchema
+ */
+export type BarcodeGenerateResponseSchema = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Barcode Type
+     */
+    barcode_type: string;
+};
+
+/**
+ * GetBarcodeGenerateResponse
+ */
+export type GetBarcodeGenerateResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: BarcodeGenerateResponseSchema;
+};
+
+/**
+ * BarcodeGenerateSchema
+ */
+export type BarcodeGenerateSchema = {
+    /**
+     * Barcode Type
+     */
+    barcode_type?: string;
+    /**
+     * Prefix
+     */
+    prefix?: string | null;
+    /**
+     * Length
+     */
+    length?: number | null;
+    /**
+     * Country Code
+     */
+    country_code?: string | null;
+    /**
+     * Numeric Only
+     */
+    numeric_only?: boolean | null;
+    /**
+     * Include Letters
+     */
+    include_letters?: boolean | null;
+    /**
+     * Include Digits
+     */
+    include_digits?: boolean | null;
+};
+
+/**
  * ProductBarcodeCreateSchema
  */
 export type ProductBarcodeCreateSchema = {
@@ -1999,6 +2063,24 @@ export type ProductBarcodeCreateSchema = {
      * Is Primary
      */
     is_primary?: boolean;
+};
+
+/**
+ * ProductBarcodeUpdateSchema
+ */
+export type ProductBarcodeUpdateSchema = {
+    /**
+     * Code
+     */
+    code?: string | null;
+    /**
+     * Barcode Type
+     */
+    barcode_type?: string | null;
+    /**
+     * Is Primary
+     */
+    is_primary?: boolean | null;
 };
 
 /**
@@ -5089,6 +5171,22 @@ export type WarehouseApiRoutesProductGetProductAuditsResponses = {
 
 export type WarehouseApiRoutesProductGetProductAuditsResponse = WarehouseApiRoutesProductGetProductAuditsResponses[keyof WarehouseApiRoutesProductGetProductAuditsResponses];
 
+export type WarehouseApiRoutesProductGenerateBarcodeData = {
+    body: BarcodeGenerateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/products/barcodes/generate';
+};
+
+export type WarehouseApiRoutesProductGenerateBarcodeResponses = {
+    /**
+     * OK
+     */
+    200: GetBarcodeGenerateResponse;
+};
+
+export type WarehouseApiRoutesProductGenerateBarcodeResponse = WarehouseApiRoutesProductGenerateBarcodeResponses[keyof WarehouseApiRoutesProductGenerateBarcodeResponses];
+
 export type WarehouseApiRoutesProductAddProductBarcodeData = {
     body: ProductBarcodeCreateSchema;
     path: {
@@ -5109,6 +5207,81 @@ export type WarehouseApiRoutesProductAddProductBarcodeResponses = {
 };
 
 export type WarehouseApiRoutesProductAddProductBarcodeResponse = WarehouseApiRoutesProductAddProductBarcodeResponses[keyof WarehouseApiRoutesProductAddProductBarcodeResponses];
+
+export type WarehouseApiRoutesProductDeleteProductBarcodeData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+        /**
+         * Barcode Id
+         */
+        barcode_id: number;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/barcodes/{barcode_id}';
+};
+
+export type WarehouseApiRoutesProductDeleteProductBarcodeResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductDeleteProductBarcodeResponse = WarehouseApiRoutesProductDeleteProductBarcodeResponses[keyof WarehouseApiRoutesProductDeleteProductBarcodeResponses];
+
+export type WarehouseApiRoutesProductUpdateProductBarcodeData = {
+    body: ProductBarcodeUpdateSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+        /**
+         * Barcode Id
+         */
+        barcode_id: number;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/barcodes/{barcode_id}';
+};
+
+export type WarehouseApiRoutesProductUpdateProductBarcodeResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductUpdateProductBarcodeResponse = WarehouseApiRoutesProductUpdateProductBarcodeResponses[keyof WarehouseApiRoutesProductUpdateProductBarcodeResponses];
+
+export type WarehouseApiRoutesProductSetPrimaryBarcodeData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+        /**
+         * Barcode Id
+         */
+        barcode_id: number;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/barcodes/{barcode_id}/set-primary';
+};
+
+export type WarehouseApiRoutesProductSetPrimaryBarcodeResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductSetPrimaryBarcodeResponse = WarehouseApiRoutesProductSetPrimaryBarcodeResponses[keyof WarehouseApiRoutesProductSetPrimaryBarcodeResponses];
 
 export type WarehouseApiRoutesProductAddProductDynamicPriceData = {
     body: DynamicProductPriceCreateSchema;

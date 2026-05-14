@@ -63,3 +63,19 @@ def handle_api_exceptions(request, exc: ApiBaseException):
 @api.exception_handler(ObjectDoesNotExist)
 def handle_not_found_exceptions(request, exc: ObjectDoesNotExist):
     return handle_api_exceptions(request, NotFoundException(str(exc)))
+
+
+@api.exception_handler(NotImplementedError)
+def handle_not_implemented(request, exc: NotImplementedError):
+    return api.create_response(
+        request,
+        BaseResponse(
+            success=False,
+            error=ErrorInformation(
+                error_code="FEATURE-MISSING",
+                message="This functionality is not implemented yet.",
+                exception="This functionality is not implemented yet.",
+            ),
+        ).model_dump(),
+        status=500,
+    )

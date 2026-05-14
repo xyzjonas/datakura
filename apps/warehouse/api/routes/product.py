@@ -20,10 +20,14 @@ from apps.warehouse.core.schemas.product import (
     GetDiscountGroupResponse,
     GetDiscountGroupsResponse,
     GetSellingPriceLookupResponse,
+    GetBarcodeGenerateResponse,
     ProductSchema,
     ProductCreateOrUpdateSchema,
     ProductDuplicateSchema,
     ProductBarcodeCreateSchema,
+    ProductBarcodeUpdateSchema,
+    BarcodeGenerateSchema,
+    BarcodeGenerateResponseSchema,
     DiscountGroupCreateOrUpdateSchema,
     DynamicProductPriceCreateSchema,
     DynamicProductPriceUpdateSchema,
@@ -37,6 +41,7 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.services.products import stock_product_service
+from apps.warehouse.core.services.barcode_generator import barcode_generator_service
 from apps.warehouse.core.transformation import (
     discount_group_orm_to_schema,
     get_product_by_code,
@@ -181,12 +186,73 @@ def get_product_audits(request: HttpRequest, product_code: str):
     return GetAuditTimelineResponse(data=audit_service.get_timeline_for_object(product))
 
 
+@routes.post("/barcodes/generate", response={200: GetBarcodeGenerateResponse})
+def generate_barcode(request: HttpRequest, body: BarcodeGenerateSchema):
+    kwargs: dict = {}
+    if body.prefix is not None:
+        kwargs["prefix"] = body.prefix
+    if body.length is not None:
+        kwargs["length"] = body.length
+    if body.country_code is not None:
+        kwargs["country_code"] = body.country_code
+    if body.numeric_only is not None:
+        kwargs["numeric_only"] = body.numeric_only
+    if body.include_letters is not None:
+        kwargs["include_letters"] = body.include_letters
+    if body.include_digits is not None:
+        kwargs["include_digits"] = body.include_digits
+
+    code = barcode_generator_service.generate(body.barcode_type, **kwargs)
+    return GetBarcodeGenerateResponse(
+        data=BarcodeGenerateResponseSchema(code=code, barcode_type=body.barcode_type)
+    )
+
+
 @routes.post("/{product_code}/barcodes", response={200: GetProductResponse})
 def add_product_barcode(
     request: HttpRequest, product_code: str, body: ProductBarcodeCreateSchema
 ):
     return GetProductResponse(
         data=stock_product_service.add_barcode(product_code, body)
+    )
+
+
+@routes.put("/{product_code}/barcodes/{barcode_id}", response={200: GetProductResponse})
+def update_product_barcode(
+    request: HttpRequest,
+    product_code: str,
+    barcode_id: int,
+    body: ProductBarcodeUpdateSchema,
+):
+    return GetProductResponse(
+        data=stock_product_service.update_barcode(product_code, barcode_id, body)
+    )
+
+
+@routes.delete(
+    "/{product_code}/barcodes/{barcode_id}", response={200: GetProductResponse}
+)
+def delete_product_barcode(
+    request: HttpRequest,
+    product_code: str,
+    barcode_id: int,
+):
+    return GetProductResponse(
+        data=stock_product_service.delete_barcode(product_code, barcode_id)
+    )
+
+
+@routes.post(
+    "/{product_code}/barcodes/{barcode_id}/set-primary",
+    response={200: GetProductResponse},
+)
+def set_primary_barcode(
+    request: HttpRequest,
+    product_code: str,
+    barcode_id: int,
+):
+    return GetProductResponse(
+        data=stock_product_service.set_primary_barcode(product_code, barcode_id)
     )
 
 

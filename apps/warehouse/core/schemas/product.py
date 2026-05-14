@@ -112,3 +112,27 @@ class ProductBarcodeCreateSchema(Schema):
     code: str
     barcode_type: str = "EAN13"
     is_primary: bool = False
+
+
+class ProductBarcodeUpdateSchema(Schema):
+    code: str | None = None
+    barcode_type: str | None = None
+    is_primary: bool | None = None
+
+
+class BarcodeGenerateSchema(Schema):
+    barcode_type: str = "EAN13"
+    prefix: str | None = None
+    length: int | None = None
+    country_code: str | None = None
+    numeric_only: bool | None = None
+    include_letters: bool | None = None
+    include_digits: bool | None = None
+
+
+class BarcodeGenerateResponseSchema(Schema):
+    code: str
+    barcode_type: str
+
+
+class GetBarcodeGenerateResponse(Response[BarcodeGenerateResponseSchema]): ...

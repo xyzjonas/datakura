@@ -121,6 +121,7 @@ def barcode_orm_to_schema(barcode: Barcode | None = None) -> BarcodeSchema | Non
     if not barcode:
         return None
     return BarcodeSchema(
+        id=barcode.pk,
         code=barcode.code,
         barcode_type=barcode.barcode_type,
         is_primary=barcode.is_primary,
@@ -378,6 +379,8 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         for dynamic_price in product.dynamic_prices.all()
     ]
 
+    barcodes = [barcode_orm_to_schema(barcode) for barcode in product.get_barcodes()]
+
     return ProductSchema(
         name=product.name,
         code=product.code,
@@ -393,7 +396,7 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         no_discount=product.no_discount,
         customs_declaration_group=product.customs_declaration_group,
         attributes=product.attributes,
-        barcodes=product.get_barcodes(),
+        barcodes=[b for b in barcodes if b is not None],
         primary_barcode=barcode_orm_to_schema(product.get_primary_barcode()),
         dynamic_prices=dynamic_prices,
     )

@@ -1163,6 +1163,7 @@ class WarehouseService:
                 batch=BatchSchema(
                     id=-1,
                     primary_barcode=BarcodeSchema(
+                        id=-1,
                         code=batch_code or "autogen-batch-01234",
                         barcode_type=BarcodeType.EAN13,
                         is_primary=True,

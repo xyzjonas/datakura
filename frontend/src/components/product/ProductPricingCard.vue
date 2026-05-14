@@ -10,7 +10,7 @@
       :pagination="{ rowsPerPage: 5 }"
       class="bg-transparent"
       no-data-label="Prodejní cena není nastavena!"
-      :grid="$q.screen.lg"
+      :grid="$q.screen.lt.md"
     >
       <template #item="slotProps">
         <div class="q-pa-xs col-12">

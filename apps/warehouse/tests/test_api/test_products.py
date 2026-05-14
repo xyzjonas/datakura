@@ -647,3 +647,124 @@ def test_discount_group_crud(db, client):
     delete_response = client.delete("/pricing/discount-groups/D")
     assert delete_response.status_code == 200
     assert all(group["code"] != "D" for group in delete_response.json()["data"])
+
+
+def test_generate_barcode_ean13_default(db, client):
+    response = client.post("/barcodes/generate", json={"barcode_type": "EAN13"})
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["barcode_type"] == "EAN13"
+    assert len(data["code"]) == 13
+    assert data["code"].isdigit()
+
+
+def test_generate_barcode_ean13_with_prefix(db, client):
+    response = client.post(
+        "/barcodes/generate",
+        json={"barcode_type": "EAN13", "prefix": "012345678901"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["code"] == "0123456789012"
+
+
+def test_generate_barcode_ean13_with_country_code(db, client):
+    response = client.post(
+        "/barcodes/generate",
+        json={"barcode_type": "EAN13", "country_code": "999"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["code"].startswith("999")
+    assert len(data["code"]) == 13
+
+
+def test_generate_barcode_ean8(db, client):
+    response = client.post("/barcodes/generate", json={"barcode_type": "EAN8"})
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["barcode_type"] == "EAN8"
+    assert len(data["code"]) == 8
+    assert data["code"].isdigit()
+
+
+def test_generate_barcode_upc(db, client):
+    response = client.post("/barcodes/generate", json={"barcode_type": "UPC"})
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["barcode_type"] == "UPC"
+    assert len(data["code"]) == 12
+    assert data["code"].isdigit()
+
+
+def test_generate_barcode_serial_with_prefix(db, client):
+    response = client.post(
+        "/barcodes/generate",
+        json={
+            "barcode_type": "SERIAL",
+            "prefix": "SN",
+            "length": 10,
+            "numeric_only": True,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["barcode_type"] == "SERIAL"
+    assert data["code"].startswith("SN")
+    assert len(data["code"]) == 10
+    assert data["code"][2:].isdigit()
+
+
+def test_generate_barcode_serial_alphanumeric(db, client):
+    response = client.post(
+        "/barcodes/generate",
+        json={
+            "barcode_type": "SERIAL",
+            "length": 12,
+            "numeric_only": False,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data["code"]) == 12
+    assert data["code"].isalnum()
+
+
+def test_generate_barcode_custom_digits_only(db, client):
+    response = client.post(
+        "/barcodes/generate",
+        json={
+            "barcode_type": "CUSTOM",
+            "length": 15,
+            "include_letters": False,
+            "include_digits": True,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data["code"]) == 15
+    assert data["code"].isdigit()
+
+
+def test_generate_barcode_custom_with_prefix(db, client):
+    response = client.post(
+        "/barcodes/generate",
+        json={
+            "barcode_type": "CUSTOM",
+            "prefix": "PROD",
+            "length": 12,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["code"].startswith("PROD")
+    assert len(data["code"]) == 12

@@ -4,6 +4,7 @@ from apps.warehouse.core.schemas.base import BaseSchema
 
 
 class BarcodeSchema(BaseSchema):
+    id: int
     code: str
     barcode_type: str
     is_primary: bool

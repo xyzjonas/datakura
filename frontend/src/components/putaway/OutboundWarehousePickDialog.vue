@@ -542,7 +542,7 @@ const confirmFungiblePick = async () => {
 
   assigning.value = true
   try {
-    await warehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItem({
+    const response = await warehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItem({
       path: {
         code: props.warehouseOrderCode,
         item_id: props.item.id,
@@ -552,6 +552,7 @@ const confirmFungiblePick = async () => {
         amount: String(pickAmount.value),
       },
     })
+    onResponse(response)
     emit('confirm')
     showDialog.value = false
   } finally {

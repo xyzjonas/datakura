@@ -13,9 +13,11 @@ export const STORAGE_KEY = 'app-last-acknowledged-version'
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     version: '0.0.1dev3',
-    releaseDate: '2026-05-12',
+    releaseDate: '2026-05-14',
     rows: [
       'Koncept vydané objednávky se nyní nazývá "Kalkulace" a má svoji vlastní číselnou řadu.',
+      'Přidána správa čárových kódů pro produkty, včetně možnosti nastavení primárního čárového kódu (např. pro tisk).',
+      '[preview] Úprava dialogu pro vydávání zboží (výdejka), vyhledávání produktů nyní probíhá podle kódu + částečný výdej.',
     ],
   },
   {

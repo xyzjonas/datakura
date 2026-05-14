@@ -1,18 +1,18 @@
 <template>
   <ForegroundPanel class="flex flex-col gap-2">
     <LargeTabs v-model:tab="activeOrdersTab" :items="orderTabs" flat />
-    <q-separator />
+    <q-separator class="my-3" />
     <ProductInboundOrdersWidget
       v-if="activeOrdersTab === 'inbound'"
       :product-code="productCode"
-      class="min-w-[340px] flex-1"
+      class="min-w-[300px] flex-1"
       flat
       :force-grid="forceGrid"
     />
     <ProductOutboundOrdersWidget
       v-else
       :product-code="productCode"
-      class="min-w-[340px] flex-1"
+      class="min-w-[300px] flex-1"
       flat
       :force-grid="forceGrid"
     />

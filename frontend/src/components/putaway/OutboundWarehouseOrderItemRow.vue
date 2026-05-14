@@ -2,14 +2,9 @@
   <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between flex-1 py-1">
     <div class="flex flex-col gap-2">
       <div class="flex items-center gap-2">
-        <a
-          class="link"
-          @click="
-            $router.push({ name: 'productDetail', params: { productCode: item.product.code } })
-          "
-        >
-          {{ item.product.name }}
-        </a>
+        <router-link :to="{ name: 'productDetail', params: { productCode: item.product.code } }">
+          <h5 class="link">{{ item.product.name }}</h5>
+        </router-link>
         <q-badge :color="item.pending ? 'warning' : 'positive'">
           {{ item.pending ? 'K VYCHYSTÁNÍ' : 'PŘIŘAZENO' }}
         </q-badge>
