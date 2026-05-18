@@ -102,6 +102,24 @@ class AuditMessages:
             AuditLanguage.CS: "Vytvořeno částečným přesunem nezaměnitelné položky na nové umístění",
         }
     )
+    PACKAGE_UNPACKED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Package unpacked: {amount_unpacked} units removed, {amount_remaining} remaining",
+            AuditLanguage.CS: "Balení rozbaleno: {amount_unpacked} jednotek odebráno, {amount_remaining} zbývá",
+        }
+    )
+    ITEM_CREATED_BY_UNPACKING = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Item created by unpacking from package {original_item_id}",
+            AuditLanguage.CS: "Položka vytvořena rozbalením z balení {original_item_id}",
+        }
+    )
+    ORDER_ITEM_SPLIT_FOR_PARTIAL_FULFILLMENT = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Order item split: fulfilled {fulfilled_amount}, remaining {remaining_amount}",
+            AuditLanguage.CS: "Položka objednávky rozdělena: splněno {fulfilled_amount}, zbývá {remaining_amount}",
+        }
+    )
     WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Bound to order '{purchase_order_code}'",

@@ -469,6 +469,10 @@ export type ProductSchema = {
      */
     no_discount: boolean;
     /**
+     * Disallow Unpacking
+     */
+    disallow_unpacking: boolean;
+    /**
      * Currency
      */
     currency: string;
@@ -1856,6 +1860,10 @@ export type ProductCreateOrUpdateSchema = {
      */
     no_discount?: boolean;
     /**
+     * Disallow Unpacking
+     */
+    disallow_unpacking?: boolean;
+    /**
      * Currency
      */
     currency?: string;
@@ -1971,6 +1979,10 @@ export type ProductDuplicateSchema = {
      * No Discount
      */
     no_discount?: boolean;
+    /**
+     * Disallow Unpacking
+     */
+    disallow_unpacking?: boolean;
     /**
      * Currency
      */

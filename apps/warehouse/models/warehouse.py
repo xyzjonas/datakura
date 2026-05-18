@@ -174,6 +174,14 @@ class WarehouseItem(BaseModel, BarcodeMixin):
         related_name="items",
         help_text="Packaging information - in case the item is packaged in some way (optional)",
     )
+    unpacked_from = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="unpacked_items",
+        help_text="Source package if created by unpacking",
+    )
 
     @cached_property
     def unit_of_measure(self) -> UnitOfMeasure:

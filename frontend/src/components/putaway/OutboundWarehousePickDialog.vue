@@ -22,19 +22,48 @@
 
         <!-- STEP 1: Location Suggestions -->
         <template v-if="currentStep === 'suggest'">
-          <div class="text-sm text-gray-5 uppercase tracking-wide">Kde hledat</div>
+          <!-- Needed amount display -->
+          <div class="bg-primary-1 p-4 rounded-xl mb-3">
+            <div class="text-sm text-gray-6 mb-1">Potřebné množství pro</div>
+            <div class="font-semibold text-lg">{{ item.product.name }}</div>
+            <div class="flex items-baseline gap-2 mt-2">
+              <span class="text-3xl font-bold text-primary">{{ item.amount }}</span>
+              <span class="text-lg text-gray-6">{{ item.product.unit }}</span>
+            </div>
+          </div>
+
+          <div class="text-sm text-gray-5 uppercase tracking-wide">Dostupné lokace</div>
           <q-list bordered separator class="rounded-sm overflow-hidden">
-            <q-item v-for="loc in locationGroups" :key="loc.code">
+            <q-item v-for="loc in locationGroupsWithAmounts" :key="loc.code">
               <q-item-section avatar>
-                <q-icon name="sym_o_shelves" />
+                <q-icon name="sym_o_shelves" color="primary" />
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ loc.warehouseName }} / {{ loc.code }}</q-item-label>
-                <q-item-label caption>{{ loc.count }} položek</q-item-label>
+                <q-item-label caption>
+                  <span
+                    :class="{
+                      'text-positive font-semibold': loc.totalAmount >= Number(item.amount),
+                      'text-warning font-semibold': loc.totalAmount < Number(item.amount),
+                    }"
+                  >
+                    {{ loc.totalAmount }} {{ item.product.unit }}
+                  </span>
+                  dostupných
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon
+                  v-if="loc.totalAmount >= Number(item.amount)"
+                  name="check_circle"
+                  color="positive"
+                  size="sm"
+                />
+                <q-icon v-else name="warning" color="warning" size="sm" />
               </q-item-section>
             </q-item>
 
-            <q-item v-if="!loadingSuggestions && locationGroups.length === 0">
+            <q-item v-if="!loadingSuggestions && locationGroupsWithAmounts.length === 0">
               <q-item-section>
                 <q-item-label>Žádné dostupné položky.</q-item-label>
               </q-item-section>
@@ -107,8 +136,8 @@
               </div>
             </div>
 
-            <!-- Partial pick option for packages with amount > 1 -->
-            <div v-if="canPickPartial" class="flex flex-col gap-2">
+            <!-- Partial pick option for packages -->
+            <div v-if="canPickPartial" class="flex flex-col gap-3">
               <div class="text-sm text-gray-5 uppercase tracking-wide">Množství</div>
               <q-btn-toggle
                 v-model="partialPick"
@@ -120,26 +149,53 @@
                 toggle-color="primary"
               />
 
-              <q-input
-                v-if="partialPick"
-                v-model.number="pickAmount"
-                type="number"
-                label="Množství k vychystání"
-                :rules="[
-                  (val) => val > 0 || 'Množství musí být kladné',
-                  (val) =>
-                    val <= (lookupResult?.warehouse_item?.amount ?? 0) ||
-                    'Překročeno dostupné množství',
-                ]"
-                outlined
-                dense
-              >
-                <template #append>
-                  <span class="text-gray-5">{{
-                    lookupResult?.warehouse_item?.unit_of_measure
-                  }}</span>
-                </template>
-              </q-input>
+              <!-- Visual Amount Comparison when partial picking -->
+              <div v-if="partialPick" class="bg-white border-2 border-gray-3 rounded-xl p-4 flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs text-gray-5 uppercase tracking-wide">Potřebné množství</span>
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-3xl font-bold text-primary">{{ item.amount }}</span>
+                      <span class="text-lg text-gray-6">{{
+                        lookupResult?.warehouse_item?.unit_of_measure
+                      }}</span>
+                    </div>
+                  </div>
+                  <q-icon name="arrow_forward" color="gray-5" size="32px" />
+                  <div class="flex flex-col gap-1 items-end">
+                    <span class="text-xs text-gray-5 uppercase tracking-wide">V balíku</span>
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-3xl font-bold text-positive">{{
+                        lookupResult?.warehouse_item?.amount
+                      }}</span>
+                      <span class="text-lg text-gray-6">{{
+                        lookupResult?.warehouse_item?.unit_of_measure
+                      }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <q-input
+                  v-model.number="pickAmount"
+                  type="number"
+                  step="0.01"
+                  label="Množství k vychystání"
+                  :rules="[
+                    (val) => val > 0 || 'Množství musí být kladné',
+                    (val) =>
+                      val <= (lookupResult?.warehouse_item?.amount ?? 0) ||
+                      'Překročeno dostupné množství',
+                  ]"
+                  outlined
+                  dense
+                >
+                  <template #append>
+                    <span class="text-gray-5">{{
+                      lookupResult?.warehouse_item?.unit_of_measure
+                    }}</span>
+                  </template>
+                </q-input>
+              </div>
             </div>
           </div>
 
@@ -149,51 +205,216 @@
               unelevated
               color="primary"
               label="potvrdit výběr"
+              :disable="partialPick && !isSerializedPickAmountValid"
               :loading="assigning"
               @click="confirmSerializedPick"
             />
           </div>
         </template>
 
-        <!-- STEP 3b: Fungible/Batch - Location and Amount Selection -->
-        <template v-else-if="currentStep === 'pick-fungible'">
+        <!-- STEP 3b: Scan Location for Product/Batch -->
+        <template v-else-if="currentStep === 'scan-location-for-product'">
           <div class="flex items-center gap-2">
             <q-btn flat round dense icon="arrow_back" @click="currentStep = 'scan'" />
-            <span class="text-sm uppercase tracking-wide text-gray-5">
-              {{ lookupResult?.entity_type === 'batch' ? 'Šarže nalezena' : 'Produkt nalezen' }}
-            </span>
+            <span class="text-sm uppercase tracking-wide text-gray-5">Vyberte lokaci</span>
           </div>
 
           <div class="flex flex-col gap-3">
+            <!-- Product/Batch Info with needed amount -->
             <div class="bg-blue-1 p-4 rounded-xl">
               <div class="font-semibold">
                 {{ lookupResult?.batch?.description ?? lookupResult?.product?.name ?? 'Položka' }}
               </div>
-              <div class="text-sm text-gray-6">
-                Dostupných položek: {{ lookupResult?.matching_items?.length ?? 0 }}
+              <div class="flex items-center gap-3 mt-2">
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-6">Potřebné množství</span>
+                  <span class="text-lg font-bold text-primary">
+                    {{ item.amount }} {{ lookupResult?.matching_items?.[0]?.unit_of_measure ?? '' }}
+                  </span>
+                </div>
+                <q-separator vertical />
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-6">Celkem dostupné</span>
+                  <span class="text-lg font-bold">
+                    {{
+                      (lookupResult?.matching_items ?? []).reduce((sum, item) => sum + item.amount, 0)
+                    }}
+                    {{ lookupResult?.matching_items?.[0]?.unit_of_measure ?? '' }}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <!-- Location selection if multiple locations -->
-            <div v-if="fungibleLocations.length > 1" class="flex flex-col gap-2">
-              <div class="text-sm text-gray-5 uppercase tracking-wide">Vyberte lokaci</div>
-              <q-list bordered separator class="rounded-xl overflow-hidden">
+            <div class="flex flex-col justify-center items-center gap-3 py-4">
+              <q-icon name="sym_o_shelves" size="48px" color="primary" />
+              <span class="text-sm text-gray-5 uppercase">Zadejte kód lokace</span>
+              <q-input
+                v-model="scannedBarcode"
+                autofocus
+                no-error-icon
+                input-class="text-center text-lg uppercase"
+                class="w-full max-w-xs"
+                placeholder="např. A1-01-03…"
+                @update:model-value="onLocationScanForProduct"
+              />
+            </div>
+
+            <!-- Show available locations with amounts -->
+            <div v-if="fungibleLocations.length > 0" class="flex flex-col gap-2">
+              <div class="text-sm text-gray-5 uppercase tracking-wide">
+                Dostupné lokace ({{ fungibleLocations.length }}) - klikněte pro výběr
+              </div>
+              <q-list bordered separator class="rounded-xl overflow-hidden max-h-64 overflow-y-auto">
                 <q-item
                   v-for="loc in fungibleLocations"
                   :key="loc.code"
                   clickable
-                  :active="selectedLocation === loc.code"
-                  @click="selectedLocation = loc.code"
+                  @click="
+                    () => {
+                      selectedLocation = loc.code
+                      currentStep = 'pick-fungible'
+                      pickAmount = Number(item.amount)
+                      scannedBarcode = ''
+                    }
+                  "
                 >
                   <q-item-section avatar>
-                    <q-radio v-model="selectedLocation" :val="loc.code" />
+                    <q-icon name="sym_o_shelves" color="primary" />
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>{{ loc.warehouseName }} / {{ loc.code }}</q-item-label>
-                    <q-item-label caption>{{ loc.totalAmount }} {{ loc.unit }}</q-item-label>
+                    <q-item-label caption>
+                      <span
+                        :class="{
+                          'text-positive font-semibold': loc.totalAmount >= Number(item.amount),
+                          'text-warning font-semibold': loc.totalAmount < Number(item.amount),
+                        }"
+                      >
+                        {{ loc.totalAmount }} {{ loc.unit }}
+                      </span>
+                      dostupných
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-icon
+                      v-if="loc.totalAmount >= Number(item.amount)"
+                      name="check_circle"
+                      color="positive"
+                      size="sm"
+                    />
+                    <q-icon v-else name="warning" color="warning" size="sm" />
                   </q-item-section>
                 </q-item>
               </q-list>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2">
+            <q-btn flat label="zpět" @click="currentStep = 'scan'" />
+          </div>
+        </template>
+
+        <!-- STEP 3c: Fungible/Batch - Location and Amount Selection -->
+        <template v-else-if="currentStep === 'pick-fungible'">
+          <div class="flex items-center gap-2">
+            <q-btn flat round dense icon="arrow_back" @click="currentStep = 'scan'" />
+            <span class="text-sm uppercase tracking-wide text-gray-5">Množství k vychystání</span>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <!-- Product/Batch Info -->
+            <div class="bg-blue-1 p-4 rounded-xl">
+              <div class="font-semibold">
+                {{ lookupResult?.batch?.description ?? lookupResult?.product?.name ?? props.item.product.name }}
+              </div>
+              <div class="text-sm text-gray-6">
+                Lokace: {{ selectedLocation }}
+              </div>
+            </div>
+
+            <!-- Visual Amount Comparison -->
+            <div class="bg-white border-2 border-gray-3 rounded-xl p-4 flex flex-col gap-3">
+              <div class="flex justify-between items-center">
+                <div class="flex flex-col gap-1">
+                  <span class="text-xs text-gray-5 uppercase tracking-wide">Potřebné množství</span>
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-3xl font-bold text-primary">{{ item.amount }}</span>
+                    <span class="text-lg text-gray-6">{{ unitOfMeasure }}</span>
+                  </div>
+                </div>
+                <q-icon
+                  :name="maxAvailableInLocation >= Number(item.amount) ? 'check_circle' : 'warning'"
+                  :color="maxAvailableInLocation >= Number(item.amount) ? 'positive' : 'warning'"
+                  size="48px"
+                />
+                <div class="flex flex-col gap-1 items-end">
+                  <span class="text-xs text-gray-5 uppercase tracking-wide">Dostupné na lokaci</span>
+                  <div class="flex items-baseline gap-1">
+                    <span
+                      class="text-3xl font-bold"
+                      :class="{
+                        'text-positive': maxAvailableInLocation >= Number(item.amount),
+                        'text-warning': maxAvailableInLocation < Number(item.amount),
+                      }"
+                    >
+                      {{ maxAvailableInLocation }}
+                    </span>
+                    <span class="text-lg text-gray-6">{{ unitOfMeasure }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Visual bar comparison -->
+              <div class="flex flex-col gap-1">
+                <div class="flex gap-2 items-center">
+                  <div class="flex-1 h-3 bg-gray-2 rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-primary rounded-full transition-all"
+                      :style="{
+                        width: `${Math.min((Number(item.amount) / Math.max(maxAvailableInLocation, Number(item.amount))) * 100, 100)}%`,
+                      }"
+                    />
+                  </div>
+                  <span class="text-xs text-gray-5 min-w-[60px]">Potřebné</span>
+                </div>
+                <div class="flex gap-2 items-center">
+                  <div class="flex-1 h-3 bg-gray-2 rounded-full overflow-hidden">
+                    <div
+                      class="h-full rounded-full transition-all"
+                      :class="{
+                        'bg-positive': maxAvailableInLocation >= Number(item.amount),
+                        'bg-warning': maxAvailableInLocation < Number(item.amount),
+                      }"
+                      :style="{
+                        width: `${Math.min((maxAvailableInLocation / Math.max(maxAvailableInLocation, Number(item.amount))) * 100, 100)}%`,
+                      }"
+                    />
+                  </div>
+                  <span class="text-xs text-gray-5 min-w-[60px]">Dostupné</span>
+                </div>
+              </div>
+
+              <!-- Status message -->
+              <div
+                v-if="maxAvailableInLocation < Number(item.amount)"
+                class="flex items-center gap-2 p-2 bg-warning-1 rounded-lg"
+              >
+                <q-icon name="info" color="warning" size="sm" />
+                <span class="text-sm text-warning-8">
+                  Částečné splnění: chybí {{ Number(item.amount) - maxAvailableInLocation }}
+                  {{ unitOfMeasure }}
+                </span>
+              </div>
+              <div
+                v-else-if="maxAvailableInLocation > Number(item.amount)"
+                class="flex items-center gap-2 p-2 bg-positive-1 rounded-lg"
+              >
+                <q-icon name="check" color="positive" size="sm" />
+                <span class="text-sm text-positive-8">
+                  Přebytek: {{ maxAvailableInLocation - Number(item.amount) }} {{ unitOfMeasure }}
+                  zůstane na lokaci
+                </span>
+              </div>
             </div>
 
             <!-- Amount input -->
@@ -202,6 +423,7 @@
               <q-input
                 v-model.number="pickAmount"
                 type="number"
+                step="0.01"
                 :rules="[
                   (val) => val > 0 || 'Množství musí být kladné',
                   (val) => val <= maxAvailableInLocation || `Max: ${maxAvailableInLocation}`,
@@ -218,19 +440,26 @@
           </div>
 
           <div class="flex justify-end gap-2">
-            <q-btn flat label="zpět" @click="currentStep = 'scan'" />
+            <q-btn
+              flat
+              label="zpět"
+              @click="
+                currentStep =
+                  lookupResult?.entity_type === 'warehouse_item' ? 'scan' : 'scan-location-for-product'
+              "
+            />
             <q-btn
               unelevated
               color="primary"
               label="potvrdit výběr"
-              :disable="!selectedLocation || pickAmount <= 0"
+              :disable="!selectedLocation || !isPickAmountValid"
               :loading="assigning"
               @click="confirmFungiblePick"
             />
           </div>
         </template>
 
-        <!-- STEP 3c: Location Scan Fallback -->
+        <!-- STEP 3d: Location Scan Fallback -->
         <template v-else-if="currentStep === 'confirm-location'">
           <div class="flex items-center gap-2">
             <q-btn flat round dense icon="arrow_back" @click="currentStep = 'scan'" />
@@ -243,7 +472,7 @@
                 {{ lookupResult?.location?.warehouse_name }} / {{ lookupResult?.location?.code }}
               </div>
               <div class="text-sm text-gray-6">
-                Položek na lokaci: {{ lookupResult?.matching_items?.length ?? 0 }}
+                {{ props.item.product.name }}
               </div>
             </div>
 
@@ -272,12 +501,98 @@
               </q-list>
             </div>
 
-            <!-- Amount input for fungible items -->
-            <div v-else class="flex flex-col gap-2">
+            <!-- Amount input for fungible items with visual comparison -->
+            <div v-else class="flex flex-col gap-3">
+              <!-- Visual Amount Comparison -->
+              <div class="bg-white border-2 border-gray-3 rounded-xl p-4 flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs text-gray-5 uppercase tracking-wide">Potřebné množství</span>
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-3xl font-bold text-primary">{{ item.amount }}</span>
+                      <span class="text-lg text-gray-6">{{ unitOfMeasure }}</span>
+                    </div>
+                  </div>
+                  <q-icon
+                    :name="maxAvailableInLocation >= Number(item.amount) ? 'check_circle' : 'warning'"
+                    :color="maxAvailableInLocation >= Number(item.amount) ? 'positive' : 'warning'"
+                    size="48px"
+                  />
+                  <div class="flex flex-col gap-1 items-end">
+                    <span class="text-xs text-gray-5 uppercase tracking-wide">Dostupné na lokaci</span>
+                    <div class="flex items-baseline gap-1">
+                      <span
+                        class="text-3xl font-bold"
+                        :class="{
+                          'text-positive': maxAvailableInLocation >= Number(item.amount),
+                          'text-warning': maxAvailableInLocation < Number(item.amount),
+                        }"
+                      >
+                        {{ maxAvailableInLocation }}
+                      </span>
+                      <span class="text-lg text-gray-6">{{ unitOfMeasure }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Visual bar comparison -->
+                <div class="flex flex-col gap-1">
+                  <div class="flex gap-2 items-center">
+                    <div class="flex-1 h-3 bg-gray-2 rounded-full overflow-hidden">
+                      <div
+                        class="h-full bg-primary rounded-full transition-all"
+                        :style="{
+                          width: `${Math.min((Number(item.amount) / Math.max(maxAvailableInLocation, Number(item.amount))) * 100, 100)}%`,
+                        }"
+                      />
+                    </div>
+                    <span class="text-xs text-gray-5 min-w-[60px]">Potřebné</span>
+                  </div>
+                  <div class="flex gap-2 items-center">
+                    <div class="flex-1 h-3 bg-gray-2 rounded-full overflow-hidden">
+                      <div
+                        class="h-full rounded-full transition-all"
+                        :class="{
+                          'bg-positive': maxAvailableInLocation >= Number(item.amount),
+                          'bg-warning': maxAvailableInLocation < Number(item.amount),
+                        }"
+                        :style="{
+                          width: `${Math.min((maxAvailableInLocation / Math.max(maxAvailableInLocation, Number(item.amount))) * 100, 100)}%`,
+                        }"
+                      />
+                    </div>
+                    <span class="text-xs text-gray-5 min-w-[60px]">Dostupné</span>
+                  </div>
+                </div>
+
+                <!-- Status message -->
+                <div
+                  v-if="maxAvailableInLocation < Number(item.amount)"
+                  class="flex items-center gap-2 p-2 bg-warning-1 rounded-lg"
+                >
+                  <q-icon name="info" color="warning" size="sm" />
+                  <span class="text-sm text-warning-8">
+                    Částečné splnění: chybí {{ Number(item.amount) - maxAvailableInLocation }}
+                    {{ unitOfMeasure }}
+                  </span>
+                </div>
+                <div
+                  v-else-if="maxAvailableInLocation > Number(item.amount)"
+                  class="flex items-center gap-2 p-2 bg-positive-1 rounded-lg"
+                >
+                  <q-icon name="check" color="positive" size="sm" />
+                  <span class="text-sm text-positive-8">
+                    Přebytek: {{ maxAvailableInLocation - Number(item.amount) }} {{ unitOfMeasure }}
+                    zůstane na lokaci
+                  </span>
+                </div>
+              </div>
+
               <div class="text-sm text-gray-5 uppercase tracking-wide">Množství k vychystání</div>
               <q-input
                 v-model.number="pickAmount"
                 type="number"
+                step="0.01"
                 :rules="[
                   (val) => val > 0 || 'Množství musí být kladné',
                   (val) => val <= maxAvailableInLocation || `Max: ${maxAvailableInLocation}`,
@@ -299,7 +614,7 @@
               unelevated
               color="primary"
               label="potvrdit výběr"
-              :disable="hasSerializedItems ? !selectedWarehouseItemId : pickAmount <= 0"
+              :disable="hasSerializedItems ? !selectedWarehouseItemId : !isPickAmountValid"
               :loading="assigning"
               @click="confirmLocationPick"
             />
@@ -329,7 +644,13 @@ import BatchBadge from '../warehouse/BatchBadge.vue'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGroup.vue'
 
-type Step = 'suggest' | 'scan' | 'confirm-serialized' | 'pick-fungible' | 'confirm-location'
+type Step =
+  | 'suggest'
+  | 'scan'
+  | 'confirm-serialized'
+  | 'pick-fungible'
+  | 'confirm-location'
+  | 'scan-location-for-product'
 
 const props = defineProps<{
   warehouseOrderCode: string
@@ -358,19 +679,26 @@ const allCandidates = ref<WarehouseItemSchema[]>([])
 const assigning = ref(false)
 
 // Computed - Location suggestions
-type LocationGroup = { code: string; warehouseName: string; count: number }
+type LocationGroupWithAmount = { code: string; warehouseName: string; count: number; totalAmount: number }
 
-const locationGroups = computed<LocationGroup[]>(() => {
-  const map = new Map<string, LocationGroup>()
+const locationGroupsWithAmounts = computed<LocationGroupWithAmount[]>(() => {
+  const map = new Map<string, LocationGroupWithAmount>()
   for (const c of allCandidates.value) {
     const key = c.location.code
     if (map.has(key)) {
-      map.get(key)!.count++
+      const group = map.get(key)!
+      group.count++
+      group.totalAmount += c.amount
     } else {
-      map.set(key, { code: key, warehouseName: c.location.warehouse_name, count: 1 })
+      map.set(key, {
+        code: key,
+        warehouseName: c.location.warehouse_name,
+        count: 1,
+        totalAmount: c.amount,
+      })
     }
   }
-  return Array.from(map.values())
+  return Array.from(map.values()).sort((a, b) => b.totalAmount - a.totalAmount)
 })
 
 // Computed - Serialized item partial pick
@@ -379,7 +707,8 @@ const canPickPartial = computed(() => {
   if (!item) return false
   const isSerialized =
     item.tracking_level === 'SERIALIZED_PACKAGE' || item.tracking_level === 'SERIALIZED_PIECE'
-  return isSerialized && item.amount > 1
+  // Allow partial pick if serialized and amount is greater than requested OR amount > 0 (to support decimals)
+  return isSerialized && item.amount > 0
 })
 
 // Computed - Fungible location groups
@@ -430,6 +759,16 @@ const hasSerializedItems = computed(() => {
   )
 })
 
+// Validation computed
+const isPickAmountValid = computed(() => {
+  return pickAmount.value > 0 && pickAmount.value <= maxAvailableInLocation.value
+})
+
+const isSerializedPickAmountValid = computed(() => {
+  const maxAvailable = lookupResult.value?.warehouse_item?.amount ?? 0
+  return pickAmount.value > 0 && pickAmount.value <= maxAvailable
+})
+
 // Actions
 const loadSuggestions = async () => {
   loadingSuggestions.value = true
@@ -470,12 +809,14 @@ const onBarcodeInput = async (barcode: string | number | null) => {
     const item = result.warehouse_item
     if (!item) return
 
-    // Check if this is a serialized item
+    // For warehouse item scans, we know the item and location already
+    // But still show confirmation step
     if (
       item.tracking_level === 'SERIALIZED_PACKAGE' ||
       item.tracking_level === 'SERIALIZED_PIECE'
     ) {
       currentStep.value = 'confirm-serialized'
+      selectedLocation.value = item.location.code
       pickAmount.value = item.amount
 
       // Auto-confirm in scanner mode after delay
@@ -485,19 +826,17 @@ const onBarcodeInput = async (barcode: string | number | null) => {
         }, 400)
       }
     } else {
-      // Fungible/batch item - need location and amount
-      currentStep.value = 'pick-fungible'
+      // Fungible/batch item - need location confirmation and amount
       selectedLocation.value = item.location.code
+      currentStep.value = 'pick-fungible'
       pickAmount.value = Number(props.item.amount)
     }
   } else if (result.entity_type === 'batch' || result.entity_type === 'product') {
-    currentStep.value = 'pick-fungible'
-    // Auto-select location if only one
-    if (fungibleLocations.value.length === 1) {
-      selectedLocation.value = fungibleLocations.value[0].code
-    }
-    pickAmount.value = Number(props.item.amount)
+    // ALWAYS ask for location scan, never auto-select
+    currentStep.value = 'scan-location-for-product'
+    scannedBarcode.value = ''
   } else if (result.entity_type === 'location') {
+    // Location scanned but we need to know which product
     currentStep.value = 'confirm-location'
     selectedLocation.value = result.location?.code ?? null
     pickAmount.value = Number(props.item.amount)
@@ -508,14 +847,56 @@ const onBarcodeInput = async (barcode: string | number | null) => {
   }
 }
 
+const onLocationScanForProduct = async (locationCode: string | number | null) => {
+  if (!locationCode || typeof locationCode !== 'string' || locationCode.length < 1) return
+
+  lookupError.value = null
+
+  // Search for location by code in the available locations
+  const matchingLocation = fungibleLocations.value.find(
+    (loc) => loc.code.toLowerCase() === locationCode.trim().toLowerCase()
+  )
+
+  if (!matchingLocation) {
+    // Location code not found in available locations
+    return
+  }
+
+  // Filter matching items to only those in this location
+  const itemsInLocation =
+    lookupResult.value?.matching_items?.filter(
+      (item) => item.location.code.toLowerCase() === locationCode.trim().toLowerCase()
+    ) ?? []
+
+  if (itemsInLocation.length === 0) {
+    return
+  }
+
+  // Set the selected location and proceed to amount input
+  selectedLocation.value = matchingLocation.code
+  currentStep.value = 'pick-fungible'
+  pickAmount.value = Number(props.item.amount)
+  scannedBarcode.value = ''
+}
+
 const confirmSerializedPick = async () => {
   const warehouseItemId = lookupResult.value?.warehouse_item?.id
   if (!warehouseItemId) return
 
+  // Validate amount if partial picking
+  if (partialPick.value && !isSerializedPickAmountValid.value) {
+    return
+  }
+
+  // Double-check amount doesn't exceed available
+  if (partialPick.value && pickAmount.value > (lookupResult.value?.warehouse_item?.amount ?? 0)) {
+    return
+  }
+
   assigning.value = true
   try {
     const amount = partialPick.value ? pickAmount.value : null
-    await warehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItem({
+    const response = await warehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItem({
       path: {
         code: props.warehouseOrderCode,
         item_id: props.item.id,
@@ -525,8 +906,11 @@ const confirmSerializedPick = async () => {
         amount: amount !== null ? String(amount) : null,
       },
     })
-    emit('confirm')
-    showDialog.value = false
+    const result = onResponse(response)
+    if (result) {
+      emit('confirm')
+      showDialog.value = false
+    }
   } finally {
     assigning.value = false
   }
@@ -535,10 +919,20 @@ const confirmSerializedPick = async () => {
 const confirmFungiblePick = async () => {
   if (!selectedLocation.value) return
 
+  // Validate amount before proceeding
+  if (!isPickAmountValid.value) {
+    return
+  }
+
   // Find first warehouse item in the selected location
   const items = lookupResult.value?.matching_items ?? []
   const itemInLocation = items.find((item) => item.location.code === selectedLocation.value)
   if (!itemInLocation) return
+
+  // Double-check amount doesn't exceed available
+  if (pickAmount.value > itemInLocation.amount) {
+    return
+  }
 
   assigning.value = true
   try {
@@ -567,16 +961,27 @@ const confirmLocationPick = async () => {
     if (!selectedWarehouseItemId.value) return
     warehouseItemId = selectedWarehouseItemId.value
   } else {
+    // Validate amount for fungible items
+    if (!isPickAmountValid.value) {
+      return
+    }
+
     // Fungible - use first item in location
     const items = lookupResult.value?.matching_items ?? []
     const itemInLocation = items[0]
     if (!itemInLocation) return
+
+    // Double-check amount doesn't exceed available
+    if (pickAmount.value > maxAvailableInLocation.value) {
+      return
+    }
+
     warehouseItemId = itemInLocation.id
   }
 
   assigning.value = true
   try {
-    await warehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItem({
+    const response = await warehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItem({
       path: {
         code: props.warehouseOrderCode,
         item_id: props.item.id,
@@ -586,8 +991,11 @@ const confirmLocationPick = async () => {
         amount: hasSerializedItems.value ? null : String(pickAmount.value),
       },
     })
-    emit('confirm')
-    showDialog.value = false
+    const result = onResponse(response)
+    if (result) {
+      emit('confirm')
+      showDialog.value = false
+    }
   } finally {
     assigning.value = false
   }
@@ -604,10 +1012,12 @@ watch(
   },
 )
 
-// Auto-select first location if only one for fungible
-watch(fungibleLocations, (locations) => {
-  if (currentStep.value === 'pick-fungible' && locations.length === 1 && !selectedLocation.value) {
-    selectedLocation.value = locations[0].code
+// Removed auto-select logic - always require manual location selection/scan
+
+// Clear lookup error when user types
+watch(scannedBarcode, () => {
+  if (lookupError.value) {
+    lookupError.value = null
   }
 })
 </script>

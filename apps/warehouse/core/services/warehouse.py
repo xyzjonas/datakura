@@ -386,9 +386,9 @@ class WarehouseService:
         )
 
         if isinstance(entity, WarehouseItem):
-            response.entity_type = "warehouse_item"
-            response.warehouse_item = warehouse_item_orm_to_schema(
-                WarehouseItem.objects.select_related(
+            # Check if item is already assigned to an outbound order
+            item = (
+                WarehouseItem.physical_stock.select_related(
                     "stock_product",
                     "stock_product__unit_of_measure",
                     "location",
@@ -396,15 +396,31 @@ class WarehouseService:
                     "batch",
                     "package_type",
                     "package_type__unit_of_measure",
-                ).get(pk=entity.pk)
+                )
+                .filter(pk=entity.pk)
+                .first()
             )
+            if item:
+                response.entity_type = "warehouse_item"
+                response.warehouse_item = warehouse_item_orm_to_schema(item)
+            else:
+                # Item is already assigned or doesn't exist in physical stock
+                return BarcodeLookupResponse(
+                    found=False,
+                    entity_type=None,
+                    warehouse_item=None,
+                    batch=None,
+                    location=None,
+                    product=None,
+                    matching_items=None,
+                )
 
         elif isinstance(entity, Batch):
             response.entity_type = "batch"
             response.batch = batch_orm_to_schema(entity)
 
-            # Find matching warehouse items with this batch
-            items_qs = WarehouseItem.available.select_related(
+            # Find matching warehouse items with this batch (use physical_stock to include putaway)
+            items_qs = WarehouseItem.physical_stock.select_related(
                 "stock_product",
                 "stock_product__unit_of_measure",
                 "location",
@@ -425,8 +441,8 @@ class WarehouseService:
             response.entity_type = "location"
             response.location = location_orm_to_schema(entity)
 
-            # Find available warehouse items at this location
-            items_qs = WarehouseItem.available.select_related(
+            # Find available warehouse items at this location (use physical_stock to include putaway)
+            items_qs = WarehouseItem.physical_stock.select_related(
                 "stock_product",
                 "stock_product__unit_of_measure",
                 "location",
@@ -447,8 +463,8 @@ class WarehouseService:
             response.entity_type = "product"
             response.product = product_orm_to_schema(entity)
 
-            # Find available warehouse items of this product
-            items_qs = WarehouseItem.available.select_related(
+            # Find available warehouse items of this product (use physical_stock to include putaway)
+            items_qs = WarehouseItem.physical_stock.select_related(
                 "stock_product",
                 "stock_product__unit_of_measure",
                 "location",
@@ -666,6 +682,185 @@ class WarehouseService:
         )
         return new_item
 
+    @staticmethod
+    def _unpack_package(
+        package_item: WarehouseItem,
+        requested_amount: Decimal,
+        context: RequestContext,
+    ) -> WarehouseItem:
+        """Unpack units from a package, creating a new item."""
+        # 1. Check disallow_unpacking
+        if package_item.stock_product.disallow_unpacking:
+            raise WarehouseGenericError(
+                f"Cannot unpack package: Product '{package_item.stock_product.code}' "
+                "has unpacking disabled."
+            )
+
+        # 2. Reduce package amount
+        old_amount = package_item.amount
+        package_item.amount -= requested_amount
+        package_item.save(update_fields=["amount", "changed"])
+
+        # 3. Determine new tracking level
+        new_tracking_level = (
+            TrackingLevel.SERIALIZED_PIECE
+            if package_item.tracking_level == TrackingLevel.SERIALIZED_PACKAGE
+            else package_item.tracking_level
+        )
+
+        # 4. Create unpacked item
+        unpacked_item = WarehouseItem.objects.create(
+            stock_product=package_item.stock_product,
+            tracking_level=new_tracking_level,
+            amount=requested_amount,
+            location=package_item.location,
+            order_in=package_item.order_in,
+            source_order_item=package_item.source_order_item,
+            batch=package_item.batch,
+            package_type=None,  # Unpacked items lose package designation
+            unpacked_from=package_item,
+        )
+
+        # 5. Audit trail
+        audit_service.add_entry(
+            package_item,
+            action=AuditAction.UPDATE,
+            user=context.user_id,
+            reason=AuditMessages.PACKAGE_UNPACKED.CS.format(
+                amount_unpacked=str(requested_amount),
+                amount_remaining=str(package_item.amount),
+            ),
+            changes={
+                "amount": {"old": str(old_amount), "new": str(package_item.amount)}
+            },
+        )
+        audit_service.add_entry(
+            unpacked_item,
+            action=AuditAction.CREATE,
+            user=context.user_id,
+            reason=AuditMessages.ITEM_CREATED_BY_UNPACKING.CS.format(
+                original_item_id=str(package_item.pk)
+            ),
+        )
+
+        return unpacked_item
+
+    @staticmethod
+    def _split_order_item_for_partial_fulfillment(
+        order_item: OutboundWarehouseOrderItem,
+        available_amount: Decimal,
+        context: RequestContext,
+    ) -> OutboundWarehouseOrderItem:
+        """Split order item when available < requested. Returns new fulfilled item."""
+        remaining_amount = order_item.amount - available_amount
+
+        # Update original to hold remaining unfulfilled amount
+        old_amount = order_item.amount
+        order_item.amount = remaining_amount
+        order_item.save(update_fields=["amount", "changed"])
+
+        # Create new item for fulfilled portion
+        fulfilled_item = OutboundWarehouseOrderItem.objects.create(
+            warehouse_order=order_item.warehouse_order,
+            source_order_item=order_item.source_order_item,
+            stock_product=order_item.stock_product,
+            amount=available_amount,
+            desired_package_type=order_item.desired_package_type,
+            desired_batch=order_item.desired_batch,
+            index=order_item.index,
+        )
+
+        # Audit trail
+        audit_service.add_entry(
+            order_item,
+            action=AuditAction.UPDATE,
+            user=context.user_id,
+            reason=AuditMessages.ORDER_ITEM_SPLIT_FOR_PARTIAL_FULFILLMENT.CS.format(
+                fulfilled_amount=str(available_amount),
+                remaining_amount=str(remaining_amount),
+            ),
+            changes={"amount": {"old": str(old_amount), "new": str(remaining_amount)}},
+        )
+        audit_service.add_entry(
+            fulfilled_item,
+            action=AuditAction.CREATE,
+            user=context.user_id,
+            reason=AuditMessages.ORDER_ITEM_SPLIT_FOR_PARTIAL_FULFILLMENT.CS.format(
+                fulfilled_amount=str(available_amount),
+                remaining_amount=str(remaining_amount),
+            ),
+        )
+
+        return fulfilled_item
+
+    @staticmethod
+    def _handle_outbound_item_assignment_with_splitting(
+        warehouse_item: WarehouseItem,
+        order_item: OutboundWarehouseOrderItem,
+        requested_amount: Decimal,
+        context: RequestContext,
+    ) -> tuple[WarehouseItem, OutboundWarehouseOrderItem]:
+        """
+        Handle four scenarios:
+        1. User picking partial (requested < order amount): split order item first
+        2. Exact match: return as-is
+        3. Available > requested: split or unpack warehouse item
+        4. Available < requested: partial fulfillment
+
+        Returns: (warehouse_item_to_assign, order_item_to_receive_assignment)
+        """
+        available_amount = warehouse_item.amount
+        is_serialized = warehouse_item.tracking_level in (
+            TrackingLevel.SERIALIZED_PIECE,
+            TrackingLevel.SERIALIZED_PACKAGE,
+        )
+
+        # CRITICAL: If user is intentionally picking less than order requires,
+        # split the order item first before handling warehouse item splitting
+        final_order_item = order_item
+        if requested_amount < order_item.amount:
+            # User is picking partial - create a new order item for the fulfilled portion
+            final_order_item = (
+                WarehouseService._split_order_item_for_partial_fulfillment(
+                    order_item, requested_amount, context
+                )
+            )
+
+        # Now handle warehouse item splitting based on available vs requested
+        # Exact match
+        if available_amount == requested_amount:
+            return (warehouse_item, final_order_item)
+
+        # Available > requested
+        elif available_amount > requested_amount:
+            if is_serialized:
+                # Unpacking scenario
+                unpacked_item = WarehouseService._unpack_package(
+                    warehouse_item, requested_amount, context
+                )
+                return (unpacked_item, final_order_item)
+            else:
+                # Standard split for FUNGIBLE/BATCH
+                split_item = WarehouseService._split_outbound_pick_item(
+                    warehouse_item, requested_amount, context
+                )
+                return (split_item, final_order_item)
+
+        # Available < requested
+        else:
+            if is_serialized:
+                # Partial fulfillment: split order item again
+                # (This handles the case where warehouse has even less than the partial pick amount)
+                doubly_split_item = (
+                    WarehouseService._split_order_item_for_partial_fulfillment(
+                        final_order_item, available_amount, context
+                    )
+                )
+                return (warehouse_item, doubly_split_item)
+            else:
+                # Consume entire warehouse item for partial fulfillment
+                return (warehouse_item, final_order_item)
+
     @classmethod
     def _sync_outbound_warehouse_order_state(
         cls,
@@ -753,6 +948,45 @@ class WarehouseService:
             .first()
         )
         if candidate is None:
+            # Check if warehouse item exists at all
+            warehouse_item_exists = WarehouseItem.objects.filter(
+                pk=warehouse_item_id
+            ).first()
+            if not warehouse_item_exists:
+                raise WarehouseGenericError(
+                    f"Warehouse item '{warehouse_item_id}' does not exist."
+                )
+            # Check if it's already assigned
+            if (
+                hasattr(warehouse_item_exists, "outbound_assignment")
+                and warehouse_item_exists.outbound_assignment
+            ):
+                raise WarehouseGenericError(
+                    f"Warehouse item '{warehouse_item_id}' is already assigned to order item '{warehouse_item_exists.outbound_assignment.pk}'."
+                )
+            # Check product match
+            if warehouse_item_exists.stock_product != order_item.stock_product:
+                raise WarehouseGenericError(
+                    f"Warehouse item '{warehouse_item_id}' product '{warehouse_item_exists.stock_product.code}' does not match order requirement '{order_item.stock_product.code}'."
+                )
+            # Check package type match
+            if (
+                order_item.desired_package_type is not None
+                and warehouse_item_exists.package_type
+                != order_item.desired_package_type
+            ):
+                raise WarehouseGenericError(
+                    f"Warehouse item '{warehouse_item_id}' package type '{warehouse_item_exists.package_type}' does not match order requirement '{order_item.desired_package_type}'."
+                )
+            # Check batch match
+            if (
+                order_item.desired_batch is not None
+                and warehouse_item_exists.batch != order_item.desired_batch
+            ):
+                raise WarehouseGenericError(
+                    f"Warehouse item '{warehouse_item_id}' batch '{warehouse_item_exists.batch}' does not match order requirement '{order_item.desired_batch}'."
+                )
+            # Generic fallback
             raise WarehouseGenericError(
                 f"Warehouse item '{warehouse_item_id}' does not match outbound requirement."
             )
@@ -760,17 +994,34 @@ class WarehouseService:
         requested_amount = (
             amount if amount is not None else Decimal(str(order_item.amount))
         )
+
+        # CRITICAL VALIDATION: Ensure requested amount doesn't exceed available
+        if requested_amount > candidate.amount:
+            raise WarehouseGenericError(
+                f"Cannot pick {requested_amount} units - only {candidate.amount} available in warehouse item '{warehouse_item_id}'."
+            )
+
+        # CRITICAL VALIDATION: Ensure requested amount is positive
+        if requested_amount <= 0:
+            raise WarehouseGenericError(
+                f"Requested amount must be positive, got {requested_amount}."
+            )
+
         with transaction.atomic():
-            assigned_item = cls._split_outbound_pick_item(
-                candidate,
-                requested_amount=requested_amount,
-                context=context,
+            assigned_item, final_order_item = (
+                cls._handle_outbound_item_assignment_with_splitting(
+                    warehouse_item=candidate,
+                    order_item=order_item,
+                    requested_amount=requested_amount,
+                    context=context,
+                )
             )
-            order_item.warehouse_item = assigned_item
-            order_item.price_at_shipment = (
-                requested_amount * assigned_item.stock_product.purchase_price
+            final_order_item.warehouse_item = assigned_item
+            final_order_item.price_at_shipment = (
+                Decimal(str(final_order_item.amount))
+                * assigned_item.stock_product.purchase_price
             )
-            order_item.save(
+            final_order_item.save(
                 update_fields=["warehouse_item", "price_at_shipment", "changed"]
             )
 
@@ -779,7 +1030,7 @@ class WarehouseService:
                 location_to=None,
                 outbound_order_code=warehouse_order,
                 stock_product=assigned_item.stock_product,
-                amount=requested_amount,
+                amount=final_order_item.amount,
                 item=assigned_item,
                 batch=assigned_item.batch,
                 worker=User.objects.get(pk=context.user_id)
@@ -787,7 +1038,7 @@ class WarehouseService:
                 else None,
             )
             audit_service.add_entry(
-                order_item,
+                final_order_item,
                 action=AuditAction.UPDATE,
                 user=context.user_id,
                 reason=AuditMessages.ORDER_CODE_REFERENCE.CS.format(

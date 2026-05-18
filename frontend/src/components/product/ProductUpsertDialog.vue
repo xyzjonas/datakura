@@ -112,6 +112,16 @@
           <div class="text-sm text-muted -mt-1">
             Systém ignoruje slevové skupiny a nabídne jen základní nebo zákaznickou cenu.
           </div>
+          <q-toggle
+            v-model="form.disallow_unpacking"
+            color="negative"
+            checked-icon="sym_o_package"
+            label="Zakázat rozbalování balení"
+            class="mt-1 translate-x-[-4px]"
+          />
+          <div class="text-sm text-muted -mt-1">
+            Při výdeji nebude možné rozbalit balení a vydat jen část obsahu.
+          </div>
           <q-separator />
           <div class="md:col-span-2 mt-2 flex justify-end">
             <q-btn
@@ -183,6 +193,7 @@ const syncAttributesFromForm = () => {
 watch(showDialog, (visible) => {
   if (visible) {
     form.value.no_discount ??= false
+    form.value.disallow_unpacking ??= false
     syncAttributesFromForm()
   }
 })

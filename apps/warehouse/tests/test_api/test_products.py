@@ -72,6 +72,7 @@ def test_get_all_one_product(db, client):
                             "base_price": product.base_price,
                             "purchase_price": product.purchase_price,
                             "no_discount": product.no_discount,
+                            "disallow_unpacking": product.disallow_unpacking,
                             "currency": product.currency,
                             "attributes": product.attributes,
                         }
