@@ -12,6 +12,7 @@ dependencies = [
     "loguru>=0.7.3",
     "pyjwt>=2.10.1",
     "python-decouple>=3.8",
+    "sentry-sdk>=2.60.0",
     "weasyprint>=68.0",
     "whitenoise>=6.11.0",
 ]

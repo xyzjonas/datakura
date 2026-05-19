@@ -17,6 +17,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     rows: [
       'Vylepšené vyhledávání produktů při výdeji zboží (výdejka), přehlednější zobrazení variant a jejich skladových zásob.',
       'Přidána možnost správy šarží. Šarže lze přiřazovat ke VŠEM typům skladových položek a následně filtrovat při výdeji zboží (výdejka).',
+      'Nastavení monitoringu (Sentry).'
     ],
   },
   {

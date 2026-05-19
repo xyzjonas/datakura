@@ -16,7 +16,26 @@ import 'virtual:uno.css'
 import '@quasar/extras/material-icons/material-icons.css'
 import '@quasar/extras/material-symbols-outlined/material-symbols-outlined.css'
 
+import * as Sentry from '@sentry/vue'
+import { getSentryDsn, getSentryEnvironment } from './utils/sentry-dsn'
+
 const app = createApp(App)
+
+const sentryDsn = getSentryDsn()
+const sentryEnvironment = getSentryEnvironment() ?? 'development'
+if (!sentryDsn) {
+  console.warn('Sentry DSN not found, Sentry will not be initialized')
+} else {
+  console.info(`Initializing Sentry (env=${sentryEnvironment}) with DSN:`, sentryDsn)
+  Sentry.init({
+    app,
+    dsn: sentryDsn,
+    // Setting this option to true will send default PII data to Sentry.
+    // For example, automatic IP address collection on events
+    sendDefaultPii: false,
+    environment: sentryEnvironment,
+  })
+}
 
 app.use(router)
 

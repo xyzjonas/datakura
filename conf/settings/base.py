@@ -18,6 +18,26 @@ from urllib.parse import urlsplit
 from decouple import config
 
 
+# SENTRY SETUP
+if config("DJANGO_SENTRY_DSN", None):
+    import sentry_sdk
+
+    print()
+    print("*" * len(config("DJANGO_SENTRY_DSN")))
+    print(
+        f"Setting up Sentry SDK (env={config('SENTRY_ENV', default='development')}):\n{config('DJANGO_SENTRY_DSN')}"
+    )
+    print("*" * len(config("DJANGO_SENTRY_DSN")))
+    print()
+    sentry_sdk.init(
+        dsn=config("DJANGO_SENTRY_DSN"),
+        # Add data like request headers and IP for users,
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        send_default_pii=False,
+        environment=config("SENTRY_ENV", default="development"),
+    )
+
+
 def _csv_env(name: str, default: str = "") -> list[str]:
     value = str(config(name, default=default))
     return [item.strip() for item in value.split(",") if item.strip()]
