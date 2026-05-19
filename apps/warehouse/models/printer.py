@@ -9,6 +9,8 @@ from .base import BaseModel
 class Printer(BaseModel):
     code = models.CharField(max_length=100, unique=True)
     description = models.TextField(null=True, blank=True)
+    ip = models.CharField(max_length=255, null=True, blank=True)
+    port = models.PositiveIntegerField(default=9100)
 
     def __str__(self) -> str:
         return self.code

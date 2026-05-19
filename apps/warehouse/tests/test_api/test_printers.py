@@ -1,8 +1,11 @@
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth.models import User
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.printers import routes
+from apps.warehouse.core.exceptions import ApiBaseException
 from apps.warehouse.models.printer import Printer, UserAppSettings
 
 
@@ -68,3 +71,47 @@ def test_delete_printer_unassigns_default_printer(db, client) -> None:
     settings_obj.refresh_from_db()
     assert settings_obj.default_printer is None
     assert not Printer.objects.filter(code=printer_code).exists()
+
+
+def test_print_barcode_with_explicit_printer_code(db, client) -> None:
+    Printer.objects.create(
+        code="ZEBRA-PRT", description="Pack", ip="10.0.0.1", port=9100
+    )
+
+    with patch(
+        "apps.warehouse.core.services.barcode_printer.zebra_printer.print_barcode"
+    ) as mock_print:
+        res = client.post(
+            "/print?printer_code=ZEBRA-PRT",
+            json={"barcode": "WMS-001", "text": "Hello", "copies": 2},
+        )
+
+    assert res.status_code == 200, res.json()
+    body = res.json()
+    assert body["success"] is True
+    assert body["data"] == {"printer_code": "ZEBRA-PRT", "copies": 2}
+    mock_print.assert_called_once_with(
+        barcode="WMS-001", text="Hello", ip="10.0.0.1", port=9100, copies=2
+    )
+
+
+def test_print_barcode_falls_back_to_user_default_printer(db, client, user) -> None:
+    printer = Printer.objects.create(
+        code="ZEBRA-DEFAULT", description="Default", ip="10.0.0.2", port=9100
+    )
+    UserAppSettings.objects.create(user=user, default_printer=printer)
+
+    with patch(
+        "apps.warehouse.core.services.barcode_printer.zebra_printer.print_barcode"
+    ) as mock_print:
+        res = client.post("/print", json={"barcode": "WMS-002"})
+
+    assert res.status_code == 200
+    assert res.json()["data"]["printer_code"] == "ZEBRA-DEFAULT"
+    mock_print.assert_called_once()
+    assert mock_print.call_args.kwargs["ip"] == "10.0.0.2"
+
+
+def test_print_barcode_no_printer_raises(db, client) -> None:
+    with pytest.raises(ApiBaseException, match="No printer specified"):
+        client.post("/print", json={"barcode": "WMS-003"})

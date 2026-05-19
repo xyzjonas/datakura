@@ -34,6 +34,8 @@ class PrintersService:
         printer = Printer.objects.create(
             code=params.code,
             description=params.description,
+            ip=params.ip,
+            port=params.port,
         )
         return printer_orm_to_schema(printer)
 
@@ -49,7 +51,9 @@ class PrintersService:
 
         printer.code = params.code
         printer.description = params.description
-        printer.save(update_fields=["code", "description", "changed"])
+        printer.ip = params.ip
+        printer.port = params.port
+        printer.save(update_fields=["code", "description", "ip", "port", "changed"])
         return printer_orm_to_schema(printer)
 
     @staticmethod

@@ -9,6 +9,8 @@ from .base import BaseSchema
 class PrinterSchema(BaseSchema):
     code: str
     description: str | None = None
+    ip: str | None = None
+    port: int = 9100
 
 
 class GetPrintersResponse(BaseResponse):
@@ -18,6 +20,8 @@ class GetPrintersResponse(BaseResponse):
 class PrinterCreateOrUpdateSchema(Schema):
     code: str
     description: str | None = None
+    ip: str | None = None
+    port: int = 9100
 
 
 class GetPrinterResponse(Response[PrinterSchema]): ...
@@ -32,3 +36,17 @@ class SetDefaultPrinterRequestSchema(Schema):
 
 class SetDefaultPrinterResponse(BaseResponse):
     data: PrinterSchema | None = None
+
+
+class PrintBarcodeRequestSchema(Schema):
+    barcode: str
+    text: str = ""
+    copies: int = 1
+
+
+class PrintBarcodeResultSchema(Schema):
+    printer_code: str
+    copies: int
+
+
+class PrintBarcodeResponse(Response[PrintBarcodeResultSchema]): ...

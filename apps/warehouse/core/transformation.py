@@ -145,6 +145,8 @@ def printer_orm_to_schema(printer: Printer) -> PrinterSchema:
     return PrinterSchema(
         code=printer.code,
         description=printer.description,
+        ip=printer.ip,
+        port=printer.port,
         created=printer.created,
         changed=printer.changed,
     )
