@@ -42,12 +42,12 @@
 ✅- moznost vyhodit polozky do nove prijemky a tam si rozhodnu jestli dobropis nebo jestli to prislo (viz vyse)
 ✅- primarni + n sekundarnich - 1:n vazba (viz vyse)
 
-- evidovat sarzi nehlede na typ baleni/kus
+✅- evidovat sarzi nehlede na typ baleni/kus
 
 ### Produkty
 
 - zakaz evidence/rozpadnuti pro urcite skupiny (i produkt)
-- zakaz rozbalovni baleni pro urcite produkty (zakaz kusoveho prodeje)
+  ✅- zakaz rozbalovni baleni pro urcite produkty (zakaz kusoveho prodeje)
 - soubory (dokumenty) vazat na produkt (certifikace) + poznamka (cislo sarze atp.)
 
 ### Cenik

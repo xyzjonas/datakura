@@ -68,13 +68,16 @@
             {{ activity.message }}
             <br />
 
-            <span
+            <div
               class="text-xs text-gray-5 flex items-center gap-3"
               data-testid="activity-timestamp"
-              >{{ formatActivityTimestamp(activity.happened_at) }}
-              <span class="w-1 h-1 bg-gray-5 rounded-full"></span>
-              {{ activity.object_repr }}</span
             >
+              <span>{{ formatActivityTimestamp(activity.happened_at) }}</span>
+              <span class="w-1 h-1 bg-gray-5 rounded-full"></span>
+              <span>{{ activity.object_repr }}</span>
+              <span class="w-1 h-1 bg-gray-5 rounded-full"></span>
+              <span>{{ activity.actor_user }}</span>
+            </div>
           </div>
         </q-item-section>
       </q-item>

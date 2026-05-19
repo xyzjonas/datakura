@@ -65,6 +65,10 @@ ui-build:
 test-js:
     npm run test:unit
 
+[working-directory: "e2e-isolated"]
+test-e2e:
+    npm run test
+
 [working-directory: "frontend"]
 eslint:
     npm run lint-check

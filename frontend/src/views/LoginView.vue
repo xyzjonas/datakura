@@ -3,7 +3,7 @@
     <foreground-panel class="md:w-xl">
       <q-form @submit="postLogin" autofocus class="text-center md:mx-10 my-25 flex flex-col">
         <h1 class="uppercase mb-3">Přihlášení</h1>
-        <h2 class="mb-15 text-gray-5">Použíjte lokální účet pro přihlášení.</h2>
+        <p class="text-xl mb-15 text-muted">Použíjte lokální účet pro přihlášení.</p>
 
         <div class="flex flex-col gap-3">
           <q-input
