@@ -130,6 +130,7 @@
 
 <script setup lang="ts">
 import {
+  type BatchSchema,
   type InboundWarehouseOrderSchema,
   warehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItem,
   warehouseApiRoutesWarehouseGetInboundWarehouseOrder,
@@ -150,6 +151,7 @@ import OrderProgress from '@/components/OrderProgress.vue'
 import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehouseOrderItemsList.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import InboundWarehouseOrderTimeline from '@/components/putaway/InboundWarehouseOrderTimeline.vue'
+import type { TrackingType } from '@/components/putaway/InboundWarehouseOrderTrackDialog.vue'
 import ReceivingLocationSelect from '@/components/selects/ReceivingLocationSelect.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
@@ -185,17 +187,38 @@ const doneItems = computed(() => (order.value?.order_items ?? []).filter((item) 
 const step = computed(() => getInboundWarehouseOrderStep(order.value))
 const arrivalLocationCode = ref<string>()
 
-const updateOrderItems = async (orderItemId: number, toBeAdded: WarehouseItemSchema[]) => {
+const updateOrderItems = async (
+  orderItemId: number,
+  toBeAdded: WarehouseItemSchema[],
+  batch: BatchSchema | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _trackingType: TrackingType,
+) => {
   if (!order.value) {
     return
   }
+
+  // Attach batch to all items if provided
+  const itemsWithBatch = toBeAdded.map((item) => ({
+    ...item,
+    batch: batch
+      ? {
+          id: batch.id,
+          primary_barcode: batch.primary_barcode,
+          description: batch.description,
+          created: batch.created,
+          changed: batch.changed,
+        }
+      : null,
+  }))
+
   const response = await warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem({
     path: {
       code: order.value.code,
       item_id: orderItemId,
     },
     body: {
-      to_be_added: toBeAdded,
+      to_be_added: itemsWithBatch,
     },
   })
   const data = onResponse(response)

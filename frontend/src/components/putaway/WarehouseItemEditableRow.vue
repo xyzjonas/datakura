@@ -118,7 +118,7 @@
       v-model:show="setItemTrackingDialog"
       :item="item"
       :tracking-type-in="trackingType"
-      @packaged="(items) => $emit('packaged', items)"
+      @packaged="(items, batch, trackingType) => $emit('packaged', items, batch, trackingType)"
     />
     <InboundWarehouseOrderRemoveItemDialog
       v-model:show="removeItemDialog"
@@ -150,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import type { WarehouseItemSchema, WarehouseLocationSchema } from '@/client'
+import type { BatchSchema, WarehouseItemSchema, WarehouseLocationSchema } from '@/client'
 import { warehouseApiRoutesWarehouseOffloadItemsToChildOrder } from '@/client'
 import { computed, ref } from 'vue'
 import BarcodeElement from '../BarcodeElement.vue'
@@ -193,7 +193,12 @@ const offloadLoading = ref(false)
 const emit = defineEmits<{
   (e: 'dissolveItem'): void
   (e: 'remove', amount: number): void
-  (e: 'packaged', items: WarehouseItemSchema[]): void
+  (
+    e: 'packaged',
+    items: WarehouseItemSchema[],
+    batch: BatchSchema | undefined,
+    trackingType: TrackingType,
+  ): void
   (e: 'moved', location: WarehouseLocationSchema): void
   (e: 'offloaded'): void
 }>()

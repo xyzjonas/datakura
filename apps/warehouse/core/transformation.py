@@ -273,6 +273,7 @@ def batch_orm_to_schema(batch: Batch) -> BatchSchema:
         primary_barcode=barcode_orm_to_schema(barcode) if barcode else None,
         created=batch.created,
         changed=batch.changed,
+        description=batch.description,
     )
 
 

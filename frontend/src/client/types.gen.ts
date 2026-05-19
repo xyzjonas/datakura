@@ -330,11 +330,11 @@ export type BatchSchema = {
      * Id
      */
     id: number;
-    primary_barcode?: BarcodeSchema | null;
+    primary_barcode: BarcodeSchema | null;
     /**
      * Description
      */
-    description?: string | null;
+    description: string | null;
 };
 
 /**
@@ -3570,6 +3570,78 @@ export type PutInSerialRequestSchema = {
 };
 
 /**
+ * PagedBatchSchema
+ */
+export type PagedBatchSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<BatchSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetBatchResponse
+ */
+export type GetBatchResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: BatchSchema;
+};
+
+/**
+ * BatchCreateOrUpdateSchema
+ */
+export type BatchCreateOrUpdateSchema = {
+    /**
+     * Barcode
+     */
+    barcode?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Auto Generate Barcode
+     */
+    auto_generate_barcode?: boolean;
+};
+
+/**
+ * DeleteBatchResponse
+ */
+export type DeleteBatchResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data?: null;
+};
+
+/**
  * DeletePackageTypeResponse
  */
 export type DeletePackageTypeResponse = {
@@ -6648,6 +6720,93 @@ export type WarehouseApiRoutesPackagingSerialPreviewResponses = {
 };
 
 export type WarehouseApiRoutesPackagingSerialPreviewResponse = WarehouseApiRoutesPackagingSerialPreviewResponses[keyof WarehouseApiRoutesPackagingSerialPreviewResponses];
+
+export type WarehouseApiRoutesPackagingGetBatchesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/packaging/batches';
+};
+
+export type WarehouseApiRoutesPackagingGetBatchesResponses = {
+    /**
+     * OK
+     */
+    200: PagedBatchSchema;
+};
+
+export type WarehouseApiRoutesPackagingGetBatchesResponse = WarehouseApiRoutesPackagingGetBatchesResponses[keyof WarehouseApiRoutesPackagingGetBatchesResponses];
+
+export type WarehouseApiRoutesPackagingCreateBatchData = {
+    body: BatchCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/packaging/batches';
+};
+
+export type WarehouseApiRoutesPackagingCreateBatchResponses = {
+    /**
+     * OK
+     */
+    200: GetBatchResponse;
+};
+
+export type WarehouseApiRoutesPackagingCreateBatchResponse = WarehouseApiRoutesPackagingCreateBatchResponses[keyof WarehouseApiRoutesPackagingCreateBatchResponses];
+
+export type WarehouseApiRoutesPackagingDeleteBatchData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: number;
+    };
+    query?: never;
+    url: '/api/v1/packaging/batches/{batch_id}';
+};
+
+export type WarehouseApiRoutesPackagingDeleteBatchResponses = {
+    /**
+     * OK
+     */
+    200: DeleteBatchResponse;
+};
+
+export type WarehouseApiRoutesPackagingDeleteBatchResponse = WarehouseApiRoutesPackagingDeleteBatchResponses[keyof WarehouseApiRoutesPackagingDeleteBatchResponses];
+
+export type WarehouseApiRoutesPackagingUpdateBatchData = {
+    body: BatchCreateOrUpdateSchema;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: number;
+    };
+    query?: never;
+    url: '/api/v1/packaging/batches/{batch_id}';
+};
+
+export type WarehouseApiRoutesPackagingUpdateBatchResponses = {
+    /**
+     * OK
+     */
+    200: GetBatchResponse;
+};
+
+export type WarehouseApiRoutesPackagingUpdateBatchResponse = WarehouseApiRoutesPackagingUpdateBatchResponses[keyof WarehouseApiRoutesPackagingUpdateBatchResponses];
 
 export type WarehouseApiRoutesPackagingDeletePackageTypeData = {
     body?: never;

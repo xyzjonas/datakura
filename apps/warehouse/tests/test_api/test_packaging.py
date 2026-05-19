@@ -4,7 +4,7 @@ from ninja.testing import TestClient
 from apps.warehouse.api.routes.packaging import routes
 from apps.warehouse.core.exceptions import ApiBaseException, ErrorCode
 from apps.warehouse.models.packaging import PackageType, UnitOfMeasure
-from apps.warehouse.models.warehouse import TrackingLevel
+from apps.warehouse.models.warehouse import Batch, TrackingLevel
 from apps.warehouse.tests.factories.packaging import PackageTypeFactory
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
@@ -151,3 +151,101 @@ def test_preview_serial_requires_positive_whole_amount(db, client, amount) -> No
         )
 
     assert exc.value.code == ErrorCode.INVALID_CONVERSION
+
+
+def test_create_batch_with_custom_barcode(db, client) -> None:
+    res = client.post(
+        "/batches",
+        json={
+            "barcode": "BATCH-2024-001",
+            "description": "Fresh batch from 2024",
+            "auto_generate_barcode": False,
+        },
+    )
+
+    assert res.status_code == 200
+    batch_data = res.json()["data"]
+    assert batch_data["primary_barcode"]["code"] == "BATCH-2024-001"
+    assert batch_data["description"] == "Fresh batch from 2024"
+    assert batch_data["id"] is not None
+
+    # Verify batch was created in DB
+    batch = Batch.objects.get(id=batch_data["id"])
+    assert batch.description == "Fresh batch from 2024"
+    barcode = batch.get_primary_barcode()
+    assert barcode is not None
+    assert barcode.code == "BATCH-2024-001"
+
+
+def test_create_batch_with_auto_generated_barcode(db, client) -> None:
+    res = client.post(
+        "/batches",
+        json={
+            "barcode": None,
+            "description": "Auto-generated batch",
+            "auto_generate_barcode": True,
+        },
+    )
+
+    assert res.status_code == 200
+    batch_data = res.json()["data"]
+    assert batch_data["primary_barcode"] is not None
+    assert batch_data["primary_barcode"]["code"].startswith("BAT")
+    assert batch_data["description"] == "Auto-generated batch"
+
+
+def test_get_batches_with_search(db, client) -> None:
+    batch1 = Batch.objects.create(description="Fresh vegetables batch")
+    batch1.attach_barcode("BATCH-VEG-001", is_primary=True)
+
+    batch2 = Batch.objects.create(description="Frozen goods batch")
+    batch2.attach_barcode("BATCH-FROZEN-001", is_primary=True)
+
+    # Search by description
+    res = client.get("/batches?search_term=vegetables")
+    assert res.status_code == 200
+    items = res.json()["data"]
+    assert len(items) == 1
+    assert items[0]["description"] == "Fresh vegetables batch"
+
+    # Search by barcode
+    res = client.get("/batches?search_term=FROZEN")
+    assert res.status_code == 200
+    items = res.json()["data"]
+    assert len(items) == 1
+    assert items[0]["primary_barcode"]["code"] == "BATCH-FROZEN-001"
+
+
+def test_update_batch(db, client) -> None:
+    batch = Batch.objects.create(description="Old description")
+    batch.attach_barcode("OLD-BATCH-001")
+
+    res = client.put(
+        f"/batches/{batch.id}",
+        json={
+            "barcode": "NEW-BATCH-001",
+            "description": "Updated description",
+            "auto_generate_barcode": False,
+        },
+    )
+
+    assert res.status_code == 200
+    batch_data = res.json()["data"]
+    assert batch_data["description"] == "Updated description"
+    assert batch_data["primary_barcode"]["code"] == "NEW-BATCH-001"
+
+    batch.refresh_from_db()
+    assert batch.description == "Updated description"
+    barcode = batch.get_primary_barcode()
+    assert barcode is not None
+    assert barcode.code == "NEW-BATCH-001"
+
+
+def test_delete_batch(db, client) -> None:
+    batch = Batch.objects.create(description="To be deleted")
+
+    res = client.delete(f"/batches/{batch.id}")
+
+    assert res.status_code == 200
+    assert res.json()["success"] is True
+    assert not Batch.objects.filter(id=batch.id).exists()

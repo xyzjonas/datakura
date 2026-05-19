@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from ninja import Schema
 
-from .base import BaseSchema, BaseResponse, EmptyResponse, PaginatedResponse, Response
+from .barcode import BarcodeSchema
+from .base import BaseResponse, BaseSchema, EmptyResponse, PaginatedResponse, Response
 from .warehouse import WarehouseItemSchema
 
 
@@ -70,3 +71,24 @@ class PutInPackageResponse(BaseResponse):
 
 
 class DeletePackageTypeResponse(EmptyResponse): ...
+
+
+class BatchSchema(BaseSchema):
+    id: int
+    primary_barcode: BarcodeSchema | None
+    description: str | None
+
+
+class BatchCreateOrUpdateSchema(Schema):
+    barcode: str | None = None
+    description: str | None = None
+    auto_generate_barcode: bool = False
+
+
+class GetBatchResponse(Response[BatchSchema]): ...
+
+
+class GetBatchesResponse(PaginatedResponse[BatchSchema]): ...
+
+
+class DeleteBatchResponse(EmptyResponse): ...

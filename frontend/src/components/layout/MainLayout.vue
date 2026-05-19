@@ -95,6 +95,11 @@
                   routeName: 'inventorySnapshots',
                   routeMatch: 'inventorySnapshots,inventorySnapshotDetail',
                 },
+                {
+                  label: 'Šarže',
+                  icon: 'sym_o_inventory_2',
+                  routeName: 'batches',
+                },
               ]"
             />
             <q-item-label header class="text-gray-4">Zákazník</q-item-label>

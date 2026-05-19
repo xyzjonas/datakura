@@ -79,7 +79,8 @@
 
 ## vydej
 
-- vydej partial item quantities (19.6)
+✅- vydej partial item quantities (19.6)
+
 - tisk dodaciho listu (vydejka)
   ✅- seznam vyfiltrovat podle odberatele
   ✅- zakaznik prefill splatnosti v kalendarnich dnech, zakladni hodnota 10 kalendarnich

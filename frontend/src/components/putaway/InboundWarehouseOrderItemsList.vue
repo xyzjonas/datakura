@@ -10,7 +10,7 @@
           :allow-move="allowMove"
           :warehouse-order-code="warehouseOrderCode"
           @dissolve-item="() => $emit('dissolveItem', item.id)"
-          @packaged="(newItems) => $emit('packaged', item.id, newItems)"
+          @packaged="(newItems, batch, trackingType) => $emit('packaged', item.id, newItems, batch, trackingType)"
           @remove="(amount) => $emit('removeItem', item.id, amount)"
           @moved="(location) => $emit('moved', item.warehouse_item_id!, location)"
           @offloaded="$emit('offloaded')"
@@ -30,10 +30,12 @@
 
 <script setup lang="ts">
 import type {
+  BatchSchema,
   InboundWarehouseOrderItemSchema,
   WarehouseItemSchema,
   WarehouseLocationSchema,
 } from '@/client'
+import type { TrackingType } from './InboundWarehouseOrderTrackDialog.vue'
 import EmptyPanel from '../EmptyPanel.vue'
 import InboundWarehouseItemEditableRow from './InboundWarehouseItemEditableRow.vue'
 import IndexRectangle from '../IndexRectangle.vue'
@@ -42,7 +44,13 @@ defineEmits<{
   (e: 'dissolveItem', itemId: number): void
   (e: 'removeItem', itemId: number, amount: number): void
   (e: 'addItem'): void
-  (e: 'packaged', orderItemId: number, items: WarehouseItemSchema[]): void
+  (
+    e: 'packaged',
+    orderItemId: number,
+    items: WarehouseItemSchema[],
+    batch: BatchSchema | undefined,
+    trackingType: TrackingType,
+  ): void
   (e: 'moved', warehouseItemId: number, location: WarehouseLocationSchema): void
   (e: 'offloaded'): void
 }>()

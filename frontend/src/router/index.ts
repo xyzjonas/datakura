@@ -1,5 +1,6 @@
 import { useAuth } from '@/composables/use-auth'
 import { useGlobalLoading } from '@/composables/use-global-loading'
+import BatchesView from '@/views/BatchesView.vue'
 import CreditNotesView from '@/views/CreditNotesView.vue'
 import CreditNoteToSupplierView from '@/views/CreditNoteToSupplierView.vue'
 import CustomersView from '@/views/CustomersView.vue'
@@ -78,6 +79,11 @@ const router = createRouter({
       name: 'warehouseItemDetail',
       component: WarehouseItemView,
       props: true,
+    },
+    {
+      path: '/batches',
+      name: 'batches',
+      component: BatchesView,
     },
     {
       path: '/products/:productCode',

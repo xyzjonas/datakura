@@ -7,9 +7,13 @@ from django.http import HttpRequest
 from ninja import Router
 from ninja.pagination import paginate
 
-from apps.warehouse.api.pagination import UnitOfMeasurePagination
+from apps.warehouse.api.pagination import BatchesPagination, UnitOfMeasurePagination
 from apps.warehouse.core.schemas.packaging import (
+    BatchCreateOrUpdateSchema,
+    BatchSchema,
+    DeleteBatchResponse,
     DeletePackageTypeResponse,
+    GetBatchResponse,
     GetPackageTypeResponse,
     GetPackageTypesResponse,
     GetUnitOfMeasureResponse,
@@ -21,6 +25,7 @@ from apps.warehouse.core.schemas.packaging import (
     UnitOfMeasureSchema,
     UnitOfMeasureCreateOrUpdateSchema,
 )
+from apps.warehouse.core.services.batches import batches_service
 from apps.warehouse.core.services.package_types import package_types_service
 from apps.warehouse.core.transformation import package_type_orm_to_schema
 from apps.warehouse.core.services.warehouse import warehouse_service
@@ -142,6 +147,28 @@ def create_package_type(
     body: PackageTypeCreateOrUpdateSchema,
 ):
     return GetPackageTypeResponse(data=package_types_service.create_package_type(body))
+
+
+@routes.get("/batches", response={200: list[BatchSchema]})
+@paginate(BatchesPagination)
+def get_batches(request: HttpRequest, search_term: str | None = None):
+    return batches_service.get_batches(search_term).all()
+
+
+@routes.post("/batches", response={200: GetBatchResponse})
+def create_batch(request: HttpRequest, body: BatchCreateOrUpdateSchema):
+    return GetBatchResponse(data=batches_service.create_batch(body))
+
+
+@routes.put("/batches/{batch_id}", response={200: GetBatchResponse})
+def update_batch(request: HttpRequest, batch_id: int, body: BatchCreateOrUpdateSchema):
+    return GetBatchResponse(data=batches_service.update_batch(batch_id, body))
+
+
+@routes.delete("/batches/{batch_id}", response={200: DeleteBatchResponse})
+def delete_batch(request: HttpRequest, batch_id: int):
+    batches_service.delete_batch(batch_id)
+    return DeleteBatchResponse(success=True)
 
 
 @routes.put("/{package_type_name}", response={200: GetPackageTypeResponse})

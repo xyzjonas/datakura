@@ -5,6 +5,7 @@
       v-model:tab="activeTab"
       :items="[
         { key: 'packageTypes', icon: 'sym_o_package_2', title: 'Typy Balení' },
+        { key: 'batches', icon: 'sym_o_inventory_2', title: 'Šarže' },
         { key: 'units', icon: 'sym_o_straighten', title: 'Jednotky' },
       ]"
       class="mb-5"
@@ -17,6 +18,7 @@
 import LargeTabs from '@/components/LargeTabs.vue'
 import { useLocalStorage } from '@vueuse/core'
 import { shallowRef, type Component, watch } from 'vue'
+import BatchesTable from './packaging/BatchesTable.vue'
 import PackageTypesTable from './packaging/PackageTypesTable.vue'
 import UnitsOfMeasureTable from './packaging/UnitsOfMeasureTable.vue'
 
@@ -28,6 +30,8 @@ watch(
   (value: string) => {
     if (value === 'units') {
       activeTabComponent.value = UnitsOfMeasureTable
+    } else if (value === 'batches') {
+      activeTabComponent.value = BatchesTable
     } else {
       activeTabComponent.value = PackageTypesTable
     }

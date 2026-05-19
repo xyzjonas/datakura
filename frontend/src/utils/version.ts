@@ -7,10 +7,18 @@ export type ChangelogEntry = {
   rows: string[]
 }
 
-export const APP_VERSION = '0.0.1dev3'
+export const APP_VERSION = '0.0.1dev4'
 export const STORAGE_KEY = 'app-last-acknowledged-version'
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+  {
+    version: '0.0.1dev4',
+    releaseDate: '2026-05-19',
+    rows: [
+      'Vylepšené vyhledávání produktů při výdeji zboží (výdejka), přehlednější zobrazení variant a jejich skladových zásob.',
+      'Přidána možnost správy šarží. Šarže lze přiřazovat ke VŠEM typům skladových položek a následně filtrovat při výdeji zboží (výdejka).',
+    ],
+  },
   {
     version: '0.0.1dev3',
     releaseDate: '2026-05-14',

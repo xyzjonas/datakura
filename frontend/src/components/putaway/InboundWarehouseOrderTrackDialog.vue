@@ -67,15 +67,30 @@
             />
           </div>
 
-          <q-input
-            v-model="batchCode"
-            v-if="trackingType.value == 'batch'"
-            outlined
-            label="Kód šarže"
-            hint="Zadejte kód existující šarže, do které chcete položku přidat. Nechte pole prázdné pro vytvoření nové šarže."
-            :debounce="500"
-            class="mb-5"
-          />
+          <q-separator class="my-4" />
+
+          <div class="flex items-center gap-2 mb-2">
+            <q-checkbox v-model="attachBatch" label="Přiřadit šarži" />
+            <div class="description text-xs">
+              Šarže umožňuje seskupovat zboží podle výrobních dávek, sledovat expirace nebo
+              jednoduše organizovat skladové zásoby.
+            </div>
+          </div>
+
+          <div v-if="attachBatch" class="flex flex-col gap-2">
+            <BatchSearchSelect v-model="selectedBatch" :key="batchSelectKey" />
+
+            <div class="flex justify-end -mt-1">
+              <q-btn
+                flat
+                dense
+                color="primary"
+                icon="add"
+                label="nová šarže"
+                @click="openCreateBatchDialog"
+              />
+            </div>
+          </div>
 
           <div v-if="items.length > 0">
             <WarehouseItemPreviewRow :item="item" :index="0" :amount="amount" />
@@ -110,14 +125,25 @@
     :loading="creatingPackageType"
     @submit="createPackageType"
   />
+
+  <BatchUpsertDialog
+    v-model:show="showCreateBatchDialog"
+    v-model="batchForm"
+    title="Vytvořit šarži"
+    submit-label="vytvořit"
+    :loading="creatingBatch"
+    @submit="createBatch"
+  />
 </template>
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesPackagingBatchPreview,
+  warehouseApiRoutesPackagingCreateBatch,
   warehouseApiRoutesPackagingCreatePackageType,
   warehouseApiRoutesPackagingPackagePreview,
   warehouseApiRoutesPackagingSerialPreview,
+  type BatchCreateOrUpdateSchema,
+  type BatchSchema,
   type PackageTypeCreateOrUpdateSchema,
   type PackageTypeSchema,
   type WarehouseItemSchema,
@@ -126,19 +152,19 @@ import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
 import { rules } from '@/utils/rules'
 import { computed, ref, watch } from 'vue'
+import BatchSearchSelect from '../selects/BatchSearchSelect.vue'
 import PackageTypeSearchSelect from '../selects/PackageTypeSearchSelect.vue'
+import BatchUpsertDialog from '../settings/packaging/BatchUpsertDialog.vue'
 import PackageTypeUpsertDialog from '../settings/packaging/PackageTypeUpsertDialog.vue'
 import WarehouseItemPreviewRow from './WarehouseItemPreviewRow.vue'
 
 const { onResponse } = useApi()
 const { goToProduct } = useAppRouter()
 
-export type TrackingType = 'package' | '' | 'batch' | 'piece'
+export type TrackingType = 'package' | '' | 'piece'
 
 const helpTextMapping: Record<TrackingType, string> = {
   '': 'Toto zboží sledujeme jen celkově - evidujeme kolik kusů máme na skladě, ale nezapisujeme, odkud konkrétní kusy přišly nebo kde přesně leží. Všechny kusy stejného produktu jsou pro nás zaměnitelné - při výdeji vezmeme jakýkoliv dostupný kus.',
-  batch:
-    'Určité zboží sledujeme po výrobních dávkách (šaržích). Každá dávka má své číslo. Zboží můžeme brát jen ze stejné dávky - nemůžeme míchat kusy z různých dávek dohromady. Díky tomu vždy víme, odkud dávka přišla a kde přesně ve skladu leží.',
   piece:
     'Každý kus má své vlastní jedinečné číslo (jako sériové číslo). Díky tomu u každého kusu víme, odkud přišel a kde přesně ve skladu se nachází. Žádné dva kusy nejsou zaměnitelné.',
   package:
@@ -153,10 +179,6 @@ const tracking_type_options: { label: string; value: TrackingType }[] = [
   {
     label: 'Balení',
     value: 'package',
-  },
-  {
-    label: 'Šarže',
-    value: 'batch',
   },
   {
     label: 'Kusy',
@@ -178,10 +200,14 @@ const helpText = computed(() => helpTextMapping[trackingType.value.value])
 const amount = ref(props.item.amount)
 
 const selectedPackage = ref<PackageTypeSchema>()
-const batchCode = ref('')
+const selectedBatch = ref<BatchSchema>()
+const attachBatch = ref(false)
+const batchSelectKey = ref(0)
 const packageTypeSelectKey = ref(0)
 const showCreatePackageTypeDialog = ref(false)
+const showCreateBatchDialog = ref(false)
 const creatingPackageType = ref(false)
+const creatingBatch = ref(false)
 
 const createDefaultPackageTypeForm = (): PackageTypeCreateOrUpdateSchema => ({
   name: '',
@@ -190,7 +216,14 @@ const createDefaultPackageTypeForm = (): PackageTypeCreateOrUpdateSchema => ({
   unit: props.item.unit_of_measure || null,
 })
 
+const createDefaultBatchForm = (): BatchCreateOrUpdateSchema => ({
+  barcode: null,
+  description: null,
+  auto_generate_barcode: false,
+})
+
 const packageTypeForm = ref<PackageTypeCreateOrUpdateSchema>(createDefaultPackageTypeForm())
+const batchForm = ref<BatchCreateOrUpdateSchema>(createDefaultBatchForm())
 
 const showDialog = defineModel('show', { default: false })
 
@@ -213,23 +246,6 @@ const previewPackagingItems = async () => {
   }
 }
 
-const previewBatchingItems = async () => {
-  if (trackingType.value.value !== 'batch') {
-    return
-  }
-  const result = await warehouseApiRoutesPackagingBatchPreview({
-    body: {
-      order_item_id: props.item.id,
-      amount: amount.value,
-      batch_code: batchCode.value,
-      product_code: props.item.product.code,
-    },
-  })
-  const data = onResponse(result)
-  if (data) {
-    items.value = data.data
-  }
-}
 
 const previewSerialItems = async () => {
   if (trackingType.value.value !== 'piece') {
@@ -253,10 +269,7 @@ watch([trackingType], () => {
     selectedPackage.value = undefined
   }
 
-  if (trackingType.value.value === 'batch') {
-    selectedPackage.value = undefined
-    previewBatchingItems()
-  } else if (trackingType.value.value === 'piece') {
+  if (trackingType.value.value === 'piece') {
     selectedPackage.value = undefined
     previewSerialItems()
   } else {
@@ -264,11 +277,9 @@ watch([trackingType], () => {
   }
 })
 
-watch([selectedPackage, amount, trackingType, batchCode], () => {
+watch([selectedPackage, amount, trackingType], () => {
   if (selectedPackage.value) {
     previewPackagingItems()
-  } else if (trackingType.value.value === 'batch') {
-    previewBatchingItems()
   } else if (trackingType.value.value === 'piece') {
     previewSerialItems()
   } else {
@@ -280,6 +291,9 @@ watch(showDialog, (value) => {
   if (value) {
     amount.value = props.item.amount
     packageTypeForm.value = createDefaultPackageTypeForm()
+    batchForm.value = createDefaultBatchForm()
+    attachBatch.value = false
+    selectedBatch.value = undefined
   }
 })
 
@@ -303,26 +317,50 @@ const createPackageType = async (body: PackageTypeCreateOrUpdateSchema) => {
   }
 }
 
+const openCreateBatchDialog = () => {
+  batchForm.value = createDefaultBatchForm()
+  showCreateBatchDialog.value = true
+}
+
+const createBatch = async (body: BatchCreateOrUpdateSchema) => {
+  creatingBatch.value = true
+  try {
+    const result = await warehouseApiRoutesPackagingCreateBatch({ body })
+    const response = onResponse(result)
+    if (response?.data) {
+      showCreateBatchDialog.value = false
+      selectedBatch.value = response.data
+      batchSelectKey.value += 1
+    }
+  } finally {
+    creatingBatch.value = false
+  }
+}
+
 const emit = defineEmits<{
-  (e: 'packaged', items: WarehouseItemSchema[]): void
+  (
+    e: 'packaged',
+    items: WarehouseItemSchema[],
+    batch: BatchSchema | undefined,
+    trackingType: TrackingType,
+  ): void
 }>()
 const onSubmit = () => {
+  const batch = attachBatch.value ? selectedBatch.value : undefined
+
   if (!trackingType.value.value) {
+    // Fungible tracking
+    emit('packaged', items.value, batch, trackingType.value.value)
     showDialog.value = false
     return
   }
   if (trackingType.value.value === 'package') {
-    emit('packaged', items.value)
-    showDialog.value = false
-    return
-  }
-  if (trackingType.value.value === 'batch') {
-    emit('packaged', items.value)
+    emit('packaged', items.value, batch, trackingType.value.value)
     showDialog.value = false
     return
   }
   if (trackingType.value.value === 'piece') {
-    emit('packaged', items.value)
+    emit('packaged', items.value, batch, trackingType.value.value)
     showDialog.value = false
     return
   }

@@ -4,6 +4,7 @@ import pytest
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.inbound_orders import routes as order_routes
+from apps.warehouse.api.routes.packaging import routes as packaging_routes
 from apps.warehouse.api.routes.warehouse import routes as warehouse_routes
 from apps.warehouse.core.schemas.orders import InboundOrderCreateOrUpdateSchema
 from apps.warehouse.models.warehouse import (
@@ -17,8 +18,10 @@ from apps.warehouse.models.orders import (
 )
 
 from apps.warehouse.tests.factories.customer import CustomerFactory
+from apps.warehouse.tests.factories.packaging import PackageTypeFactory
 from apps.warehouse.tests.factories.warehouse import WarehouseLocationFactory
 from apps.warehouse.tests.factories.order import StockProductFactory
+from apps.warehouse.models.warehouse import Batch, TrackingLevel, WarehouseItem
 
 
 @pytest.fixture
@@ -223,3 +226,168 @@ def test_inbound_order_end_2_end(db, order_client, warehouse_client):
 
     receiving_location.refresh_from_db()
     assert receiving_location.items.count() == 0
+
+
+def test_inbound_order_with_package_and_batch(db, order_client, warehouse_client):
+    """
+    E2E test for the scenario: warehouse item with package type and batch attached.
+
+    Scenario: 100 units of potato chips arrive. We want to:
+    - Track them as packages of 10 units each (10 packages total)
+    - Assign them to a fresh batch with barcode from supplier
+    - Verify the warehouse items are created correctly with both package and batch info
+    """
+    # 1. Setup
+    supplier = CustomerFactory()
+    product = StockProductFactory(name="Potato Chips", unit_of_measure__name="KS")
+    receiving_location = WarehouseLocationFactory(is_putaway=True)
+    storage_location = WarehouseLocationFactory(is_putaway=False)
+
+    # Create package type: 10 chips per bag
+    package_type = PackageTypeFactory(
+        name="BAG-10",
+        amount=10,
+        unit_of_measure=product.unit_of_measure,
+    )
+
+    # Create batch with supplier barcode
+    batch = Batch.objects.create(description="fresh batch 18.5")
+    batch.attach_barcode("SUPPLIER-BATCH-001", is_primary=True)
+
+    # 2. Create and submit inbound order
+    payload = InboundOrderCreateOrUpdateSchema(
+        supplier_code=supplier.code,
+        supplier_name=supplier.name,
+        external_code="CHIPS-ORDER-001",
+        currency="CZK",
+    )
+    res = order_client.post("/", json=payload.model_dump())
+    assert res.status_code == 200
+    order_code = res.json()["data"]["code"]
+
+    # Add 100 units of potato chips to the order
+    item_data = {
+        "product_code": product.code,
+        "product_name": product.name,
+        "amount": 100,
+        "total_price": 1000,
+    }
+    res = order_client.post(f"/{order_code}/items", json=item_data)
+    assert res.status_code == 200
+
+    # Submit order
+    res = order_client.post(f"/{order_code}/transition", json={"action": "next"})
+    assert res.status_code == 200
+
+    # 3. Create warehouse order and confirm arrival
+    res = warehouse_client.post(
+        "/orders-incoming",
+        json={"purchase_order_code": order_code},
+    )
+    assert res.status_code == 200
+    w_order_code = res.json()["data"]["code"]
+
+    res = warehouse_client.post(
+        f"/orders-incoming/{w_order_code}/transition",
+        json={"location_code": receiving_location.code},
+    )
+    assert res.status_code == 200
+    w_order_res = res.json()["data"]
+    order_item = w_order_res["order_items"][0]
+
+    # 4. Track the item with package type and batch
+    # Use preview endpoint to get properly formatted warehouse items
+    packaging_client = TestClient(packaging_routes)
+    res = packaging_client.post(
+        "/preview-package",
+        json={
+            "order_item_id": order_item["id"],
+            "product_code": product.code,
+            "package_name": package_type.name,
+            "amount": 100,
+        },
+    )
+    assert res.status_code == 200
+    warehouse_items_to_create = res.json()["data"]
+
+    # Add batch to each warehouse item
+    primary_barcode = batch.get_primary_barcode()
+    batch_schema = {
+        "id": batch.id,
+        "created": batch.created.isoformat(),
+        "changed": batch.changed.isoformat(),
+        "primary_barcode": {
+            "id": primary_barcode.id,
+            "code": primary_barcode.code,
+            "barcode_type": primary_barcode.barcode_type,
+            "is_primary": primary_barcode.is_primary,
+            "created": primary_barcode.created.isoformat(),
+            "changed": primary_barcode.changed.isoformat(),
+        }
+        if primary_barcode
+        else None,
+        "description": batch.description,
+    }
+
+    for item in warehouse_items_to_create:
+        item["batch"] = batch_schema
+
+    res = warehouse_client.post(
+        f"/orders-incoming/{w_order_code}/order-items/{order_item['id']}/track",
+        json={"to_be_added": warehouse_items_to_create},
+    )
+    assert res.status_code == 200
+
+    # 5. Confirm the warehouse order (moves items from putaway to storage)
+    res = warehouse_client.post(
+        f"/orders-incoming/{w_order_code}/transition",
+        json={},
+    )
+    assert res.status_code == 200
+
+    # Move all items to storage
+    w_order_db = InboundWarehouseOrder.objects.get(code=w_order_code)
+    for item in w_order_db.items.all():
+        res = warehouse_client.post(
+            f"/orders-incoming/{w_order_code}/items/{item.id}/putaway",
+            json={"new_location_code": storage_location.code},
+        )
+        assert res.status_code == 200
+
+    # 6. Verify final state
+    # All items should be in storage location
+    res = warehouse_client.get(f"/locations/{storage_location.code}")
+    assert res.status_code == 200
+    location_items = res.json()["data"]["items"]
+
+    # Should have 10 packages
+    assert len(location_items) == 10
+
+    # Each package should have:
+    for item in location_items:
+        # - 10 units
+        assert item["amount"] == 10.0
+        # - Package type BAG-10
+        assert item["package"] is not None
+        assert item["package"]["type"] == "BAG-10"
+        # - Batch with supplier barcode
+        assert item["batch"] is not None
+        assert item["batch"]["primary_barcode"]["code"] == "SUPPLIER-BATCH-001"
+        assert item["batch"]["description"] == "fresh batch 18.5"
+        # - Serialized package tracking level
+        assert item["tracking_level"] == TrackingLevel.SERIALIZED_PACKAGE
+        # - Product is potato chips
+        assert item["product"]["code"] == product.code
+
+    # Verify in database
+    db_items = WarehouseItem.objects.filter(
+        location=storage_location,
+        stock_product=product,
+    )
+    assert db_items.count() == 10
+
+    for db_item in db_items:
+        assert db_item.amount == 10
+        assert db_item.package_type == package_type
+        assert db_item.batch == batch
+        assert db_item.tracking_level == TrackingLevel.SERIALIZED_PACKAGE

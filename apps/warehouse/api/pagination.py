@@ -24,6 +24,8 @@ from apps.warehouse.core.schemas.invoice import (
     GetInvoicesResponse,
 )
 from apps.warehouse.core.schemas.packaging import (
+    BatchSchema,
+    GetBatchesResponse,
     GetUnitOfMeasuresResponse,
     UnitOfMeasureSchema,
 )
@@ -49,6 +51,7 @@ from apps.warehouse.core.transformation import (
     location_orm_to_schema,
     invoice_payment_method_orm_to_schema,
     invoice_orm_to_schema,
+    barcode_orm_to_schema,
 )
 from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
 from apps.warehouse.models.customer import Customer, CustomerGroup
@@ -62,6 +65,7 @@ from apps.warehouse.models.orders import (
 from apps.warehouse.models.product import StockProduct, ProductGroup, ProductType
 from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.warehouse import (
+    Batch,
     InventorySnapshot,
     InboundWarehouseOrder,
     OutboundWarehouseOrder,
@@ -531,6 +535,47 @@ class InvoicePaymentMethodPagination(PaginationBase):
             "data": [
                 invoice_payment_method_orm_to_schema(payment_method)
                 for payment_method in items
+            ],
+            "count": count,
+            "next": pagination.page + 1
+            if offset + pagination.page_size < count
+            else None,
+            "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
+
+
+class BatchesPagination(PaginationBase):
+    items_attribute: str = "data"
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 20
+
+    class Output(GetBatchesResponse): ...
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[Batch],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        offset = (pagination.page - 1) * pagination.page_size
+        items = queryset[offset : offset + pagination.page_size]
+        count = queryset.count()
+
+        return {
+            "data": [
+                BatchSchema(
+                    id=batch.pk,
+                    created=batch.created,
+                    changed=batch.changed,
+                    primary_barcode=barcode_orm_to_schema(batch.get_primary_barcode())
+                    if batch.get_primary_barcode()
+                    else None,
+                    description=batch.description,
+                )
+                for batch in items
             ],
             "count": count,
             "next": pagination.page + 1
