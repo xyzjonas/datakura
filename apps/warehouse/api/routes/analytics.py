@@ -7,9 +7,12 @@ from apps.warehouse.core.schemas.analytics import (
     GetInventorySnapshotResponse,
     GetLatestInventoryValueResponse,
     GetRecentActivityResponse,
+    GetRecentOrdersActivityResponse,
+    GetRecentOrdersResponse,
     InventorySnapshotCreateSchema,
     InventorySnapshotSummarySchema,
 )
+from apps.warehouse.core.services.analytics import analytics_service
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
 
@@ -26,6 +29,18 @@ def get_inventory_value(request: HttpRequest):
 @routes.get("/recent-activity", response={200: GetRecentActivityResponse})
 def get_recent_activity(request: HttpRequest):
     return GetRecentActivityResponse(data=audit_service.get_recent_activity(limit=8))
+
+
+@routes.get("/recent-orders", response={200: GetRecentOrdersResponse})
+def get_recent_orders(request: HttpRequest, days: int = 14):
+    return GetRecentOrdersResponse(data=analytics_service.get_recent_orders(days=days))
+
+
+@routes.get("/recent-orders-activity", response={200: GetRecentOrdersActivityResponse})
+def get_recent_orders_activity(request: HttpRequest, days: int = 14):
+    return GetRecentOrdersActivityResponse(
+        data=analytics_service.get_recent_orders_activity(days=days)
+    )
 
 
 @routes.get(

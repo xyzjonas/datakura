@@ -65,6 +65,14 @@ export type PrinterSchema = {
      * Description
      */
     description?: string | null;
+    /**
+     * Ip
+     */
+    ip?: string | null;
+    /**
+     * Port
+     */
+    port?: number;
 };
 
 /**
@@ -3828,6 +3836,62 @@ export type RecentActivityEntrySchema = {
 };
 
 /**
+ * GetRecentOrdersResponse
+ */
+export type GetRecentOrdersResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: RecentOrdersSchema;
+};
+
+/**
+ * RecentOrdersDailyPointSchema
+ */
+export type RecentOrdersDailyPointSchema = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Value
+     */
+    value: number;
+};
+
+/**
+ * RecentOrdersSchema
+ */
+export type RecentOrdersSchema = {
+    /**
+     * Days
+     */
+    days: number;
+    /**
+     * Inbound
+     */
+    inbound: Array<RecentOrdersDailyPointSchema>;
+    /**
+     * Outbound
+     */
+    outbound: Array<RecentOrdersDailyPointSchema>;
+};
+
+/**
+ * GetRecentOrdersActivityResponse
+ */
+export type GetRecentOrdersActivityResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: RecentOrdersSchema;
+};
+
+/**
  * PagedInventorySnapshotSummarySchema
  */
 export type PagedInventorySnapshotSummarySchema = {
@@ -4393,6 +4457,58 @@ export type PrinterCreateOrUpdateSchema = {
      * Description
      */
     description?: string | null;
+    /**
+     * Ip
+     */
+    ip?: string | null;
+    /**
+     * Port
+     */
+    port?: number;
+};
+
+/**
+ * PrintBarcodeResponse
+ */
+export type PrintBarcodeResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: PrintBarcodeResultSchema;
+};
+
+/**
+ * PrintBarcodeResultSchema
+ */
+export type PrintBarcodeResultSchema = {
+    /**
+     * Printer Code
+     */
+    printer_code: string;
+    /**
+     * Copies
+     */
+    copies: number;
+};
+
+/**
+ * PrintBarcodeRequestSchema
+ */
+export type PrintBarcodeRequestSchema = {
+    /**
+     * Barcode
+     */
+    barcode: string;
+    /**
+     * Text
+     */
+    text?: string;
+    /**
+     * Copies
+     */
+    copies?: number;
 };
 
 /**
@@ -6932,6 +7048,48 @@ export type WarehouseApiRoutesAnalyticsGetRecentActivityResponses = {
 
 export type WarehouseApiRoutesAnalyticsGetRecentActivityResponse = WarehouseApiRoutesAnalyticsGetRecentActivityResponses[keyof WarehouseApiRoutesAnalyticsGetRecentActivityResponses];
 
+export type WarehouseApiRoutesAnalyticsGetRecentOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         */
+        days?: number;
+    };
+    url: '/api/v1/analytics/recent-orders';
+};
+
+export type WarehouseApiRoutesAnalyticsGetRecentOrdersResponses = {
+    /**
+     * OK
+     */
+    200: GetRecentOrdersResponse;
+};
+
+export type WarehouseApiRoutesAnalyticsGetRecentOrdersResponse = WarehouseApiRoutesAnalyticsGetRecentOrdersResponses[keyof WarehouseApiRoutesAnalyticsGetRecentOrdersResponses];
+
+export type WarehouseApiRoutesAnalyticsGetRecentOrdersActivityData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         */
+        days?: number;
+    };
+    url: '/api/v1/analytics/recent-orders-activity';
+};
+
+export type WarehouseApiRoutesAnalyticsGetRecentOrdersActivityResponses = {
+    /**
+     * OK
+     */
+    200: GetRecentOrdersActivityResponse;
+};
+
+export type WarehouseApiRoutesAnalyticsGetRecentOrdersActivityResponse = WarehouseApiRoutesAnalyticsGetRecentOrdersActivityResponses[keyof WarehouseApiRoutesAnalyticsGetRecentOrdersActivityResponses];
+
 export type WarehouseApiRoutesAnalyticsGetInventorySnapshotsData = {
     body?: never;
     path?: never;
@@ -7337,6 +7495,27 @@ export type WarehouseApiRoutesPrintersCreatePrinterResponses = {
 };
 
 export type WarehouseApiRoutesPrintersCreatePrinterResponse = WarehouseApiRoutesPrintersCreatePrinterResponses[keyof WarehouseApiRoutesPrintersCreatePrinterResponses];
+
+export type WarehouseApiRoutesPrintersPrintBarcodeData = {
+    body: PrintBarcodeRequestSchema;
+    path?: never;
+    query?: {
+        /**
+         * Printer Code
+         */
+        printer_code?: string | null;
+    };
+    url: '/api/v1/printers/print';
+};
+
+export type WarehouseApiRoutesPrintersPrintBarcodeResponses = {
+    /**
+     * OK
+     */
+    200: PrintBarcodeResponse;
+};
+
+export type WarehouseApiRoutesPrintersPrintBarcodeResponse = WarehouseApiRoutesPrintersPrintBarcodeResponses[keyof WarehouseApiRoutesPrintersPrintBarcodeResponses];
 
 export type WarehouseApiRoutesPrintersDeletePrinterData = {
     body?: never;

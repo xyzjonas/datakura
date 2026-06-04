@@ -1,8 +1,12 @@
 <template>
   <div class="relative flex flex-col">
-    <SingleValueWidget
+    <DemoGraphWidget
       :title="widgetTitle"
+      :caption="widgetCaption"
       :subtitle="widgetSubtitle"
+      :data="chartData"
+      :series="series"
+      x-axis-key="label"
       :to="{ name: 'orders' }"
       class="flex-1"
     />
@@ -15,9 +19,9 @@
       v-if="errorMessage"
       class="pointer-events-none absolute inset-0 grid content-center rounded bg-white/80 px-6 text-center dark:bg-dark/80"
     >
-      <span class="text-sm font-semibold text-negative"
-        >Nepodařilo se načíst aktivní objednávky</span
-      >
+      <span class="text-sm font-semibold text-negative">
+        Nepodařilo se načíst aktivní objednávky
+      </span>
       <span class="mt-1 text-xs text-gray-6">{{ errorMessage }}</span>
     </div>
   </div>
@@ -25,20 +29,56 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesInboundOrdersGetInboundOrders,
-  warehouseApiRoutesOutboundOrdersGetOutboundOrders,
+  type RecentOrdersDailyPointSchema,
+  warehouseApiRoutesAnalyticsGetRecentOrdersActivity,
 } from '@/client'
 import { computed, onMounted, ref } from 'vue'
-import SingleValueWidget from './SingleValueWidget.vue'
-import { isInboundOrderActive, isOutboundOrderActive, loadAllPagedItems } from './order-widgets'
+import DemoGraphWidget from './DemoGraphWidget.vue'
+
+const LOOKBACK_DAYS = 14
+
+const series = [
+  { key: 'inbound', label: 'Vydané objednávky', color: '#207ed8' },
+  { key: 'outbound', label: 'Přijaté objednávky', color: '#0f9d58' },
+]
 
 const loading = ref(true)
 const errorMessage = ref<string | null>(null)
-const counts = ref({ inbound: 0, outbound: 0 })
+const inbound = ref<RecentOrdersDailyPointSchema[]>([])
+const outbound = ref<RecentOrdersDailyPointSchema[]>([])
 
-const total = computed(() => counts.value.inbound + counts.value.outbound)
+const formatDayLabel = (value: string) =>
+  new Date(value).toLocaleDateString('cs-CZ', {
+    month: 'short',
+    day: 'numeric',
+  })
 
-const widgetTitle = computed(() => `${total.value}`)
+const chartData = computed(() => {
+  const length = Math.max(inbound.value.length, outbound.value.length)
+  return Array.from({ length }, (_, i) => ({
+    label: formatDayLabel(inbound.value[i]?.date || outbound.value[i]?.date || ''),
+    inbound: inbound.value[i]?.value ?? 0,
+    outbound: outbound.value[i]?.value ?? 0,
+  }))
+})
+
+const lastValue = (points: RecentOrdersDailyPointSchema[]) =>
+  points.length ? points[points.length - 1]!.value : 0
+
+const widgetTitle = computed(() => {
+  const inboundLast = lastValue(inbound.value)
+  const outboundLast = lastValue(outbound.value)
+  const total = inboundLast + outboundLast
+  return `${total}`
+})
+
+const widgetCaption = computed(() => {
+  if (!inbound.value.length && !outbound.value.length) {
+    return undefined
+  }
+  const lastDate = inbound.value[inbound.value.length - 1]?.date
+  return lastDate ? formatDayLabel(lastDate) : undefined
+})
 
 const widgetSubtitle = computed(() => {
   if (loading.value) {
@@ -49,52 +89,40 @@ const widgetSubtitle = computed(() => {
     return 'Aktivní objednávky se nepodařilo načíst'
   }
 
-  if (!total.value) {
+  const inboundTotal = inbound.value.reduce((sum, point) => sum + point.value, 0)
+  const outboundTotal = outbound.value.reduce((sum, point) => sum + point.value, 0)
+  const total = inboundTotal + outboundTotal
+
+  if (!total) {
     return 'Žádné aktivní objednávky'
   }
 
-  return `Aktivní objednávky • vydané ${counts.value.inbound} / přijaté ${counts.value.outbound}`
+  return `Aktivní objednávky • posledních ${LOOKBACK_DAYS} dní, vydané ${inboundTotal} / přijaté ${outboundTotal}`
 })
 
-const fetchOrders = async () => {
+const fetchRecentOrders = async () => {
   loading.value = true
   errorMessage.value = null
 
   try {
-    const [inboundOrders, outboundOrders] = await Promise.all([
-      loadAllPagedItems(
-        (pageSize) =>
-          warehouseApiRoutesInboundOrdersGetInboundOrders({
-            query: {
-              page: 1,
-              page_size: pageSize,
-            },
-          }),
-        'Nepodařilo se načíst vydané objednávky.',
-      ),
-      loadAllPagedItems(
-        (pageSize) =>
-          warehouseApiRoutesOutboundOrdersGetOutboundOrders({
-            query: {
-              page: 1,
-              page_size: pageSize,
-            },
-          }),
-        'Nepodařilo se načíst přijaté objednávky.',
-      ),
-    ])
+    const result = await warehouseApiRoutesAnalyticsGetRecentOrdersActivity({
+      query: { days: LOOKBACK_DAYS },
+    })
 
-    counts.value = {
-      inbound: inboundOrders.filter(isInboundOrderActive).length,
-      outbound: outboundOrders.filter(isOutboundOrderActive).length,
+    if (!result.response.ok || !result.data) {
+      throw new Error(result.response.statusText || 'Zkuste obnovit stránku.')
     }
+
+    inbound.value = result.data.data.inbound
+    outbound.value = result.data.data.outbound
   } catch (error) {
-    counts.value = { inbound: 0, outbound: 0 }
+    inbound.value = []
+    outbound.value = []
     errorMessage.value = error instanceof Error ? error.message : 'Zkuste obnovit stránku.'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(fetchOrders)
+onMounted(fetchRecentOrders)
 </script>

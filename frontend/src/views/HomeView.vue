@@ -52,6 +52,7 @@
     <div class="grid w-full gap-5 xl:grid-cols-2">
       <WarehouseValueWidget class="min-w-0" />
       <ActiveOrdersWidget class="min-w-0 min-h-30" />
+      <ActiveWarehouseOrdersWidget class="min-w-0 min-h-30" />
     </div>
 
     <RecentActivityWidget class="w-full" />
@@ -61,6 +62,7 @@
 <script setup lang="ts">
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ActiveOrdersWidget from '@/components/widgets/ActiveOrdersWidget.vue'
+import ActiveWarehouseOrdersWidget from '@/components/widgets/ActiveWarehouseOrdersWidget.vue'
 import RecentActivityWidget from '@/components/widgets/RecentActivityWidget.vue'
 import WarehouseValueWidget from '@/components/widgets/WarehouseValueWidget.vue'
 </script>

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
@@ -88,3 +88,22 @@ class GetLatestInventoryValueResponse(BaseResponse):
 
 class GetRecentActivityResponse(BaseResponse):
     data: list[RecentActivityEntrySchema]
+
+
+class RecentOrdersDailyPointSchema(BaseModel):
+    date: date
+    value: int
+
+
+class RecentOrdersSchema(BaseModel):
+    days: int
+    inbound: list[RecentOrdersDailyPointSchema]
+    outbound: list[RecentOrdersDailyPointSchema]
+
+
+class GetRecentOrdersResponse(BaseResponse):
+    data: RecentOrdersSchema
+
+
+class GetRecentOrdersActivityResponse(BaseResponse):
+    data: RecentOrdersSchema

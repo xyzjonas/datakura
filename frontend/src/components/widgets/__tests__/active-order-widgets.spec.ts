@@ -8,17 +8,13 @@ import ActiveWarehouseOrdersWidget from '../ActiveWarehouseOrdersWidget.vue'
 installQuasarPlugin()
 
 const mocks = vi.hoisted(() => ({
-  getInboundOrders: vi.fn(),
-  getOutboundOrders: vi.fn(),
-  getInboundWarehouseOrders: vi.fn(),
-  getOutboundWarehouseOrders: vi.fn(),
+  getRecentOrdersActivity: vi.fn(),
+  getRecentOrders: vi.fn(),
 }))
 
 vi.mock('@/client', () => ({
-  warehouseApiRoutesInboundOrdersGetInboundOrders: mocks.getInboundOrders,
-  warehouseApiRoutesOutboundOrdersGetOutboundOrders: mocks.getOutboundOrders,
-  warehouseApiRoutesWarehouseGetInboundWarehouseOrders: mocks.getInboundWarehouseOrders,
-  warehouseApiRoutesWarehouseGetOutboundWarehouseOrders: mocks.getOutboundWarehouseOrders,
+  warehouseApiRoutesAnalyticsGetRecentOrdersActivity: mocks.getRecentOrdersActivity,
+  warehouseApiRoutesAnalyticsGetRecentOrders: mocks.getRecentOrders,
 }))
 
 const okResponse = <T>(data: T) => ({
@@ -37,14 +33,14 @@ const errorResponse = (statusText = 'Server error') => ({
   },
 })
 
-const mountWithSingleValueStub = (component: object) => {
+const mountWithGraphStub = (component: object) => {
   return mount(component, {
     global: {
       stubs: {
-        SingleValueWidget: {
-          props: ['title', 'subtitle', 'to'],
+        DemoGraphWidget: {
+          props: ['title', 'caption', 'subtitle', 'data', 'series', 'to'],
           template:
-            '<div data-testid="widget">{{ title }}|{{ subtitle }}|{{ JSON.stringify(to) }}</div>',
+            '<div data-testid="graph">{{ title }}|{{ caption }}|{{ subtitle }}|{{ JSON.stringify(data) }}|{{ JSON.stringify(series) }}|{{ JSON.stringify(to) }}</div>',
         },
       },
     },
@@ -53,212 +49,103 @@ const mountWithSingleValueStub = (component: object) => {
 
 describe('active dashboard order widgets', () => {
   beforeEach(() => {
-    mocks.getInboundOrders.mockReset()
-    mocks.getOutboundOrders.mockReset()
-    mocks.getInboundWarehouseOrders.mockReset()
-    mocks.getOutboundWarehouseOrders.mockReset()
+    mocks.getRecentOrdersActivity.mockReset()
+    mocks.getRecentOrders.mockReset()
   })
 
-  it('shows loading then aggregated active order counts', async () => {
-    let releaseInbound: (() => void) | undefined
-    const inboundPromise = new Promise((resolve) => {
-      releaseInbound = () =>
-        resolve(
-          okResponse({
-            data: [
-              {
-                code: 'IN-1',
-                state: 'draft',
-              },
-            ],
-            count: 3,
-          }),
-        )
-    })
-
-    mocks.getInboundOrders.mockReturnValueOnce(inboundPromise)
-    mocks.getOutboundOrders.mockResolvedValueOnce(
+  it('plots inbound and outbound recent orders in a single graph with combined total as title', async () => {
+    mocks.getRecentOrdersActivity.mockResolvedValue(
       okResponse({
-        data: [
-          {
-            code: 'OUT-1',
-            state: 'submitted',
-          },
-        ],
-        count: 2,
-      }),
-    )
-    mocks.getOutboundOrders.mockResolvedValueOnce(
-      okResponse({
-        data: [
-          {
-            code: 'OUT-1',
-            state: 'submitted',
-          },
-          {
-            code: 'OUT-2',
-            state: 'completed_paid',
-          },
-        ],
-        count: 2,
+        data: {
+          days: 3,
+          inbound: [
+            { date: '2026-06-02', value: 3 },
+            { date: '2026-06-03', value: 1 },
+            { date: '2026-06-04', value: 5 },
+          ],
+          outbound: [
+            { date: '2026-06-02', value: 2 },
+            { date: '2026-06-03', value: 4 },
+            { date: '2026-06-04', value: 6 },
+          ],
+        },
       }),
     )
 
-    const wrapper = mountWithSingleValueStub(ActiveOrdersWidget)
-
-    expect(wrapper.get('[data-testid="widget"]').text()).toContain('Načítám aktivní objednávky')
-
-    releaseInbound?.()
-
-    mocks.getInboundOrders.mockResolvedValueOnce(
-      okResponse({
-        data: [
-          {
-            code: 'IN-1',
-            state: 'draft',
-          },
-          {
-            code: 'IN-2',
-            state: 'completed',
-          },
-          {
-            code: 'IN-3',
-            state: 'cancelled',
-          },
-        ],
-        count: 3,
-      }),
-    )
+    const wrapper = mountWithGraphStub(ActiveOrdersWidget)
 
     await flushPromises()
 
-    const widgetText = wrapper.get('[data-testid="widget"]').text()
+    expect(mocks.getRecentOrdersActivity).toHaveBeenCalledWith({
+      query: { days: 14 },
+    })
 
-    expect(widgetText).toContain('2')
-    expect(widgetText).toContain('vydané 1 / přijaté 1')
-    expect(widgetText).toContain('orders')
-    expect(mocks.getInboundOrders).toHaveBeenNthCalledWith(1, {
-      query: {
-        page: 1,
-        page_size: 1,
-      },
-    })
-    expect(mocks.getInboundOrders).toHaveBeenNthCalledWith(2, {
-      query: {
-        page: 1,
-        page_size: 3,
-      },
-    })
-    expect(mocks.getOutboundOrders).toHaveBeenNthCalledWith(1, {
-      query: {
-        page: 1,
-        page_size: 1,
-      },
-    })
-    expect(mocks.getOutboundOrders).toHaveBeenNthCalledWith(2, {
-      query: {
-        page: 1,
-        page_size: 2,
-      },
-    })
+    const graph = wrapper.get('[data-testid="graph"]')
+    const graphText = graph.text()
+
+    expect(graphText).toContain('11')
+    expect(graphText).toContain('vydané 9 / přijaté 12')
+    expect(graphText).toContain('Vydané objednávky')
+    expect(graphText).toContain('Přijaté objednávky')
+    expect(graphText).toContain('orders')
   })
 
-  it('shows local error when active orders fetch fails', async () => {
-    mocks.getInboundOrders.mockResolvedValue(errorResponse('Inbound broken'))
-    mocks.getOutboundOrders.mockResolvedValue(
-      okResponse({
-        data: [],
-        count: 0,
-      }),
-    )
+  it('shows local error when recent orders activity fetch fails', async () => {
+    mocks.getRecentOrdersActivity.mockResolvedValue(errorResponse('Activity broken'))
 
-    const wrapper = mountWithSingleValueStub(ActiveOrdersWidget)
+    const wrapper = mountWithGraphStub(ActiveOrdersWidget)
 
     await flushPromises()
 
     expect(wrapper.text()).toContain('Nepodařilo se načíst aktivní objednávky')
-    expect(wrapper.text()).toContain('Inbound broken')
+    expect(wrapper.text()).toContain('Activity broken')
   })
 
-  it('shows aggregated active warehouse order counts', async () => {
-    mocks.getInboundWarehouseOrders.mockResolvedValueOnce(
+  it('plots inbound and outbound recent warehouse orders in a single graph with combined total as title', async () => {
+    mocks.getRecentOrders.mockResolvedValue(
       okResponse({
-        data: [
-          {
-            code: 'WI-1',
-            state: 'pending',
-          },
-        ],
-        count: 2,
-      }),
-    )
-    mocks.getInboundWarehouseOrders.mockResolvedValueOnce(
-      okResponse({
-        data: [
-          {
-            code: 'WI-1',
-            state: 'pending',
-          },
-          {
-            code: 'WI-2',
-            state: 'completed',
-          },
-        ],
-        count: 2,
-      }),
-    )
-    mocks.getOutboundWarehouseOrders.mockResolvedValueOnce(
-      okResponse({
-        data: [
-          {
-            code: 'WO-1',
-            state: 'started',
-          },
-        ],
-        count: 2,
-      }),
-    )
-    mocks.getOutboundWarehouseOrders.mockResolvedValueOnce(
-      okResponse({
-        data: [
-          {
-            code: 'WO-1',
-            state: 'started',
-          },
-          {
-            code: 'WO-2',
-            state: 'cancelled',
-          },
-        ],
-        count: 2,
+        data: {
+          days: 3,
+          inbound: [
+            { date: '2026-06-02', value: 1 },
+            { date: '2026-06-03', value: 4 },
+            { date: '2026-06-04', value: 2 },
+          ],
+          outbound: [
+            { date: '2026-06-02', value: 0 },
+            { date: '2026-06-03', value: 5 },
+            { date: '2026-06-04', value: 7 },
+          ],
+        },
       }),
     )
 
-    const wrapper = mountWithSingleValueStub(ActiveWarehouseOrdersWidget)
+    const wrapper = mountWithGraphStub(ActiveWarehouseOrdersWidget)
 
     await flushPromises()
 
-    const widgetText = wrapper.get('[data-testid="widget"]').text()
+    expect(mocks.getRecentOrders).toHaveBeenCalledWith({
+      query: { days: 14 },
+    })
 
-    expect(widgetText).toContain('2')
-    expect(widgetText).toContain('příjemky 1 / výdejky 1')
-    expect(widgetText).toContain('warehouseInboundOrders')
+    const graph = wrapper.get('[data-testid="graph"]')
+    const graphText = graph.text()
+
+    expect(graphText).toContain('9')
+    expect(graphText).toContain('příjemky 7 / výdejky 12')
+    expect(graphText).toContain('Příjemky')
+    expect(graphText).toContain('Výdejky')
+    expect(graphText).toContain('warehouseInboundOrders')
   })
 
-  it('shows local error when warehouse order fetch fails', async () => {
-    mocks.getInboundWarehouseOrders.mockResolvedValue(
-      okResponse({
-        data: [],
-        count: 0,
-      }),
-    )
-    mocks.getOutboundWarehouseOrders.mockResolvedValue(errorResponse('Warehouse broken'))
+  it('shows local error when recent orders fetch fails', async () => {
+    mocks.getRecentOrders.mockResolvedValue(errorResponse('Recent broken'))
 
-    const wrapper = mountWithSingleValueStub(ActiveWarehouseOrdersWidget)
+    const wrapper = mountWithGraphStub(ActiveWarehouseOrdersWidget)
 
     await flushPromises()
 
     expect(wrapper.text()).toContain('Nepodařilo se načíst aktivní skladové doklady')
-    expect(wrapper.text()).toContain('Warehouse broken')
+    expect(wrapper.text()).toContain('Recent broken')
   })
 })
