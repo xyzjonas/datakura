@@ -84,7 +84,7 @@ describe('active dashboard order widgets', () => {
     const graphText = graph.text()
 
     expect(graphText).toContain('11')
-    expect(graphText).toContain('vydané 9 / přijaté 12')
+    expect(graphText).toContain('Aktivní objednávky za posledních 14 dní')
     expect(graphText).toContain('Vydané objednávky')
     expect(graphText).toContain('Přijaté objednávky')
     expect(graphText).toContain('orders')
@@ -132,7 +132,7 @@ describe('active dashboard order widgets', () => {
     const graphText = graph.text()
 
     expect(graphText).toContain('9')
-    expect(graphText).toContain('příjemky 7 / výdejky 12')
+    expect(graphText).toContain('příjemky a výdejky za posledních 14 dní')
     expect(graphText).toContain('Příjemky')
     expect(graphText).toContain('Výdejky')
     expect(graphText).toContain('warehouseInboundOrders')

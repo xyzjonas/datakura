@@ -3,7 +3,7 @@
     <DemoGraphWidget
       :title="widgetTitle"
       :subtitle="widgetSubtitle"
-      :caption="latestSnapshot ? formatDateLong(latestSnapshot.captured_at) : undefined"
+      :caption="latestSnapshot ? formatDateShort(latestSnapshot.captured_at) : undefined"
       :data="chartData"
       data-key="value"
       data-label="Hodnota skladu"
@@ -32,10 +32,10 @@ import {
   type InventorySnapshotSummarySchema,
   warehouseApiRoutesAnalyticsGetInventorySnapshots,
 } from '@/client'
-import DemoGraphWidget from './DemoGraphWidget.vue'
+import { formatDateShort } from '@/utils/date'
 import { formatMoney } from '@/views/inventory-snapshot'
 import { computed, onMounted, ref } from 'vue'
-import { formatDateLong } from '@/utils/date'
+import DemoGraphWidget from './DemoGraphWidget.vue'
 
 const loading = ref(true)
 const errorMessage = ref<string | null>(null)

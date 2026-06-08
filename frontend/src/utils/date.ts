@@ -13,3 +13,9 @@ export const formatDateTimeLong = (date: string | Date) => {
   const acutalDate = new Date(date)
   return `${formatDateLong(date)} - ${acutalDate.toLocaleTimeString()}`
 }
+
+export const formatDateShort = (value: string) =>
+  new Date(value).toLocaleDateString('cs-CZ', {
+    month: 'long',
+    day: 'numeric',
+  })

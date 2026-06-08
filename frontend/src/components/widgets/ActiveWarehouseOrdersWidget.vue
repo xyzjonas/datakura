@@ -34,6 +34,7 @@ import {
 } from '@/client'
 import { computed, onMounted, ref } from 'vue'
 import DemoGraphWidget from './DemoGraphWidget.vue'
+import { formatDateShort } from '@/utils/date.ts'
 
 const LOOKBACK_DAYS = 14
 
@@ -47,16 +48,10 @@ const errorMessage = ref<string | null>(null)
 const inbound = ref<RecentOrdersDailyPointSchema[]>([])
 const outbound = ref<RecentOrdersDailyPointSchema[]>([])
 
-const formatDayLabel = (value: string) =>
-  new Date(value).toLocaleDateString('cs-CZ', {
-    month: 'short',
-    day: 'numeric',
-  })
-
 const chartData = computed(() => {
   const length = Math.max(inbound.value.length, outbound.value.length)
   return Array.from({ length }, (_, i) => ({
-    label: formatDayLabel(inbound.value[i]?.date || outbound.value[i]?.date || ''),
+    label: formatDateShort(inbound.value[i]?.date || outbound.value[i]?.date || ''),
     inbound: inbound.value[i]?.value ?? 0,
     outbound: outbound.value[i]?.value ?? 0,
   }))
@@ -77,7 +72,7 @@ const widgetCaption = computed(() => {
     return undefined
   }
   const lastDate = inbound.value[inbound.value.length - 1]?.date
-  return lastDate ? formatDayLabel(lastDate) : undefined
+  return lastDate ? formatDateShort(lastDate) : undefined
 })
 
 const widgetSubtitle = computed(() => {
@@ -97,7 +92,7 @@ const widgetSubtitle = computed(() => {
     return 'Žádné aktivní příjemky ani výdejky'
   }
 
-  return `Aktivní příjemky a výdejky • posledních ${LOOKBACK_DAYS} dní, příjemky ${inboundTotal} / výdejky ${outboundTotal}`
+  return `Aktivní příjemky a výdejky za posledních ${LOOKBACK_DAYS} dní`
 })
 
 const fetchRecentOrders = async () => {

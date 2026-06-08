@@ -134,7 +134,7 @@ const items = [
   },
   {
     key: 'customers',
-    label: 'Zákaznícké skupiny',
+    label: 'Zákaznické skupiny',
     icon: 'sym_o_groups',
   },
   {
