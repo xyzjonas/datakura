@@ -1,5 +1,5 @@
 <template>
-  <div class="relative flex flex-col">
+  <div class="relative flex flex-col h-full">
     <DemoGraphWidget
       :title="widgetTitle"
       :caption="widgetCaption"

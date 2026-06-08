@@ -121,146 +121,179 @@ class MovementService:
         new_location_or_code: WarehouseLocation | str,
         amount: Decimal | None = None,
     ) -> None:
-        location_from = item.location
-        amount = amount or item.amount
-        if isinstance(new_location_or_code, str):
-            new_location = WarehouseLocation.objects.get(code=new_location_or_code)
-        else:
-            new_location = new_location_or_code
-
-        movement_item = None
-        movement_batch = None
-
-        if item.tracking_level in (
-            TrackingLevel.SERIALIZED_PACKAGE,
-            TrackingLevel.SERIALIZED_PIECE,
-        ):
-            item.location = new_location
-            item.save()
-            movement_item = item
-
-        elif item.tracking_level == TrackingLevel.BATCH:
-            movement_batch = item.batch
-            existing_of_the_same_batch = new_location.items.filter(
-                batch=item.batch
-            ).first()
-            if existing_of_the_same_batch:
-                existing_of_the_same_batch.amount += amount
-                existing_of_the_same_batch.save()
-                if amount == item.amount:
-                    item.delete()
-                    movement_item = existing_of_the_same_batch
-                else:
-                    old_amount = item.amount
-                    item.amount -= amount
-                    item.save()
-                    movement_item = item
-                    audit_service.add_entry(
-                        item,
-                        action=AuditAction.UPDATE,
-                        user=context.user_id,
-                        reason=AuditMessages.ITEM_PARTIALLY_MOVED.CS,
-                        changes={
-                            "amount": {"old": str(old_amount), "new": str(item.amount)}
-                        },
-                    )
+        # Wrap entire function in atomic transaction for consistency
+        with transaction.atomic():
+            location_from = item.location
+            amount = amount or item.amount
+            if isinstance(new_location_or_code, str):
+                new_location = WarehouseLocation.objects.get(code=new_location_or_code)
             else:
-                movement_item = item
-                if amount == item.amount:
-                    item.location = new_location
-                    item.save()
-                else:
-                    old_amount = item.amount
-                    item.amount -= amount
-                    item.save()
-                    new_item = WarehouseItem.objects.create(
-                        stock_product=item.stock_product,
-                        tracking_level=item.tracking_level,
-                        amount=amount,
-                        location=new_location,
-                        order_in=item.order_in,
-                        batch=item.batch,
-                    )
-                    audit_service.add_entry(
-                        new_item,
-                        action=AuditAction.CREATE,
-                        user=context.user_id,
-                        reason=AuditMessages.ITEM_CREATED_BY_PARTIAL_MOVE.CS,
-                        changes={
-                            "amount": {"old": str(old_amount), "new": str(item.amount)}
-                        },
-                    )
-                    audit_service.add_entry(
-                        item,
-                        action=AuditAction.UPDATE,
-                        user=context.user_id,
-                        reason=AuditMessages.ITEM_PARTIALLY_MOVED.CS,
-                        changes={
-                            "amount": {"old": str(old_amount), "new": str(item.amount)}
-                        },
-                    )
+                new_location = new_location_or_code
 
-        else:
-            existing_of_the_same_type = new_location.items.filter(
-                stock_product=item.stock_product, tracking_level=TrackingLevel.FUNGIBLE
-            ).first()
-            if existing_of_the_same_type:
-                existing_of_the_same_type.amount += amount
-                existing_of_the_same_type.save()
-                if amount == item.amount:
-                    item.delete()
-                    movement_item = existing_of_the_same_type
+            movement_item = None
+            movement_batch = None
+            existing_of_the_same_batch = None
+
+            if item.tracking_level in (
+                TrackingLevel.SERIALIZED_PACKAGE,
+                TrackingLevel.SERIALIZED_PIECE,
+            ):
+                item.location = new_location
+                item.save()
+                movement_item = item
+
+            elif item.tracking_level == TrackingLevel.BATCH:
+                movement_batch = item.batch
+                # Lock merge target to prevent concurrent modifications
+                existing_of_the_same_batch = (
+                    WarehouseItem.physical_stock.select_for_update()
+                    .filter(location=new_location, batch=item.batch)
+                    .first()
+                )
+                if existing_of_the_same_batch:
+                    existing_of_the_same_batch.amount += amount
+                    existing_of_the_same_batch.save()
+                    if amount == item.amount:
+                        item.delete()
+                        movement_item = existing_of_the_same_batch
+                    else:
+                        old_amount = item.amount
+                        item.amount -= amount
+                        item.save()
+                        movement_item = item
+                        audit_service.add_entry(
+                            item,
+                            action=AuditAction.UPDATE,
+                            user=context.user_id,
+                            reason=AuditMessages.ITEM_PARTIALLY_MOVED.CS,
+                            changes={
+                                "amount": {
+                                    "old": str(old_amount),
+                                    "new": str(item.amount),
+                                }
+                            },
+                        )
                 else:
-                    item.amount -= amount
-                    item.save()
                     movement_item = item
-            else:
-                movement_item = item
-                if amount == item.amount:
-                    item.location = new_location
-                    item.save()
-                else:
-                    old_amount = item.amount
-                    item.amount -= amount
-                    item.save()
-                    new_item = WarehouseItem.objects.create(
-                        stock_product=item.stock_product,
-                        tracking_level=item.tracking_level,
-                        amount=amount,
-                        location=new_location,
-                    )
-                    audit_service.add_entry(
-                        new_item,
-                        action=AuditAction.CREATE,
-                        user=context.user_id,
-                        reason=AuditMessages.ITEM_CREATED_BY_PARTIAL_MOVE.CS,
-                        changes={
-                            "amount": {"old": str(old_amount), "new": str(item.amount)}
-                        },
-                    )
-                    audit_service.add_entry(
-                        item,
-                        action=AuditAction.UPDATE,
-                        user=context.user_id,
-                        reason=AuditMessages.ITEM_PARTIALLY_MOVED.CS,
-                        changes={
-                            "amount": {"old": str(old_amount), "new": str(item.amount)}
-                        },
-                    )
+                    if amount == item.amount:
+                        item.location = new_location
+                        item.save()
+                    else:
+                        old_amount = item.amount
+                        item.amount -= amount
+                        item.save()
+                        new_item = WarehouseItem.objects.create(
+                            stock_product=item.stock_product,
+                            tracking_level=item.tracking_level,
+                            amount=amount,
+                            location=new_location,
+                            order_in=item.order_in,
+                            batch=item.batch,
+                        )
+                        audit_service.add_entry(
+                            new_item,
+                            action=AuditAction.CREATE,
+                            user=context.user_id,
+                            reason=AuditMessages.ITEM_CREATED_BY_PARTIAL_MOVE.CS,
+                            changes={
+                                "amount": {
+                                    "old": str(old_amount),
+                                    "new": str(item.amount),
+                                }
+                            },
+                        )
+                        audit_service.add_entry(
+                            item,
+                            action=AuditAction.UPDATE,
+                            user=context.user_id,
+                            reason=AuditMessages.ITEM_PARTIALLY_MOVED.CS,
+                            changes={
+                                "amount": {
+                                    "old": str(old_amount),
+                                    "new": str(item.amount),
+                                }
+                            },
+                        )
 
-        if movement_item:
-            WarehouseMovement.objects.create(
-                location_from=location_from,
-                location_to=new_location,
-                inbound_order_code=item.order_in,
-                stock_product=item.stock_product,
-                amount=amount,
-                item=movement_item,
-                batch=movement_batch,
-                worker=User.objects.get(pk=context.user_id)
-                if context.user_id
-                else None,
-            )
+            else:
+                # Lock merge target to prevent concurrent modifications (FUNGIBLE branch)
+                existing_of_the_same_type = (
+                    WarehouseItem.physical_stock.select_for_update()
+                    .filter(
+                        location=new_location,
+                        stock_product=item.stock_product,
+                        tracking_level=TrackingLevel.FUNGIBLE,
+                    )
+                    .first()
+                )
+                if existing_of_the_same_type:
+                    existing_of_the_same_type.amount += amount
+                    existing_of_the_same_type.save()
+                    if amount == item.amount:
+                        item.delete()
+                        movement_item = existing_of_the_same_type
+                    else:
+                        item.amount -= amount
+                        item.save()
+                        movement_item = item
+                else:
+                    movement_item = item
+                    if amount == item.amount:
+                        item.location = new_location
+                        item.save()
+                    else:
+                        old_amount = item.amount
+                        item.amount -= amount
+                        item.save()
+                        # Fix bug #5: propagate order_in, source_order_item, batch, package_type
+                        new_item = WarehouseItem.objects.create(
+                            stock_product=item.stock_product,
+                            tracking_level=item.tracking_level,
+                            amount=amount,
+                            location=new_location,
+                            order_in=item.order_in,
+                            source_order_item=item.source_order_item,
+                            batch=item.batch,
+                            package_type=item.package_type,
+                        )
+                        audit_service.add_entry(
+                            new_item,
+                            action=AuditAction.CREATE,
+                            user=context.user_id,
+                            reason=AuditMessages.ITEM_CREATED_BY_PARTIAL_MOVE.CS,
+                            changes={
+                                "amount": {
+                                    "old": str(old_amount),
+                                    "new": str(item.amount),
+                                }
+                            },
+                        )
+                        audit_service.add_entry(
+                            item,
+                            action=AuditAction.UPDATE,
+                            user=context.user_id,
+                            reason=AuditMessages.ITEM_PARTIALLY_MOVED.CS,
+                            changes={
+                                "amount": {
+                                    "old": str(old_amount),
+                                    "new": str(item.amount),
+                                }
+                            },
+                        )
+
+            if movement_item:
+                WarehouseMovement.objects.create(
+                    location_from=location_from,
+                    location_to=new_location,
+                    inbound_order_code=item.order_in,
+                    stock_product=item.stock_product,
+                    amount=amount,
+                    item=movement_item,
+                    batch=movement_batch,
+                    worker=User.objects.get(pk=context.user_id)
+                    if context.user_id
+                    else None,
+                )
 
 
 movement_service = MovementService()
@@ -636,6 +669,9 @@ class WarehouseService:
         requested_amount: Decimal,
         context: RequestContext,
     ) -> WarehouseItem:
+        # Lock the item to prevent concurrent splits
+        item = WarehouseItem.objects.select_for_update().get(pk=item.pk)
+
         if item.amount < requested_amount:
             raise WarehouseGenericError(
                 f"Warehouse item '{item.pk}' has insufficient amount ({item.amount} < {requested_amount})."
@@ -680,6 +716,19 @@ class WarehouseService:
             reason=AuditMessages.ITEM_CREATED_BY_PARTIAL_MOVE.CS,
             changes={"amount": {"old": None, "new": str(new_item.amount)}},
         )
+
+        # Write WarehouseMovement for split operation (fix bug #9)
+        WarehouseMovement.objects.create(
+            location_from=item.location,
+            location_to=item.location,  # Same location, split operation
+            inbound_order_code=item.order_in,
+            stock_product=item.stock_product,
+            amount=new_item.amount,
+            item=new_item,
+            batch=item.batch,
+            worker=User.objects.get(pk=context.user_id) if context.user_id else None,
+        )
+
         return new_item
 
     @staticmethod
@@ -689,6 +738,9 @@ class WarehouseService:
         context: RequestContext,
     ) -> WarehouseItem:
         """Unpack units from a package, creating a new item."""
+        # Lock the package to prevent concurrent unpacking
+        package_item = WarehouseItem.objects.select_for_update().get(pk=package_item.pk)
+
         # 1. Check disallow_unpacking
         if package_item.stock_product.disallow_unpacking:
             raise WarehouseGenericError(
@@ -741,6 +793,18 @@ class WarehouseService:
             reason=AuditMessages.ITEM_CREATED_BY_UNPACKING.CS.format(
                 original_item_id=str(package_item.pk)
             ),
+        )
+
+        # Write WarehouseMovement for unpack operation (fix bug #9)
+        WarehouseMovement.objects.create(
+            location_from=package_item.location,
+            location_to=package_item.location,  # Same location, unpack operation
+            inbound_order_code=package_item.order_in,
+            stock_product=unpacked_item.stock_product,
+            amount=unpacked_item.amount,
+            item=unpacked_item,
+            batch=unpacked_item.batch,
+            worker=User.objects.get(pk=context.user_id) if context.user_id else None,
         )
 
         return unpacked_item
@@ -906,6 +970,89 @@ class WarehouseService:
             )
 
     @classmethod
+    def cancel_outbound_warehouse_order(
+        cls,
+        warehouse_order: OutboundWarehouseOrder,
+        context: RequestContext,
+    ) -> None:
+        """
+        Cancel an outbound warehouse order, releasing all assigned warehouse items
+        and writing inverse WarehouseMovement entries (fixes bug #2).
+        """
+        with transaction.atomic():
+            # Get all assigned items (warehouse_item is not None)
+            assigned_order_items = list(
+                warehouse_order.order_items.select_related(
+                    "warehouse_item",
+                    "warehouse_item__stock_product",
+                    "warehouse_item__location",
+                    "warehouse_item__batch",
+                )
+                .filter(warehouse_item__isnull=False)
+                .all()
+            )
+
+            for order_item in assigned_order_items:
+                warehouse_item = order_item.warehouse_item
+                if warehouse_item:
+                    # Write inverse WarehouseMovement (location_to=original, location_from=None for cancellation)
+                    WarehouseMovement.objects.create(
+                        location_from=None,  # Cancellation - no source
+                        location_to=warehouse_item.location,  # Return to original location
+                        outbound_order_code=warehouse_order,
+                        stock_product=warehouse_item.stock_product,
+                        amount=order_item.amount,
+                        item=warehouse_item,
+                        batch=warehouse_item.batch,
+                        worker=User.objects.get(pk=context.user_id)
+                        if context.user_id
+                        else None,
+                    )
+
+                    # Clear the assignment
+                    order_item.warehouse_item = None
+                    order_item.price_at_shipment = None
+                    order_item.save(
+                        update_fields=["warehouse_item", "price_at_shipment", "changed"]
+                    )
+
+                    audit_service.add_entry(
+                        order_item,
+                        action=AuditAction.UPDATE,
+                        user=context.user_id,
+                        reason=AuditMessages.WAREHOUSE_ORDER_CANCELLED.CS.format(
+                            warehouse_order_code=warehouse_order.code
+                        ),
+                        changes={
+                            "warehouse_item": {"old": warehouse_item.pk, "new": None},
+                            "price_at_shipment": {
+                                "old": str(order_item.price_at_shipment),
+                                "new": None,
+                            },
+                        },
+                    )
+
+            # Transition warehouse order to CANCELLED
+            old_state = warehouse_order.state
+            warehouse_order.state = OutboundWarehouseOrderState.CANCELLED
+            warehouse_order.save(update_fields=["state", "changed"])
+
+            audit_service.add_entry(
+                warehouse_order,
+                action=AuditAction.TRANSITION,
+                user=context.user_id,
+                reason=AuditMessages.WAREHOUSE_ORDER_CANCELLED.CS.format(
+                    warehouse_order_code=warehouse_order.code
+                ),
+                changes={
+                    "state": {
+                        "old": old_state,
+                        "new": OutboundWarehouseOrderState.CANCELLED,
+                    }
+                },
+            )
+
+    @classmethod
     def assign_outbound_item(
         cls,
         warehouse_order_code: str,
@@ -1008,6 +1155,13 @@ class WarehouseService:
             )
 
         with transaction.atomic():
+            # Re-fetch candidate with lock and re-validate after acquiring lock
+            candidate = WarehouseItem.objects.select_for_update().get(pk=candidate.pk)
+            if requested_amount > candidate.amount:
+                raise WarehouseGenericError(
+                    f"Cannot pick {requested_amount} units - only {candidate.amount} available in warehouse item '{warehouse_item_id}' (changed since initial check)."
+                )
+
             assigned_item, final_order_item = (
                 cls._handle_outbound_item_assignment_with_splitting(
                     warehouse_item=candidate,
@@ -1227,15 +1381,27 @@ class WarehouseService:
     def confirm_arrival(
         cls, code: str, location_code: str, context: RequestContext
     ) -> None:
-        w_order = InboundWarehouseOrder.objects.select_related("order").get(code=code)
-        if w_order.state != InboundWarehouseOrderState.IN_TRANSIT:
-            raise WarehouseGenericError(
-                f"Warehouse order '{code}' (state={w_order.state}) has to be in transit in order to confirm arrival."
+        with transaction.atomic():
+            # Lock the warehouse order to prevent concurrent arrivals
+            w_order = (
+                InboundWarehouseOrder.objects.select_for_update()
+                .select_related("order")
+                .get(code=code)
             )
 
-        location = WarehouseLocation.objects.get(code=location_code)
+            if w_order.state != InboundWarehouseOrderState.IN_TRANSIT:
+                raise WarehouseGenericError(
+                    f"Warehouse order '{code}' (state={w_order.state}) has to be in transit in order to confirm arrival."
+                )
 
-        with transaction.atomic():
+            # Idempotency guard: prevent duplicate order items on retry
+            if w_order.order_items.exists():
+                raise WarehouseGenericError(
+                    f"Warehouse order '{code}' arrival has already been confirmed."
+                )
+
+            location = WarehouseLocation.objects.get(code=location_code)
+
             w_order.pickup_location = location
             w_order.save(update_fields=["pickup_location"])
 
@@ -1259,7 +1425,21 @@ class WarehouseService:
                     ),
                 )
 
-        cls.transition_order(code, InboundWarehouseOrderState.DRAFT, context)
+            # Move state transition INSIDE atomic block to fix idempotency (bug #3)
+            old_state = w_order.state
+            w_order.state = InboundWarehouseOrderState.DRAFT
+            w_order.save(update_fields=["state", "changed"])
+            audit_service.add_entry(
+                w_order,
+                user=context.user_id,
+                action=AuditAction.TRANSITION,
+                reason=AuditMessages.WAREHOUSE_ORDER_STATE_CHANGED.CS.format(
+                    old_state=old_state, new_state=InboundWarehouseOrderState.DRAFT
+                ),
+                changes={
+                    "state": {"old": old_state, "new": InboundWarehouseOrderState.DRAFT}
+                },
+            )
 
     @staticmethod
     def get_warehouse_availability(stock_product_code: str) -> Decimal:
@@ -1798,23 +1978,32 @@ class WarehouseService:
 
     @classmethod
     def confirm_draft(cls, code: str, context: RequestContext) -> None:
-        w_order = cls.get_inbound_warehouse_order_model(code)
-        if w_order.state != InboundWarehouseOrderState.DRAFT:
-            raise WarehouseGenericError(
-                f"Warehouse order '{code}' (state={w_order.state}) has to be in draft state in order to be confirmed."
-            )
-
-        location = w_order.pickup_location
-        if not location:
-            raise WarehouseGenericError(
-                f"Warehouse order '{code}' has no pickup location set — cannot materialise items."
-            )
-
-        order_items = list(
-            w_order.order_items.select_related("stock_product", "package_type").all()
-        )
-
         with transaction.atomic():
+            # Lock the warehouse order to prevent concurrent confirmations
+            w_order = InboundWarehouseOrder.objects.select_for_update().get(code=code)
+
+            if w_order.state != InboundWarehouseOrderState.DRAFT:
+                raise WarehouseGenericError(
+                    f"Warehouse order '{code}' (state={w_order.state}) has to be in draft state in order to be confirmed."
+                )
+
+            # Idempotency guard: prevent duplicate materialisation on retry
+            if w_order.items.exists():
+                raise WarehouseGenericError(
+                    f"Warehouse order '{code}' has already been confirmed and items materialized."
+                )
+
+            location = w_order.pickup_location
+            if not location:
+                raise WarehouseGenericError(
+                    f"Warehouse order '{code}' has no pickup location set — cannot materialise items."
+                )
+
+            order_items = list(
+                w_order.order_items.select_related(
+                    "stock_product", "package_type"
+                ).all()
+            )
             cls._recalculate_purchase_prices_for_confirmed_order(
                 order_items,
                 context=context,
@@ -1851,7 +2040,40 @@ class WarehouseService:
                     ),
                 )
 
-        cls.transition_order(code, InboundWarehouseOrderState.PENDING, context)
+                # Write WarehouseMovement for initial materialisation (bug #9)
+                WarehouseMovement.objects.create(
+                    location_from=None,  # Initial receipt - no source location
+                    location_to=location,
+                    inbound_order_code=w_order,
+                    stock_product=item.stock_product,
+                    amount=item.amount,
+                    item=item,
+                    batch=batch,
+                    worker=User.objects.get(pk=context.user_id)
+                    if context.user_id
+                    else None,
+                )
+
+            # Move state transition INSIDE atomic block to fix idempotency (bug #3)
+            old_state = w_order.state
+            w_order.state = InboundWarehouseOrderState.PENDING
+            w_order.save(update_fields=["state", "changed"])
+            audit_service.add_entry(
+                w_order,
+                user=context.user_id,
+                action=AuditAction.TRANSITION,
+                reason=AuditMessages.WAREHOUSE_ORDER_STATE_CHANGED.CS.format(
+                    old_state=old_state, new_state=InboundWarehouseOrderState.PENDING
+                ),
+                changes={
+                    "state": {
+                        "old": old_state,
+                        "new": InboundWarehouseOrderState.PENDING,
+                    }
+                },
+            )
+
+        # These service calls stay outside the atomic block as they're separate operations
         inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
         inbound_orders_service.transition_order(
             inbound_order.code,
@@ -2211,6 +2433,20 @@ class WarehouseService:
                             "order_in": {"old": parent_code, "new": child_order.code},
                             "amount": str(amount),
                         },
+                    )
+
+                    # Write WarehouseMovement for reparent operation (fix bug #9)
+                    WarehouseMovement.objects.create(
+                        location_from=offloaded_wh.location,
+                        location_to=offloaded_wh.location,  # Same location, reparent operation
+                        inbound_order_code=child_order,
+                        stock_product=offloaded_wh.stock_product,
+                        amount=amount,
+                        item=offloaded_wh,
+                        batch=offloaded_wh.batch,
+                        worker=User.objects.get(pk=context.user_id)
+                        if context.user_id
+                        else None,
                     )
 
             audit_service.add_entry(

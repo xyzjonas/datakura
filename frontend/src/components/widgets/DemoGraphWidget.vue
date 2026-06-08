@@ -9,11 +9,12 @@
       <h2>{{ title }}</h2>
       <h5 class="text-gray-5">{{ subtitle }}</h5>
     </div>
-    <div class="relative">
+    <div>
       <AreaChart
         :data="data"
         :categories="categories"
         :height="64"
+        :width="'100%'"
         xLabel="Month"
         yLabel="Amount"
         hide-legend

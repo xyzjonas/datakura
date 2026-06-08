@@ -825,6 +825,16 @@ class OutboundOrdersService:
             if action == "cancel":
                 cls._assert_order_editable(order)
                 new_state = OutboundOrderState.CANCELLED
+                # Cancel all associated warehouse orders and release assignments (fix bug #2)
+                for warehouse_order in order.warehouse_orders.all():
+                    if warehouse_order.state != OutboundWarehouseOrderState.CANCELLED:
+                        from apps.warehouse.core.services.warehouse import (
+                            warehouse_service,
+                        )
+
+                        warehouse_service.cancel_outbound_warehouse_order(
+                            warehouse_order, context
+                        )
             elif action == "next":
                 if old_state in (
                     OutboundOrderState.DRAFT,
@@ -851,6 +861,17 @@ class OutboundOrdersService:
                 )
         else:
             new_state = target_state
+            # If target_state is CANCELLED, also cancel warehouse orders (fix bug #12)
+            if new_state == OutboundOrderState.CANCELLED:
+                for warehouse_order in order.warehouse_orders.all():
+                    if warehouse_order.state != OutboundWarehouseOrderState.CANCELLED:
+                        from apps.warehouse.core.services.warehouse import (
+                            warehouse_service,
+                        )
+
+                        warehouse_service.cancel_outbound_warehouse_order(
+                            warehouse_order, context
+                        )
 
         with transaction.atomic():
             if new_state == OutboundOrderState.PICKING and old_state in (

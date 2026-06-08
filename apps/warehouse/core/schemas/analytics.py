@@ -107,3 +107,45 @@ class GetRecentOrdersResponse(BaseResponse):
 
 class GetRecentOrdersActivityResponse(BaseResponse):
     data: RecentOrdersSchema
+
+
+class StockProductMinimalSchema(BaseModel):
+    code: str
+    name: str
+    unit_of_measure: str
+
+
+class PackageInfo(BaseModel):
+    type: str
+
+
+class WarehouseItemMinimalSchema(BaseModel):
+    id: int
+    tracking_level: str
+    package: PackageInfo | None = None
+
+
+class WarehouseMovementSchema(BaseModel):
+    id: int
+    moved_at: datetime
+    location_from_code: str | None = None
+    location_to_code: str | None = None
+    inbound_order_code: str | None = None
+    outbound_order_code: str | None = None
+    stock_product_code: str
+    stock_product_name: str
+    stock_product: StockProductMinimalSchema
+    amount: Decimal
+    item_id: int | None = None
+    item: WarehouseItemMinimalSchema | None = None
+    batch_id: int | None = None
+    batch_barcode: str | None = None
+    worker_username: str | None = None
+
+
+class GetWarehouseMovementsResponse(PaginatedResponse[WarehouseMovementSchema]):
+    data: list[WarehouseMovementSchema]
+
+
+class GetRecentWarehouseMovementsResponse(BaseResponse):
+    data: list[WarehouseMovementSchema]

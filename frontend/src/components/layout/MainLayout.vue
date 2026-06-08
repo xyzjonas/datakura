@@ -97,7 +97,7 @@
                 },
                 {
                   label: 'Šarže',
-                  icon: 'sym_o_inventory_2',
+                  icon: 'sym_o_barcode',
                   routeName: 'batches',
                 },
               ]"

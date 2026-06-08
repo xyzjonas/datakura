@@ -70,8 +70,8 @@
           <q-separator class="my-4" />
 
           <div class="flex items-center gap-2 mb-2">
-            <q-checkbox v-model="attachBatch" label="Přiřadit šarži" />
-            <div class="description text-xs">
+            <q-toggle v-model="attachBatch" label="Přiřadit šarži" />
+            <div class="description">
               Šarže umožňuje seskupovat zboží podle výrobních dávek, sledovat expirace nebo
               jednoduše organizovat skladové zásoby.
             </div>
@@ -245,7 +245,6 @@ const previewPackagingItems = async () => {
     items.value = data.data
   }
 }
-
 
 const previewSerialItems = async () => {
   if (trackingType.value.value !== 'piece') {

@@ -41,7 +41,7 @@
       </div>
     </ForegroundPanel>
 
-    <div class="flex items-center justify-between gap-3">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
       <div>
         <div class="text-xs font-semibold uppercase tracking-wide text-gray-5">Denní operativa</div>
         <h2 class="mt-1 text-xl font-semibold">Klíčové ukazatele skladu</h2>
@@ -49,13 +49,14 @@
       <div class="text-sm text-gray-5">Rychlý přehled bez otevírání jednotlivých modulů.</div>
     </div>
 
-    <div class="grid w-full gap-5 xl:grid-cols-2">
-      <WarehouseValueWidget class="min-w-0" />
-      <ActiveOrdersWidget class="min-w-0 min-h-30" />
-      <ActiveWarehouseOrdersWidget class="min-w-0 min-h-30" />
+    <div class="grid w-full gap-5 xl:grid-cols-3">
+      <WarehouseValueWidget />
+      <ActiveOrdersWidget />
+      <ActiveWarehouseOrdersWidget />
     </div>
 
-    <RecentActivityWidget class="w-full" />
+    <RecentActivityWidget class="min-w-0" />
+    <RecentStockMovementsWidget class="min-w-0" />
   </div>
 </template>
 
@@ -64,6 +65,7 @@ import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ActiveOrdersWidget from '@/components/widgets/ActiveOrdersWidget.vue'
 import ActiveWarehouseOrdersWidget from '@/components/widgets/ActiveWarehouseOrdersWidget.vue'
 import RecentActivityWidget from '@/components/widgets/RecentActivityWidget.vue'
+import RecentStockMovementsWidget from '@/components/widgets/RecentStockMovementsWidget.vue'
 import WarehouseValueWidget from '@/components/widgets/WarehouseValueWidget.vue'
 </script>
 

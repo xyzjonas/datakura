@@ -32,7 +32,7 @@
         >
         <WarehouseItemTrackingLevelBadge
           v-if="movement.item"
-          :level="movement.item.tracking_level"
+          :level="movement.item.tracking_level as TrackingLevel"
         />
         <PackageTypeBadge
           v-if="movement.item?.package?.type"
@@ -43,13 +43,14 @@
     </div>
 
     <WarehouseItemAmountBadge
-      :item="{ amount: movement.amount, unit_of_measure: movement.stock_product.unit }"
+      :amount="parseFloat(movement.amount)"
+      :item="{ amount: parseFloat(movement.amount), unit_of_measure: movement.stock_product.unit_of_measure }"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import type { WarehouseMovementSchema } from '@/client'
+import type { WarehouseMovementSchema, TrackingLevel } from '@/client'
 import WarehouseItemAmountBadge from './WarehouseItemAmountBadge.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import WarehouseItemTrackingLevelBadge from '../putaway/WarehouseItemTrackingLevelBadge.vue'

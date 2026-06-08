@@ -10,7 +10,10 @@ from apps.warehouse.core.schemas.customer import (
     GetCustomersResponse,
     GetCustomerGroupsResponse,
 )
-from apps.warehouse.core.schemas.analytics import GetInventorySnapshotsResponse
+from apps.warehouse.core.schemas.analytics import (
+    GetInventorySnapshotsResponse,
+    GetWarehouseMovementsResponse,
+)
 from apps.warehouse.core.schemas.group import (
     GetProductGroupsResponse,
 )
@@ -70,6 +73,7 @@ from apps.warehouse.models.warehouse import (
     InboundWarehouseOrder,
     OutboundWarehouseOrder,
     WarehouseLocation,
+    WarehouseMovement,
 )
 
 
@@ -576,6 +580,40 @@ class BatchesPagination(PaginationBase):
                     description=batch.description,
                 )
                 for batch in items
+            ],
+            "count": count,
+            "next": pagination.page + 1
+            if offset + pagination.page_size < count
+            else None,
+            "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
+
+
+class WarehouseMovementsPagination(PaginationBase):
+    items_attribute: str = "data"
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 20
+
+    class Output(GetWarehouseMovementsResponse): ...
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[WarehouseMovement],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        from apps.warehouse.core.services.movements import movement_service
+
+        offset = (pagination.page - 1) * pagination.page_size
+        items = queryset[offset : offset + pagination.page_size]
+        count = queryset.count()
+
+        return {
+            "data": [
+                movement_service.movement_to_schema(movement) for movement in items
             ],
             "count": count,
             "next": pagination.page + 1

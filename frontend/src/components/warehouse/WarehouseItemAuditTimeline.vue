@@ -19,7 +19,18 @@
           />
         </div>
 
-        <div v-if="entry.reason" class="text-body2">{{ entry.reason }}</div>
+        <div v-if="entry.reason" class="text-body2">
+          <template v-for="(segment, idx) in parseReasonWithLinks(entry.reason)" :key="idx">
+            <router-link
+              v-if="segment.type === 'link'"
+              :to="segment.to"
+              class="text-primary font-medium hover:underline"
+            >
+              {{ segment.text }}
+            </router-link>
+            <span v-else>{{ segment.text }}</span>
+          </template>
+        </div>
 
         <div v-if="entry.object_repr" class="text-caption text-muted">
           Objekt: {{ entry.object_repr }}
@@ -162,5 +173,57 @@ function changeRows(entry: AuditTimelineEntrySchema): Array<{ key: string; value
       value: stringifyValue(value),
     }
   })
+}
+
+type ReasonSegment = { type: 'text'; text: string } | { type: 'link'; text: string; to: string }
+
+function parseReasonWithLinks(reason: string): ReasonSegment[] {
+  // Match non-warehouse orders (OV, OP) first, then warehouse orders (P20, V20)
+  const orderPattern = /(O[VP]\d+)|([PV]20\d{8})/g
+  const segments: ReasonSegment[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = orderPattern.exec(reason)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      segments.push({
+        type: 'text',
+        text: reason.substring(lastIndex, match.index),
+      })
+    }
+
+    // Add the link
+    const orderId = match[0]
+    let route: string
+
+    if (orderId.startsWith('OP')) {
+      route = `/outbound-orders/${orderId}`
+    } else if (orderId.startsWith('OV')) {
+      route = `/inbound-orders/${orderId}`
+    } else if (orderId.startsWith('P')) {
+      route = `/warehouse/inbound-orders/${orderId}`
+    } else {
+      route = `/warehouse/outbound-orders/${orderId}`
+    }
+
+    segments.push({
+      type: 'link',
+      text: orderId,
+      to: route,
+    })
+
+    lastIndex = match.index + orderId.length
+  }
+
+  // Add remaining text
+  if (lastIndex < reason.length) {
+    segments.push({
+      type: 'text',
+      text: reason.substring(lastIndex),
+    })
+  }
+
+  return segments
 }
 </script>

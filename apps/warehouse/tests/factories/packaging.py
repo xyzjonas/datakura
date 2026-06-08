@@ -2,6 +2,7 @@ import factory
 from factory.django import DjangoModelFactory
 
 from apps.warehouse.models.packaging import PackageType
+from apps.warehouse.models.warehouse import Batch
 from .units import UnitOfMeasureFactory
 
 PTYPES = {
@@ -25,3 +26,10 @@ class PackageTypeFactory(DjangoModelFactory):
 
 def create_all_package_types():
     PackageTypeFactory.create_batch(size=4)
+
+
+class BatchFactory(DjangoModelFactory):
+    class Meta:
+        model = Batch
+
+    description = factory.Sequence(lambda n: f"Batch {n}")

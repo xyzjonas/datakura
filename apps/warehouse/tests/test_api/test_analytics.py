@@ -11,14 +11,19 @@ from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.orders import InboundOrder
-from apps.warehouse.models.warehouse import InboundWarehouseOrderState
+from apps.warehouse.models.warehouse import (
+    InboundWarehouseOrderState,
+    WarehouseMovement,
+)
 from apps.warehouse.tests.factories.product import StockProductFactory
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
     InboundWarehouseOrderItemFactory,
     WarehouseItemFactory,
     WarehouseLocationFactory,
+    WarehouseMovementFactory,
 )
+from apps.warehouse.tests.factories.user import UserFactory
 
 
 @pytest.fixture
@@ -201,3 +206,290 @@ def test_get_recent_activity_api_uses_fallback_message_when_reason_missing(db, c
     payload = response.json()["data"]
     assert payload[0]["message"] == "Vytvořen záznam: Fallback produkt"
     assert payload[0]["object_repr"] == "Fallback produkt"
+
+
+def test_get_warehouse_movements_api_returns_paginated_results(db, client):
+    product = StockProductFactory(code="MOVE-001", name="Test Product")
+    location_from = WarehouseLocationFactory(code="A-01")
+    location_to = WarehouseLocationFactory(code="B-02")
+    worker = UserFactory(username="testworker")
+
+    # Create 25 movements
+    for i in range(25):
+        WarehouseMovementFactory(
+            stock_product=product,
+            location_from=location_from,
+            location_to=location_to,
+            worker=worker,
+            amount=Decimal(i + 1),
+        )
+
+    response = client.get("warehouse-movements?page=1&page_size=20")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 25
+    assert len(payload["data"]) == 20
+    assert payload["next"] == 2
+    assert payload["previous"] is None
+
+    response_page2 = client.get("warehouse-movements?page=2&page_size=20")
+    payload_page2 = response_page2.json()
+    assert len(payload_page2["data"]) == 5
+    assert payload_page2["next"] is None
+    assert payload_page2["previous"] == 1
+
+
+def test_get_warehouse_movements_api_filters_by_date_range(db, client):
+    product = StockProductFactory(code="MOVE-002")
+    location = WarehouseLocationFactory()
+    now = timezone.now()
+
+    # Movement yesterday
+    movement_old = WarehouseMovementFactory(stock_product=product, location_to=location)
+    WarehouseMovement.objects.filter(pk=movement_old.pk).update(
+        moved_at=now - timedelta(days=1)
+    )
+
+    # Movement today
+    movement_today = WarehouseMovementFactory(
+        stock_product=product, location_to=location
+    )
+    WarehouseMovement.objects.filter(pk=movement_today.pk).update(moved_at=now)
+
+    # Movement tomorrow (future)
+    movement_future = WarehouseMovementFactory(
+        stock_product=product, location_to=location
+    )
+    WarehouseMovement.objects.filter(pk=movement_future.pk).update(
+        moved_at=now + timedelta(days=1)
+    )
+
+    # Filter from today onwards
+    from urllib.parse import quote
+
+    from_date = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    response = client.get(f"warehouse-movements?from_date={quote(from_date)}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 2
+    assert payload["data"][0]["id"] in [movement_today.pk, movement_future.pk]
+
+    # Filter up to today
+    to_date = now.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+    response = client.get(f"warehouse-movements?to_date={quote(to_date)}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 2
+    assert movement_old.pk in [m["id"] for m in payload["data"]]
+
+
+def test_get_warehouse_movements_api_filters_by_stock_product(db, client):
+    product1 = StockProductFactory(code="PROD-001")
+    product2 = StockProductFactory(code="PROD-002")
+    location = WarehouseLocationFactory()
+
+    movement1 = WarehouseMovementFactory(stock_product=product1, location_to=location)
+    WarehouseMovementFactory(stock_product=product2, location_to=location)
+
+    response = client.get(f"warehouse-movements?stock_product_id={product1.pk}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["data"][0]["id"] == movement1.pk
+    assert payload["data"][0]["stock_product_code"] == "PROD-001"
+
+
+def test_get_warehouse_movements_api_filters_by_locations(db, client):
+    product = StockProductFactory()
+    location_a = WarehouseLocationFactory(code="A-01")
+    location_b = WarehouseLocationFactory(code="B-01")
+    location_c = WarehouseLocationFactory(code="C-01")
+
+    movement_a_to_b = WarehouseMovementFactory(
+        stock_product=product,
+        location_from=location_a,
+        location_to=location_b,
+    )
+    movement_b_to_c = WarehouseMovementFactory(
+        stock_product=product,
+        location_from=location_b,
+        location_to=location_c,
+    )
+
+    # Filter by location_from
+    response = client.get(f"warehouse-movements?location_from_id={location_a.pk}")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["data"][0]["id"] == movement_a_to_b.pk
+
+    # Filter by location_to
+    response = client.get(f"warehouse-movements?location_to_id={location_c.pk}")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["data"][0]["id"] == movement_b_to_c.pk
+
+
+def test_get_warehouse_movements_api_filters_by_worker(db, client):
+    product = StockProductFactory()
+    location = WarehouseLocationFactory()
+    worker1 = UserFactory(username="worker1")
+    worker2 = UserFactory(username="worker2")
+
+    movement1 = WarehouseMovementFactory(
+        stock_product=product,
+        location_to=location,
+        worker=worker1,
+    )
+    WarehouseMovementFactory(
+        stock_product=product,
+        location_to=location,
+        worker=worker2,
+    )
+
+    response = client.get(f"warehouse-movements?worker_id={worker1.pk}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["data"][0]["id"] == movement1.pk
+    assert payload["data"][0]["worker_username"] == "worker1"
+
+
+def test_get_warehouse_movements_api_includes_batch_barcode(db, client):
+    from apps.warehouse.tests.factories.packaging import BatchFactory
+    from apps.warehouse.models.barcode import BarcodeType
+
+    product = StockProductFactory()
+    location = WarehouseLocationFactory()
+    batch = BatchFactory()
+
+    # Add a barcode to the batch using the mixin method
+    batch.attach_barcode(
+        code="BATCH-123", barcode_type=BarcodeType.CUSTOM, is_primary=True
+    )
+
+    WarehouseMovementFactory(
+        stock_product=product,
+        location_to=location,
+        batch=batch,
+    )
+
+    response = client.get("warehouse-movements")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["data"][0]["batch_id"] == batch.pk
+    assert payload["data"][0]["batch_barcode"] == "BATCH-123"
+
+
+def test_get_recent_warehouse_movements_api_returns_latest_eight(db, client):
+    product = StockProductFactory()
+    location = WarehouseLocationFactory()
+    now = timezone.now()
+
+    newest_movement = None
+    for i in range(12):
+        movement = WarehouseMovementFactory(
+            stock_product=product,
+            location_to=location,
+            amount=Decimal(i + 1),
+        )
+        WarehouseMovement.objects.filter(pk=movement.pk).update(
+            moved_at=now - timedelta(minutes=i)
+        )
+        if i == 0:
+            newest_movement = movement
+
+    response = client.get("recent-warehouse-movements")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert len(payload) == 8
+    assert payload[0]["id"] == newest_movement.pk
+    assert payload[0]["amount"] == "1.0000"
+    assert payload[-1]["amount"] == "8.0000"
+
+
+def test_get_warehouse_movements_api_handles_null_locations(db, client):
+    product = StockProductFactory()
+
+    # Movement with null location_from (e.g., initial stock entry)
+    WarehouseMovementFactory(
+        stock_product=product,
+        location_from=None,
+        location_to=WarehouseLocationFactory(code="A-01"),
+    )
+
+    response = client.get("warehouse-movements")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["data"][0]["location_from_code"] is None
+    assert payload["data"][0]["location_to_code"] == "A-01"
+
+
+def test_get_warehouse_movements_api_combines_multiple_filters(db, client):
+    product1 = StockProductFactory(code="MULTI-001")
+    product2 = StockProductFactory(code="MULTI-002")
+    location_a = WarehouseLocationFactory(code="A-01")
+    location_b = WarehouseLocationFactory(code="B-01")
+    worker1 = UserFactory(username="worker1")
+    UserFactory(username="worker2")
+    now = timezone.now()
+
+    # Movement matching all filters
+    movement_match = WarehouseMovementFactory(
+        stock_product=product1,
+        location_from=location_a,
+        location_to=location_b,
+        worker=worker1,
+    )
+    WarehouseMovement.objects.filter(pk=movement_match.pk).update(moved_at=now)
+
+    # Movements not matching all filters
+    WarehouseMovementFactory(
+        stock_product=product2,  # wrong product
+        location_from=location_a,
+        location_to=location_b,
+        worker=worker1,
+    )
+    WarehouseMovementFactory(
+        stock_product=product1,
+        location_from=location_b,  # wrong location_from
+        location_to=location_b,
+        worker=worker1,
+    )
+    movement_old = WarehouseMovementFactory(
+        stock_product=product1,
+        location_from=location_a,
+        location_to=location_b,
+        worker=worker1,
+    )
+    WarehouseMovement.objects.filter(pk=movement_old.pk).update(
+        moved_at=now - timedelta(days=2)  # too old
+    )
+
+    from urllib.parse import quote
+
+    from_date = (now - timedelta(days=1)).isoformat()
+    response = client.get(
+        f"warehouse-movements?"
+        f"stock_product_id={product1.pk}&"
+        f"location_from_id={location_a.pk}&"
+        f"location_to_id={location_b.pk}&"
+        f"worker_id={worker1.pk}&"
+        f"from_date={quote(from_date)}"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["data"][0]["id"] == movement_match.pk

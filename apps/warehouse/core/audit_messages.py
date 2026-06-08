@@ -144,6 +144,12 @@ class AuditMessages:
             AuditLanguage.CS: "Stav skladové objednávky se změnil z '{old_state}' na '{new_state}'",
         }
     )
+    WAREHOUSE_ORDER_CANCELLED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Warehouse order '{warehouse_order_code}' cancelled, assignments released",
+            AuditLanguage.CS: "Skladová objednávka '{warehouse_order_code}' zrušena, přiřazení uvolněna",
+        }
+    )
     CREDIT_NOTE_CREATED = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Credit note created",

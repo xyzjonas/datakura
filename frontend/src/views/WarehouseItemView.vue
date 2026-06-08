@@ -39,15 +39,7 @@
               <h5>{{ item.product.code }}</h5>
             </span>
           </div>
-          <div v-if="item.batch?.primary_barcode">
-            <BarcodeElement
-              :barcode="item.batch.primary_barcode.code"
-              :width="2"
-              :height="40"
-              text-align="right"
-            />
-          </div>
-          <div v-else-if="item.primary_barcode">
+          <div v-if="item.primary_barcode">
             <BarcodeElement
               :barcode="item.primary_barcode"
               :width="2"
@@ -55,6 +47,15 @@
               text-align="right"
             />
           </div>
+          <div v-else-if="item.batch?.primary_barcode">
+            <BarcodeElement
+              :barcode="item.batch.primary_barcode.code"
+              :width="2"
+              :height="40"
+              text-align="right"
+            />
+          </div>
+
           <span
             v-else
             class="text-gray-5 h-10 font-mono text-xs bg-gray-2 px-5 rounded flex items-center"

@@ -281,6 +281,25 @@ class OrdersService:
         old_state = InboundOrderState(order.state)
         if target_state is None:
             if action == "cancel":
+                # Prevent cancellation if warehouse orders have materialized items (fix bug #10)
+                from apps.warehouse.models.warehouse import (
+                    InboundWarehouseOrder,
+                    InboundWarehouseOrderState,
+                )
+
+                warehouse_orders = InboundWarehouseOrder.objects.filter(order=order)
+                for w_order in warehouse_orders:
+                    if w_order.state in (
+                        InboundWarehouseOrderState.PENDING,
+                        InboundWarehouseOrderState.STARTED,
+                        InboundWarehouseOrderState.COMPLETED,
+                    ):
+                        # Check if any warehouse items exist
+                        if w_order.items.exists():
+                            raise WarehouseItemBadRequestError(
+                                f"Cannot cancel inbound order '{code}' - warehouse order '{w_order.code}' has materialized items. "
+                                "Use credit note process to handle received items that need to be returned."
+                            )
                 new_state = InboundOrderState.CANCELLED
             elif action == "rollback":
                 if old_state != InboundOrderState.PUTAWAY:

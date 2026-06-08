@@ -191,18 +191,19 @@ class WarehouseMovementFactory(DjangoModelFactory):
     class Meta:
         model = WarehouseMovement
 
+    @classmethod
+    def it(cls, **kwargs) -> WarehouseMovement:
+        return cls(**kwargs)  # type: ignore
+
     location_from = factory.SubFactory(WarehouseLocationFactory)
     location_to = factory.SubFactory(WarehouseLocationFactory)
+    stock_product = factory.SubFactory(StockProductFactory)
+    amount = factory.Sequence(lambda n: n + 1)
     worker = factory.SubFactory(UserFactory)
-
     item = None
-
-    class Params:
-        # Use this trait to create an item movement instead
-        item_movement = factory.Trait(
-            load=None,
-            item=factory.SubFactory(WarehouseItemFactory),
-        )
+    batch = None
+    inbound_order_code = None
+    outbound_order_code = None
 
 
 class WarehouseWithLocationsFactory(WarehouseFactory):

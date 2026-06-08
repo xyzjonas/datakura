@@ -1275,6 +1275,10 @@ export type InboundWarehouseOrderSchema = {
  */
 export type WarehouseMovementSchema = {
     /**
+     * Id
+     */
+    id: number;
+    /**
      * Moved At
      */
     moved_at: string;
@@ -1286,16 +1290,44 @@ export type WarehouseMovementSchema = {
      * Location To Code
      */
     location_to_code?: string | null;
-    stock_product: ProductSchema;
+    /**
+     * Inbound Order Code
+     */
+    inbound_order_code?: string | null;
+    /**
+     * Outbound Order Code
+     */
+    outbound_order_code?: string | null;
+    /**
+     * Stock Product Code
+     */
+    stock_product_code: string;
+    /**
+     * Stock Product Name
+     */
+    stock_product_name: string;
+    stock_product: StockProductMinimalSchema;
     /**
      * Amount
      */
-    amount: number;
-    item?: WarehouseItemSchema | null;
+    amount: string;
+    /**
+     * Item Id
+     */
+    item_id?: number | null;
+    item?: WarehouseItemMinimalSchema | null;
     /**
      * Batch Id
      */
     batch_id?: number | null;
+    /**
+     * Batch Barcode
+     */
+    batch_barcode?: string | null;
+    /**
+     * Worker Username
+     */
+    worker_username?: string | null;
 };
 
 /**
@@ -4078,6 +4110,91 @@ export type InventorySnapshotCreateSchema = {
      * Force
      */
     force?: boolean;
+};
+
+/**
+ * PackageInfo
+ */
+export type PackageInfo = {
+    /**
+     * Type
+     */
+    type: string;
+};
+
+/**
+ * PagedWarehouseMovementSchema
+ */
+export type PagedWarehouseMovementSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<WarehouseMovementSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * StockProductMinimalSchema
+ */
+export type StockProductMinimalSchema = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Unit Of Measure
+     */
+    unit_of_measure: string;
+};
+
+/**
+ * WarehouseItemMinimalSchema
+ */
+export type WarehouseItemMinimalSchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Tracking Level
+     */
+    tracking_level: string;
+    package?: PackageInfo | null;
+};
+
+/**
+ * GetRecentWarehouseMovementsResponse
+ */
+export type GetRecentWarehouseMovementsResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<WarehouseMovementSchema>;
 };
 
 /**
@@ -7159,6 +7276,75 @@ export type WarehouseApiRoutesAnalyticsGetInventorySnapshotResponses = {
 };
 
 export type WarehouseApiRoutesAnalyticsGetInventorySnapshotResponse = WarehouseApiRoutesAnalyticsGetInventorySnapshotResponses[keyof WarehouseApiRoutesAnalyticsGetInventorySnapshotResponses];
+
+export type WarehouseApiRoutesAnalyticsGetWarehouseMovementsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * From Date
+         */
+        from_date?: string | null;
+        /**
+         * To Date
+         */
+        to_date?: string | null;
+        /**
+         * Stock Product Id
+         */
+        stock_product_id?: number | null;
+        /**
+         * Location From Id
+         */
+        location_from_id?: number | null;
+        /**
+         * Location To Id
+         */
+        location_to_id?: number | null;
+        /**
+         * Batch Id
+         */
+        batch_id?: number | null;
+        /**
+         * Worker Id
+         */
+        worker_id?: number | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/analytics/warehouse-movements';
+};
+
+export type WarehouseApiRoutesAnalyticsGetWarehouseMovementsResponses = {
+    /**
+     * OK
+     */
+    200: PagedWarehouseMovementSchema;
+};
+
+export type WarehouseApiRoutesAnalyticsGetWarehouseMovementsResponse = WarehouseApiRoutesAnalyticsGetWarehouseMovementsResponses[keyof WarehouseApiRoutesAnalyticsGetWarehouseMovementsResponses];
+
+export type WarehouseApiRoutesAnalyticsGetRecentWarehouseMovementsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/analytics/recent-warehouse-movements';
+};
+
+export type WarehouseApiRoutesAnalyticsGetRecentWarehouseMovementsResponses = {
+    /**
+     * OK
+     */
+    200: GetRecentWarehouseMovementsResponse;
+};
+
+export type WarehouseApiRoutesAnalyticsGetRecentWarehouseMovementsResponse = WarehouseApiRoutesAnalyticsGetRecentWarehouseMovementsResponses[keyof WarehouseApiRoutesAnalyticsGetRecentWarehouseMovementsResponses];
 
 export type WarehouseApiRoutesInvoicesGetOutboundInvoicesData = {
     body?: never;

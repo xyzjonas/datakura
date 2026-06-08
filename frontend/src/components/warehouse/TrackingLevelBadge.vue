@@ -1,5 +1,8 @@
 <template>
-  <q-badge :color="color"><q-icon :name="icon" class="mr-1" size="14px" />{{ label }}</q-badge>
+  <q-badge :color="color">
+    <q-icon :name="icon" class="mr-1" size="14px" />{{ label }}
+    <q-tooltip> Typ sledování položek v rámci skladu. </q-tooltip>
+  </q-badge>
 </template>
 
 <script setup lang="ts">

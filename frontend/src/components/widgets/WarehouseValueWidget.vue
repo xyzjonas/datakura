@@ -1,5 +1,5 @@
 <template>
-  <div class="relative">
+  <div class="relative flex flex-col">
     <DemoGraphWidget
       :title="widgetTitle"
       :subtitle="widgetSubtitle"
@@ -10,6 +10,7 @@
       x-axis-key="label"
       color="#0f9d58"
       :to="{ name: 'inventorySnapshots' }"
+      class="h-full"
     />
 
     <q-inner-loading :showing="loading">
