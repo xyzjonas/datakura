@@ -14,7 +14,7 @@
     :multiple="false"
     @filter="filterFn"
     @abort="abortFilterFn"
-    autofocus
+    :autofocus="autofocus"
     @update:model-value="onSelectChange"
     clear-icon="sym_o_close_small"
     :rules="required ? [rules.notEmpty] : []"
@@ -42,6 +42,7 @@ withDefaults(
     required?: boolean
     disable?: boolean
     dense?: boolean
+    autofocus?: boolean
   }>(),
   {
     label: 'Vyhledat zákazníka',
@@ -49,6 +50,7 @@ withDefaults(
     required: true,
     disable: false,
     dense: false,
+    autofocus: true,
   },
 )
 

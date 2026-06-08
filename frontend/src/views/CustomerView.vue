@@ -24,7 +24,7 @@
               Naše firma
             </q-badge>
             <span class="text-gray-5">
-              <q-btn flat round size="8px" icon="content_copy" />
+              <CopyToClipBoardButton :text="customer.code" />
               <small>kód: </small>{{ customer.code }}
             </span>
           </div>
@@ -124,28 +124,29 @@
 </template>
 
 <script setup lang="ts">
-import {
-  warehouseApiRoutesCustomerAssignCustomerDiscountGroup,
-  warehouseApiRoutesCustomerGroupsGetCustomerGroups,
-  warehouseApiRoutesCustomerGetCustomer,
-  warehouseApiRoutesProductGetDiscountGroups,
-  warehouseApiRoutesCustomerUpdateCustomer,
-  warehouseApiRoutesCustomerCreateCustomerContact,
-  warehouseApiRoutesCustomerUpdateCustomerContact,
-  warehouseApiRoutesCustomerDeleteCustomerContact,
-} from '@/client'
 import type {
+  ContactPersonCreateOrUpdateSchema,
   CustomerCreateOrUpdateSchema,
   CustomerGroupSchema,
-  ContactPersonCreateOrUpdateSchema,
 } from '@/client'
-import CustomerContactForm from '@/components/customer/CustomerContactForm.vue'
-import CustomerDiscountGroupDialog from '@/components/customer/CustomerDiscountGroupDialog.vue'
-import CustomerUpsertDialog from '@/components/customer/CustomerUpsertDialog.vue'
+import {
+  warehouseApiRoutesCustomerAssignCustomerDiscountGroup,
+  warehouseApiRoutesCustomerCreateCustomerContact,
+  warehouseApiRoutesCustomerDeleteCustomerContact,
+  warehouseApiRoutesCustomerGetCustomer,
+  warehouseApiRoutesCustomerGroupsGetCustomerGroups,
+  warehouseApiRoutesCustomerUpdateCustomer,
+  warehouseApiRoutesCustomerUpdateCustomerContact,
+  warehouseApiRoutesProductGetDiscountGroups,
+} from '@/client'
+import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ContactPersonUpsertDialog from '@/components/customer/ContactPersonUpsertDialog.vue'
+import CustomerContactForm from '@/components/customer/CustomerContactForm.vue'
 import CustomerContactPersonForm from '@/components/customer/CustomerContactPersonForm.vue'
+import CustomerDiscountGroupDialog from '@/components/customer/CustomerDiscountGroupDialog.vue'
 import CustomerInformationForm from '@/components/customer/CustomerInformationForm.vue'
 import CustomerTypeIcon from '@/components/customer/CustomerTypeIcon.vue'
+import CustomerUpsertDialog from '@/components/customer/CustomerUpsertDialog.vue'
 import EmptyPanel from '@/components/EmptyPanel.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import { useApi } from '@/composables/use-api'

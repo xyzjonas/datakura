@@ -17,7 +17,7 @@
             v-ripple
             :active="item.key === selectedTab"
             active-class="bg-primary text-light"
-            :class="{ 'rounded-md': true, uppercase: true }"
+            :class="{ 'rounded-md': true }"
             dense
             @click="selectedTab = item.key"
           >
@@ -114,7 +114,7 @@ watch(
 const items = [
   {
     key: 'app',
-    label: 'přizpůsobení',
+    label: 'Přizpůsobení',
     icon: 'sym_o_settings',
   },
   // {
@@ -124,32 +124,32 @@ const items = [
   // },
   {
     key: 'packaging',
-    label: 'jednotky a balení',
+    label: 'Jednotky, balení a šarže',
     icon: 'sym_o_package_2',
   },
   {
     key: 'products',
-    label: 'typy zboží',
+    label: 'Typy zboží',
     icon: 'sym_o_shopping_cart',
   },
   {
     key: 'customers',
-    label: 'zákaznícké skupiny',
+    label: 'Zákaznícké skupiny',
     icon: 'sym_o_groups',
   },
   {
     key: 'discounts',
-    label: 'slevové skupiny',
+    label: 'Slevové skupiny',
     icon: 'sym_o_percent',
   },
   {
     key: 'payments',
-    label: 'platebné metody',
+    label: 'Platební metody',
     icon: 'sym_o_payments',
   },
   {
     key: 'printers',
-    label: 'tiskárny',
+    label: 'Tiskárny',
     icon: 'sym_o_print',
   },
 ]

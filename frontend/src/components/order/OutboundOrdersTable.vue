@@ -28,6 +28,7 @@
           dense
           placeholder="Vyhledat subjekt podle názvu, kódu, IČO nebo DIČ."
           :hint="undefined"
+          :autofocus="false"
           :required="false"
           class="min-w-[260px] flex-1"
         />

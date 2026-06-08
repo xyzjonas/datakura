@@ -73,6 +73,10 @@ export type PrinterSchema = {
      * Port
      */
     port?: number;
+    /**
+     * Dpi
+     */
+    dpi?: number | null;
 };
 
 /**
@@ -4465,6 +4469,10 @@ export type PrinterCreateOrUpdateSchema = {
      * Port
      */
     port?: number;
+    /**
+     * Dpi
+     */
+    dpi?: number | null;
 };
 
 /**

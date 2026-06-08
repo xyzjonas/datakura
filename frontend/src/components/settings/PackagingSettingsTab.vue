@@ -5,7 +5,7 @@
       v-model:tab="activeTab"
       :items="[
         { key: 'packageTypes', icon: 'sym_o_package_2', title: 'Typy Balení' },
-        { key: 'batches', icon: 'sym_o_inventory_2', title: 'Šarže' },
+        { key: 'batches', icon: 'sym_o_barcode', title: 'Šarže' },
         { key: 'units', icon: 'sym_o_straighten', title: 'Jednotky' },
       ]"
       class="mb-5"

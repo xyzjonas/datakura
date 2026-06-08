@@ -11,6 +11,7 @@ class Printer(BaseModel):
     description = models.TextField(null=True, blank=True)
     ip = models.CharField(max_length=255, null=True, blank=True)
     port = models.PositiveIntegerField(default=9100)
+    dpi = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self) -> str:
         return self.code

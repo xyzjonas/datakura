@@ -8,7 +8,13 @@
         </div>
 
         <q-form class="flex flex-col gap-3" @submit="onSubmit">
-          <q-input v-model.trim="form.code" outlined label="Kód" :rules="[rules.notEmpty]" />
+          <q-input
+            v-model.trim="form.code"
+            outlined
+            label="Kód / Název"
+            :rules="[rules.notEmpty]"
+            hint="Jednoznačné/unikátní jméno tiskárny"
+          />
 
           <q-input
             v-model.trim="form.description"
@@ -17,6 +23,29 @@
             autogrow
             label="Popis"
             hint="Volitelné"
+          />
+
+          <q-input
+            v-model.trim="form.ip"
+            outlined
+            label="IP adresa"
+            hint="IP adresa tiskárny v lokální síti"
+          />
+
+          <q-input
+            v-model.number="form.port"
+            outlined
+            type="number"
+            label="Port"
+            hint="Port tiskárny pro připojení ZPL (výchozí: 9100)"
+          />
+
+          <q-input
+            v-model.number="form.dpi"
+            outlined
+            type="number"
+            label="DPI"
+            hint="Základní rozlišení tisku v bodech na palec"
           />
 
           <div class="mt-2 flex justify-end">

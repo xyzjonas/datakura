@@ -116,6 +116,9 @@ const printerToDelete = ref<PrinterSchema | null>(null)
 const createDefaultForm = (): PrinterCreateOrUpdateSchema => ({
   code: '',
   description: null,
+  ip: null,
+  port: 9100,
+  dpi: null,
 })
 
 const printerForm = ref<PrinterCreateOrUpdateSchema>(createDefaultForm())
@@ -149,6 +152,9 @@ const openEditForm = (printer: PrinterSchema) => {
   printerForm.value = {
     code: printer.code,
     description: printer.description ?? null,
+    ip: printer.ip ?? null,
+    port: printer.port ?? 9100,
+    dpi: printer.dpi ?? null,
   }
   showEditDialog.value = true
 }
@@ -233,6 +239,24 @@ const columns: QTableColumn[] = [
     name: 'description',
     field: 'description',
     label: 'Popis',
+    align: 'left',
+  },
+  {
+    name: 'ip',
+    field: 'ip',
+    label: 'IP',
+    align: 'left',
+  },
+  {
+    name: 'port',
+    field: 'port',
+    label: 'Port',
+    align: 'left',
+  },
+  {
+    name: 'dpi',
+    field: 'dpi',
+    label: 'DPI',
     align: 'left',
   },
 ]

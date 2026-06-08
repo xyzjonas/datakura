@@ -17,6 +17,7 @@ def test_whoami_includes_default_printer(db, user) -> None:
     assert response.json()["data"]["default_printer"] == {
         "code": "ZEBRA-DEFAULT",
         "description": "Default Zebra",
+        "dpi": None,
         "ip": None,
         "port": 9100,
         "created": printer.created.replace(microsecond=0)

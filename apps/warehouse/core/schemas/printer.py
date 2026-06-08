@@ -11,6 +11,7 @@ class PrinterSchema(BaseSchema):
     description: str | None = None
     ip: str | None = None
     port: int = 9100
+    dpi: int | None = None
 
 
 class GetPrintersResponse(BaseResponse):
@@ -22,6 +23,7 @@ class PrinterCreateOrUpdateSchema(Schema):
     description: str | None = None
     ip: str | None = None
     port: int = 9100
+    dpi: int | None = None
 
 
 class GetPrinterResponse(Response[PrinterSchema]): ...
