@@ -1758,6 +1758,43 @@ export type OffloadItemsToChildOrderRequest = {
 };
 
 /**
+ * EmptyResponse
+ */
+export type EmptyResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data?: null;
+};
+
+/**
+ * MoveItemRequest
+ */
+export type MoveItemRequest = {
+    /**
+     * Item Id
+     */
+    item_id: number;
+    /**
+     * Location To Code
+     */
+    location_to_code: string;
+    /**
+     * Amount
+     */
+    amount?: number | string | null;
+    /**
+     * Unpack
+     */
+    unpack?: boolean;
+};
+
+/**
  * PagedProductTypeSchema
  */
 export type PagedProductTypeSchema = {
@@ -3071,21 +3108,6 @@ export type InboundOrderTransitionSchema = {
      * Action
      */
     action?: 'next' | 'cancel' | 'rollback';
-};
-
-/**
- * EmptyResponse
- */
-export type EmptyResponse = {
-    /**
-     * Success
-     */
-    success?: boolean;
-    error?: ErrorInformation | null;
-    /**
-     * Data
-     */
-    data?: null;
 };
 
 /**
@@ -5245,6 +5267,22 @@ export type WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderResponses
 };
 
 export type WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderResponse = WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderResponses[keyof WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderResponses];
+
+export type WarehouseApiRoutesWarehouseCreateMovementData = {
+    body: MoveItemRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/warehouse/movement';
+};
+
+export type WarehouseApiRoutesWarehouseCreateMovementResponses = {
+    /**
+     * OK
+     */
+    200: EmptyResponse;
+};
+
+export type WarehouseApiRoutesWarehouseCreateMovementResponse = WarehouseApiRoutesWarehouseCreateMovementResponses[keyof WarehouseApiRoutesWarehouseCreateMovementResponses];
 
 export type WarehouseApiRoutesProductGetTypesData = {
     body?: never;

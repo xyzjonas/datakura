@@ -288,6 +288,13 @@ class GetOutboundWarehouseOrderItemCandidatesResponse(BaseResponse):
     data: list[WarehouseItemSchema]
 
 
+class MoveItemRequest(Schema):
+    item_id: int
+    location_to_code: str
+    amount: Decimal | None = None
+    unpack: bool = False
+
+
 class BarcodeLookupRequest(Schema):
     barcode: str
     product_code: str | None = None

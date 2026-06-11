@@ -7,17 +7,26 @@ export type ChangelogEntry = {
   rows: string[]
 }
 
-export const APP_VERSION = '0.0.1dev4'
+export const APP_VERSION = '0.0.1dev5'
 export const STORAGE_KEY = 'app-last-acknowledged-version'
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+  {
+    version: '0.0.1dev5',
+    releaseDate: '2026-06-11',
+    rows: [
+      'Přidána možnost libovolného přesunu zboží mezi skladovými místy (nejen přesun pomocí čárového kódu).',
+      'Zobrazení nedávných pohybů zboží na domovské stránce (widget "Nedávné pohyby zboží").',
+      'Oprava widgetů statistiky.',
+    ],
+  },
   {
     version: '0.0.1dev4',
     releaseDate: '2026-05-19',
     rows: [
       'Vylepšené vyhledávání produktů při výdeji zboží (výdejka), přehlednější zobrazení variant a jejich skladových zásob.',
       'Přidána možnost správy šarží. Šarže lze přiřazovat ke VŠEM typům skladových položek a následně filtrovat při výdeji zboží (výdejka).',
-      'Nastavení monitoringu (Sentry).'
+      'Nastavení monitoringu (Sentry).',
     ],
   },
   {

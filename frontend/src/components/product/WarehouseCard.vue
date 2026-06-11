@@ -108,7 +108,19 @@
           <span v-else></span>
         </q-td>
       </template>
+      <template #body-cell-actions="props">
+        <q-td auto-width>
+          <q-btn
+            flat
+            round
+            icon="sym_o_swap_horiz"
+            size="sm"
+            @click.stop="openMovement(props.row.id)"
+          />
+        </q-td>
+      </template>
     </q-table>
+    <MovementDialog v-model="movementDialogOpen" :item-id="movementItemId" />
   </ForegroundPanel>
   <ForegroundPanel v-else class="flex-[5] grid content-center justify-center uppercase text-gray-5">
     Vyberte skladové místo
@@ -116,6 +128,7 @@
 </template>
 
 <script setup lang="ts">
+import MovementDialog from '@/components/movement/MovementDialog.vue'
 import { useQueryProduct } from '@/composables/query/use-product-query'
 import ForegroundPanel from '../ForegroundPanel.vue'
 import SearchInput from '../SearchInput.vue'
@@ -206,6 +219,14 @@ const setLocation = (element: TreeElement) => {
 
 const columns = ref<QTableColumn[]>([])
 
+const movementDialogOpen = ref(false)
+const movementItemId = ref<number | undefined>()
+
+const openMovement = (itemId: number) => {
+  movementItemId.value = itemId
+  movementDialogOpen.value = true
+}
+
 const locationItems = computed(() =>
   (warehouseLocation.value?.items ?? []).filter(
     (item) =>
@@ -293,6 +314,13 @@ watch(
           label: 'Počet v balení',
           align: 'left' as const,
           sortable: true,
+        },
+        {
+          field: () => '',
+          name: 'actions',
+          label: '',
+          align: 'right' as const,
+          sortable: false,
         },
       ]
     }

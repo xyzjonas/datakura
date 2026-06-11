@@ -11,6 +11,7 @@ from apps.warehouse.api.pagination import (
     WarehouseLocationsPagination,
 )
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
+from apps.warehouse.core.schemas.base import EmptyResponse
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.warehouse import (
     AssignOutboundWarehouseOrderItemRequest,
@@ -34,6 +35,7 @@ from apps.warehouse.core.schemas.warehouse import (
     OffloadItemsToChildOrderRequest,
     BarcodeLookupRequest,
     BarcodeLookupResponseWrapper,
+    MoveItemRequest,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.warehouse import warehouse_service
@@ -441,3 +443,15 @@ def offload_outbound_items_to_child_order(
         context=RequestContext.from_django_request(request),
     )
     return GetOutboundWarehouseOrderResponse(data=order)
+
+
+@routes.post(
+    "movement",
+    response={200: EmptyResponse},
+)
+def create_movement(request: HttpRequest, body: MoveItemRequest):
+    warehouse_service.move_item_standalone(
+        request=body,
+        context=RequestContext.from_django_request(request),
+    )
+    return EmptyResponse()

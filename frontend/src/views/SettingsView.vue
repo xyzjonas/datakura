@@ -1,36 +1,33 @@
 <template>
   <div class="flex flex-1 gap-5">
-    <div class="flex flex-col h-full min-w-xs">
-      <q-scroll-area class="flex-1 p-2">
-        <h1 class="text-lg">NASTAVENÍ</h1>
-        <p class="flex gap-1 items-center text-muted text-xs">
-          verze aplikace <strong>{{ APP_VERSION }}</strong>
-          <q-btn flat dense icon="help" size="xs" @click="showWhatsNewDialog = !showWhatsNewDialog">
-            <q-tooltip :offset="[0, 10]">Zobrazit celý CHANGELOG</q-tooltip>
-          </q-btn>
-        </p>
-        <q-list class="flex flex-col gap-1">
-          <q-item
-            v-for="item in items"
-            :key="item.key"
-            clickable
-            v-ripple
-            :active="item.key === selectedTab"
-            active-class="bg-primary text-light"
-            :class="{ 'rounded-md': true }"
-            dense
-            @click="selectedTab = item.key"
-          >
-            <q-item-section avatar>
-              <q-icon :name="item.icon" />
-            </q-item-section>
-            <q-item-section> {{ item.label }} </q-item-section>
-          </q-item>
-        </q-list>
-      </q-scroll-area>
+    <div class="flex-1 h-fit">
+      <h1 class="text-lg">NASTAVENÍ</h1>
+      <p class="flex gap-1 items-center text-muted text-xs">
+        verze aplikace <strong>{{ APP_VERSION }}</strong>
+        <q-btn flat dense icon="help" size="xs" @click="showWhatsNewDialog = !showWhatsNewDialog">
+          <q-tooltip :offset="[0, 10]">Zobrazit celý CHANGELOG</q-tooltip>
+        </q-btn>
+      </p>
+      <q-list class="flex flex-col gap-1">
+        <q-item
+          v-for="item in items"
+          :key="item.key"
+          clickable
+          v-ripple
+          :active="item.key === selectedTab"
+          active-class="bg-primary text-light"
+          :class="{ 'rounded-md': true }"
+          dense
+          @click="selectedTab = item.key"
+        >
+          <q-item-section avatar>
+            <q-icon :name="item.icon" />
+          </q-item-section>
+          <q-item-section> {{ item.label }} </q-item-section>
+        </q-item>
+      </q-list>
     </div>
-    <q-separator vertical />
-    <div class="flex-1">
+    <div class="flex-[5]">
       <Suspense>
         <component :is="selectedTabComponent" />
         <template #fallback>

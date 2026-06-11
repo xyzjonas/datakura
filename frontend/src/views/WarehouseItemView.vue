@@ -10,7 +10,10 @@
         />
         <q-breadcrumbs-el :label="item.primary_barcode ?? `Skladová položka #${item.id}`" />
       </q-breadcrumbs>
-      <div class="flex flex-col items-end gap-3 flex-1">
+      <div class="flex items-center gap-2 flex-1 justify-end">
+        <q-btn flat color="primary" icon="sym_o_swap_horiz" @click="movementDialogOpen = true">
+          <q-tooltip :offset="[0, 10]">Přesunout položku</q-tooltip>
+        </q-btn>
         <q-btn flat color="primary" icon-right="sym_o_query_stats" @click="auditDialog = true">
           <q-tooltip :offset="[0, 10]">Zobrazit historii</q-tooltip>
         </q-btn>
@@ -137,6 +140,8 @@
       </ForegroundPanel>
     </div>
 
+    <MovementDialog v-model="movementDialogOpen" :item-id="item.id" />
+
     <RightSideDialog
       v-model:show="auditDialog"
       title="Historie skladové položky"
@@ -162,6 +167,7 @@ import { warehouseApiRoutesWarehouseGetWarehouseItem } from '@/client'
 import BarcodeElement from '@/components/BarcodeElement.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import RightSideDialog from '@/components/layout/RightSideDialog.vue'
+import MovementDialog from '@/components/movement/MovementDialog.vue'
 import WarehouseItemAmountBadge from '@/components/warehouse/WarehouseItemAmountBadge.vue'
 import WarehouseItemAuditTimeline from '@/components/warehouse/WarehouseItemAuditTimeline.vue'
 import WarehouseItemTypeBadgeGroup from '@/components/warehouse/WarehouseItemTypeBadgeGroup.vue'
@@ -184,4 +190,5 @@ const inboundOrderCode = item?.inbound_order_code ?? null
 const outboundOrderCode = item?.outbound_order_code ?? null
 
 const auditDialog = ref(false)
+const movementDialogOpen = ref(false)
 </script>

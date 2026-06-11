@@ -106,6 +106,17 @@
             <WarehouseItemCountBadge :item="props.row" />
           </q-td>
         </template>
+        <template #body-cell-actions="props">
+          <q-td auto-width>
+            <q-btn
+              flat
+              round
+              icon="sym_o_swap_horiz"
+              size="sm"
+              @click.stop="openMovement(props.row.id)"
+            />
+          </q-td>
+        </template>
         <template #no-data>
           <EmptyPanel
             text="Žádné skladové položky"
@@ -115,12 +126,7 @@
         </template>
       </q-table>
     </ForegroundPanel>
-    <ForegroundPanel
-      v-else
-      class="flex-[5] grid content-center justify-center uppercase text-gray-5"
-    >
-      Vyberte skladové místo
-    </ForegroundPanel>
+    <MovementDialog v-model="movementDialogOpen" :item-id="movementItemId" />
   </div>
 </template>
 
@@ -134,6 +140,7 @@ import {
 } from '@/client'
 import EmptyPanel from '@/components/EmptyPanel.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import MovementDialog from '@/components/movement/MovementDialog.vue'
 import PackageTypeBadge from '@/components/PackageTypeBadge.vue'
 import WarehouseItemCountBadge from '@/components/product/WarehouseItemCountBadge.vue'
 import WarehouseItemGridCard from '@/components/product/WarehouseItemGridCard.vue'
@@ -328,11 +335,26 @@ const columns = computed<QTableColumn[]>(() => {
         align: 'left' as const,
         sortable: true,
       },
+      {
+        field: () => '',
+        name: 'actions',
+        label: '',
+        align: 'right' as const,
+        sortable: false,
+      },
     ]
   }
 })
 
 const aggregate = useLocalStorage('aggragate-package-types', true)
+
+const movementDialogOpen = ref(false)
+const movementItemId = ref<number | undefined>()
+
+const openMovement = (itemId: number) => {
+  movementItemId.value = itemId
+  movementDialogOpen.value = true
+}
 
 const locationItems = computed(() =>
   (warehouseLocation.value?.items ?? []).filter(

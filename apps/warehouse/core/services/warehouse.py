@@ -33,6 +33,7 @@ from apps.warehouse.core.schemas.warehouse import (
     BatchSchema,
     DraftItemAddSchema,
     BarcodeLookupResponse,
+    MoveItemRequest,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
@@ -2259,11 +2260,58 @@ class WarehouseService:
                     context=context,
                 )
 
-    # @staticmethod
-    # def move_item(
-    #     item_code: str, location_code: str | None = None, amount: float = None
-    # ) -> None:
-    #     pass
+    @classmethod
+    def move_item_standalone(
+        cls,
+        request: MoveItemRequest,
+        context: RequestContext,
+    ) -> None:
+        """Move a warehouse item to a new location, optionally unpacking a partial amount."""
+        try:
+            item = WarehouseItem.physical_stock.select_related(
+                "stock_product",
+                "location",
+                "batch",
+                "package_type",
+                "order_in",
+                "source_order_item",
+            ).get(pk=request.item_id)
+        except WarehouseItem.DoesNotExist as exc:
+            raise WarehouseItemNotFoundError(
+                f"Warehouse item '{request.item_id}' not found"
+            ) from exc
+
+        if str(item.location.code) == request.location_to_code:
+            raise WarehouseItemBadRequestError(
+                f"Item is already at location '{request.location_to_code}'"
+            )
+
+        amount = request.amount
+
+        if amount is not None and amount <= 0:
+            raise WarehouseItemBadRequestError("Amount must be positive")
+
+        if amount is not None and item.amount < amount:
+            raise WarehouseItemBadRequestError(
+                f"Requested amount ({amount}) exceeds available amount ({item.amount})"
+            )
+
+        with transaction.atomic():
+            if request.unpack:
+                if item.tracking_level != TrackingLevel.SERIALIZED_PACKAGE:
+                    raise WarehouseItemBadRequestError(
+                        "Unpack is only supported for SERIALIZED_PACKAGE items"
+                    )
+                if amount is None:
+                    raise WarehouseItemBadRequestError(
+                        "Amount is required for unpack operations"
+                    )
+                unpacked = cls._unpack_package(item, amount, context)
+                movement_service.move_item(unpacked, context, request.location_to_code)
+            else:
+                movement_service.move_item(
+                    item, context, request.location_to_code, amount
+                )
 
     @classmethod
     def create_child_warehouse_order(

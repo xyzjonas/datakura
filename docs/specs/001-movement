@@ -1,0 +1,79 @@
+# Feature: Stock product movement
+
+## 1. Summary
+
+As a user I need to be able to move warehouse items (stock) around the warehosue from location to location.
+I need a barcode reader friendly version of it and a desktop (barcode reader-less) version of it.
+
+## 2. Context & Background
+
+- service exists (class MovementService), API is missing - to be implemented
+- UI connection is missing + UI components and client side logice
+
+## 3. Scope
+
+### In scope
+
+- N/A
+
+### Out of scope
+
+- N/A
+
+## 4. Technical Specification
+
+### Entry points
+
+- `apps/warehouse/core/services/movements.py` - existing service
+- `frontend/src/components/movement` - new directory for movement related components
+- `use-barcode-lookup.ts`
+
+### Data model changes
+
+- no data model changes
+
+### Business logic
+
+New set of components provide this basic workflow:
+
+1. input or scan a barcode
+2. barcode looked up (existing API) and the type of scanned object is inferred
+3. component behavior branches:
+   a. non-fungible item (serialized) - jump to location input
+   b. package item - option to 'unpack' - select only partial quantity to move (removed quantity becomes fungible)
+   c. batch item / fungible item - specify quantity + specify current location
+4. location input or scanned confirms the transaction (add visible disclaimer that it's going to happen)
+5. if response OK - close the dialog
+6. if response NOK - keep dialog open and show detailed reason why movement is not possible (provided by the backend)
+
+Provide 2 sets of componets, one for barcode readers and one for desktop. Use the global switch `scannerMode` from `use-app-settings.ts` to switch which one to show.
+
+1. barcode: no dropdowns simple auto-focusable inputs, use correct input types (e.g. for numbers/amounts). Keep the barcode workflow in mind - ultimate goal is zero clicking around if possible. Use <q-form>'s ability to seamlesly transfer focus from input to input
+
+2. desktop: no reader available, replace all inputs where it's possible with dropdown selecs (all should be available under `src/components/selects`). Add a missing one if needed (as to always be self-contained)
+
+### API / Interface contract
+
+- new endpoint specified bellow part of the /warehouse API
+- HTTP POST `/warehouse/movement`
+- movement params part of the request body
+
+## 5. Constraints & Conventions
+
+- always follow instructions in `AGENTS.md`
+
+## 6. Acceptance Criteria
+
+Checkboxes the agent can reason against:
+
+- [ ] Unit tests cover the happy path and at least 2 edge cases
+- [ ] No TypeScript errors
+- [ ] No lint and format errors
+
+## 8. Examples
+
+N/A
+
+## 9. Related Files for Reference
+
+N/A

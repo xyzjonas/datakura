@@ -36,6 +36,14 @@
               label="Produkty"
               :to="{ name: 'products' }"
             />
+            <q-btn
+              color="primary"
+              icon="sym_o_swap_horiz"
+              label="Přesun zásob"
+              flat
+              unelevated
+              @click="movementDialogOpen = true"
+            />
           </div>
         </div>
       </div>
@@ -57,16 +65,21 @@
 
     <RecentActivityWidget class="min-w-0" />
     <RecentStockMovementsWidget class="min-w-0" />
+    <MovementDialog v-model="movementDialogOpen" />
   </div>
 </template>
 
 <script setup lang="ts">
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import MovementDialog from '@/components/movement/MovementDialog.vue'
 import ActiveOrdersWidget from '@/components/widgets/ActiveOrdersWidget.vue'
 import ActiveWarehouseOrdersWidget from '@/components/widgets/ActiveWarehouseOrdersWidget.vue'
 import RecentActivityWidget from '@/components/widgets/RecentActivityWidget.vue'
 import RecentStockMovementsWidget from '@/components/widgets/RecentStockMovementsWidget.vue'
 import WarehouseValueWidget from '@/components/widgets/WarehouseValueWidget.vue'
+import { ref } from 'vue'
+
+const movementDialogOpen = ref(false)
 </script>
 
 <style></style>

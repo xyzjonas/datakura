@@ -2,7 +2,7 @@
   <q-select
     v-model="modelValue"
     outlined
-    dense
+    :dense="dense"
     clearable
     use-input
     fill-input
@@ -37,10 +37,12 @@ withDefaults(
   defineProps<{
     label?: string
     hint?: string
+    dense?: boolean
   }>(),
   {
     label: 'Filtrovat podle produktu',
     hint: 'Vyhledat produkt podle názvu nebo kódu.',
+    dense: true,
   },
 )
 
