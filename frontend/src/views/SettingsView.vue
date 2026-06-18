@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-1 gap-5">
-    <div class="flex-1 h-fit">
+    <div class="flex-1 h-fit min-w-xs">
       <h1 class="text-lg">NASTAVENÍ</h1>
       <p class="flex gap-1 items-center text-muted text-xs">
         verze aplikace <strong>{{ APP_VERSION }}</strong>
@@ -74,7 +74,7 @@ const selectedTab = computed<string>({
     if (typeof raw === 'string' && validTabs.has(raw)) {
       return raw
     }
-    return 'packaging'
+    return 'app'
   },
   set(value: string) {
     const query = { ...route.query, tab: value }
