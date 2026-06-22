@@ -5,3 +5,5 @@
 2. Unpacking a package (extracting partial amount of items) causes the newly created items to be of type "serialized" which is wrong. By removing items from a package we create fungible items as it's not possible to keep trackign them physically without relabeling them (which isn't the default and should be handled in a different way). So by default newly created items produced by unpacking operation have to be of type 'fungible'.
 
 3. Complete upacking (e.g. while transfering from location to location) makes the original stay in stock and being completely full again. E.g. a package of 10pcs contains only 5 now (5/10), when transfered by unpacking and selecting 5 as the amount, new non-tracked does get created with 5pcs in it (correct), BUT the old item stays with 10pcs as the amount - actually inflating the stock by 10pcs! Very serious mistake!
+
+4.

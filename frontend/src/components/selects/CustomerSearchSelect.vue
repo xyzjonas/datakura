@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { warehouseApiRoutesCustomerGetCustomers, type CustomerSchema } from '@/client'
+import { warehouseApiRoutesCustomerGetCustomers, type CustomerBaseSchema } from '@/client'
 import { rules } from '@/utils/rules'
 import type { QSelect } from 'quasar'
 import { nextTick, ref } from 'vue'
@@ -54,9 +54,9 @@ withDefaults(
   },
 )
 
-const modelValue = defineModel<CustomerSchema>()
+const modelValue = defineModel<CustomerBaseSchema>()
 
-const options = ref<CustomerSchema[]>([])
+const options = ref<CustomerBaseSchema[]>([])
 async function filterFn(val: string, update: (fn: () => void) => void, abort: () => void) {
   if (!val) {
     abort()

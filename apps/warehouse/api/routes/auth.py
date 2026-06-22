@@ -5,6 +5,7 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import User
 from django.http import HttpRequest
 from ninja import Router
+from ninja.responses import Status
 
 from apps.warehouse.core.schemas.auth import (
     LoginFormSchema,
@@ -71,16 +72,19 @@ def logout_user(request: HttpRequest):
 @routes.get("whoami", response={200: WhoamiResponse, 401: SigninResponse})
 def whoami(request: HttpRequest):
     if request.user.is_authenticated:
-        return 200, WhoamiResponse(
-            data=AuthData(
-                username=request.user.username,
-                user_id=request.user.id,
-                group=get_user_group(request.user),
-                expiry_date=request.session.get_expiry_date(),
-                default_printer=printers_service.get_default_printer(
-                    cast(User, request.user)
-                ),
-            )
+        return Status(
+            200,
+            WhoamiResponse(
+                data=AuthData(
+                    username=request.user.username,
+                    user_id=request.user.id,
+                    group=get_user_group(request.user),
+                    expiry_date=request.session.get_expiry_date(),
+                    default_printer=printers_service.get_default_printer(
+                        cast(User, request.user)
+                    ),
+                )
+            ),
         )
 
     return 401, SigninResponse(success=False, message="Invalid credentials")

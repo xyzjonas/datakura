@@ -7,11 +7,10 @@ from pydantic import Field
 from apps.warehouse.models.orders import InboundOrderState, OutboundOrderState
 from .base import BaseSchema, PaginatedResponse, BaseResponse
 from .base_orders import (
-    InboundOrderBaseSchema,
     InboundWarehouseOrderBaseSchema,
-    OutboundOrderBaseSchema,
     OutboundWarehouseOrderBaseSchema,
     CreditNoteBaseSchema,
+    BaseOrder,
 )
 from .invoice import InvoiceSchema
 from .product import ProductSchema
@@ -52,7 +51,15 @@ class InboundOrderTransitionSchema(Schema):
     action: Literal["next", "cancel", "rollback"] = "next"
 
 
-class InboundOrderSchema(InboundOrderBaseSchema):
+class InboundOrderSchema(BaseOrder):
+    external_code: str | None = None
+    description: str | None = None
+    note: str | None = None
+    currency: str
+    warehouse_order_codes: list[str] = []
+    requested_delivery_date: datetime | None = None
+    cancelled_date: datetime | None = None
+    received_date: datetime | None = None
     items: list[InboundOrderItemSchema] = Field(default_factory=list)
     state: str
     warehouse_orders: list[InboundWarehouseOrderBaseSchema] = Field(
@@ -122,7 +129,15 @@ class OutboundOrderTransitionSchema(Schema):
     action: Literal["next", "cancel"] = "next"
 
 
-class OutboundOrderSchema(OutboundOrderBaseSchema):
+class OutboundOrderSchema(BaseOrder):
+    external_code: str | None = None
+    description: str | None = None
+    note: str | None = None
+    currency: str
+    warehouse_order_codes: list[str] = []
+    requested_delivery_date: datetime | None = None
+    cancelled_date: datetime | None = None
+    fulfilled_date: datetime | None = None
     items: list[OutboundOrderItemSchema] = Field(default_factory=list)
     state: str
     warehouse_orders: list[OutboundWarehouseOrderBaseSchema] = Field(

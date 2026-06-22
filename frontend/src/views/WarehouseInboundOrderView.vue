@@ -50,7 +50,12 @@
       </div>
     </div>
     <div class="flex gap-5">
-      <CustomerCard :customer="order.order.supplier" title="Dodavatel" class="flex-1" />
+      <CustomerCard
+        v-if="order.order.supplier"
+        :customer="order.order.supplier"
+        title="Dodavatel"
+        class="flex-1"
+      />
       <LinkedEntitiesCard
         show-inbound-order
         :inbound-order="order.order"

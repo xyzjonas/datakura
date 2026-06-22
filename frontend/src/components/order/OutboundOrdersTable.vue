@@ -97,12 +97,12 @@
 
     <template #body-cell-code="props">
       <q-td>
-        <a
+        <router-link
+          :to="{ name: 'outboundOrderDetail', params: { code: props.row.code } }"
           class="link"
-          @click="router.push({ name: 'outboundOrderDetail', params: { code: props.row.code } })"
         >
           {{ props.row.code }}
-        </a>
+        </router-link>
       </q-td>
     </template>
 
@@ -127,29 +127,27 @@
           >
             <q-tooltip>Filtrovat tohoto odberatele</q-tooltip>
           </q-btn>
-          <CustomerLink :customer="props.row.customer" />
+          <CustomerLink v-if="props.row.customer" :customer="props.row.customer" />
         </div>
       </q-td>
     </template>
 
     <template #body-cell-warehouseOrder="props">
       <q-td>
-        <a
+        <router-link
           v-if="primaryWarehouseOrder(props.row)"
+          :to="{
+            name: 'warehouseOutboundOrderDetail',
+            params: { code: primaryWarehouseOrder(props.row)?.code },
+          }"
           class="link"
-          @click="
-            router.push({
-              name: 'warehouseOutboundOrderDetail',
-              params: { code: primaryWarehouseOrder(props.row)?.code },
-            })
-          "
         >
           {{ primaryWarehouseOrder(props.row)?.code }}
           <OutboundWarehouseOrderStateBadge
             :state="primaryWarehouseOrder(props.row)?.state ?? 'pending'"
             class="ml-1"
           />
-        </a>
+        </router-link>
       </q-td>
     </template>
   </q-table>
@@ -172,7 +170,6 @@ import { useApi } from '@/composables/use-api'
 import { calculateTotalPrice } from '@/utils/total-price'
 import { useQuasar, type QTableColumn, type QTableProps } from 'quasar'
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import CustomerLink from '../links/CustomerLink.vue'
 import {
   canGroupOutboundOrderForInvoice,
@@ -200,7 +197,6 @@ const customerFilter = defineModel<CustomerSchema | undefined>('customerFilter')
 
 const { page, pageSize, search, stockProductCode } = useQueryProducts()
 const { onResponse } = useApi()
-const router = useRouter()
 const $q = useQuasar()
 
 const pagination = ref<Pagination>({

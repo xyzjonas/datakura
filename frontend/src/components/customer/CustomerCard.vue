@@ -25,21 +25,22 @@
         customer.group.name ?? 'Žádná skupina'
       }}</q-badge>
       <span class="flex items-center gap-1 mt-auto">
-        <small class="text-gray-5">kód:</small>
+        <small class="text-muted">kód:</small>
         <h5>{{ customer.code }}</h5>
-        <q-btn flat round size="8px" icon="content_copy"></q-btn>
+        <CopyToClipBoardButton :text="customer.code" />
       </span>
     </div>
   </ForegroundPanel>
 </template>
 
 <script setup lang="ts">
-import type { CustomerSchema } from '@/client'
+import type { CustomerBaseSchema } from '@/client'
 import { useAppRouter } from '@/composables/use-app-router'
+import CopyToClipBoardButton from '../CopyToClipBoardButton.vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
 import CustomerTypeIcon from './CustomerTypeIcon.vue'
 
-defineProps<{ customer: CustomerSchema; title: string }>()
+defineProps<{ customer: CustomerBaseSchema; title: string }>()
 
 const { goToCustomer } = useAppRouter()
 </script>

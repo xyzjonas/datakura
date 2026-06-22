@@ -11,9 +11,8 @@ from .barcode import BarcodeSchema
 from .base import BaseResponse, BaseSchema, PaginatedResponse
 from .base_orders import (
     InboundWarehouseOrderBaseSchema,
-    InboundOrderBaseSchema,
     OutboundWarehouseOrderBaseSchema,
-    OutboundOrderBaseSchema,
+    BaseOrder,
 )
 from .credit_notes import CreditNoteSupplierSchema
 from .product import ProductSchema
@@ -143,7 +142,7 @@ class InboundWarehouseOrderSchema(InboundWarehouseOrderBaseSchema):
     completed_items_count: int
     total_amount: float
     remaining_amount: float
-    order: InboundOrderBaseSchema
+    order: BaseOrder
     credit_note: CreditNoteSupplierSchema | None = None
 
 
@@ -155,7 +154,7 @@ class OutboundWarehouseOrderSchema(OutboundWarehouseOrderBaseSchema):
     total_amount: float
     remaining_amount: float
     total_price_at_shipment: Decimal
-    order: OutboundOrderBaseSchema
+    order: BaseOrder
 
 
 class OutboundWarehouseOrderItemSchema(BaseSchema):

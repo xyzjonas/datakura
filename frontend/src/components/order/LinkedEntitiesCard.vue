@@ -5,19 +5,38 @@
     </template>
 
     <template v-if="showInboundOrder">
-      <h3 class="text-xs uppercase mb-1">Vydaná objednávka</h3>
+      <h3 class="text-xs uppercase mb-1">
+        {{ inboundOrder?.type === 'Manufacturing' ? 'Výrobní' : 'Vydaná' }} objednávka
+      </h3>
       <div v-if="inboundOrder" class="flex items-center justify-between">
         <span class="flex items-center gap-1">
           <q-icon name="sym_o_receipt" color="primary" />
-          <a class="link" @click="goToOrderIn(inboundOrder.code)">{{ inboundOrder.code }}</a>
+          <router-link
+            v-if="inboundOrder.type === 'Inbound'"
+            :to="{ name: 'inboundOrderDetail', params: { code: inboundOrder.code } }"
+            class="link"
+            >{{ inboundOrder.code }}</router-link
+          >
+          <router-link
+            v-else-if="inboundOrder.type === 'Manufacturing'"
+            :to="{ name: 'manufacturingOrderDetail', params: { code: inboundOrder.code } }"
+            class="link"
+            >{{ inboundOrder.code }}</router-link
+          >
         </span>
-        <InboundOrderStateBadge :state="inboundOrder.state" />
+        <ManufacturingOrderStateBadge
+          :state="inboundOrder.state"
+          v-if="inboundOrder.type === 'Manufacturing'"
+        />
+        <InboundOrderStateBadge :state="inboundOrder.state" v-else />
       </div>
       <span v-else class="text-gray-5">Žádná Příchozí Objednávka</span>
     </template>
 
     <template v-if="showOutboundOrder">
-      <h3 class="text-xs uppercase mb-1">Přijatá Objednávka</h3>
+      <h3 class="text-xs uppercase mb-1">
+        {{ outboundOrder?.type === 'Manufacturing' ? 'Výrobní' : 'Přijatá' }} objednávka
+      </h3>
       <div
         v-if="outboundOrder"
         :key="outboundOrder.code"
@@ -25,7 +44,18 @@
       >
         <span class="flex items-center gap-1">
           <q-icon name="sym_o_receipt" size="16px" color="primary" />
-          <a class="link" @click="goToOrderOut(outboundOrder.code)">{{ outboundOrder.code }}</a>
+          <router-link
+            v-if="outboundOrder.type === 'Outbound'"
+            :to="{ name: 'outboundOrderDetail', params: { code: outboundOrder.code } }"
+            class="link"
+            >{{ outboundOrder.code }}</router-link
+          >
+          <router-link
+            v-else-if="outboundOrder.type === 'Manufacturing'"
+            :to="{ name: 'manufacturingOrderDetail', params: { code: outboundOrder.code } }"
+            class="link"
+            >{{ outboundOrder.code }}</router-link
+          >
         </span>
         <OutboundOrderStateBadge :state="outboundOrder.state" />
       </div>
@@ -246,11 +276,10 @@
 
 <script setup lang="ts">
 import type {
+  BaseOrder,
   CreditNoteBaseSchema,
-  InboundOrderBaseSchema,
   InboundWarehouseOrderBaseSchema,
   InvoiceSchema,
-  OutboundOrderBaseSchema,
   OutboundWarehouseOrderBaseSchema,
 } from '@/client'
 import { useAppRouter } from '@/composables/use-app-router'
@@ -258,6 +287,7 @@ import type { Optional } from '@/utils/optional'
 import { computed } from 'vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
 import GenericStateBadge from '../GenericStateBadge.vue'
+import ManufacturingOrderStateBadge from '../manufacturing/ManufacturingOrderStateBadge.vue'
 import InboundWarehouseOrderStateBadge from '../putaway/InboundWarehouseOrderStateBadge.vue'
 import OutboundWarehouseOrderStateBadge from '../putaway/OutboundWarehouseOrderStateBadge.vue'
 import InboundOrderStateBadge from './InboundOrderStateBadge.vue'
@@ -278,23 +308,16 @@ const props = defineProps<{
   showChildOutboundWarehouseOrders?: boolean
   childOutboundWarehouseOrders?: Optional<OutboundWarehouseOrderBaseSchema[]>
   showInboundOrder?: boolean
-  inboundOrder?: InboundOrderBaseSchema | null
+  inboundOrder?: BaseOrder | null
   showOutboundOrder?: boolean
-  outboundOrder?: OutboundOrderBaseSchema | null
+  outboundOrder?: BaseOrder | null
   showInvoice?: boolean
   invoice?: InvoiceSchema | null
   showCreditNote?: boolean
   creditNote?: Optional<CreditNoteBaseSchema>
 }>()
 
-const {
-  goToInvoice,
-  goToWarehouseOrderOut,
-  goToWarehouseOrderIn,
-  goToOrderOut,
-  goToOrderIn,
-  goToCreditNote,
-} = useAppRouter()
+const { goToInvoice, goToWarehouseOrderOut, goToWarehouseOrderIn, goToCreditNote } = useAppRouter()
 
 const inboundWarehouseOrdersToRender = computed(() => {
   if (props.inboundWarehouseOrders && props.inboundWarehouseOrders.length > 0) {

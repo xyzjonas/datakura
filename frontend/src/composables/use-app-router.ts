@@ -34,6 +34,10 @@ export const useAppRouter = () => {
     router.push({ name: 'invoiceDetail', params: { code } })
   }
 
+  const goToManufacturingOrder = (code: string) => {
+    router.push({ name: 'manufacturingOrderDetail', params: { code } })
+  }
+
   return {
     goToCustomer,
     goToInvoice,
@@ -43,5 +47,6 @@ export const useAppRouter = () => {
     goToWarehouseOrderOut,
     goToProduct,
     goToCreditNote,
+    goToManufacturingOrder,
   }
 }

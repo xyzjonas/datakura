@@ -1,5 +1,7 @@
 import { useAuth } from '@/composables/use-auth'
 import { useGlobalLoading } from '@/composables/use-global-loading'
+import ManufacturingOrdersView from '@/views/ManufacturingOrdersView.vue'
+import ManufacturingOrderView from '@/views/ManufacturingOrderView.vue'
 import BatchesView from '@/views/BatchesView.vue'
 import CreditNotesView from '@/views/CreditNotesView.vue'
 import CreditNoteToSupplierView from '@/views/CreditNoteToSupplierView.vue'
@@ -155,6 +157,17 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: SettingsView,
+    },
+    {
+      path: '/manufacturing-orders',
+      name: 'manufacturingOrders',
+      component: ManufacturingOrdersView,
+    },
+    {
+      path: '/manufacturing-orders/:code',
+      name: 'manufacturingOrderDetail',
+      component: ManufacturingOrderView,
+      props: true,
     },
     {
       path: '/login',

@@ -26,15 +26,10 @@
           <div>
             <span class="text-gray-5 flex items-center gap-1 mb-1">SKLADOVÁ POLOŽKA</span>
             <h1 class="text-primary mb-1">
-              <a
-                @click="
-                  $router.push({
-                    name: 'productDetail',
-                    params: { productCode: item.product.code },
-                  })
-                "
+              <router-link
+                :to="{ name: 'productDetail', params: { productCode: item.product.code } }"
                 class="link"
-                >{{ item.product.name }}</a
+                >{{ item.product.name }}</router-link
               >
             </h1>
             <span class="flex items-center gap-1 mb-3">
@@ -84,31 +79,21 @@
           <q-item>
             <q-item-section>Aktuální lokace</q-item-section>
             <q-item-section avatar>
-              <a
-                @click="
-                  $router.push({
-                    name: 'warehouses',
-                    query: { location: item.location.code },
-                  })
-                "
+              <router-link
+                :to="{ name: 'warehouses', query: { location: item.location.code } }"
                 class="link"
-                >{{ item.location.code }}</a
+                >{{ item.location.code }}</router-link
               >
             </q-item-section>
           </q-item>
           <q-item>
             <q-item-section>Příjemka</q-item-section>
             <q-item-section avatar>
-              <a
+              <router-link
                 v-if="inboundOrderCode"
-                @click="
-                  $router.push({
-                    name: 'warehouseInboundOrderDetail',
-                    params: { code: inboundOrderCode },
-                  })
-                "
+                :to="{ name: 'warehouseInboundOrderDetail', params: { code: inboundOrderCode } }"
                 class="link"
-                >{{ inboundOrderCode }}</a
+                >{{ inboundOrderCode }}</router-link
               >
               <span v-else class="text-gray-5">-</span>
             </q-item-section>
@@ -116,16 +101,11 @@
           <q-item>
             <q-item-section>Výdejka</q-item-section>
             <q-item-section avatar>
-              <a
+              <router-link
                 v-if="outboundOrderCode"
-                @click="
-                  $router.push({
-                    name: 'warehouseOutboundOrderDetail',
-                    params: { code: outboundOrderCode },
-                  })
-                "
+                :to="{ name: 'warehouseOutboundOrderDetail', params: { code: outboundOrderCode } }"
                 class="link"
-                >{{ outboundOrderCode }}</a
+                >{{ outboundOrderCode }}</router-link
               >
               <span v-else class="text-gray-5">-</span>
             </q-item-section>

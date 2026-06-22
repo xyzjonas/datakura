@@ -17,6 +17,7 @@
 <script setup lang="ts">
 import {
   warehouseApiRoutesInboundOrdersGetInboundOrderAudits,
+  warehouseApiRoutesManufacturingOrdersGetManufacturingOrderAudits,
   warehouseApiRoutesOutboundOrdersGetOutboundOrderAudits,
   warehouseApiRoutesProductGetProductAudits,
   warehouseApiRoutesWarehouseGetInboundWarehouseOrderAudits,
@@ -34,6 +35,7 @@ type AuditSource =
   | 'warehouse-inbound-order'
   | 'warehouse-outbound-order'
   | 'product'
+  | 'manufacturing-order'
 
 type Props = {
   source: AuditSource
@@ -91,6 +93,15 @@ const fetchAudits = async () => {
 
     if (props.source === 'outbound-order') {
       const response = await warehouseApiRoutesOutboundOrdersGetOutboundOrderAudits({
+        path: { order_code: props.code },
+      })
+      const payload = onResponse(response)
+      entries.value = payload?.data ?? []
+      return
+    }
+
+    if (props.source === 'manufacturing-order') {
+      const response = await warehouseApiRoutesManufacturingOrdersGetManufacturingOrderAudits({
         path: { order_code: props.code },
       })
       const payload = onResponse(response)

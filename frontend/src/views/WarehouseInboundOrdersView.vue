@@ -193,7 +193,7 @@ const columns: QTableColumn[] = [
   },
   {
     name: 'supplier',
-    field: (order: InboundWarehouseOrderSchema) => order.order.supplier.name,
+    field: (order: InboundWarehouseOrderSchema) => order.order.supplier?.name,
     label: 'Dodavatel',
     align: 'left',
   },

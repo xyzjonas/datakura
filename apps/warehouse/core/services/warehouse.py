@@ -1210,7 +1210,7 @@ class WarehouseService:
         now = timezone.now()
         dt_range = _get_month_range(now)
         count = OutboundWarehouseOrder.objects.filter(created__range=dt_range).count()
-        return f"WO{now.year}{now.month:02d}{count + 1:04d}"
+        return f"V{now.year}{now.month:02d}{count + 1:04d}"
 
     @classmethod
     def create_child_outbound_warehouse_order(
@@ -1386,7 +1386,7 @@ class WarehouseService:
             # Lock the warehouse order to prevent concurrent arrivals
             w_order = (
                 InboundWarehouseOrder.objects.select_for_update()
-                .select_related("order")
+                .select_related("order", "manufacturing_order")
                 .get(code=code)
             )
 
@@ -1406,14 +1406,27 @@ class WarehouseService:
             w_order.pickup_location = location
             w_order.save(update_fields=["pickup_location"])
 
-            for index, purchase_item in enumerate(
-                w_order.order.items.order_by("index", "created")
-            ):
+            if w_order.order:
+                source_items = [
+                    (pi.stock_product, pi.amount, pi.unit_price)
+                    for pi in w_order.order.items.order_by("index", "created")
+                ]
+            elif w_order.manufacturing_order:
+                source_items = [
+                    (mi.out_product, mi.out_amount, Decimal("0"))
+                    for mi in w_order.manufacturing_order.items.order_by(
+                        "index", "created"
+                    )
+                ]
+            else:
+                source_items = []
+
+            for index, (stock_product, amount, unit_price) in enumerate(source_items):
                 order_item = InboundWarehouseOrderItem.objects.create(
                     warehouse_order=w_order,
-                    stock_product=purchase_item.stock_product,
-                    amount=purchase_item.amount,
-                    unit_price_at_receipt=purchase_item.unit_price,
+                    stock_product=stock_product,
+                    amount=amount,
+                    unit_price_at_receipt=unit_price,
                     tracking_level=TrackingLevel.FUNGIBLE,
                     index=index,
                 )
@@ -1889,6 +1902,11 @@ class WarehouseService:
 
         stock_product = order_item.stock_product
         order = warehouse_order.order
+        if not order:
+            raise WarehouseGenericError(
+                f"Warehouse order '{warehouse_order.code}' has no inbound order attached,"
+                "manufacturing warehouse orders cannot be moved to a credit note."
+            )
 
         with transaction.atomic():
             if amount > order_item.amount:
@@ -2242,17 +2260,18 @@ class WarehouseService:
                     InboundWarehouseOrderState.COMPLETED,
                     context=context,
                 )
-                if (
-                    warehouse_order.order.warehouse_orders.exclude(
-                        state=InboundWarehouseOrderState.COMPLETED
-                    ).count()
-                    == 0
-                ):
-                    inbound_orders_service.transition_order(
-                        warehouse_order.order.code,
-                        context=context,
-                        target_state=InboundOrderState.COMPLETED,
-                    )
+                if warehouse_order.order:
+                    if (
+                        warehouse_order.order.warehouse_orders.exclude(
+                            state=InboundWarehouseOrderState.COMPLETED
+                        ).count()
+                        == 0
+                    ):
+                        inbound_orders_service.transition_order(
+                            warehouse_order.order.code,
+                            context=context,
+                            target_state=InboundOrderState.COMPLETED,
+                        )
             else:
                 cls.transition_order(
                     warehouse_order_code,

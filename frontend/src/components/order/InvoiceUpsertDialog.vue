@@ -124,12 +124,12 @@
 </template>
 
 <script setup lang="ts">
-import type { InvoiceStoreSchema, CustomerSchema, MediaFileSchema } from '@/client'
-import type { InvoiceUpsertSubmitPayload } from './invoice-upload'
+import type { CustomerBaseSchema, InvoiceStoreSchema, MediaFileSchema } from '@/client'
+import { rules } from '@/utils/rules'
 import { ref, watch } from 'vue'
 import CustomerSearchSelect from '../selects/CustomerSearchSelect.vue'
 import InvoicePaymentMethodSelect from '../selects/InvoicePaymentMethodSelect.vue'
-import { rules } from '@/utils/rules'
+import type { InvoiceUpsertSubmitPayload } from './invoice-upload'
 
 const showDialog = defineModel<boolean>('show', { default: false })
 const form = defineModel<InvoiceStoreSchema>({ required: true })
@@ -139,8 +139,8 @@ const props = withDefaults(
     title?: string
     submitLabel?: string
     loading?: boolean
-    defaultCustomer?: CustomerSchema | null
-    defaultSupplier?: CustomerSchema | null
+    defaultCustomer?: CustomerBaseSchema | null
+    defaultSupplier?: CustomerBaseSchema | null
     lockCustomer?: boolean
     requireInvoiceFile?: boolean
     existingDocument?: MediaFileSchema | null
@@ -160,14 +160,14 @@ const emit = defineEmits<{
   (e: 'submit', payload: InvoiceUpsertSubmitPayload): void
 }>()
 
-const customer = ref<CustomerSchema | undefined>()
-const supplier = ref<CustomerSchema | undefined>()
+const customer = ref<CustomerBaseSchema | undefined>()
+const supplier = ref<CustomerBaseSchema | undefined>()
 const invoiceFile = ref<File | null>(null)
 const currencies = ['CZK', 'EUR', 'PLN']
 
 const invoiceFileRule = (val: File | null) => !!val || 'Nahrajte PDF faktury.'
 
-const syncPaymentMethodFromCustomer = (selectedCustomer?: CustomerSchema) => {
+const syncPaymentMethodFromCustomer = (selectedCustomer?: CustomerBaseSchema) => {
   if (form.value.payment_method_name) {
     return
   }

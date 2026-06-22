@@ -42,15 +42,10 @@
       </template>
       <template #body-cell-code="props">
         <q-td>
-          <a
-            @click="
-              $router.push({
-                name: detailRouteName,
-                params: { code: props.row.code },
-              })
-            "
+          <router-link
+            :to="{ name: detailRouteName, params: { code: props.row.code } }"
             class="link"
-            >{{ props.row.code }}</a
+            >{{ props.row.code }}</router-link
           >
         </q-td>
       </template>
@@ -61,23 +56,21 @@
       </template>
       <template #body-cell-warehouseOrder="props">
         <q-td>
-          <a
+          <router-link
             v-if="
               props.row.warehouse_orders.filter(
                 (order: InboundOrderSchema) => order.state !== 'completed',
               ).length > 0
             "
+            :to="{
+              name: warehouseDetailRouteName,
+              params: {
+                code: props.row.warehouse_orders.filter(
+                  (order: { state: string; code: string }) => order.state !== 'completed',
+                )[0].code,
+              },
+            }"
             class="link"
-            @click="
-              $router.push({
-                name: warehouseDetailRouteName,
-                params: {
-                  code: props.row.warehouse_orders.filter(
-                    (order: { state: string; code: string }) => order.state !== 'completed',
-                  )[0].code,
-                },
-              })
-            "
             >{{
               props.row.warehouse_orders.filter(
                 (order: { state: string; code: string }) => order.state !== 'completed',
@@ -91,7 +84,7 @@
                 )[0].state
               "
               class="ml-1"
-          /></a>
+          /></router-link>
         </q-td>
       </template>
       <template #body-cell-partner="props">

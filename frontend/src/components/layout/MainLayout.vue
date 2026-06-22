@@ -102,6 +102,17 @@
                 },
               ]"
             />
+            <q-item-label header class="text-gray-4">Výroba</q-item-label>
+            <MenuList
+              :items="[
+                {
+                  label: 'Výrobní požadavky',
+                  icon: 'sym_o_manufacturing',
+                  routeName: 'manufacturingOrders',
+                  routeMatch: 'manufacturingOrders,manufacturingOrderDetail',
+                },
+              ]"
+            />
             <q-item-label header class="text-gray-4">Zákazník</q-item-label>
             <MenuList
               :items="[

@@ -13,9 +13,13 @@
         <div class="text-2xs font-medium uppercase tracking-[0.12em] text-gray-4">
           Vlastní firma
         </div>
-        <div v-if="selfCustomer" class="mt-1 truncate text-base font-semibold text-white">
+        <router-link
+          :to="{ name: 'customerDetail', params: { customerCode: selfCustomer.code } }"
+          v-if="selfCustomer"
+          class="mt-1 link text-lg text-light"
+        >
           {{ selfCustomer.name }}
-        </div>
+        </router-link>
         <div v-else class="mt-1 truncate text-base font-semibold text-white">Nenastaveno</div>
       </div>
     </div>

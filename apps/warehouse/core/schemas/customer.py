@@ -8,6 +8,7 @@ from pydantic import ConfigDict, Field
 
 from apps.warehouse.core.schemas.base import BaseResponse
 from .base import BaseSchema, PaginatedResponse
+from .product import DiscountGroupSchema
 
 
 class CustomerGroupSchema(BaseSchema):
@@ -15,15 +16,6 @@ class CustomerGroupSchema(BaseSchema):
 
     code: str
     name: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class CustomerDiscountGroupSchema(BaseSchema):
-    code: str
-    name: str
-    discount_percent: float
-    is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -70,13 +62,21 @@ class CustomerDefaultPaymentMethodSchema(BaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
-class CustomerSchema(BaseSchema):
+class CustomerBaseSchema(BaseSchema):
+    name: str
+    code: str
+    customer_type: str
+    group: CustomerGroupSchema
+    discount_group: DiscountGroupSchema | None = None
+    default_payment_method: CustomerDefaultPaymentMethodSchema | None = None
+    invoice_due_days: int
+
+
+class CustomerSchema(CustomerBaseSchema):
     """Schema for Customer output"""
 
-    name: str
     email: Optional[str] = None
     phone: Optional[str] = None
-    code: str
 
     # Address
     street: Optional[str] = None
@@ -89,7 +89,6 @@ class CustomerSchema(BaseSchema):
     identification: Optional[str] = None
 
     # Business Settings
-    customer_type: str
     price_type: str
     invoice_due_days: int
     block_after_due_days: int
@@ -106,9 +105,6 @@ class CustomerSchema(BaseSchema):
     # Relationships
     owner: Optional[str] = None
     responsible_user: Optional[str] = None
-    group: CustomerGroupSchema
-    discount_group: CustomerDiscountGroupSchema | None = None
-    default_payment_method: CustomerDefaultPaymentMethodSchema | None = None
     contacts: list[ContactPersonSchema] = Field(default_factory=list)
 
     # Additional Fields

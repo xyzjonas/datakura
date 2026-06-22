@@ -1,12 +1,9 @@
 from apps.warehouse.core.schemas.base import BaseResponse, PaginatedResponse
-from apps.warehouse.core.schemas.base_orders import (
-    InboundOrderBaseSchema,
-    CreditNoteBaseSchema,
-)
+from apps.warehouse.core.schemas.base_orders import CreditNoteBaseSchema, BaseOrder
 
 
 class CreditNoteSupplierSchema(CreditNoteBaseSchema):
-    order: InboundOrderBaseSchema
+    order: BaseOrder
 
 
 class GetCreditNoteToSupplierResponse(BaseResponse):

@@ -55,13 +55,13 @@
 
 <script setup lang="ts">
 import type {
-  CustomerSchema,
+  CustomerBaseSchema,
   OutboundOrderCreateOrUpdateSchema,
   OutboundOrderSchema,
 } from '@/client'
 import { ref, watch } from 'vue'
-import CurrencyDropdown from './CurrencyDropdown.vue'
 import CustomerSearchSelect from '../selects/CustomerSearchSelect.vue'
+import CurrencyDropdown from './CurrencyDropdown.vue'
 
 type Props = {
   title?: string
@@ -81,7 +81,7 @@ export interface OutboundOrderDialogExpose {
   reset: () => void
 }
 
-const customer = ref<CustomerSchema>()
+const customer = ref<CustomerBaseSchema>()
 
 const propToRef = (order?: OutboundOrderSchema) => {
   if (!order) {
@@ -114,7 +114,7 @@ const item = ref<OutboundOrderCreateOrUpdateSchema>(
   },
 )
 
-watch(customer, (newValue: CustomerSchema | undefined) => {
+watch(customer, (newValue: CustomerBaseSchema | undefined) => {
   if (newValue) {
     item.value.customer_code = newValue.code
     item.value.customer_name = newValue.name

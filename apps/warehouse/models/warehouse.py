@@ -14,6 +14,7 @@ from django.utils.functional import cached_property
 from .barcode import BarcodeMixin
 from .base import BaseModel
 from .currency import CURRENCY_CHOICES
+from .manufacturing import ManufacturingOrder, ManufacturingOrderItem
 from .orders import InboundOrder, OutboundOrder
 from .packaging import PackageType
 from .product import StockProduct, UnitOfMeasure
@@ -328,6 +329,13 @@ class OutboundWarehouseOrder(BaseModel):
         null=True,
         blank=True,
     )
+    manufacturing_order = models.ForeignKey(
+        ManufacturingOrder,
+        on_delete=models.PROTECT,
+        related_name="outbound_warehouse_orders",
+        null=True,
+        blank=True,
+    )
     items: QuerySet["WarehouseItem"]
     order_items: QuerySet["OutboundWarehouseOrderItem"]
     derived_orders: QuerySet["OutboundWarehouseOrder"]
@@ -347,6 +355,15 @@ class OutboundWarehouseOrder(BaseModel):
 
     class Meta:
         ordering = ["-created"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(order__isnull=False, manufacturing_order__isnull=True)
+                    | models.Q(order__isnull=True, manufacturing_order__isnull=False)
+                ),
+                name="outbound_warehouse_order_one_parent",
+            )
+        ]
 
     def __str__(self) -> str:
         return self.code
@@ -364,6 +381,15 @@ class OutboundWarehouseOrderItem(BaseModel):
         "warehouse.OutboundOrderItem",
         on_delete=models.CASCADE,
         related_name="warehouse_order_items",
+        null=True,
+        blank=True,
+    )
+    source_manufacturing_item = models.ForeignKey(
+        ManufacturingOrderItem,
+        on_delete=models.CASCADE,
+        related_name="warehouse_order_items",
+        null=True,
+        blank=True,
     )
     stock_product = models.ForeignKey(
         StockProduct,
@@ -414,10 +440,21 @@ class InboundWarehouseOrder(BaseModel):
     """Warehouse work item - supply - move in the warehouse"""
 
     code = models.CharField(max_length=50, unique=True, null=False)
+    order_id: int
     order = models.ForeignKey(
         InboundOrder,
         on_delete=models.PROTECT,
         related_name="warehouse_orders",
+        null=True,
+        blank=True,
+    )
+    manufacturing_order_id: int
+    manufacturing_order = models.ForeignKey(
+        ManufacturingOrder,
+        on_delete=models.PROTECT,
+        related_name="inbound_warehouse_orders",
+        null=True,
+        blank=True,
     )
     items: QuerySet[WarehouseItem]
     order_items: QuerySet["InboundWarehouseOrderItem"]
@@ -446,6 +483,15 @@ class InboundWarehouseOrder(BaseModel):
 
     class Meta:
         ordering = ["-created"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(order__isnull=False, manufacturing_order__isnull=True)
+                    | models.Q(order__isnull=True, manufacturing_order__isnull=False)
+                ),
+                name="inbound_warehouse_order_one_parent",
+            )
+        ]
 
     def __str__(self) -> str:
         return self.code

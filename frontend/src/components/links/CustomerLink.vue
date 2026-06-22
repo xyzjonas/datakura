@@ -1,21 +1,16 @@
 <template>
-  <a class="link w-30 truncate block" @click="onClick">
-    {{ customer?.name ?? 'Neznámý zákazník' }}
-  </a>
+  <router-link
+    class="link w-30 truncate block"
+    :to="{ name: 'customerDetail', params: { customerCode: customer.code } }"
+  >
+    {{ customer.name }}
+  </router-link>
 </template>
 
 <script setup lang="ts">
 import type { CustomerSchema } from '@/client'
-import { useAppRouter } from '@/composables/use-app-router'
 
-const props = defineProps<{ customer?: Pick<CustomerSchema, 'code' | 'name'> }>()
-
-const { goToCustomer } = useAppRouter()
-const onClick = () => {
-  if (props.customer?.code) {
-    goToCustomer(props.customer.code)
-  }
-}
+defineProps<{ customer: Pick<CustomerSchema, 'code' | 'name'> }>()
 </script>
 
 <style lang="scss" scoped></style>

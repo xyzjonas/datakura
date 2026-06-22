@@ -20,6 +20,7 @@ from apps.warehouse.core.schemas.group import (
 from apps.warehouse.core.schemas.type import (
     GetProductTypesResponse,
 )
+from apps.warehouse.core.schemas.manufacturing import ManufacturingOrderSchema
 from apps.warehouse.core.schemas.orders import GetInboundOrdersResponse
 from apps.warehouse.core.schemas.orders import GetOutboundOrdersResponse
 from apps.warehouse.core.schemas.invoice import (
@@ -57,7 +58,9 @@ from apps.warehouse.core.transformation import (
     barcode_orm_to_schema,
 )
 from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
+from apps.warehouse.core.transformation import manufacturing_order_orm_to_schema
 from apps.warehouse.models.customer import Customer, CustomerGroup
+from apps.warehouse.models.manufacturing import ManufacturingOrder
 from apps.warehouse.models.orders import (
     InboundOrder,
     OutboundOrder,
@@ -581,6 +584,41 @@ class BatchesPagination(PaginationBase):
                 )
                 for batch in items
             ],
+            "count": count,
+            "next": pagination.page + 1
+            if offset + pagination.page_size < count
+            else None,
+            "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
+
+
+class ManufacturingOrdersPagination(PaginationBase):
+    items_attribute: str = "data"
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 20
+
+    class Output(Schema):
+        data: list[ManufacturingOrderSchema]
+        count: int
+        next: int | None
+        previous: int | None
+        success: bool = True
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[ManufacturingOrder],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        offset = (pagination.page - 1) * pagination.page_size
+        items = queryset[offset : offset + pagination.page_size]
+        count = queryset.count()
+
+        return {
+            "data": [manufacturing_order_orm_to_schema(order) for order in items],
             "count": count,
             "next": pagination.page + 1
             if offset + pagination.page_size < count

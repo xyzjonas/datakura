@@ -9,11 +9,11 @@
 </template>
 
 <script setup lang="ts">
-import type { InboundOrderBaseSchema } from '@/client'
+import type { InboundOrderSchema } from '@/client'
 import { useAppRouter } from '@/composables/use-app-router'
 import InboundOrderStateBadge from './InboundOrderStateBadge.vue'
 
-defineProps<{ order: InboundOrderBaseSchema }>()
+defineProps<{ order: Pick<InboundOrderSchema, 'code' | 'state'> }>()
 
 const { goToOrderIn } = useAppRouter()
 </script>

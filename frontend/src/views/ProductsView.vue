@@ -58,15 +58,10 @@
       </template>
       <template #body-cell-name="props">
         <q-td>
-          <a
-            @click="
-              $router.push({
-                name: 'productDetail',
-                params: { productCode: props.row.code },
-              })
-            "
+          <router-link
+            :to="{ name: 'productDetail', params: { productCode: props.row.code } }"
             class="link"
-            >{{ props.row.name }}</a
+            >{{ props.row.name }}</router-link
           >
         </q-td>
       </template>

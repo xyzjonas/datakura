@@ -259,3 +259,33 @@ class AuditMessages:
             AuditLanguage.CS: "Kontaktní osoba byla smazána",
         }
     )
+    NEW_MANUFACTURING_ORDER_CREATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "New manufacturing order created",
+            AuditLanguage.CS: "Nová výrobní zakázka byla vytvořena",
+        }
+    )
+    MANUFACTURING_ORDER_UPDATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Manufacturing order updated",
+            AuditLanguage.CS: "Výrobní zakázka byla aktualizována",
+        }
+    )
+    MANUFACTURING_ORDER_STATE_CHANGED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Manufacturing order state changed from '{old_state}' to '{new_state}'",
+            AuditLanguage.CS: "Stav výrobní zakázky se změnil z '{old_state}' na '{new_state}'",
+        }
+    )
+    MANUFACTURING_OUTBOUND_ORDER_CREATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Outbound warehouse order '{code}' created for manufacturing",
+            AuditLanguage.CS: "Výdejka '{code}' byla vytvořena pro výrobu",
+        }
+    )
+    MANUFACTURING_INBOUND_ORDER_CREATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Inbound warehouse order '{code}' created for manufacturing return",
+            AuditLanguage.CS: "Příjemka '{code}' byla vytvořena pro návrat z výroby",
+        }
+    )

@@ -22,7 +22,9 @@ routes = Router(tags=["customer-groups"])
 @routes.get("", response={200: list[CustomerGroupSchema]})
 @paginate(CustomerGroupsPagination)
 def get_customer_groups(request: HttpRequest, search_term: str | None = None):
-    qs = cast(QuerySet[CustomerGroup], CustomerGroup.objects.all())
+    qs = cast(
+        QuerySet[CustomerGroup], CustomerGroup.objects.exclude(name="default").all()
+    )
     if search_term:
         qs = qs.filter(name__icontains=search_term)
     return qs.order_by("name", "code")

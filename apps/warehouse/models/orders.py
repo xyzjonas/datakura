@@ -33,6 +33,11 @@ class InboundOrderState(models.IntegerChoices):
     @classmethod
     def get_label(cls, value):
         """Return the API string for a given state value."""
+        if isinstance(value, str):
+            try:
+                value = int(value)
+            except ValueError, TypeError:
+                pass
         member = value if isinstance(value, cls) else cls(value)
         api_values = {
             cls.DRAFT: "draft",
@@ -168,8 +173,20 @@ class InboundOrder(BaseModel):
         on_delete=models.SET_NULL,
         related_name="inbound_orders",
     )
-
-    supplier = models.ForeignKey(Customer, null=False, on_delete=models.PROTECT)
+    customer = models.ForeignKey(
+        Customer,
+        null=False,
+        on_delete=models.SET_DEFAULT,
+        related_name="inbound_orders_as_customer",
+        default=Customer.get_ghost_customer,
+    )
+    supplier = models.ForeignKey(
+        Customer,
+        null=False,
+        on_delete=models.SET_DEFAULT,
+        related_name="inbound_orders_as_supplier",
+        default=Customer.get_ghost_customer,
+    )
     items: QuerySet["InboundOrderItem"]
 
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
@@ -251,7 +268,20 @@ class OutboundOrder(BaseModel):
         related_name="outbound_orders",
     )
 
-    customer = models.ForeignKey(Customer, null=False, on_delete=models.PROTECT)
+    supplier = models.ForeignKey(
+        Customer,
+        null=False,
+        on_delete=models.SET_DEFAULT,
+        related_name="outbound_orders_as_customer",
+        default=Customer.get_ghost_customer,
+    )
+    customer = models.ForeignKey(
+        Customer,
+        null=False,
+        on_delete=models.SET_DEFAULT,
+        related_name="outbound_orders_as_supplier",
+        default=Customer.get_ghost_customer,
+    )
     items: QuerySet["OutboundOrderItem"]
 
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")

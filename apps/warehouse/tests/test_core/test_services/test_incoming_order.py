@@ -212,7 +212,6 @@ def test_create_empty_incoming(db, context):
     assert incoming_order.external_code == "12345"
     assert incoming_order.supplier.code == customer.code
     assert incoming_order.supplier.name == customer.name
-    assert incoming_order.supplier.identification == customer.identification
     assert incoming_order.items == []
 
 
@@ -238,7 +237,6 @@ def test_edit_incoming(db, context):
     assert incoming_order.external_code == "12345"
     assert incoming_order.supplier.code == new_customer.code
     assert incoming_order.supplier.name == new_customer.name
-    assert incoming_order.supplier.identification == new_customer.identification
     assert len(incoming_order.items) == 10
 
 

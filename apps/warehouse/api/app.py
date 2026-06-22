@@ -17,6 +17,7 @@ from .routes.credit_notes import routes as credit_notes_routes
 from .routes.invoices import routes as invoice_routes
 from .routes.analytics import routes as analytics_routes
 from .routes.invoice_payment_methods import routes as invoice_payment_method_routes
+from .routes.manufacturing_orders import routes as manufacturing_orders_routes
 from .routes.printers import routes as printer_routes
 
 
@@ -41,6 +42,7 @@ api.add_router(router=credit_notes_routes, prefix="credit-notes")
 api.add_router(router=analytics_routes, prefix="analytics")
 api.add_router(router=invoice_routes, prefix="invoices")
 api.add_router(router=invoice_payment_method_routes, prefix="invoice-payment-methods")
+api.add_router(router=manufacturing_orders_routes, prefix="manufacturing-orders")
 api.add_router(router=printer_routes, prefix="printers")
 
 

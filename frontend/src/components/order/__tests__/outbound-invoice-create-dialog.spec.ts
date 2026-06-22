@@ -2,10 +2,11 @@ import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-v
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import OutboundInvoiceCreateDialog from '../OutboundInvoiceCreateDialog.vue'
+import type { CustomerBaseSchema, CustomerSchema, OutboundOrderSchema } from '@/client/types.gen.ts'
 
 installQuasarPlugin()
 
-const customer = {
+const customer: CustomerSchema = {
   created: '2026-04-01T10:00:00Z',
   changed: '2026-04-01T10:00:00Z',
   code: 'CUS-001',
@@ -36,15 +37,29 @@ const customer = {
     name: 'Default',
   },
   discount_group: null,
-  default_payment_method: {
+  default_payment_method: null,
+}
+
+const baseCustomer: CustomerBaseSchema = {
+  created: '2026-04-01T10:00:00Z',
+  changed: '2026-04-01T10:00:00Z',
+  code: 'SUP-001',
+  name: 'Supplier',
+  customer_type: 'FIRMA',
+  invoice_due_days: 21,
+  group: {
     created: '2026-04-01T10:00:00Z',
     changed: '2026-04-01T10:00:00Z',
-    id: 1,
-    name: 'Bank transfer',
+    code: 'GRP-001',
+    name: 'Default',
   },
-  contacts: [],
-  note: null,
-  register_information: null,
+  discount_group: null,
+  default_payment_method: {
+    name: 'Bank transfer',
+    id: 1,
+    changed: '2026-04-01T10:00:00Z',
+    created: '2026-04-01T10:00:00Z',
+  },
 }
 
 const selfSupplier = {
@@ -54,7 +69,7 @@ const selfSupplier = {
   is_self: true,
 }
 
-const selectedOrders = [
+const selectedOrders: OutboundOrderSchema[] = [
   {
     created: '2026-04-01T10:00:00Z',
     changed: '2026-04-01T10:00:00Z',
@@ -62,7 +77,9 @@ const selectedOrders = [
     external_code: null,
     description: null,
     note: null,
-    customer,
+    type: 'Outbound',
+    customer: baseCustomer,
+    supplier: baseCustomer,
     currency: 'CZK',
     state: 'submitted',
     warehouse_order_codes: [],

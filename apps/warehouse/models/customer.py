@@ -123,6 +123,17 @@ class Customer(BaseModel):
         parts = [self.street, f"{self.postal_code} {self.city}".strip(), self.state]
         return ", ".join(filter(None, parts))
 
+    @staticmethod
+    def get_ghost_customer():
+        grp, _ = CustomerGroup.objects.get_or_create(name="default")
+        return Customer.objects.get_or_create(
+            name="N/A",
+            code="ghost-customer",
+            defaults={
+                "customer_group_id": grp.id,
+            },
+        )[0].id
+
 
 class ContactPerson(BaseModel):
     """Contact person associated with customer"""

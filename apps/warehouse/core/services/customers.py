@@ -21,13 +21,17 @@ from apps.warehouse.models.product import PriceGroup
 class CustomerService:
     @staticmethod
     def _get_customer_queryset() -> QuerySet[Customer]:
-        return Customer.objects.select_related(
-            "customer_group",
-            "discount_group",
-            "responsible_user",
-            "owner",
-            "default_payment_method",
-        ).prefetch_related("contacts")
+        return (
+            Customer.objects.select_related(
+                "customer_group",
+                "discount_group",
+                "responsible_user",
+                "owner",
+                "default_payment_method",
+            )
+            .prefetch_related("contacts")
+            .exclude(code="ghost-customer")
+        )
 
     @staticmethod
     def list_customers(
