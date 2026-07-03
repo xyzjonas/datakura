@@ -105,7 +105,7 @@
           <q-item>
             <q-item-section>Váha</q-item-section>
             <q-item-section avatar>
-              <span v-if="product.unit_weight"
+              <span v-if="product.unit_weight !== null && product.unit_weight !== undefined"
                 >{{ product.unit_weight }}&hairsp;g / {{ product.unit }}</span
               ><span v-else>-</span>
             </q-item-section>

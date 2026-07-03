@@ -9,6 +9,7 @@
         <q-form class="flex flex-col gap-3" @submit="submit">
           <div class="text-sm text-muted uppercase font-bold">Vstup (co jde na pracoviště)</div>
           <ProductSearchSelect v-model="inProduct" />
+          <ProductAvailability v-if="inProduct" :product-code="inProduct.code" />
           <q-input
             v-model.number="item.in_amount"
             outlined
@@ -26,6 +27,7 @@
 
           <div class="text-sm text-muted uppercase font-bold">Výstup (co se vrátí z pracoviště)</div>
           <ProductSearchSelect v-model="outProduct" />
+          <ProductAvailability v-if="outProduct" :product-code="outProduct.code" />
           <q-input
             v-model.number="item.out_amount"
             outlined
@@ -48,6 +50,7 @@
 
 <script setup lang="ts">
 import type { ManufacturingOrderItemCreateSchema, ManufacturingOrderItemSchema, ProductSchema } from '@/client'
+import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductSearchSelect from '@/components/selects/ProductSearchSelect.vue'
 import { rules } from '@/utils/rules'
 import { ref, watch } from 'vue'

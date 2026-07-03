@@ -57,7 +57,11 @@
             >{{ outboundOrder.code }}</router-link
           >
         </span>
-        <OutboundOrderStateBadge :state="outboundOrder.state" />
+        <OutboundOrderStateBadge
+          v-if="outboundOrder.type === 'Outbound'"
+          :state="outboundOrder.state"
+        />
+        <ManufacturingOrderStateBadge v-else :state="outboundOrder.state" />
       </div>
       <span v-else class="text-gray-5">Žádná objednávka</span>
     </template>

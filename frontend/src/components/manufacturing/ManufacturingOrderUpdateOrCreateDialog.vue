@@ -23,16 +23,16 @@
           />
           <CustomerSearchSelect
             v-model="supplier"
-            label="Dodavatel / výrobce"
+            label="Dodavatel"
             hint="Zákazník zajišťující výrobu (volitelné)"
             :required="false"
           />
           <q-toggle v-model="item.is_external" label="Externí výroba" />
           <CustomerSearchSelect
-            v-if="item.is_external"
+            v-show="item.is_external"
             v-model="customer"
-            label="Pracoviště (zákazník)"
-            hint="Výrobní pracoviště"
+            label="Zákazník"
+            hint="Zákazník objednávající výrobu (volitelné)"
             :required="false"
           />
           <q-btn
@@ -54,8 +54,9 @@ import type {
   ManufacturingOrderCreateOrUpdateSchema,
   ManufacturingOrderSchema,
 } from '@/client'
+import { warehouseApiRoutesCustomerGetCustomers } from '@/client'
 import CustomerSearchSelect from '@/components/selects/CustomerSearchSelect.vue'
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 
 type Props = {
   title?: string
@@ -71,6 +72,25 @@ const props = withDefaults(defineProps<Props>(), {
 
 const customer = ref<CustomerBaseSchema | undefined>(props.orderIn?.customer ?? undefined)
 const supplier = ref<CustomerBaseSchema | undefined>(props.orderIn?.supplier ?? undefined)
+
+const selfCustomer = ref<CustomerBaseSchema | undefined>()
+
+onMounted(async () => {
+  const result = await warehouseApiRoutesCustomerGetCustomers({
+    query: { is_self: true, page: 1, page_size: 1 },
+  })
+  const self = result.data?.data[0]
+  if (!self) return
+  selfCustomer.value = self
+  if (!props.orderIn) {
+    supplier.value = self
+    customer.value = self
+    item.value.supplier_code = self.code
+    item.value.supplier_name = self.name
+    item.value.customer_code = self.code
+    item.value.customer_name = self.name
+  }
+})
 
 const propToRef = (order?: ManufacturingOrderSchema): ManufacturingOrderCreateOrUpdateSchema => {
   if (!order) {
@@ -117,16 +137,6 @@ watch(supplier, (val) => {
   }
 })
 
-watch(
-  () => item.value.is_external,
-  (val) => {
-    if (!val) {
-      item.value.customer_code = null
-      item.value.customer_name = null
-      customer.value = undefined
-    }
-  },
-)
 
 const emit = defineEmits<{
   (e: 'createOrder', item: ManufacturingOrderCreateOrUpdateSchema): void
@@ -141,13 +151,13 @@ const reset = () => {
     description: '',
     note: '',
     is_external: false,
-    customer_code: null,
-    customer_name: null,
-    supplier_code: null,
-    supplier_name: null,
+    customer_code: selfCustomer.value?.code ?? null,
+    customer_name: selfCustomer.value?.name ?? null,
+    supplier_code: selfCustomer.value?.code ?? null,
+    supplier_name: selfCustomer.value?.name ?? null,
   }
-  customer.value = undefined
-  supplier.value = undefined
+  customer.value = selfCustomer.value
+  supplier.value = selfCustomer.value
   showDialog.value = false
 }
 

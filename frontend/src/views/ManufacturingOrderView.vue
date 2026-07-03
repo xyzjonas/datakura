@@ -50,14 +50,6 @@
           :disable="(order.items?.length ?? 0) === 0"
         />
         <q-btn
-          v-if="order.state === 'confirmed'"
-          unelevated
-          color="orange-8"
-          icon="sym_o_manufacturing"
-          label="Spustit výrobu"
-          @click="startDialog = true"
-        />
-        <q-btn
           v-if="order.state === 'in_progress'"
           unelevated
           color="positive"

@@ -1,7 +1,8 @@
 type Anything = string | number | undefined | null
 
 export const rules = {
-  notEmpty: (val: Anything) => !!val || 'Pole nesmí být prazdné',
+  notEmpty: (val: Anything) =>
+    (val !== '' && val !== null && val !== undefined) || 'Pole nesmí být prazdné',
   isNumber: (val: number) => !isNaN(val) || 'Pole musí být číslo',
   atLeastZero: (val: number) => val >= 0 || 'Pole musí být číslo větší nebo rovno 0',
   atLeastOne: (val: number) => val > 0 || 'Pole musí být číslo větší než 0',

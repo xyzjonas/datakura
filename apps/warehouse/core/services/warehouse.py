@@ -36,6 +36,7 @@ from apps.warehouse.core.schemas.warehouse import (
     MoveItemRequest,
 )
 from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.services.manufacturing import manufacturing_orders_service
 from apps.warehouse.core.services.orders import inbound_orders_service
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
 from apps.warehouse.core.transformation import (
@@ -970,6 +971,14 @@ class WarehouseService:
                 context,
             )
 
+        if (
+            old_state == OutboundWarehouseOrderState.PENDING
+            and warehouse_order.manufacturing_order
+        ):
+            manufacturing_orders_service.transition_order(
+                warehouse_order.manufacturing_order.code, context=context, action="next"
+            )
+
     @classmethod
     def cancel_outbound_warehouse_order(
         cls,
@@ -1412,12 +1421,21 @@ class WarehouseService:
                     for pi in w_order.order.items.order_by("index", "created")
                 ]
             elif w_order.manufacturing_order:
-                source_items = [
-                    (mi.out_product, mi.out_amount, Decimal("0"))
-                    for mi in w_order.manufacturing_order.items.order_by(
-                        "index", "created"
+                mfg_order = w_order.manufacturing_order
+                source_items = []
+                for mi in mfg_order.items.order_by("index", "created"):
+                    total_frozen_cost = OutboundWarehouseOrderItem.objects.filter(
+                        warehouse_order__manufacturing_order=mfg_order,
+                        source_manufacturing_item=mi,
+                    ).aggregate(total=Sum("price_at_shipment")).get("total") or Decimal(
+                        "0"
                     )
-                ]
+                    unit_price = (
+                        total_frozen_cost / mi.out_amount
+                        if mi.out_amount > 0
+                        else Decimal("0")
+                    )
+                    source_items.append((mi.out_product, mi.out_amount, unit_price))
             else:
                 source_items = []
 
@@ -2093,6 +2111,9 @@ class WarehouseService:
             )
 
         # These service calls stay outside the atomic block as they're separate operations
+        # Manufacturing-linked inbound orders have no InboundOrder to transition.
+        if w_order.manufacturing_order_id:
+            return
         inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
         inbound_orders_service.transition_order(
             inbound_order.code,

@@ -310,7 +310,7 @@ class ManufacturingOrdersService:
         warehouse_order = OutboundWarehouseOrder.objects.create(
             code=wo_code,
             manufacturing_order=order,
-            state=OutboundWarehouseOrderState.DRAFT,
+            state=OutboundWarehouseOrderState.PENDING,
         )
 
         for index, item in enumerate(order.items.order_by("index", "created")):
@@ -321,6 +321,14 @@ class ManufacturingOrdersService:
                 amount=item.in_amount,
                 index=index,
             )
+        audit_service.add_entry(
+            warehouse_order,
+            action=AuditAction.CREATE,
+            user=context.user_id,
+            reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
+                purchase_order_code=order.code
+            ),
+        )
 
         audit_service.add_entry(
             order,
