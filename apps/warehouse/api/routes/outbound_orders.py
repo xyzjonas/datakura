@@ -128,6 +128,16 @@ def update_item_in_outbound_order(
     return CreateOutboundOrderItemResponse(data=updated_item)
 
 
+@routes.post("/{order_code}/duplicate", response={200: GetOutboundOrderResponse})
+def duplicate_outbound_order(request: HttpRequest, order_code: str):
+    return GetOutboundOrderResponse(
+        data=outbound_orders_service.duplicate_outbound_order(
+            order_code,
+            context=RequestContext.from_django_request(request),
+        )
+    )
+
+
 @routes.post("/{order_code}/transition", response={200: GetOutboundOrderResponse})
 def transition_outbound_order(
     request: HttpRequest, order_code: str, body: OutboundOrderTransitionSchema

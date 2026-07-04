@@ -155,6 +155,16 @@ def update_item_in_inbound_order(
     return CreateInboundOrderItemResponse(data=updated_item)
 
 
+@routes.post("/{order_code}/duplicate", response={200: GetInboundOrderResponse})
+def duplicate_inbound_order(request: HttpRequest, order_code: str):
+    return GetInboundOrderResponse(
+        data=inbound_orders_service.duplicate_inbound_order(
+            order_code,
+            context=RequestContext.from_django_request(request),
+        )
+    )
+
+
 @routes.post("/{order_code}/transition", response={200: GetInboundOrderResponse})
 def transition_inbound_order(
     request: HttpRequest, order_code: str, body: InboundOrderTransitionSchema

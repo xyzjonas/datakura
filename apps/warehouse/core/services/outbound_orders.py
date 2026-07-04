@@ -913,6 +913,53 @@ class OutboundOrdersService:
         return OutboundOrdersService._with_pricing_details(schema, order)
 
     @classmethod
+    def duplicate_outbound_order(
+        cls, source_code: str, context: RequestContext
+    ) -> OutboundOrderSchema:
+        source = OutboundOrder.objects.prefetch_related(
+            "items__stock_product",
+            "items__desired_package_type",
+            "items__desired_batch",
+        ).get(code=source_code)
+        new_code = cls.generate_next_calculation_code()
+
+        with transaction.atomic():
+            new_order = OutboundOrder.objects.create(
+                code=new_code,
+                calculation_code=new_code,
+                external_code=source.external_code,
+                description=source.description,
+                note=source.note,
+                currency=source.currency,
+                customer=source.customer,
+                supplier=source.supplier,
+                requested_delivery_date=source.requested_delivery_date,
+                state=OutboundOrderState.DRAFT,
+            )
+            for item in source.items.order_by("index"):
+                OutboundOrderItem.objects.create(
+                    order=new_order,
+                    stock_product=item.stock_product,
+                    amount=item.amount,
+                    unit_price=item.unit_price,
+                    total_price=item.total_price,
+                    index=item.index,
+                    desired_package_type=item.desired_package_type,
+                    desired_batch=item.desired_batch,
+                    note=item.note,
+                )
+            audit_service.add_entry(
+                new_order,
+                action=AuditAction.CREATE,
+                user=context.user_id,
+                reason=AuditMessages.ORDER_CREATED.CS,
+                changes={"duplicated_from": source_code},
+            )
+
+        schema = outbound_order_orm_to_schema(new_order)
+        return cls._with_pricing_details(schema, new_order)
+
+    @classmethod
     def store_invoice(
         cls,
         order_code: str,

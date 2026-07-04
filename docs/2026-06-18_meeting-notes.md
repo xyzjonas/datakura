@@ -15,7 +15,7 @@
 ## Vydej - objednavka
 [ ] vizualni indikace ze ten radek (produkt) vyzaduje jejich barkod
 [ ] Externí číslo => "cislo objednavky zakaznika"
-[ ] textove pole pro KAZDOU polozku - jen do objednavky (ne do skladu) - hlavne do pdf
+[x] textove pole pro KAZDOU polozku - jen do objednavky (ne do skladu) - hlavne do pdf
 [ ] duplikovat objednavku
 
 

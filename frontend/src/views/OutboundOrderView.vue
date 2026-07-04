@@ -45,6 +45,14 @@
           :disable="!order.items?.length"
         />
         <q-btn
+          unelevated
+          color="secondary"
+          icon="sym_o_content_copy"
+          label="duplikovat"
+          :loading="duplicating"
+          @click="duplicateOrder"
+        />
+        <q-btn
           v-if="canCancel"
           unelevated
           color="negative"
@@ -147,6 +155,7 @@
 <script setup lang="ts">
 import {
   warehouseApiRoutesOutboundOrdersAddItemToOutboundOrder,
+  warehouseApiRoutesOutboundOrdersDuplicateOutboundOrder,
   warehouseApiRoutesOutboundOrdersGetOutboundOrder,
   warehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrder,
   warehouseApiRoutesOutboundOrdersTransitionOutboundOrder,
@@ -171,6 +180,7 @@ import OutboundOrderProductsList from '@/components/order/OutboundOrderProductsL
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
 import { useApi } from '@/composables/use-api'
+import { useAppRouter } from '@/composables/use-app-router'
 import { ref, computed } from 'vue'
 import CommentCard from '@/components/CommentCard.vue'
 
@@ -310,6 +320,24 @@ const cancel = async () => {
 }
 
 const auditDialog = ref(false)
+
+const { goToOrderOut } = useAppRouter()
+const duplicating = ref(false)
+const duplicateOrder = async () => {
+  if (!order.value) return
+  duplicating.value = true
+  try {
+    const result = await warehouseApiRoutesOutboundOrdersDuplicateOutboundOrder({
+      path: { order_code: order.value.code },
+    })
+    const data = onResponse(result)
+    if (data) {
+      goToOrderOut(data.data.code)
+    }
+  } finally {
+    duplicating.value = false
+  }
+}
 
 const confirmDialog = ref(false)
 const confirmOrder = async () => {

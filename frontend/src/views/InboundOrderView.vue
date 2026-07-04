@@ -52,6 +52,14 @@
           ]"
         />
         <q-btn
+          unelevated
+          color="secondary"
+          icon="sym_o_content_copy"
+          label="duplikovat"
+          :loading="duplicating"
+          @click="duplicateOrder"
+        />
+        <q-btn
           v-if="getInboundOrderStep(order) === 1"
           unelevated
           color="positive"
@@ -189,6 +197,7 @@ import {
   type CustomerSchema,
   type GetCustomerResponse,
   warehouseApiRoutesInboundOrdersAddItemToInboundOrder,
+  warehouseApiRoutesInboundOrdersDuplicateInboundOrder,
   warehouseApiRoutesInboundOrdersGetInboundOrder,
   warehouseApiRoutesInboundOrdersGetInboundOrderPdf,
   warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder,
@@ -387,7 +396,24 @@ const cancel = async () => {
 }
 
 const $q = useQuasar()
-const { goToWarehouseOrderIn } = useAppRouter()
+const { goToWarehouseOrderIn, goToOrderIn } = useAppRouter()
+
+const duplicating = ref(false)
+const duplicateOrder = async () => {
+  if (!order.value) return
+  duplicating.value = true
+  try {
+    const result = await warehouseApiRoutesInboundOrdersDuplicateInboundOrder({
+      path: { order_code: order.value.code },
+    })
+    const data = onResponse(result)
+    if (data) {
+      goToOrderIn(data.data.code)
+    }
+  } finally {
+    duplicating.value = false
+  }
+}
 const createWarehouseOrderDialog = ref(false)
 const createWarehouseOrder = async () => {
   if (!order.value) {

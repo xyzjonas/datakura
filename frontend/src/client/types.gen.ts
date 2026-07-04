@@ -6685,6 +6685,27 @@ export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses = {
 
 export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponse = WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses];
 
+export type WarehouseApiRoutesInboundOrdersDuplicateInboundOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/duplicate';
+};
+
+export type WarehouseApiRoutesInboundOrdersDuplicateInboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetInboundOrderResponse;
+};
+
+export type WarehouseApiRoutesInboundOrdersDuplicateInboundOrderResponse = WarehouseApiRoutesInboundOrdersDuplicateInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersDuplicateInboundOrderResponses];
+
 export type WarehouseApiRoutesInboundOrdersTransitionInboundOrderData = {
     body: InboundOrderTransitionSchema;
     path: {
@@ -6962,6 +6983,27 @@ export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses =
 };
 
 export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses];
+
+export type WarehouseApiRoutesOutboundOrdersDuplicateOutboundOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}/duplicate';
+};
+
+export type WarehouseApiRoutesOutboundOrdersDuplicateOutboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundOrderResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersDuplicateOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersDuplicateOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersDuplicateOutboundOrderResponses];
 
 export type WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderData = {
     body: OutboundOrderTransitionSchema;

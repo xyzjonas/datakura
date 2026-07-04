@@ -439,6 +439,46 @@ class OrdersService:
         return result, created
 
     @classmethod
+    def duplicate_inbound_order(
+        cls, source_code: str, context: RequestContext
+    ) -> InboundOrderSchema:
+        source = InboundOrder.objects.prefetch_related("items__stock_product").get(
+            code=source_code
+        )
+        new_code = cls.generate_next_incoming_order_code()
+
+        with transaction.atomic():
+            new_order = InboundOrder.objects.create(
+                code=new_code,
+                external_code=source.external_code,
+                description=source.description,
+                note=source.note,
+                currency=source.currency,
+                supplier=source.supplier,
+                customer=source.customer,
+                requested_delivery_date=source.requested_delivery_date,
+                state=InboundOrderState.DRAFT,
+            )
+            for item in source.items.order_by("index"):
+                InboundOrderItem.objects.create(
+                    order=new_order,
+                    stock_product=item.stock_product,
+                    amount=item.amount,
+                    unit_price=item.unit_price,
+                    total_price=item.total_price,
+                    index=item.index,
+                )
+            audit_service.add_entry(
+                new_order,
+                action=AuditAction.CREATE,
+                user=context.user_id,
+                reason=AuditMessages.NEW_INBOUND_ORDER_CREATED.CS,
+                changes={"duplicated_from": source_code},
+            )
+
+        return inbound_order_orm_to_schema(new_order)
+
+    @classmethod
     def store_invoice(
         cls,
         order_code: str,
