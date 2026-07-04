@@ -1,6 +1,7 @@
 from calendar import monthrange
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
+from typing import cast
 
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
@@ -22,6 +23,10 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.services import audit_service
 from apps.warehouse.core.services.products import stock_product_service
+from apps.warehouse.core.services.warehouse_order_factory import (
+    WarehouseOrderKind,
+    create_warehouse_order,
+)
 from apps.warehouse.core.transformation import (
     outbound_order_item_orm_to_schema,
     outbound_order_orm_to_schema,
@@ -435,48 +440,24 @@ class OutboundOrdersService:
         context: RequestContext,
         primary_order: OutboundWarehouseOrder | None = None,
     ) -> OutboundWarehouseOrder:
-        warehouse_order = OutboundWarehouseOrder.objects.create(
-            code=cls.generate_next_outbound_warehouse_order_code(),
-            order=order,
-            primary_order=primary_order,
-            state=OutboundWarehouseOrderState.PENDING,
-        )
-        audit_service.add_entry(
-            warehouse_order,
-            action=AuditAction.CREATE,
-            user=context.user_id,
-            reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
-                purchase_order_code=order.code
-            ),
-        )
-
-        if primary_order is not None:
-            audit_service.add_entry(
-                warehouse_order,
-                action=AuditAction.OTHER,
-                user=context.user_id,
-                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
-                    child_code=warehouse_order.code,
-                    parent_code=primary_order.code,
-                ),
-                changes={"parent_order": primary_order.code},
+        if primary_order is None:
+            warehouse_order = create_warehouse_order(
+                WarehouseOrderKind.SALES_OUTBOUND,
+                context,
+                sales_order=order,
             )
-            audit_service.add_entry(
-                primary_order,
-                action=AuditAction.OTHER,
-                user=context.user_id,
-                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
-                    child_code=warehouse_order.code,
-                    parent_code=primary_order.code,
-                ),
-                changes={"child_order": warehouse_order.code},
+        else:
+            warehouse_order = create_warehouse_order(
+                WarehouseOrderKind.CHILD_OUTBOUND,
+                context,
+                primary_order=primary_order,
             )
 
         outbound_orders_service.transition_order(
             order.code, context, target_state=OutboundOrderState.PICKING
         )
 
-        return warehouse_order
+        return warehouse_order  # type: ignore[return-value]
 
     @classmethod
     def _ensure_editable_warehouse_order(
@@ -888,22 +869,16 @@ class OutboundOrdersService:
                 new_state == OutboundOrderState.PICKING
                 and not order.warehouse_orders.exists()
             ):
-                warehouse_order_code = cls.generate_next_outbound_warehouse_order_code()
-                warehouse_order = OutboundWarehouseOrder.objects.create(
-                    code=warehouse_order_code,
-                    order=order,
-                    state=OutboundWarehouseOrderState.PENDING,
-                )
-                audit_service.add_entry(
-                    warehouse_order,
-                    action=AuditAction.CREATE,
-                    user=context.user_id,
-                    reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
-                        purchase_order_code=order.code
+                warehouse_order = cast(
+                    OutboundWarehouseOrder,
+                    create_warehouse_order(
+                        WarehouseOrderKind.SALES_OUTBOUND,
+                        context,
+                        sales_order=order,
                     ),
                 )
                 cls._build_outbound_warehouse_order_items(
-                    warehouse_order=warehouse_order
+                    warehouse_order=warehouse_order  # type: ignore[arg-type]
                 )
 
             if new_state in (
@@ -934,13 +909,6 @@ class OutboundOrdersService:
 
         schema = outbound_order_orm_to_schema(order)
         return OutboundOrdersService._with_pricing_details(schema, order)
-
-    @staticmethod
-    def generate_next_outbound_warehouse_order_code() -> str:
-        now = timezone.now()
-        dt_range = _get_month_range(now)
-        count = OutboundWarehouseOrder.objects.filter(created__range=dt_range).count()
-        return f"WO{now.year}{now.month:02d}{count + 1:04d}"
 
     @classmethod
     def store_invoice(

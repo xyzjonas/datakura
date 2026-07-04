@@ -1,7 +1,6 @@
 import uuid
-from calendar import monthrange
-from datetime import datetime
 from decimal import Decimal
+from typing import cast
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
@@ -39,6 +38,10 @@ from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.manufacturing import manufacturing_orders_service
 from apps.warehouse.core.services.orders import inbound_orders_service
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
+from apps.warehouse.core.services.warehouse_order_factory import (
+    WarehouseOrderKind,
+    create_warehouse_order,
+)
 from apps.warehouse.core.transformation import (
     warehouse_inbound_order_orm_to_schema,
     warehouse_outbound_order_orm_to_schema,
@@ -77,16 +80,6 @@ from apps.warehouse.models.warehouse import (
 
 def generate_warehouse_item_code() -> str:
     return str(uuid.uuid4())[:13]
-
-
-def _get_end_of_month(date: datetime) -> datetime:
-    last_day = monthrange(date.year, date.month)[1]
-    return date.replace(day=last_day)
-
-
-def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
-    last_day = _get_end_of_month(date)
-    return date.replace(day=1, hour=0, minute=0, second=0, microsecond=0), last_day
 
 
 def raise_if_readonly(order: InboundWarehouseOrder):
@@ -547,15 +540,6 @@ class WarehouseService:
             movement_data["batch"] = None
 
         WarehouseMovement.objects.create(**movement_data)
-
-    @staticmethod
-    def generate_next_inbound_order_code() -> str:
-        now = timezone.now()
-        dt_range = _get_month_range(now)
-        orders_this_month = InboundWarehouseOrder.objects.filter(
-            created__range=dt_range
-        ).count()
-        return f"P{now.year}{now.month:02d}{orders_this_month + 1:04d}"
 
     @staticmethod
     def get_inbound_warehouse_order(code: str):
@@ -1214,13 +1198,6 @@ class WarehouseService:
         cls._sync_outbound_warehouse_order_state(warehouse_order, context)
         return cls.get_outbound_warehouse_order(warehouse_order_code)
 
-    @staticmethod
-    def generate_next_outbound_order_code() -> str:
-        now = timezone.now()
-        dt_range = _get_month_range(now)
-        count = OutboundWarehouseOrder.objects.filter(created__range=dt_range).count()
-        return f"V{now.year}{now.month:02d}{count + 1:04d}"
-
     @classmethod
     def create_child_outbound_warehouse_order(
         cls,
@@ -1231,35 +1208,12 @@ class WarehouseService:
         parent_order = OutboundWarehouseOrder.objects.select_related("order").get(
             code=parent_code
         )
-        child_code = cls.generate_next_outbound_order_code()
-        with transaction.atomic():
-            child_order = OutboundWarehouseOrder.objects.create(
-                code=child_code,
-                order=parent_order.order,
-                primary_order=parent_order,
-                state=initial_state,
-            )
-            audit_service.add_entry(
-                child_order,
-                action=AuditAction.CREATE,
-                user=context.user_id,
-                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
-                    child_code=child_code,
-                    parent_code=parent_code,
-                ),
-                changes={"parent_order": parent_code},
-            )
-            audit_service.add_entry(
-                parent_order,
-                action=AuditAction.OTHER,
-                user=context.user_id,
-                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
-                    child_code=child_code,
-                    parent_code=parent_code,
-                ),
-                changes={"child_order": child_code},
-            )
-        return child_order
+        return create_warehouse_order(  # type: ignore[return-value]
+            WarehouseOrderKind.CHILD_OUTBOUND,
+            context,
+            primary_order=parent_order,
+            initial_state=initial_state,
+        )
 
     @classmethod
     def offload_outbound_items_to_child_order(
@@ -1361,23 +1315,15 @@ class WarehouseService:
     ) -> InboundWarehouseOrderSchema:
         purchase_order = InboundOrder.objects.get(code=params.purchase_order_code)
 
-        code = WarehouseService.generate_next_inbound_order_code()
-
         with transaction.atomic():
-            warehouse_order = InboundWarehouseOrder.objects.create(
-                code=code,
-                order=purchase_order,
-                state=InboundWarehouseOrderState.IN_TRANSIT,
-            )
-            audit_service.add_entry(
-                warehouse_order,
-                action=AuditAction.CREATE,
-                user=context.user_id,
-                reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
-                    purchase_order_code=params.purchase_order_code
+            warehouse_order = cast(
+                InboundWarehouseOrder,
+                create_warehouse_order(
+                    WarehouseOrderKind.INBOUND,
+                    context,
+                    purchase_order=purchase_order,
                 ),
             )
-
             inbound_orders_service.transition_order(
                 purchase_order.code,
                 context=context,
@@ -2363,36 +2309,12 @@ class WarehouseService:
         parent_order = InboundWarehouseOrder.objects.select_related(
             "order", "pickup_location"
         ).get(code=parent_code)
-        child_code = cls.generate_next_inbound_order_code()
-        with transaction.atomic():
-            child_order = InboundWarehouseOrder.objects.create(
-                code=child_code,
-                order=parent_order.order,
-                primary_order=parent_order,
-                state=initial_state,
-                pickup_location=parent_order.pickup_location,
-            )
-            audit_service.add_entry(
-                child_order,
-                action=AuditAction.CREATE,
-                user=context.user_id,
-                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
-                    child_code=child_code,
-                    parent_code=parent_code,
-                ),
-                changes={"parent_order": parent_code},
-            )
-            audit_service.add_entry(
-                parent_order,
-                action=AuditAction.OTHER,
-                user=context.user_id,
-                reason=AuditMessages.CHILD_WAREHOUSE_ORDER_CREATED.CS.format(
-                    child_code=child_code,
-                    parent_code=parent_code,
-                ),
-                changes={"child_order": child_code},
-            )
-        return child_order
+        return create_warehouse_order(  # type: ignore[return-value]
+            WarehouseOrderKind.CHILD_INBOUND,
+            context,
+            primary_order=parent_order,
+            initial_state=initial_state,
+        )
 
     @classmethod
     def offload_items_to_child_order(

@@ -1,6 +1,7 @@
 from calendar import monthrange
 from datetime import datetime
 from decimal import Decimal
+from typing import cast
 
 from django.db import transaction
 from django.db.models import QuerySet
@@ -20,6 +21,10 @@ from apps.warehouse.core.schemas.manufacturing import (
     ManufacturingOrderSchema,
 )
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.warehouse_order_factory import (
+    WarehouseOrderKind,
+    create_warehouse_order,
+)
 from apps.warehouse.core.transformation import (
     manufacturing_order_item_orm_to_schema,
     manufacturing_order_orm_to_schema,
@@ -34,10 +39,8 @@ from apps.warehouse.models.manufacturing import (
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrder,
-    InboundWarehouseOrderState,
     OutboundWarehouseOrder,
     OutboundWarehouseOrderItem,
-    OutboundWarehouseOrderState,
 )
 
 
@@ -70,20 +73,6 @@ class ManufacturingOrdersService:
         if last_code:
             next_number = int(str(last_code)[len(monthly_prefix) :]) + 1
         return f"{monthly_prefix}{next_number:04d}"
-
-    @staticmethod
-    def generate_next_outbound_warehouse_order_code() -> str:
-        now = timezone.now()
-        dt_range = _get_month_range(now)
-        count = OutboundWarehouseOrder.objects.filter(created__range=dt_range).count()
-        return f"V{now.year}{now.month:02d}{count + 1:04d}"
-
-    @staticmethod
-    def generate_next_inbound_warehouse_order_code() -> str:
-        now = timezone.now()
-        dt_range = _get_month_range(now)
-        count = InboundWarehouseOrder.objects.filter(created__range=dt_range).count()
-        return f"P{now.year}{now.month:02d}{count + 1:04d}"
 
     @staticmethod
     def get_manufacturing_orders(
@@ -306,11 +295,13 @@ class ManufacturingOrdersService:
     def _create_outbound_warehouse_order(
         cls, order: ManufacturingOrder, context: RequestContext
     ) -> OutboundWarehouseOrder:
-        wo_code = cls.generate_next_outbound_warehouse_order_code()
-        warehouse_order = OutboundWarehouseOrder.objects.create(
-            code=wo_code,
-            manufacturing_order=order,
-            state=OutboundWarehouseOrderState.PENDING,
+        warehouse_order = cast(
+            OutboundWarehouseOrder,
+            create_warehouse_order(
+                WarehouseOrderKind.MFG_OUTBOUND,
+                context,
+                manufacturing_order=order,
+            ),
         )
 
         for index, item in enumerate(order.items.order_by("index", "created")):
@@ -322,46 +313,35 @@ class ManufacturingOrdersService:
                 index=index,
             )
         audit_service.add_entry(
-            warehouse_order,
-            action=AuditAction.CREATE,
-            user=context.user_id,
-            reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
-                purchase_order_code=order.code
-            ),
-        )
-
-        audit_service.add_entry(
             order,
             action=AuditAction.UPDATE,
             user=context.user_id,
             reason=AuditMessages.MANUFACTURING_OUTBOUND_ORDER_CREATED.CS.format(
-                code=wo_code
+                code=warehouse_order.code
             ),
-            changes={"outbound_warehouse_order": {"created": wo_code}},
+            changes={"outbound_warehouse_order": {"created": warehouse_order.code}},
         )
-        return warehouse_order
+        return warehouse_order  # type: ignore[return-value]
 
     @classmethod
     def _create_inbound_warehouse_order(
         cls, order: ManufacturingOrder, context: RequestContext
     ) -> InboundWarehouseOrder:
-        wo_code = cls.generate_next_inbound_warehouse_order_code()
-        warehouse_order = InboundWarehouseOrder.objects.create(
-            code=wo_code,
+        warehouse_order = create_warehouse_order(
+            WarehouseOrderKind.MFG_INBOUND,
+            context,
             manufacturing_order=order,
-            state=InboundWarehouseOrderState.IN_TRANSIT,
         )
-
         audit_service.add_entry(
             order,
             action=AuditAction.UPDATE,
             user=context.user_id,
             reason=AuditMessages.MANUFACTURING_INBOUND_ORDER_CREATED.CS.format(
-                code=wo_code
+                code=warehouse_order.code
             ),
-            changes={"inbound_warehouse_order": {"created": wo_code}},
+            changes={"inbound_warehouse_order": {"created": warehouse_order.code}},
         )
-        return warehouse_order
+        return warehouse_order  # type: ignore[return-value]
 
 
 manufacturing_orders_service = ManufacturingOrdersService()
