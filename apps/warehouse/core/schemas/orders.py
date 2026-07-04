@@ -89,6 +89,7 @@ class OutboundOrderItemCreateSchema(Schema):
     index: int | None = None
     desired_package_type_name: str | None = None
     desired_batch_code: str | None = None
+    note: str | None = None
 
 
 class OutboundOrderItemPricingDetailsSchema(Schema):
@@ -111,6 +112,7 @@ class OutboundOrderItemSchema(BaseSchema):
     index: int
     desired_package_type_name: str | None = None
     desired_batch_code: str | None = None
+    note: str | None = None
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None
 
 

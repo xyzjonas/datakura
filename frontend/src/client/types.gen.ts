@@ -3118,6 +3118,10 @@ export type OutboundOrderItemSchema = {
      * Desired Batch Code
      */
     desired_batch_code?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
     pricing_details?: OutboundOrderItemPricingDetailsSchema | null;
 };
 
@@ -3315,6 +3319,10 @@ export type OutboundOrderItemCreateSchema = {
      * Desired Batch Code
      */
     desired_batch_code?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
 };
 
 /**

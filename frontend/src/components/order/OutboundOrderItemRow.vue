@@ -118,6 +118,32 @@
     </div>
   </div>
 
+  <div v-if="!readonly" class="mt-1 pl-10">
+    <q-btn
+      flat
+      dense
+      no-caps
+      size="sm"
+      :icon="showNote ? 'expand_less' : 'expand_more'"
+      :label="showNote ? 'Skrýt poznámku' : (item.note ? 'Poznámka' : 'Přidat poznámku')"
+      class="text-muted"
+      @click="toggleNote"
+    />
+    <q-input
+      v-if="showNote"
+      v-model.trim="item.note"
+      outlined
+      dense
+      label="Poznámka k položce"
+      type="textarea"
+      autogrow
+      class="mt-1"
+      :debounce="600"
+      @update:model-value="update('note')"
+    />
+  </div>
+  <div v-else-if="item.note" class="mt-1 pl-10 text-xs text-muted">{{ item.note }}</div>
+
   <OutboundOrderItemRequirementsDialog
     v-model:show="requirementsDialog"
     :product-name="item.product.name"
@@ -177,6 +203,7 @@ const unitPrice = ref(round(item.value.unit_price))
 const isPersistingOverride = ref(false)
 const requirementsDialog = ref(false)
 const requirementsMode = ref<RequirementMode>('package')
+const showNote = ref(!!item.value.note)
 
 const pricingContext = computed(() => {
   const pricing = item.value.pricing_details as OutboundPricingDetails | undefined
@@ -203,10 +230,18 @@ const computeUnitFromTotal = () => {
   return round(totalPrice.value / item.value.amount)
 }
 
-const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements') => {
+const toggleNote = () => {
+  showNote.value = !showNote.value
+  if (!showNote.value) {
+    item.value.note = null
+    void update('note')
+  }
+}
+
+const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements' | 'note') => {
   if (changedField === 'total') {
     unitPrice.value = computeUnitFromTotal()
-  } else if (changedField !== 'requirements') {
+  } else if (changedField !== 'requirements' && changedField !== 'note') {
     totalPrice.value = round(item.value.amount * round(unitPrice.value))
   }
 
@@ -221,6 +256,7 @@ const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements'
       index: item.value.index,
       desired_package_type_name: item.value.desired_package_type_name,
       desired_batch_code: item.value.desired_batch_code,
+      note: item.value.note,
     },
   })
 

@@ -699,6 +699,7 @@ class OutboundOrdersService:
                 index=item.index if item.index is not None else next_index,
                 desired_package_type=desired_package_type,
                 desired_batch=desired_batch,
+                note=item.note,
             )
             cls._sync_order_item_to_warehouse_orders(
                 order=order,
@@ -749,6 +750,7 @@ class OutboundOrdersService:
             )
             item_model.desired_package_type = desired_package_type
             item_model.desired_batch = desired_batch
+            item_model.note = item.note
             if item.index is not None:
                 item_model.index = item.index
             item_model.save()

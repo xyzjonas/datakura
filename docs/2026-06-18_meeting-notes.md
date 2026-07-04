@@ -13,10 +13,10 @@
 - vydej na stitek: nazev produktu, pocet v zakladni jednotce (ks), Externí číslo, barkod hlavni produktu ZAKAZNIKA (nastavatitelne v karte produktu)
 
 ## Vydej - objednavka
-- vizualni indikace ze ten radek (produkt) vyzaduje jejich barkod
-- Externí číslo => "cislo objednavky zakaznika"
-- textove pole pro KAZDOU polozku - jen do objednavky (ne do skladu) - hlavne do pdf
-- duplikovat objednavku
+[ ] vizualni indikace ze ten radek (produkt) vyzaduje jejich barkod
+[ ] Externí číslo => "cislo objednavky zakaznika"
+[ ] textove pole pro KAZDOU polozku - jen do objednavky (ne do skladu) - hlavne do pdf
+[ ] duplikovat objednavku
 
 
 ## Rozbalovani
@@ -28,18 +28,19 @@
 
 
 ## Vyroba
-- novy modul
-- technicky objednavka ale musi jit uplne bokem
-- tyc 1m -> objednavka na vyrobu (rez) vydej ze skladu do vyroby
-- MUSI ZUSTAT SKLADOVA HODNOTA!!! vydej a zpoetny prijem musi byt celkem 0 rozdil.
-- cilova karta muze obsahovat jine polozky a musi zapocit do ceny
-- zachovat vazbu na vstupni produkt (dame to auditu)
-- muze byt i externi, rozdil v prijmova cena navysena o sluzbu - vydana cena.
-- moznost nahrat fakturu
-- vydejky/prijemky maji svoji ciselnou rada
+[x] novy modul
+[x] technicky objednavka ale musi jit uplne bokem
+[x] tyc 1m -> objednavka na vyrobu (rez) vydej ze skladu do vyroby
+[x] MUSI ZUSTAT SKLADOVA HODNOTA!!! vydej a zpoetny prijem musi byt celkem 0 rozdil.
+[x] cilova karta muze obsahovat jine polozky a musi zapocit do ceny
+[x] zachovat vazbu na vstupni produkt (dame to auditu)
+[ ] muze byt i externi, rozdil v prijmova cena navysena o sluzbu - vydana cena.
+[ ] moznost nahrat fakturu
+[x] vydejky/prijemky maji svoji ciselnou rada
 
 
 
+DONE
 ## Ciselne rady
 
 XX-26XXXXX (konfigurovatelne)

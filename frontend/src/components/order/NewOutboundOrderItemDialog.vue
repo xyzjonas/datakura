@@ -53,6 +53,25 @@
             label="Požadovaná šarže"
             hint="Volitelné. Zadejte existující kód šarže."
           />
+          <div class="flex flex-col gap-2">
+            <q-btn
+              flat
+              dense
+              no-caps
+              :icon="showNote ? 'expand_less' : 'expand_more'"
+              :label="showNote ? 'Skrýt poznámku' : 'Přidat poznámku'"
+              class="self-start text-muted"
+              @click="toggleNote"
+            />
+            <q-input
+              v-if="showNote"
+              v-model.trim="item.note"
+              outlined
+              label="Poznámka"
+              type="textarea"
+              autogrow
+            />
+          </div>
           <q-btn type="submit" unelevated color="primary" label="přidat" class="h-[3rem] mt-3" />
         </q-form>
       </div>
@@ -89,6 +108,7 @@ const props = defineProps<{
 const productUom = ref('')
 const pricingLookup = ref<SellingPriceLookupSchema>()
 const batchCode = ref('')
+const showNote = ref(false)
 
 const item = ref<OutboundOrderItemCreateSchema>({
   product_code: '',
@@ -98,6 +118,7 @@ const item = ref<OutboundOrderItemCreateSchema>({
   unit_price: 0,
   desired_package_type_name: null,
   desired_batch_code: null,
+  note: null,
 })
 
 const product = ref<ProductSchema>()
@@ -158,6 +179,13 @@ const emit = defineEmits<{
   (e: 'addItem', item: OutboundOrderItemCreateSchema): void
 }>()
 
+const toggleNote = () => {
+  showNote.value = !showNote.value
+  if (!showNote.value) {
+    item.value.note = null
+  }
+}
+
 const addItem = () => {
   item.value.desired_package_type_name = null
   item.value.desired_batch_code = batchCode.value || null
@@ -173,8 +201,10 @@ const reset = () => {
     unit_price: 0,
     desired_package_type_name: null,
     desired_batch_code: null,
+    note: null,
   }
   batchCode.value = ''
+  showNote.value = false
   product.value = undefined
   showDialog.value = false
 }

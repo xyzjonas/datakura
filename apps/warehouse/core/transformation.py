@@ -575,6 +575,7 @@ def outbound_order_item_orm_to_schema(
         if item.desired_package_type
         else None,
         desired_batch_code=desired_batch_barcode,
+        note=item.note,
         pricing_details=pricing_details,
         changed=item.changed,
         created=item.created,

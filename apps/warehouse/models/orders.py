@@ -339,6 +339,7 @@ class OutboundOrderItem(BaseModel):
         on_delete=models.PROTECT,
         related_name="outbound_order_items",
     )
+    note = models.TextField(null=True, blank=True)
 
     class Meta(BaseModel.Meta):
         ordering = ["index", "created"]
