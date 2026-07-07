@@ -11,6 +11,7 @@
         @dragover="handleDragOver($event, index)"
         @dragleave="handleDragLeave"
         @drop="handleDrop($event, index)"
+        :body-class="['flex flex-nowrap gap-5']"
       >
         <div :class="!readonly ? 'drag-handle' : ''">
           <q-icon :name="readonly ? 'sym_o_check_small' : 'sym_o_drag_indicator'" size="1rem" />

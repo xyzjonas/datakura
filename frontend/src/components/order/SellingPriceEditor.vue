@@ -1,93 +1,87 @@
 <template>
-  <div class="flex items-start gap-2 w-full">
-    <div class="flex flex-col min-w-70">
-      <div class="flex items-center gap-1">
-        <q-btn
-          flat
-          dense
-          icon="sym_o_help"
-          size="sm"
-          :color="marginAmount >= 0 ? 'positive' : 'negative'"
-        >
-          <q-popup-proxy>
-            <q-card class="p-3 max-w-80">
-              <div class="text-sm font-bold mb-2">Vysvětlení ceny</div>
-              <div class="text-xs mb-1">
-                Základní cena: {{ basePrice.toFixed(2) }} {{ currency }}
-              </div>
-              <div class="text-xs mb-1">
-                Nákupní cena (průměr): {{ avgPurchasePrice.toFixed(2) }} {{ currency }}
-              </div>
-              <div class="text-xs mb-1">
-                Sleva: {{ discountPercent.toFixed(2) }}% ({{ reason }})
-              </div>
-              <div v-if="isNoDiscountProduct" class="text-xs mb-1 text-negative">
-                Sleva nepoužita: slevové skupiny nejsou pro tento produkt povoleny.
-              </div>
-              <div class="text-xs mb-1">
-                Navržená cena: {{ suggestedPrice.toFixed(2) }} {{ currency }}
-              </div>
-              <div class="text-xs font-medium">
-                Zvolená cena: {{ resolvedModelValue.toFixed(2) }} {{ currency }}
-              </div>
-            </q-card>
-          </q-popup-proxy>
-        </q-btn>
-        <span :class="marginClass">Marže: {{ marginText }}</span>
-      </div>
-      <q-input
-        :model-value="editorValue"
-        :readonly="readonly"
+  <div class="flex flex-col min-w-70">
+    <div class="flex items-center gap-1">
+      <q-btn
+        flat
         dense
-        outlined
-        class="w-full"
-        label="Prodejní cena"
-        @update:model-value="onInputChange"
-        :debounce="300"
+        icon="sym_o_help"
+        size="sm"
+        :color="marginAmount >= 0 ? 'positive' : 'negative'"
       >
-        <template #append>
-          <span class="text-xs">{{ currency }} / {{ unit }}</span>
-        </template>
-      </q-input>
+        <q-popup-proxy>
+          <q-card class="p-3 max-w-80">
+            <div class="text-sm font-bold mb-2">Vysvětlení ceny</div>
+            <div class="text-xs mb-1">Základní cena: {{ basePrice.toFixed(2) }} {{ currency }}</div>
+            <div class="text-xs mb-1">
+              Nákupní cena (průměr): {{ avgPurchasePrice.toFixed(2) }} {{ currency }}
+            </div>
+            <div class="text-xs mb-1">Sleva: {{ discountPercent.toFixed(2) }}% ({{ reason }})</div>
+            <div v-if="isNoDiscountProduct" class="text-xs mb-1 text-negative">
+              Sleva nepoužita: slevové skupiny nejsou pro tento produkt povoleny.
+            </div>
+            <div class="text-xs mb-1">
+              Navržená cena: {{ suggestedPrice.toFixed(2) }} {{ currency }}
+            </div>
+            <div class="text-xs font-medium">
+              Zvolená cena: {{ resolvedModelValue.toFixed(2) }} {{ currency }}
+            </div>
+          </q-card>
+        </q-popup-proxy>
+      </q-btn>
+      <span :class="marginClass">Marže: {{ marginText }}</span>
+    </div>
+    <q-input
+      :model-value="editorValue"
+      :readonly="readonly"
+      dense
+      outlined
+      class="w-full"
+      label="Prodejní cena"
+      @update:model-value="onInputChange"
+      :debounce="300"
+    >
+      <template #append>
+        <span class="text-xs">{{ currency }} / {{ unit }}</span>
+      </template>
+    </q-input>
 
-      <q-slider
-        :model-value="editorValue"
-        :min="sliderMin"
-        :max="sliderMax"
-        :step="0.01"
-        color="primary"
-        label
-        class="pt-1 px-2"
-        :disable="readonly"
-        @update:model-value="onSliderChange"
-        @change="onSliderCommit"
+    <q-slider
+      :model-value="editorValue"
+      :min="sliderMin"
+      :max="sliderMax"
+      :step="0.01"
+      color="primary"
+      label
+      class="pt-1 px-2"
+      :disable="readonly"
+      @update:model-value="onSliderChange"
+      @change="onSliderCommit"
+    />
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <q-btn
+        v-if="isOverridden && !readonly"
+        dense
+        flat
+        no-caps
+        size="sm"
+        color="grey-6"
+        icon="sym_o_restart_alt"
+        label="Resetovat"
+        @click="resetToSuggested"
       />
-
-      <div class="flex items-center gap-2 flex-wrap">
-        <q-btn
-          v-if="isOverridden && !readonly"
-          dense
-          flat
-          no-caps
-          size="sm"
-          color="grey-6"
-          icon="sym_o_restart_alt"
-          label="Resetovat"
-          @click="resetToSuggested"
-        />
-        <q-btn
-          v-if="canPersistOverride && isOverridden"
-          dense
-          flat
-          no-caps
-          size="sm"
-          color="primary"
-          icon="sym_o_save"
-          label="Uložit pro zákazníka"
-          :loading="overrideSaving"
-          @click="emit('persistOverride')"
-        />
-      </div>
+      <q-btn
+        v-if="canPersistOverride && isOverridden"
+        dense
+        flat
+        no-caps
+        size="sm"
+        color="primary"
+        icon="sym_o_save"
+        label="Uložit pro zákazníka"
+        :loading="overrideSaving"
+        @click="emit('persistOverride')"
+      />
     </div>
   </div>
 </template>

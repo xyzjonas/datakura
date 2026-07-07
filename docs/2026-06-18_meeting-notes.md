@@ -1,30 +1,30 @@
 ## Prijem
 
-- chyba v souctu hmotnosti - prijemka
-- prijmova faktura - schovat generovani pdf - jen odkaz na stazeni nahraneho pdf
-- Pole nesmí být číslo větší než 9999 -> 999999
-- kontrola konzistence mnozstvi polozek, objednavame zcestne malo? nebo moc? vykricnik! - aritmeticky za poslednich 10
-- presun naskladneni nesledovano nezmizi z "polozky k naskladneni"
-- presun nesledovaneho produktu podel kodu stock product karty - nenajde (hleda podle product code a ne barcode) - ale jen ve webovem rozhrani
+[ ] chyba v souctu hmotnosti - prijemka
+[ ] prijmova faktura - schovat generovani pdf - jen odkaz na stazeni nahraneho pdf
+[ ] Pole nesmí být číslo větší než 9999 -> 999999
+[ ] kontrola konzistence mnozstvi polozek, objednavame zcestne malo? nebo moc? vykricnik! - aritmeticky za poslednich 10
+[ ] presun naskladneni nesledovano nezmizi z "polozky k naskladneni"
+[ ] presun nesledovaneho produktu podel kodu stock product karty - nenajde (hleda podle product code a ne barcode) - ale jen ve webovem rozhrani
 
 
 ## Tisk
-- prijem na stitek: evidencni barkod interni, cislo dodavatele, cislo prijmova objednavka
-- vydej na stitek: nazev produktu, pocet v zakladni jednotce (ks), Externí číslo, barkod hlavni produktu ZAKAZNIKA (nastavatitelne v karte produktu)
+[ ] prijem na stitek: evidencni barkod interni, cislo dodavatele, cislo prijmova objednavka
+[ ] vydej na stitek: nazev produktu, pocet v zakladni jednotce (ks), Externí číslo, barkod hlavni produktu ZAKAZNIKA (nastavatitelne v karte produktu)
 
 ## Vydej - objednavka
 [ ] vizualni indikace ze ten radek (produkt) vyzaduje jejich barkod
 [ ] Externí číslo => "cislo objednavky zakaznika"
 [x] textove pole pro KAZDOU polozku - jen do objednavky (ne do skladu) - hlavne do pdf
-[ ] duplikovat objednavku
+[x] duplikovat objednavku
 
 
 ## Rozbalovani
 
 
 ## Banka
-- napojit oberbank, fio - API (korunovy i eurovy)
-- moznost vice bank (fio)
+[ ] napojit oberbank, fio - API (korunovy i eurovy)
+[ ] moznost vice bank (fio)
 
 
 ## Vyroba

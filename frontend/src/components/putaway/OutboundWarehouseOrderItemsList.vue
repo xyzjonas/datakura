@@ -12,7 +12,7 @@
       </div>
     </TransitionGroup>
   </div>
-  <EmptyPanel v-else icon="sym_o_apps_outage">
+  <EmptyPanel v-else icon="sym_o_apps_outage" class="min-h-xs">
     <div class="flex flex-col gap-2 items-start py-10">
       <h3 class="uppercase">Žádné položky</h3>
     </div>

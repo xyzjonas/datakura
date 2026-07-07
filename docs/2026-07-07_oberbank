@@ -1,0 +1,19 @@
+Good news, actually — Oberbank does operate a full branch in Czechia with its own local site (oberbank.cz), and EBICS is still there, just under a different name in the CZ portal.
+What's happening
+oBusiness appears to be Oberbank AT/DE's newer web-based EBICS platform — the CZ branch (oberbank.cz) uses "Business App" as the EBICS client interface instead, and their offering is presented as "Klientský portál business" (the CZ business web-banking portal) plus the multibank Business App. The Czech site explicitly states the Business App works with EBICS accounts, lets you view account statements from your existing EBICS product, and view/download transaction data — it's a one-app-for-all-EBICS-banks multibank client.
+So the underlying capability (EBICS-based automated statement retrieval) is present for Oberbank CZ customers — it's just packaged as Business App rather than oBusiness in the Czech market, likely because oBusiness's rollout is being staged market by market and CZ hasn't gotten it yet or uses the older stack.
+What this means for you
+
+The account itself matters more than the portal name. If your client's account is with Oberbank AG pobočka Česká republika (the Czech branch, regulated locally by ČNB, national bank code 8040), EBICS should be available to them through that branch, request it via their relationship manager — not self-service signup.
+The GUI app (Business App vs oBusiness) is irrelevant to your automation goal anyway. As covered before, none of these apps need to run 24/7 — they're just reference EBICS clients. Since you're writing your own EBICS client for automation, the branding of Oberbank's own app doesn't block you at all; you talk directly to Oberbank's EBICS server endpoint over HTTPS regardless of what consumer-facing app exists.
+You still need the EBICS server URL and participant credentials for the CZ branch specifically — these will differ from the Austrian endpoint. This is exactly the kind of detail your client's Oberbank relationship manager (or the CZ EBICS support line: EBSupport_CZ@oberbank.cz) needs to hand you, since it's not typically published anywhere public.
+
+Practical next step
+I'd suggest your client contact EBSupport_CZ@oberbank.cz (Oberbank's own Czech EBICS support address) directly and ask for:
+
+Whether EBICS access is available for their account at the CZ branch,
+The EBICS server URL/host ID for the Czech branch,
+The participant onboarding process (INI-Letter, keys, activation).
+
+Once you have those three things, the rest — your own script pulling C53/camt.053 on a schedule — works exactly as described earlier, completely independent of whether Oberbank's own GUI app is "available" in Czechia or not.
+Want help drafting that email to Oberbank CZ support to make sure you ask for the right technical details up front?
