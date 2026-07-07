@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from ninja import Schema
 from pydantic import Field
@@ -22,8 +22,8 @@ from .product import ProductSchema
 class InboundOrderItemCreateSchema(Schema):
     product_code: str
     product_name: str
-    amount: float
-    total_price: float
+    amount: Annotated[float, Field(gt=0, lt=1_000_000)]
+    total_price: Annotated[float, Field(ge=0, lt=100_000_000)]
     unit_price: float | None = None
     index: int | None = None
 
@@ -83,8 +83,8 @@ class CreateInboundOrderItemResponse(BaseResponse):
 class OutboundOrderItemCreateSchema(Schema):
     product_code: str
     product_name: str
-    amount: float
-    total_price: float
+    amount: Annotated[float, Field(gt=0, lt=1_000_000)]
+    total_price: Annotated[float, Field(ge=0, lt=100_000_000)]
     unit_price: float | None = None
     index: int | None = None
     desired_package_type_name: str | None = None

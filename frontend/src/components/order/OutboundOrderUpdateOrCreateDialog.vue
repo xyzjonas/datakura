@@ -15,8 +15,8 @@
           <q-input
             v-model.trim="item.external_code"
             outlined
-            label="Externí číslo"
-            hint="Externí číslo (volitelné)"
+            label="Číslo objednávky zákazníka"
+            hint="Číslo objednávky jak je evidováno u zákazníka (volitelné)"
           />
           <q-input
             v-model.trim="item.description"

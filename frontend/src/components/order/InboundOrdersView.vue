@@ -48,14 +48,6 @@ import OrdersBaseTable, { type Pagination } from './OrdersBaseTable.vue'
 const { onResponse } = useApi()
 const { page, pageSize, search, stockProductCode } = useQueryProducts()
 
-// const pagination = ref<NonNullable<QTableProps['pagination']>>({
-//   rowsPerPage: pageSize.value,
-//   page: page.value,
-//   rowsNumber: pageSize.value,
-// })
-
-// const orders = ref<InboundOrderSchema[]>([])
-// const loading = ref(false)
 const fetchOrders = async (pagination: Ref<Pagination>, loading: Ref<boolean>) => {
   loading.value = true
   try {
@@ -78,81 +70,6 @@ const fetchOrders = async (pagination: Ref<Pagination>, loading: Ref<boolean>) =
 
   return []
 }
-
-// onMounted(fetchOrders)
-
-// const shouldNotFetch = () => {
-//   return pagination.value.rowsPerPage === pageSize.value && pagination.value.page === page.value
-// }
-
-// const onPaginationChange = async (requestProp: { pagination: QTableProps['pagination'] }) => {
-//   if (!requestProp.pagination) {
-//     return
-//   }
-//   pagination.value = requestProp.pagination
-//   if (shouldNotFetch()) {
-//     return
-//   }
-//   page.value = Number(pagination.value.page)
-//   setTimeout(() => (pageSize.value = Number(pagination.value.rowsPerPage)), 1)
-//   setTimeout(() => fetchOrders(), 2)
-// }
-
-// const { currentRoute } = useRouter()
-// watch(currentRoute, () => {
-//   if (!shouldNotFetch()) {
-//     fetchOrders()
-//   }
-// })
-
-// watch(search, fetchOrders)
-
-// const columns: QTableColumn[] = [
-//   {
-//     name: 'code',
-//     field: 'code',
-//     label: 'Kód',
-//     align: 'left',
-//   },
-//   {
-//     name: 'state',
-//     field: 'state',
-//     label: 'Stav',
-//     align: 'left',
-//   },
-//   {
-//     name: 'warehouseOrder',
-//     field: (order: InboundOrderSchema) => order.warehouse_order_code,
-//     label: 'Příjemka',
-//     align: 'left',
-//   },
-//   {
-//     name: 'created',
-//     field: 'created',
-//     label: 'Datum vytvoření',
-//     format: (val: string) =>
-//       `${new Date(val).toLocaleDateString()} - ${new Date(val).toLocaleTimeString()}`,
-//     align: 'left',
-//   },
-//   {
-//     name: 'externalCode',
-//     field: 'external_code',
-//     label: 'Externí kód',
-//     align: 'left',
-//   },
-//   {
-//     name: 'itemsCount',
-//     field: (order: InboundOrderSchema) => order.items?.length ?? 0,
-//     label: 'Počet položek',
-//     align: 'left',
-//   },
-//   {
-//     name: 'supplier',
-//     field: (order: InboundOrderSchema) => order.supplier.name,
-//     label: 'Dodavatel',
-//     align: 'left',
-//   },
-// ]
 
 const newOrderDialog = ref(false)
 const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()

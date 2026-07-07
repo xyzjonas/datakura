@@ -92,12 +92,12 @@
       </template>
       <template #body-cell-code="props">
         <q-td>
-          <a
-            @click="$router.push({ name: 'warehouseItemDetail', params: { itemId: props.row.id } })"
+          <router-link
+            :to="{ name: 'warehouseItemDetail', params: { itemId: props.row.id } }"
             class="link"
           >
             {{ props.value }}
-          </a>
+          </router-link>
           <BarcodeElement
             v-if="props.value"
             :barcode="props.value"

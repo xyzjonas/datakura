@@ -80,7 +80,12 @@
             hint="Naše firma, doplněno automaticky."
             readonly
           />
-          <q-input v-model="form.external_code" outlined label="Externí číslo (volitelné)" />
+          <q-input
+            v-model="form.external_code"
+            outlined
+            label="Číslo objednávky zákazníka"
+            hint="Číslo objednávky jak je evidováno u zákazníka (volitelné)"
+          />
           <q-input v-model="form.paid_date" outlined label="Datum úhrady (volitelné)" type="date" />
           <q-input
             v-model="form.note"

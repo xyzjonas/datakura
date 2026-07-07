@@ -79,20 +79,24 @@
 
     <OutboundOrderTimeline :order="order" />
 
-    <div class="flex items-center gap-2 mt-5">
+    <div class="flex items-center justify-center gap-2 sm:gap-5 mt-5">
       <h2>Položky objednávky</h2>
-      <q-btn
-        v-if="isEditable"
-        flat
-        color="primary"
-        icon="sym_o_add"
-        label="přidat položku"
-        @click="addItemDialog = true"
-        class="ml-5"
-      ></q-btn>
-      <TotalWeight :order="order" class="ml-auto mr-5" />
-      <TotalPrice :order="order" />
+      <div
+        class="flex items-center justify-center sm:justify-end flex-1 gap-3 min-w-300px flex-row-reverse sm:flex-row"
+      >
+        <TotalWeight :order="order" />
+        <TotalPrice :order="order" />
+      </div>
     </div>
+    <q-btn
+      v-if="isEditable"
+      flat
+      dense
+      color="primary"
+      icon="sym_o_add"
+      label="přidat položku"
+      @click="addItemDialog = true"
+    ></q-btn>
     <OutboundOrderProductsList
       v-model:items="order.items"
       :currency="order.currency"
@@ -254,27 +258,25 @@ const reorderItems = async (items: NonNullable<OutboundOrderSchema['items']>) =>
   order.value.items = indexedItems
 
   let hasError = false
-  await Promise.all(
-    indexedItems.map(async (item) => {
-      const res = await warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder({
-        path: { order_code: order.value!.code },
-        body: {
-          product_code: item.product.code,
-          product_name: item.product.name,
-          amount: item.amount,
-          total_price: item.total_price,
-          unit_price: item.unit_price,
-          index: item.index,
-          desired_package_type_name: item.desired_package_type_name,
-          desired_batch_code: item.desired_batch_code,
-        },
-      })
-      const data = onResponse(res)
-      if (!data?.data) {
-        hasError = true
-      }
-    }),
-  )
+  for (const item of indexedItems) {
+    const res = await warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder({
+      path: { order_code: order.value!.code },
+      body: {
+        product_code: item.product.code,
+        product_name: item.product.name,
+        amount: item.amount,
+        total_price: item.total_price,
+        unit_price: item.unit_price,
+        index: item.index,
+        desired_package_type_name: item.desired_package_type_name,
+        desired_batch_code: item.desired_batch_code,
+      },
+    })
+    const data = onResponse(res)
+    if (!data?.data) {
+      hasError = true
+    }
+  }
 
   if (hasError) {
     const refreshResponse = await warehouseApiRoutesOutboundOrdersGetOutboundOrder({

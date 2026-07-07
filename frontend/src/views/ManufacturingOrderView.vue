@@ -100,6 +100,7 @@
         flat
         hide-bottom
         :pagination="{ rowsPerPage: 0 }"
+        :grid="$q.screen.lt.sm"
       >
         <template #body-cell-actions="slotProps">
           <q-td :props="slotProps">
@@ -125,6 +126,15 @@
         </template>
         <template #no-data>
           <div class="text-center text-gray-5 py-8 w-full">Žádné položky</div>
+        </template>
+        <template v-slot:item="props">
+          <div class="flex flex-col items-center w-full">
+            <StockProductLink :product="props.row.in_product" class="uppercase text-lg" />
+            {{ props.row.in_amount }} {{ props.row.in_product.unit }}
+            <q-icon name="sym_o_arrow_downward_alt" size="md" class="text-muted my-1" />
+            <StockProductLink :product="props.row.out_product" class="uppercase text-lg" />
+            {{ props.row.out_amount }} {{ props.row.out_product.unit }}
+          </div>
         </template>
       </q-table>
     </ForegroundPanel>
@@ -207,6 +217,7 @@ import CommentCard from '@/components/CommentCard.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import StockProductLink from '@/components/links/StockProductLink.vue'
 import ManufacturingOrderDetailsListCard from '@/components/manufacturing/ManufacturingOrderDetailsListCard.vue'
 import ManufacturingOrderItemDialog from '@/components/manufacturing/ManufacturingOrderItemDialog.vue'
 import ManufacturingOrderStateBadge from '@/components/manufacturing/ManufacturingOrderStateBadge.vue'

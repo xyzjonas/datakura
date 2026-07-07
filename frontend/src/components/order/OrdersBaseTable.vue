@@ -217,7 +217,7 @@ const columns: QTableColumn[] = [
   {
     name: 'externalCode',
     field: 'external_code',
-    label: 'Externí kód',
+    label: 'Číslo objednávky zákazníka',
     align: 'left',
   },
   {

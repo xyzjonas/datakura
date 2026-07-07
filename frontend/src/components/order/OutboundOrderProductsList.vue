@@ -4,19 +4,23 @@
       <ForegroundPanel
         v-for="(item, index) in items"
         :key="item.product.code"
-        :class="{ dragging: draggingIndex === index, 'drag-over': dragOverIndex === index }"
+        :class="[
+          'w-full',
+          draggingIndex === index ? 'dragging' : '',
+          dragOverIndex === index ? 'drag-over' : '',
+        ]"
         :draggable="!readonly"
         @dragstart="handleDragStart($event, index)"
         @dragend="handleDragEnd"
         @dragover="handleDragOver($event, index)"
         @dragleave="handleDragLeave"
         @drop="handleDrop($event, index)"
-        :body-class="['flex flex-nowrap gap-5']"
+        :body-class="['flex w-full items-center gap-2 flex-nowrap']"
       >
         <div :class="!readonly ? 'drag-handle' : ''">
           <q-icon :name="readonly ? 'sym_o_check_small' : 'sym_o_drag_indicator'" size="1rem" />
         </div>
-        <OutboundOrderItemRow
+        <OutboundOrderItemRowCompact
           v-model:item="items[index]"
           :readonly="readonly"
           :currency="currency"
@@ -40,7 +44,7 @@ import type { OutboundOrderItemSchema } from '@/client'
 import { ref } from 'vue'
 import EmptyPanel from '../EmptyPanel.vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
-import OutboundOrderItemRow from './OutboundOrderItemRow.vue'
+import OutboundOrderItemRowCompact from './OutboundOrderItemRowCompact.vue'
 
 const emit = defineEmits<{
   (e: 'removeItem', productCode: string): void

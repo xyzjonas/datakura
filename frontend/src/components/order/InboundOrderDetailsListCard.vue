@@ -14,7 +14,7 @@
         </q-item-section>
       </q-item>
       <q-item clickable>
-        <q-item-section>Externí číslo</q-item-section>
+        <q-item-section>Číslo objednávky zákazníka</q-item-section>
         <q-item-section avatar>
           <span class="flex gap-1">
             {{ order.external_code }}

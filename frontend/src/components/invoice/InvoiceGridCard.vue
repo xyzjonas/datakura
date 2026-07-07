@@ -31,7 +31,9 @@
         <div class="mt-1 font-medium text-slate-8">{{ invoice.currency }}</div>
       </div>
       <div>
-        <div class="text-xs uppercase tracking-[0.16em] text-gray-5">Externí kód</div>
+        <div class="text-xs uppercase tracking-[0.16em] text-gray-5">
+          Číslo objednávky zákazníka
+        </div>
         <div class="mt-1 font-medium text-slate-8">{{ invoice.external_code || '-' }}</div>
       </div>
     </div>

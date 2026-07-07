@@ -1,6 +1,6 @@
 ## Prijem
 
-[ ] chyba v souctu hmotnosti - prijemka
+[x] chyba v souctu hmotnosti - prijemka
 [ ] prijmova faktura - schovat generovani pdf - jen odkaz na stazeni nahraneho pdf
 [ ] Pole nesmí být číslo větší než 9999 -> 999999
 [ ] kontrola konzistence mnozstvi polozek, objednavame zcestne malo? nebo moc? vykricnik! - aritmeticky za poslednich 10
@@ -14,7 +14,7 @@
 
 ## Vydej - objednavka
 [ ] vizualni indikace ze ten radek (produkt) vyzaduje jejich barkod
-[ ] Externí číslo => "cislo objednavky zakaznika"
+[x] Externí číslo => "cislo objednavky zakaznika"
 [x] textove pole pro KAZDOU polozku - jen do objednavky (ne do skladu) - hlavne do pdf
 [x] duplikovat objednavku
 

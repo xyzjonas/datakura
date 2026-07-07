@@ -79,7 +79,9 @@
           <div class="mt-1 text-lg font-semibold">{{ invoice.taxable_supply_date }}</div>
         </div>
         <div v-if="invoice.external_code">
-          <div class="text-xs uppercase tracking-[0.16em] text-gray-5">Externí číslo</div>
+          <div class="text-xs uppercase tracking-[0.16em] text-gray-5">
+            Číslo objednávky zákazníka
+          </div>
           <div class="mt-1 text-sm font-semibold">{{ invoice.external_code }}</div>
         </div>
         <div v-if="invoice.paid_date">
@@ -114,7 +116,7 @@
               <component :is="orderStateBadge" :state="order.state" />
             </div>
             <div v-if="order.external_code" class="mt-1 text-sm text-gray-6">
-              Externí kód: {{ order.external_code }}
+              Číslo objednávky zákazníka: {{ order.external_code }}
             </div>
           </div>
 

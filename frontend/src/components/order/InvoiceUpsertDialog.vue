@@ -97,7 +97,7 @@
           <q-input
             v-model.trim="form.external_code"
             outlined
-            label="Externí číslo (volitelné)"
+            label="Číslo objednávky zákazníka (volitelné)"
             hint="Číslo faktury v systému partnera."
           />
           <q-input
