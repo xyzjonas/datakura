@@ -24,6 +24,18 @@ and being completely full again. E.g. a package of 10pcs contains only 5 now (5/
 by unpacking and selecting 5 as the amount, new non-tracked does get created with 5pcs in it (correct),
 BUT the old item stays with 10pcs as the amount - actually inflating the stock by 10pcs! Very serious mistake!
 
-### 4. Picking - allow selection of lesser quantity
+### 4. Picking - allow selection of lesser quantity [DONE]
+
+When picking stock to fulfill an outbound warehouse order I can only select items that have larger or equal quantity
+of the product. E.g. customer ordered 10 macbooks and I have a package of 10 laptops with 4 removed previously (6/10)
+at one location and a pile of 5 pcs. in another location. I want to pick the 6 from the package (unpacking it) and
+after that complete the order with 4 pieces from the 5 pile (reducing the pile 5 -> 1). Order is fullfilled and only
+one last item is remaining in the warehouse.
 
 
+### 5. Picking - location stays
+
+When an item is picked in the warehouse outbound order, it's supposed to be 'eliminated' from the warehouse,
+audit log even states e.g.: "Moved 1.0000 of 0981-0400-01, from AB-03-02, to None, outbound order V2026070005, item #18"
+but then upon inspection the item is still marked as to be present at the original location. Yes, we want to keep ALL
+items historically in the database, but the location has to be set to 'None' to indicate it is no longer available.

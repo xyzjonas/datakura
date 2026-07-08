@@ -273,7 +273,7 @@
                     () => {
                       selectedLocation = loc.code
                       currentStep = 'pick-fungible'
-                      pickAmount = Number(item.amount)
+                      pickAmount = Math.min(Number(item.amount), loc.totalAmount)
                       scannedBarcode = ''
                     }
                   "
@@ -742,6 +742,13 @@ const fungibleLocations = computed<FungibleLocation[]>(() => {
 
 const maxAvailableInLocation = computed(() => {
   if (!selectedLocation.value) return 0
+  // Direct warehouse item scan: use the item's amount directly (matching_items is not set)
+  if (
+    lookupResult.value?.entity_type === 'warehouse_item' &&
+    lookupResult.value.warehouse_item?.location.code === selectedLocation.value
+  ) {
+    return lookupResult.value.warehouse_item.amount
+  }
   const loc = fungibleLocations.value.find((l) => l.code === selectedLocation.value)
   return loc?.totalAmount ?? 0
 })
@@ -829,7 +836,7 @@ const onBarcodeInput = async (barcode: string | number | null) => {
       // Fungible/batch item - need location confirmation and amount
       selectedLocation.value = item.location.code
       currentStep.value = 'pick-fungible'
-      pickAmount.value = Number(props.item.amount)
+      pickAmount.value = Math.min(Number(props.item.amount), item.amount)
     }
   } else if (result.entity_type === 'batch' || result.entity_type === 'product') {
     // ALWAYS ask for location scan, never auto-select
@@ -839,7 +846,10 @@ const onBarcodeInput = async (barcode: string | number | null) => {
     // Location scanned but we need to know which product
     currentStep.value = 'confirm-location'
     selectedLocation.value = result.location?.code ?? null
-    pickAmount.value = Number(props.item.amount)
+    const availableAtLocation = (result.matching_items ?? []).reduce((sum, i) => sum + i.amount, 0)
+    pickAmount.value = availableAtLocation > 0
+      ? Math.min(Number(props.item.amount), availableAtLocation)
+      : Number(props.item.amount)
     // Auto-select first item if only one
     if (result.matching_items?.length === 1) {
       selectedWarehouseItemId.value = result.matching_items[0].id
@@ -875,7 +885,7 @@ const onLocationScanForProduct = async (locationCode: string | number | null) =>
   // Set the selected location and proceed to amount input
   selectedLocation.value = matchingLocation.code
   currentStep.value = 'pick-fungible'
-  pickAmount.value = Number(props.item.amount)
+  pickAmount.value = Math.min(Number(props.item.amount), matchingLocation.totalAmount)
   scannedBarcode.value = ''
 }
 
@@ -924,12 +934,24 @@ const confirmFungiblePick = async () => {
     return
   }
 
-  // Find first warehouse item in the selected location
-  const items = lookupResult.value?.matching_items ?? []
-  const itemInLocation = items.find((item) => item.location.code === selectedLocation.value)
+  // Resolve warehouse item: direct scan gives warehouse_item; product/batch scan gives matching_items
+  let itemInLocation: WarehouseItemSchema | undefined
+  if (lookupResult.value?.entity_type === 'warehouse_item' && lookupResult.value.warehouse_item) {
+    itemInLocation = lookupResult.value.warehouse_item
+  } else {
+    const items = lookupResult.value?.matching_items ?? []
+    const itemsAtLocation = items.filter((item) => item.location.code === selectedLocation.value)
+    // Prefer an item that alone covers the pick amount; otherwise take the largest
+    itemInLocation =
+      itemsAtLocation.find((i) => i.amount >= pickAmount.value) ??
+      itemsAtLocation.reduce(
+        (best, i) => (!best || i.amount > best.amount ? i : best),
+        undefined as WarehouseItemSchema | undefined,
+      )
+  }
   if (!itemInLocation) return
 
-  // Double-check amount doesn't exceed available
+  // Double-check amount doesn't exceed the chosen item's stock (backend enforces this too)
   if (pickAmount.value > itemInLocation.amount) {
     return
   }
