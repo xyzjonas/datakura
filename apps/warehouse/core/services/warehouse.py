@@ -740,11 +740,7 @@ class WarehouseService:
         package_item.save(update_fields=["amount", "changed"])
 
         # 3. Determine new tracking level
-        new_tracking_level = (
-            TrackingLevel.SERIALIZED_PIECE
-            if package_item.tracking_level == TrackingLevel.SERIALIZED_PACKAGE
-            else package_item.tracking_level
-        )
+        new_tracking_level = TrackingLevel.FUNGIBLE
 
         # 4. Create unpacked item
         unpacked_item = WarehouseItem.objects.create(
@@ -1554,8 +1550,10 @@ class WarehouseService:
         product = StockProduct.objects.get(code=product_code)
 
         if batch_code:
-            barcode = Barcode.objects.get(code=batch_code)
-            if barcode.content_type != "Batch":
+            barcode = Barcode.objects.select_related("content_type").get(
+                code=batch_code
+            )
+            if barcode.content_type.model_class() is not Batch:
                 raise_by_code(
                     ErrorCode.INVALID_BARCODE,
                     f"Invalid barcode type, {type(barcode.content_object)}, expected Batch",

@@ -109,7 +109,7 @@
             type="submit"
             unelevated
             color="primary"
-            :label="trackingType.value ? 'evidovat' : 'ne-evidovat'"
+            :label="trackingType.value || (attachBatch && selectedBatch) ? 'evidovat' : 'ne-evidovat'"
             class="h-[3rem] mt-2"
           />
         </q-form>
@@ -138,6 +138,7 @@
 
 <script setup lang="ts">
 import {
+  warehouseApiRoutesPackagingBatchPreview,
   warehouseApiRoutesPackagingCreateBatch,
   warehouseApiRoutesPackagingCreatePackageType,
   warehouseApiRoutesPackagingPackagePreview,
@@ -263,6 +264,24 @@ const previewSerialItems = async () => {
   }
 }
 
+const previewBatchItems = async () => {
+  const result = await warehouseApiRoutesPackagingBatchPreview({
+    body: {
+      order_item_id: props.item.id,
+      amount: amount.value,
+      product_code: props.item.product.code,
+      batch_code: selectedBatch.value?.primary_barcode?.code ?? null,
+    },
+  })
+  const data = onResponse(result)
+  if (data) {
+    items.value = data.data
+  }
+}
+
+const isFungibleWithBatch = () =>
+  trackingType.value.value === '' && attachBatch.value && !!selectedBatch.value
+
 watch([trackingType], () => {
   if (trackingType.value.value !== 'package') {
     selectedPackage.value = undefined
@@ -271,6 +290,8 @@ watch([trackingType], () => {
   if (trackingType.value.value === 'piece') {
     selectedPackage.value = undefined
     previewSerialItems()
+  } else if (isFungibleWithBatch()) {
+    previewBatchItems()
   } else {
     items.value = []
   }
@@ -281,8 +302,20 @@ watch([selectedPackage, amount, trackingType], () => {
     previewPackagingItems()
   } else if (trackingType.value.value === 'piece') {
     previewSerialItems()
+  } else if (isFungibleWithBatch()) {
+    previewBatchItems()
   } else {
     items.value = []
+  }
+})
+
+watch([attachBatch, selectedBatch], () => {
+  if (trackingType.value.value === '') {
+    if (isFungibleWithBatch()) {
+      previewBatchItems()
+    } else {
+      items.value = []
+    }
   }
 })
 

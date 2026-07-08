@@ -15,8 +15,10 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.core.services.warehouse import (
     warehouse_service,
+    WarehouseService,
     get_or_create_batch,
 )
+from apps.warehouse.core.schemas.warehouse import MoveItemRequest
 from apps.warehouse.core.transformation import (
     product_orm_to_schema,
     location_orm_to_schema,
@@ -989,3 +991,273 @@ def test_create_warehouse_movement_serialized_sets_item_only(db, tracking_level)
     assert movement.amount == item.amount
     assert movement.item == item
     assert movement.batch is None
+
+
+def test_setup_tracking_for_inbound_order_item_with_batch_attaches_batch_barcode(
+    db, context
+):
+    """Bug #1: fungible items with batch tracking must have batch_barcode written to the new item."""
+    pickup_location = WarehouseLocationFactory()
+    order = InboundWarehouseOrderFactory(pickup_location=pickup_location)
+    product = StockProductFactory()
+    order_item = InboundWarehouseOrderItemFactory(
+        warehouse_order=order, stock_product=product, amount=10
+    )
+
+    from apps.warehouse.core.schemas.packaging import BatchSchema, BarcodeSchema
+    from apps.warehouse.models.barcode import BarcodeType
+
+    batch = Batch.objects.create()
+    batch_barcode_code = "TEST-BATCH-001"
+    batch.attach_barcode(batch_barcode_code, is_primary=True)
+    barcode = batch.get_primary_barcode()
+    assert barcode is not None
+
+    batch_schema = BatchSchema(
+        id=batch.pk,
+        primary_barcode=BarcodeSchema(
+            id=barcode.pk,
+            code=barcode.code,
+            barcode_type=BarcodeType.EAN13,
+            is_primary=True,
+            created=barcode.created,
+            changed=barcode.changed,
+        ),
+        description=None,
+        created=batch.created,
+        changed=batch.changed,
+    )
+
+    new_items = [
+        WarehouseItemSchema(
+            id=-1,
+            unit_of_measure=product.unit_of_measure.name,
+            created=timezone.now(),
+            changed=timezone.now(),
+            product=product_orm_to_schema(product),
+            location=location_orm_to_schema(pickup_location),
+            amount=10,
+            package=None,
+            batch=batch_schema,
+            tracking_level=TrackingLevel.BATCH,
+        )
+    ]
+
+    result = warehouse_service.setup_tracking_for_inbound_order_item(
+        order.code, order_item.pk, new_items, context=context
+    )
+
+    assert not InboundWarehouseOrderItem.objects.filter(pk=order_item.pk).exists()
+    assert len(result.order_items) == 1
+    created_item = result.order_items[0]
+    assert created_item.tracking_level == TrackingLevel.BATCH
+    assert created_item.batch_barcode == batch_barcode_code
+    assert created_item.amount == Decimal("10")
+
+
+def test_preview_batching_returns_single_batch_item_with_correct_tracking_level(db):
+    """Bug #1: preview_batching must return a BATCH-level item, not fungible."""
+    pickup_location = WarehouseLocationFactory()
+    order = InboundWarehouseOrderFactory(pickup_location=pickup_location)
+    order_item = InboundWarehouseOrderItemFactory(warehouse_order=order, amount=5)
+
+    batch = Batch.objects.create()
+    batch_barcode_code = "PREVIEW-BATCH-001"
+    batch.attach_barcode(batch_barcode_code, is_primary=True)
+
+    result = warehouse_service.preview_batching(
+        order_item_id=order_item.pk,
+        product_code=order_item.stock_product.code,
+        amount=5,
+        batch_code=batch_barcode_code,
+    )
+
+    assert len(result) == 1
+    item = result[0]
+    assert item.tracking_level == TrackingLevel.BATCH
+    assert item.amount == 5.0
+    assert item.package is None
+    assert item.batch is not None
+    assert item.batch.primary_barcode is not None
+    assert item.batch.primary_barcode.code == batch_barcode_code
+    assert item.location.code == pickup_location.code
+    assert item.product.code == order_item.stock_product.code
+
+
+def test_preview_batching_without_batch_code_uses_placeholder(db):
+    """preview_batching must work without a batch code, using an auto-generated placeholder."""
+    pickup_location = WarehouseLocationFactory()
+    order = InboundWarehouseOrderFactory(pickup_location=pickup_location)
+    order_item = InboundWarehouseOrderItemFactory(warehouse_order=order, amount=3)
+
+    result = warehouse_service.preview_batching(
+        order_item_id=order_item.pk,
+        product_code=order_item.stock_product.code,
+        amount=3,
+        batch_code=None,
+    )
+
+    assert len(result) == 1
+    item = result[0]
+    assert item.tracking_level == TrackingLevel.BATCH
+    assert item.amount == 3.0
+    assert item.batch is not None
+    assert item.batch.primary_barcode is not None
+    assert item.batch.primary_barcode.code == "autogen-batch-01234"
+
+
+def test_preview_batching_requires_pickup_location(db):
+    """preview_batching must raise when the order has no pickup location."""
+    order = InboundWarehouseOrderFactory(pickup_location=None)
+    order_item = InboundWarehouseOrderItemFactory(warehouse_order=order, amount=5)
+
+    with pytest.raises(Exception):
+        warehouse_service.preview_batching(
+            order_item_id=order_item.pk,
+            product_code=order_item.stock_product.code,
+            amount=5,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Bug #2 – _unpack_package always produces FUNGIBLE items
+# ---------------------------------------------------------------------------
+
+
+def _make_serialized_package(amount=Decimal("10"), **kwargs) -> WarehouseItem:
+    return WarehouseItemFactory(  # type: ignore
+        tracking_level=TrackingLevel.SERIALIZED_PACKAGE,
+        amount=amount,
+        **kwargs,
+    )
+
+
+def test_unpack_partial_amount_creates_fungible_item(db, context):
+    pkg = _make_serialized_package(amount=Decimal("10"))
+
+    result = WarehouseService._unpack_package(pkg, Decimal("4"), context)
+
+    assert result.tracking_level == TrackingLevel.FUNGIBLE
+    assert result.amount == Decimal("4")
+    pkg.refresh_from_db()
+    assert pkg.amount == Decimal("6")
+
+
+def test_unpack_full_amount_creates_fungible_item(db, context):
+    pkg = _make_serialized_package(amount=Decimal("10"))
+
+    result = WarehouseService._unpack_package(pkg, Decimal("10"), context)
+
+    assert result.tracking_level == TrackingLevel.FUNGIBLE
+    assert result.amount == Decimal("10")
+    pkg.refresh_from_db()
+    assert pkg.amount == Decimal("0")
+
+
+def test_unpack_inherits_metadata_and_clears_package_type(db, context):
+    from apps.warehouse.tests.factories.packaging import PackageTypeFactory
+
+    location = WarehouseLocationFactory()
+    order = InboundWarehouseOrderFactory()
+    order_item = InboundWarehouseOrderItemFactory(warehouse_order=order)
+    batch = Batch.objects.create()
+    pkg_type = PackageTypeFactory()
+
+    pkg = WarehouseItemFactory(
+        tracking_level=TrackingLevel.SERIALIZED_PACKAGE,
+        amount=Decimal("8"),
+        location=location,
+        order_in=order,
+        source_order_item=order_item,
+        batch=batch,
+        package_type=pkg_type,
+    )
+
+    result = WarehouseService._unpack_package(pkg, Decimal("3"), context)
+
+    assert result.location == location
+    assert result.order_in == order
+    assert result.source_order_item == order_item
+    assert result.batch == batch
+    assert result.package_type is None
+    assert result.unpacked_from == pkg
+
+
+def test_unpack_creates_warehouse_movement(db, context):
+    pkg = _make_serialized_package(amount=Decimal("5"))
+    location = pkg.location
+
+    result = WarehouseService._unpack_package(pkg, Decimal("5"), context)
+
+    movement = WarehouseMovement.objects.get(item=result)
+    assert movement.location_from == location
+    assert movement.location_to == location
+    assert movement.stock_product == result.stock_product
+    assert movement.amount == Decimal("5")
+
+
+def test_unpack_disallow_unpacking_raises_error(db, context):
+    product = StockProductFactory(disallow_unpacking=True)
+    pkg = _make_serialized_package(stock_product=product)
+
+    with pytest.raises(WarehouseGenericError, match="unpacking disabled"):
+        WarehouseService._unpack_package(pkg, Decimal("1"), context)
+
+
+def test_move_with_unpack_places_fungible_at_target_location(db, context):
+    source = WarehouseLocationFactory()
+    target = WarehouseLocationFactory()
+    pkg = _make_serialized_package(amount=Decimal("6"), location=source)
+
+    warehouse_service.move_item_standalone(
+        MoveItemRequest(
+            item_id=pkg.pk,
+            location_to_code=str(target.code),
+            amount=Decimal("4"),
+            unpack=True,
+        ),
+        context=context,
+    )
+
+    unpacked = WarehouseItem.objects.get(unpacked_from=pkg)
+    assert unpacked.tracking_level == TrackingLevel.FUNGIBLE
+    assert unpacked.amount == Decimal("4")
+    assert unpacked.location == target
+
+
+def test_move_with_unpack_non_package_raises_error(db, context):
+    source = WarehouseLocationFactory()
+    target = WarehouseLocationFactory()
+    item = WarehouseItemFactory(
+        tracking_level=TrackingLevel.FUNGIBLE,
+        amount=Decimal("10"),
+        location=source,
+    )
+
+    with pytest.raises(Exception, match="SERIALIZED_PACKAGE"):
+        warehouse_service.move_item_standalone(
+            MoveItemRequest(
+                item_id=item.pk,
+                location_to_code=str(target.code),
+                amount=Decimal("5"),
+                unpack=True,
+            ),
+            context=context,
+        )
+
+
+def test_move_with_unpack_without_amount_raises_error(db, context):
+    source = WarehouseLocationFactory()
+    target = WarehouseLocationFactory()
+    pkg = _make_serialized_package(amount=Decimal("10"), location=source)
+
+    with pytest.raises(Exception, match="Amount is required"):
+        warehouse_service.move_item_standalone(
+            MoveItemRequest(
+                item_id=pkg.pk,
+                location_to_code=str(target.code),
+                amount=None,
+                unpack=True,
+            ),
+            context=context,
+        )

@@ -244,8 +244,80 @@ def test_update_batch(db, client) -> None:
 def test_delete_batch(db, client) -> None:
     batch = Batch.objects.create(description="To be deleted")
 
-    res = client.delete(f"/batches/{batch.id}")
+    res = client.delete(f"/batches/{batch.pk}")
 
     assert res.status_code == 200
     assert res.json()["success"] is True
-    assert not Batch.objects.filter(id=batch.id).exists()
+    assert not Batch.objects.filter(id=batch.pk).exists()
+
+
+def test_batch_preview_returns_batch_tracking_item(db, client) -> None:
+    """Bug #1: /preview-batch must return a BATCH-level item for a fungible order item."""
+    pickup_location = WarehouseLocationFactory()
+    order = InboundWarehouseOrderFactory(pickup_location=pickup_location)
+    order_item = InboundWarehouseOrderItemFactory.it(warehouse_order=order, amount=7)
+
+    batch = Batch.objects.create()
+    batch_barcode_code = "API-BATCH-001"
+    batch.attach_barcode(batch_barcode_code, is_primary=True)
+
+    res = client.post(
+        "/preview-batch",
+        json={
+            "order_item_id": order_item.pk,
+            "product_code": order_item.stock_product.code,
+            "amount": 7,
+            "batch_code": batch_barcode_code,
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert len(data) == 1
+    item = data[0]
+    assert item["tracking_level"] == TrackingLevel.BATCH
+    assert item["amount"] == 7.0
+    assert item["batch"] is not None
+    assert item["batch"]["primary_barcode"]["code"] == batch_barcode_code
+    assert item["package"] is None
+
+
+def test_batch_preview_without_batch_code_uses_placeholder(db, client) -> None:
+    """preview-batch without a batch code returns a placeholder batch barcode."""
+    pickup_location = WarehouseLocationFactory()
+    order = InboundWarehouseOrderFactory(pickup_location=pickup_location)
+    order_item = InboundWarehouseOrderItemFactory.it(warehouse_order=order, amount=4)
+
+    res = client.post(
+        "/preview-batch",
+        json={
+            "order_item_id": order_item.pk,
+            "product_code": order_item.stock_product.code,
+            "amount": 4,
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert len(data) == 1
+    item = data[0]
+    assert item["tracking_level"] == TrackingLevel.BATCH
+    assert item["batch"]["primary_barcode"]["code"] == "autogen-batch-01234"
+
+
+def test_batch_preview_without_pickup_location_returns_error(db, client) -> None:
+    """preview-batch must fail when the order has no pickup location."""
+    from apps.warehouse.core.exceptions import WarehouseGenericError
+
+    order = InboundWarehouseOrderFactory(pickup_location=None)
+    order_item = InboundWarehouseOrderItemFactory.it(warehouse_order=order, amount=3)
+
+    with pytest.raises(WarehouseGenericError):
+        client.post(
+            "/preview-batch",
+            json={
+                "order_item_id": order_item.pk,
+                "product_code": order_item.stock_product.code,
+                "amount": 3,
+            },
+        )
