@@ -331,7 +331,7 @@ class OutboundOrdersService:
             "invoice__supplier",
             "invoice__payment_method",
         )
-        if not include_all:
+        if not include_all and not search_term:
             qs = qs.exclude(
                 state__in=[
                     OutboundOrderState.CANCELLED,

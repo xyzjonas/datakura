@@ -5028,6 +5028,10 @@ export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData = {
          */
         search_term?: string | null;
         /**
+         * Include All
+         */
+        include_all?: boolean;
+        /**
          * Page
          */
         page?: number;
@@ -5072,6 +5076,10 @@ export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrdersData = {
          * Search Term
          */
         search_term?: string | null;
+        /**
+         * Include All
+         */
+        include_all?: boolean;
         /**
          * Page
          */

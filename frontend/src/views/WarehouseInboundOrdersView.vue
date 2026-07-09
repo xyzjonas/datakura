@@ -60,12 +60,21 @@
             class="link"
             @click="
               $router.push({
-                name: 'inboundOrderDetail',
+                name:
+                  props.row.order.type === 'Inbound'
+                    ? 'inboundOrderDetail'
+                    : 'manufacturingOrderDetail',
                 params: { code: props.row.order.code },
               })
             "
             >{{ props.row.order.code }}</a
           >
+          <InboundOrderStateBadge
+            v-if="props.row.order.type === 'Inbound'"
+            :state="props.row.order.state"
+            class="ml-2"
+          />
+          <ManufacturingOrderStateBadge v-else :state="props.row.order.state" class="ml-2" />
         </q-td>
       </template>
       <template #body-cell-completedCount="props">
@@ -85,6 +94,8 @@ import {
   warehouseApiRoutesWarehouseGetInboundWarehouseOrders,
   type InboundWarehouseOrderSchema,
 } from '@/client'
+import ManufacturingOrderStateBadge from '@/components/manufacturing/ManufacturingOrderStateBadge.vue'
+import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
 import InboundWarehouseOrderGridCard from '@/components/putaway/InboundWarehouseOrderGridCard.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'

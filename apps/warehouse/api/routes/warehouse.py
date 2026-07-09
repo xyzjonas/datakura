@@ -157,11 +157,14 @@ def create_inbound_warehouse_order(
     response={200: list[InboundWarehouseOrderSchema]},
 )
 @paginate(IncomingWarehouseOrdersPagination)
-def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None = None):
+def get_inbound_warehouse_orders(
+    request: HttpRequest,
+    search_term: str | None = None,
+    include_all: bool = False,
+):
     qs = cast(
         QuerySet[InboundWarehouseOrder],
-        InboundWarehouseOrder.objects.select_related("order")
-        .prefetch_related(
+        InboundWarehouseOrder.objects.select_related("order").prefetch_related(
             "order_items",
             "order_items__stock_product",
             "order_items__stock_product__unit_of_measure",
@@ -173,10 +176,12 @@ def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None =
             "warehouse_movements__location_to",
             "warehouse_movements__stock_product",
             "warehouse_movements__item",
-        )
-        .exclude(order__state=InboundOrderState.CANCELLED)
-        .exclude(order__state=InboundOrderState.COMPLETED),
+        ),
     )
+    if not include_all and not search_term:
+        qs = qs.exclude(order__state=InboundOrderState.CANCELLED).exclude(
+            order__state=InboundOrderState.COMPLETED
+        )
     if search_term:
         search_term = search_term.lower()
         qs = qs.filter(
@@ -192,21 +197,28 @@ def get_inbound_warehouse_orders(request: HttpRequest, search_term: str | None =
     response={200: list[OutboundWarehouseOrderSchema]},
 )
 @paginate(OutgoingWarehouseOrdersPagination)
-def get_outbound_warehouse_orders(request: HttpRequest, search_term: str | None = None):
+def get_outbound_warehouse_orders(
+    request: HttpRequest,
+    search_term: str | None = None,
+    include_all: bool = False,
+):
     qs = cast(
         QuerySet[OutboundWarehouseOrder],
-        OutboundWarehouseOrder.objects.select_related("order", "order__customer")
-        .prefetch_related(
+        OutboundWarehouseOrder.objects.select_related(
+            "order", "order__customer"
+        ).prefetch_related(
             "order__items",
             "warehouse_movements",
             "warehouse_movements__location_from",
             "warehouse_movements__location_to",
             "warehouse_movements__stock_product",
             "warehouse_movements__item",
-        )
-        .exclude(order__state=OutboundOrderState.CANCELLED)
-        .exclude(order__state=OutboundOrderState.COMPLETED),
+        ),
     )
+    if not include_all and not search_term:
+        qs = qs.exclude(order__state=OutboundOrderState.CANCELLED).exclude(
+            order__state=OutboundOrderState.COMPLETED
+        )
     if search_term:
         search_term = search_term.lower()
         qs = qs.filter(
