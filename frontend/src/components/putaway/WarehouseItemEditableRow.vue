@@ -44,11 +44,11 @@
           >
             {{ pendingStatus ? 'pending' : 'done' }}
           </q-badge>
-          <q-badge class="py-1" :color="item.location.is_putaway ? 'accent' : 'positive'">{{
-            item.location.is_putaway ? 'Příjem' : 'hotovo'
+          <q-badge class="py-1" :color="item.location?.is_putaway ? 'accent' : 'positive'">{{
+            item.location?.is_putaway ? 'Příjem' : 'hotovo'
           }}</q-badge>
-          <q-badge class="py-1" :color="item.location.is_putaway ? 'gray' : 'positive'">{{
-            item.location.code
+          <q-badge class="py-1" :color="item.location?.is_putaway ? 'gray' : 'positive'">{{
+            item.location?.code
           }}</q-badge>
           <WarehouseItemTypeBadgeGroup :item="item" />
         </div>

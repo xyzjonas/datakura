@@ -1,14 +1,20 @@
 <template>
-  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between flex-1 py-1">
-    <div class="flex flex-col gap-2">
-      <div class="flex items-center gap-2">
-        <router-link :to="{ name: 'productDetail', params: { productCode: item.product.code } }">
-          <h5 class="link">{{ item.product.name }}</h5>
-        </router-link>
-        <q-badge :color="item.pending ? 'warning' : 'positive'">
-          {{ item.pending ? 'K VYCHYSTÁNÍ' : 'PŘIŘAZENO' }}
-        </q-badge>
-      </div>
+  <div
+    :class="[
+      'flex flex-col lg:flex-row lg:items-center lg:justify-between flex-1 py-1 border border-l-5 rounded-sm px-5 py-4 min-h-30',
+      item.pending ? 'border-l-orange' : 'border-l-positive',
+    ]"
+  >
+    <div class="flex gap-4 items-start lg:items-center">
+      <IndexRectangle :index="index + 1" />
+      <div class="flex flex-col gap-1">
+      <span :class="['text-xs font-bold', item.pending ? 'text-orange' : 'text-positive']">
+        {{ item.pending ? 'K VYCHYSTÁNÍ' : 'PŘIŘAZENO' }}
+      </span>
+      <router-link :to="{ name: 'productDetail', params: { productCode: item.product.code } }">
+        <h5 class="link text-lg">{{ item.product.name }}</h5>
+      </router-link>
+      <span class="text-muted text-xs">{{ item.product.code }}</span>
 
       <div class="flex flex-wrap gap-2 items-center">
         <WarehouseItemAmountBadge :item="amountBadgeItem" />
@@ -33,16 +39,18 @@
       </div>
 
       <div v-if="item.warehouse_item" class="text-sm text-gray-6 flex flex-wrap gap-3">
-        <span>
+        <span v-if="item.warehouse_item.location">
           {{ item.warehouse_item.location.warehouse_name }} /
           {{ item.warehouse_item.location.code }}
         </span>
+        <span v-else class="text-gray-4 italic">vychystáno</span>
         <WarehouseItemTypeBadgeGroup :item="item.warehouse_item" />
         <WarehouseItemLink :item-id="item.warehouse_item.id" />
         <span v-if="item.price_at_shipment != null" class="font-medium text-gray-7">
           Cena při výdeji: {{ Number(item.price_at_shipment).toFixed(2) }} CZK
         </span>
       </div>
+    </div>
     </div>
 
     <div class="flex gap-2 items-center self-end lg:self-auto">
@@ -95,8 +103,10 @@ import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGrou
 import OffloadItemToChildOrderDialog from './OffloadItemToChildOrderDialog.vue'
 import OutboundWarehousePickDialog from './OutboundWarehousePickDialog.vue'
 import WarehouseItemLink from '../links/WarehouseItemLink.vue'
+import IndexRectangle from '../IndexRectangle.vue'
 
 const props = defineProps<{
+  index: number
   warehouseOrderCode: string
   item: OutboundWarehouseOrderItemSchema
 }>()

@@ -33,7 +33,7 @@ after that complete the order with 4 pieces from the 5 pile (reducing the pile 5
 one last item is remaining in the warehouse.
 
 
-### 5. Picking - location stays
+### 5. Picking - location stays [DONE]
 
 When an item is picked in the warehouse outbound order, it's supposed to be 'eliminated' from the warehouse,
 audit log even states e.g.: "Moved 1.0000 of 0981-0400-01, from AB-03-02, to None, outbound order V2026070005, item #18"

@@ -70,9 +70,19 @@ class AvailableWarehouseItemQuerySet(models.QuerySet["WarehouseItem"]):
         ) or Decimal("0")
 
 
-class AvailableWarehouseItemManager(
+class _WarehouseItemManagerBase(
     models.Manager.from_queryset(AvailableWarehouseItemQuerySet)  # type: ignore
 ):
+    def filter(self, *args: Any, **kwargs: Any) -> AvailableWarehouseItemQuerySet:
+        return cast(AvailableWarehouseItemQuerySet, super().filter(*args, **kwargs))
+
+    def total_amount(self, product_code: str | None = None) -> Decimal:
+        return self.get_queryset().total_amount(product_code=product_code)
+
+
+class AvailableWarehouseItemManager(_WarehouseItemManagerBase):
+    """Items that are available for picking: confirmed inbound, at shelf location, not yet assigned."""
+
     def get_queryset(self) -> AvailableWarehouseItemQuerySet:
         return cast(
             AvailableWarehouseItemQuerySet,
@@ -88,27 +98,15 @@ class AvailableWarehouseItemManager(
             .exclude(outbound_assignment__isnull=False),
         )
 
-    def filter(self, *args: Any, **kwargs: Any) -> AvailableWarehouseItemQuerySet:
-        return cast(AvailableWarehouseItemQuerySet, super().filter(*args, **kwargs))
 
-    def total_amount(self, product_code: str | None = None) -> Decimal:
-        return self.get_queryset().total_amount(product_code=product_code)
+class PhysicalWarehouseItemManager(_WarehouseItemManagerBase):
+    """Items physically present in the warehouse (not yet picked for outbound)."""
 
-
-class PhysicalWarehouseItemManager(
-    models.Manager.from_queryset(AvailableWarehouseItemQuerySet)  # type: ignore
-):
     def get_queryset(self) -> AvailableWarehouseItemQuerySet:
         return cast(
             AvailableWarehouseItemQuerySet,
             super().get_queryset().exclude(outbound_assignment__isnull=False),
         )
-
-    def filter(self, *args: Any, **kwargs: Any) -> AvailableWarehouseItemQuerySet:
-        return cast(AvailableWarehouseItemQuerySet, super().filter(*args, **kwargs))
-
-    def total_amount(self, product_code: str | None = None) -> Decimal:
-        return self.get_queryset().total_amount(product_code=product_code)
 
 
 class WarehouseItem(BaseModel, BarcodeMixin):
@@ -136,8 +134,8 @@ class WarehouseItem(BaseModel, BarcodeMixin):
     )
     location = models.ForeignKey(
         WarehouseLocation,
-        null=False,
-        blank=False,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
         related_name="items",
         help_text="Location where the physical item is stored in the warehouse",

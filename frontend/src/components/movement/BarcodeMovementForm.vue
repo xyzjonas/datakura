@@ -5,7 +5,7 @@
       <stock-product-link :product="resolvedItem.product" :class="'link text-xl'" />
       <div class="text-muted text-xs">{{ resolvedItem.product.code }}</div>
       <div class="text-sm text-muted mt-1 flex gap-3 flex-wrap">
-        <span>{{ resolvedItem.location.code }}</span>
+        <span>{{ resolvedItem.location?.code }}</span>
         <span>{{ resolvedItem.amount }} {{ resolvedItem.unit_of_measure }}</span>
         <span v-if="resolvedItem.batch">
           Šarže {{ resolvedItem.batch.primary_barcode?.code ?? resolvedItem.batch.id }}
@@ -66,7 +66,7 @@
               <small class="text-muted">{{ item.primary_barcode }}</small></q-item-label
             >
             <q-item-label caption>
-              {{ item.location.code }} · {{ item.amount }} {{ item.unit_of_measure }}
+              {{ item.location?.code }} · {{ item.amount }} {{ item.unit_of_measure }}
               <span v-if="item.batch">
                 · {{ item.batch.primary_barcode?.code ?? item.batch.id }}
               </span>
@@ -310,7 +310,7 @@ const onSourceLocationScan = async () => {
         allItems.push(...loc.items)
       }
     }
-    const items = allItems.filter((i) => i.location.code === match.code)
+    const items = allItems.filter((i) => i.location?.code === match.code)
 
     if (items.length === 0) {
       sourceLocationError.value = `Na místě '${match.code}' nejsou zásoby produktu`

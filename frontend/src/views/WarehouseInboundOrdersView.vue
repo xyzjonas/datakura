@@ -181,7 +181,7 @@ const columns: QTableColumn[] = [
   {
     name: 'itemsCount',
     field: (order: InboundWarehouseOrderSchema) =>
-      (order.items ?? []).filter((it) => it.location.is_putaway).length ?? 0,
+      (order.items ?? []).filter((it) => it.location?.is_putaway).length ?? 0,
     label: 'Zbývající položky',
     align: 'left',
   },

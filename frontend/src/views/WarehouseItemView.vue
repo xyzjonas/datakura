@@ -80,10 +80,12 @@
             <q-item-section>Aktuální lokace</q-item-section>
             <q-item-section avatar>
               <router-link
+                v-if="item.location"
                 :to="{ name: 'warehouses', query: { location: item.location.code } }"
                 class="link"
                 >{{ item.location.code }}</router-link
               >
+              <span v-else class="text-gray-5 italic">vychystáno</span>
             </q-item-section>
           </q-item>
           <q-item>

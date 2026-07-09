@@ -985,10 +985,25 @@ class WarehouseService:
             for order_item in assigned_order_items:
                 warehouse_item = order_item.warehouse_item
                 if warehouse_item:
+                    # Recover original location from the pick movement (location is None after picking)
+                    pick_movement = (
+                        WarehouseMovement.objects.filter(
+                            item=warehouse_item,
+                            outbound_order_code=warehouse_order,
+                            location_to=None,
+                        )
+                        .select_related("location_from")
+                        .order_by("-moved_at")
+                        .first()
+                    )
+                    original_location = (
+                        pick_movement.location_from if pick_movement else None
+                    )
+
                     # Write inverse WarehouseMovement (location_to=original, location_from=None for cancellation)
                     WarehouseMovement.objects.create(
                         location_from=None,  # Cancellation - no source
-                        location_to=warehouse_item.location,  # Return to original location
+                        location_to=original_location,  # Return to original location
                         outbound_order_code=warehouse_order,
                         stock_product=warehouse_item.stock_product,
                         amount=order_item.amount,
@@ -998,6 +1013,10 @@ class WarehouseService:
                         if context.user_id
                         else None,
                     )
+
+                    # Restore item location
+                    warehouse_item.location = original_location
+                    warehouse_item.save(update_fields=["location_id", "changed"])
 
                     # Clear the assignment
                     order_item.warehouse_item = None
@@ -1181,6 +1200,8 @@ class WarehouseService:
                 if context.user_id
                 else None,
             )
+            assigned_item.location = None
+            assigned_item.save(update_fields=["location_id", "changed"])
             audit_service.add_entry(
                 final_order_item,
                 action=AuditAction.UPDATE,

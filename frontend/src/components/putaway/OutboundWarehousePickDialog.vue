@@ -121,7 +121,7 @@
                   lookupResult?.warehouse_item?.product.name
                 }}</span>
                 <span class="text-sm text-gray-6">
-                  Lokace: {{ lookupResult?.warehouse_item?.location.code }}
+                  Lokace: {{ lookupResult?.warehouse_item?.location?.code }}
                 </span>
                 <div class="flex gap-2 flex-wrap">
                   <WarehouseItemAmountBadge
@@ -684,6 +684,7 @@ type LocationGroupWithAmount = { code: string; warehouseName: string; count: num
 const locationGroupsWithAmounts = computed<LocationGroupWithAmount[]>(() => {
   const map = new Map<string, LocationGroupWithAmount>()
   for (const c of allCandidates.value) {
+    if (!c.location) continue
     const key = c.location.code
     if (map.has(key)) {
       const group = map.get(key)!
@@ -724,6 +725,7 @@ const fungibleLocations = computed<FungibleLocation[]>(() => {
   const map = new Map<string, FungibleLocation>()
 
   for (const item of items) {
+    if (!item.location) continue
     const key = item.location.code
     if (map.has(key)) {
       map.get(key)!.totalAmount += item.amount
@@ -745,7 +747,7 @@ const maxAvailableInLocation = computed(() => {
   // Direct warehouse item scan: use the item's amount directly (matching_items is not set)
   if (
     lookupResult.value?.entity_type === 'warehouse_item' &&
-    lookupResult.value.warehouse_item?.location.code === selectedLocation.value
+    lookupResult.value.warehouse_item?.location?.code === selectedLocation.value
   ) {
     return lookupResult.value.warehouse_item.amount
   }
@@ -823,7 +825,7 @@ const onBarcodeInput = async (barcode: string | number | null) => {
       item.tracking_level === 'SERIALIZED_PIECE'
     ) {
       currentStep.value = 'confirm-serialized'
-      selectedLocation.value = item.location.code
+      selectedLocation.value = item.location?.code ?? null
       pickAmount.value = item.amount
 
       // Auto-confirm in scanner mode after delay
@@ -834,7 +836,7 @@ const onBarcodeInput = async (barcode: string | number | null) => {
       }
     } else {
       // Fungible/batch item - need location confirmation and amount
-      selectedLocation.value = item.location.code
+      selectedLocation.value = item.location?.code ?? null
       currentStep.value = 'pick-fungible'
       pickAmount.value = Math.min(Number(props.item.amount), item.amount)
     }
@@ -875,7 +877,7 @@ const onLocationScanForProduct = async (locationCode: string | number | null) =>
   // Filter matching items to only those in this location
   const itemsInLocation =
     lookupResult.value?.matching_items?.filter(
-      (item) => item.location.code.toLowerCase() === locationCode.trim().toLowerCase()
+      (item) => item.location?.code.toLowerCase() === locationCode.trim().toLowerCase()
     ) ?? []
 
   if (itemsInLocation.length === 0) {
@@ -940,7 +942,7 @@ const confirmFungiblePick = async () => {
     itemInLocation = lookupResult.value.warehouse_item
   } else {
     const items = lookupResult.value?.matching_items ?? []
-    const itemsAtLocation = items.filter((item) => item.location.code === selectedLocation.value)
+    const itemsAtLocation = items.filter((item) => item.location?.code === selectedLocation.value)
     // Prefer an item that alone covers the pick amount; otherwise take the largest
     itemInLocation =
       itemsAtLocation.find((i) => i.amount >= pickAmount.value) ??

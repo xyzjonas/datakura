@@ -73,22 +73,27 @@
       <InboundWarehouseOrderTimeline :order="order" />
     </ForegroundPanel>
 
-    <LargeTabs
-      v-if="order.state != 'in transit'"
-      v-model:tab="activeTabKey"
-      :items="[
-        {
-          key: 'todo',
-          icon: 'sym_o_call_received',
-          title: `${pendingOrderItems.length} položky k naskladnění`,
-        },
-        { key: 'done', icon: 'sym_o_task_alt', title: `${doneItems.length} hotové položky` },
-      ]"
-      class="my-5"
-    />
-    <!-- REMAINING ITEMS -->
+    <div v-if="order.state != 'in transit'" class="flex gap-2 my-1">
+      <q-btn
+        :outline="!showPending"
+        :color="showPending ? 'primary' : 'gray-5'"
+        :label="`K naskladnění (${todoItems.length})`"
+        icon="sym_o_call_received"
+        no-caps
+        @click="showPending = !showPending"
+      />
+      <q-btn
+        :outline="!showDone"
+        :color="showDone ? 'positive' : 'gray-5'"
+        :label="`Hotovo (${doneItems.length})`"
+        icon="sym_o_task_alt"
+        no-caps
+        @click="showDone = !showDone"
+      />
+    </div>
+
     <InboundWarehouseOrderItemsList
-      v-if="activeTabKey === 'todo'"
+      v-if="showPending"
       :items="todoItems"
       :readonly="order.state !== 'draft'"
       :allow-move="order.state === 'pending' || order.state === 'started'"
@@ -98,14 +103,14 @@
       @remove-item="removeItem"
       @moved="moveItem"
       @offloaded="fetchOrder"
-    ></InboundWarehouseOrderItemsList>
+    />
 
     <InboundWarehouseOrderItemsList
-      v-if="activeTabKey === 'done'"
+      v-if="showDone && doneItems.length > 0"
       :items="doneItems"
       readonly
       :allow-move="false"
-    ></InboundWarehouseOrderItemsList>
+    />
 
     <ConfirmDialog
       v-model:show="confirmDialog"
@@ -150,7 +155,6 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import LargeTabs from '@/components/LargeTabs.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
 import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehouseOrderItemsList.vue'
@@ -169,7 +173,8 @@ const props = defineProps<{ code: string }>()
 const { onResponse } = useApi()
 const $q = useQuasar()
 
-const activeTabKey = ref('todo')
+const showPending = ref(true)
+const showDone = ref(true)
 
 const response = await warehouseApiRoutesWarehouseGetInboundWarehouseOrder({
   path: { code: props.code },

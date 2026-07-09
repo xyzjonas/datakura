@@ -274,6 +274,7 @@ def test_get_warehouse_item_detail(db, client) -> None:
     data = res.json()["data"]
     assert data["id"] == item.pk
     assert data["product"]["code"] == item.stock_product.code
+    assert item.location
     assert data["location"]["code"] == item.location.code
     assert len(data["audits"]) == 2
     assert data["audits"][0]["source"] == "movement"

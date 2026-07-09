@@ -6,7 +6,9 @@
           <component :is="Component" />
         </div>
         <template #fallback>
-          <span>...loading</span>
+          <div class="grid justify-center content-center text-center flex-1">
+            <q-spinner size="86px" :thickness="2" color="primary"></q-spinner>
+          </div>
         </template>
       </Suspense>
     </RouterView>

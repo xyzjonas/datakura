@@ -6,7 +6,6 @@
         <q-breadcrumbs-el label="Výdejky" :to="{ name: 'warehouseOutboundOrders' }" />
         <q-breadcrumbs-el :label="order.code" />
       </q-breadcrumbs>
-      <!-- <OrderProgress :order="order" class="flex-1 h-6 w-full" /> -->
       <div class="flex flex-col items-end gap-3 flex-1">
         <OrderProgress :order="order" class="h-6 w-full" />
         <q-btn flat color="primary" icon-right="sym_o_query_stats" @click="auditDialog = true">
@@ -54,40 +53,40 @@
         </div>
       </div>
       <div class="flex flex-col items-end gap-1">
-        <q-badge color="primary">Zbývá {{ order.remaining_amount }}</q-badge>
         <span v-if="order.total_price_at_shipment" class="text-sm text-gray-6">
           Celková cena výdeje:
-          <strong>{{ Number(order.total_price_at_shipment).toFixed(2) }} CZK</strong>
+          <strong class="text-lg text-primary"
+            >{{ Number(order.total_price_at_shipment).toFixed(2) }} CZK</strong
+          >
         </span>
       </div>
     </div>
 
-    <LargeTabs
-      v-model:tab="activeTabKey"
-      :items="[
-        {
-          key: 'todo',
-          icon: 'sym_o_playlist_add_check',
-          title: `${todoItems.length} položky k vychystání`,
-        },
-        { key: 'done', icon: 'sym_o_task_alt', title: `${doneItems.length} přiřazené položky` },
-      ]"
-      class="my-5"
-    />
+    <div class="flex gap-2 my-1">
+      <q-btn
+        :outline="!showPending"
+        :color="showPending ? 'primary' : 'gray-5'"
+        :label="`K vychystání (${todoItems.length})`"
+        icon="sym_o_playlist_add_check"
+        no-caps
+        @click="showPending = !showPending"
+      />
+      <q-btn
+        :outline="!showAssigned"
+        :color="showAssigned ? 'positive' : 'gray-5'"
+        :label="`Přiřazeno (${doneItems.length})`"
+        icon="sym_o_task_alt"
+        no-caps
+        @click="showAssigned = !showAssigned"
+      />
+    </div>
 
     <OutboundWarehouseOrderItemsList
-      v-if="activeTabKey === 'todo'"
-      :items="todoItems"
+      :items="visibleItems"
       :warehouse-order-code="order.code"
       @updated="replaceOrder"
     />
 
-    <OutboundWarehouseOrderItemsList
-      v-if="activeTabKey === 'done'"
-      :items="doneItems"
-      :warehouse-order-code="order.code"
-      @updated="replaceOrder"
-    />
     <AuditLogDialog
       v-model:show="auditDialog"
       source="warehouse-outbound-order"
@@ -109,7 +108,6 @@ import {
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import LargeTabs from '@/components/LargeTabs.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
 import OutboundWarehouseOrderItemsList from '@/components/putaway/OutboundWarehouseOrderItemsList.vue'
@@ -131,15 +129,21 @@ if (data) {
   order.value = data.data
 }
 
-const activeTabKey = ref('todo')
+const showPending = ref(true)
+const showAssigned = ref(true)
 
-const pendingOrderItems = computed(() =>
-  (order.value?.order_items ?? []).filter((item) => item.pending),
+const todoItems = computed(() => (order.value?.order_items ?? []).filter((item) => item.pending))
+
+const doneItems = computed(() =>
+  (order.value?.order_items ?? [])
+    .filter((item) => !item.pending)
+    .sort((a, b) => new Date(a.changed).getTime() - new Date(b.changed).getTime()),
 )
 
-const todoItems = computed(() => pendingOrderItems.value)
-
-const doneItems = computed(() => (order.value?.order_items ?? []).filter((item) => !item.pending))
+const visibleItems = computed(() => [
+  ...(showPending.value ? todoItems.value : []),
+  ...(showAssigned.value ? doneItems.value : []),
+])
 
 const replaceOrder = (nextOrder: OutboundWarehouseOrderSchema) => {
   order.value = nextOrder

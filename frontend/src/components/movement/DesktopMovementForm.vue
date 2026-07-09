@@ -125,7 +125,7 @@ const needsAmount = computed(
 )
 
 const itemLabel = (item: WarehouseItemSchema) =>
-  `${item.location.code} · ${item.amount} ${item.unit_of_measure}${item.batch ? ` · šarže ${item.batch.primary_barcode?.code ?? item.batch.id}` : ''}`
+  `${item.location?.code ?? '—'} · ${item.amount} ${item.unit_of_measure}${item.batch ? ` · šarže ${item.batch.primary_barcode?.code ?? item.batch.id}` : ''}`
 
 const amountRule = (val: number | null) => {
   if (val === null || val === undefined) return 'Zadejte množství'

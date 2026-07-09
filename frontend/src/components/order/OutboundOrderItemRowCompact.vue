@@ -1,11 +1,10 @@
 <template>
-  <div class="flex items-center gap-5 w-full flex-nowrap flex-col md:flex-row">
+  <div class="flex items-center gap-4 w-full flex-nowrap flex-col md:flex-row">
+    <IndexRectangle :index="item.index + 1" />
     <div
       class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_5rem_8rem_8rem] items-center gap-x-3 gap-y-1.5 w-full min-w-0"
     >
       <div class="flex items-center gap-5 min-w-0">
-        <IndexRectangle :index="item.index + 1" />
-
         <!-- Product -->
         <div class="min-w-12">
           <router-link

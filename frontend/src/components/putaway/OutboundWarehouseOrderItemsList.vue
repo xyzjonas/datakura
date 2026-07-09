@@ -1,15 +1,15 @@
 <template>
   <div v-if="items.length > 0" class="flex flex-col gap-2">
-    <TransitionGroup name="list" tag="div" class="flex">
-      <div v-for="(item, index) in items" :key="item.id" class="simple_list_item">
-        <IndexRectangle :index="index + 1" />
-        <OutboundWarehouseOrderItemRow
-          :item="item"
-          :warehouse-order-code="warehouseOrderCode"
-          @updated="(order) => $emit('updated', order)"
-          class="flex-1"
-        />
-      </div>
+    <TransitionGroup name="list" class="flex">
+      <OutboundWarehouseOrderItemRow
+        v-for="(item, index) in items"
+        :key="item.id"
+        :index="index"
+        :item="item"
+        :warehouse-order-code="warehouseOrderCode"
+        @updated="(order) => $emit('updated', order)"
+        class="flex-1"
+      />
     </TransitionGroup>
   </div>
   <EmptyPanel v-else icon="sym_o_apps_outage" class="min-h-xs">
@@ -22,7 +22,6 @@
 <script setup lang="ts">
 import type { OutboundWarehouseOrderItemSchema, OutboundWarehouseOrderSchema } from '@/client'
 import EmptyPanel from '../EmptyPanel.vue'
-import IndexRectangle from '../IndexRectangle.vue'
 import OutboundWarehouseOrderItemRow from './OutboundWarehouseOrderItemRow.vue'
 
 defineProps<{

@@ -1,24 +1,24 @@
 <template>
   <div v-if="items.length > 0" class="flex flex-col gap-2">
-    <!-- <q-list separator> -->
-    <TransitionGroup name="list" tag="div" class="flex">
-      <div v-for="(item, index) in items" :key="item.id" clickable class="simple_list_item">
-        <IndexRectangle :index="index + 1" />
-        <InboundWarehouseItemEditableRow
-          :item="item"
-          :readonly="readonly"
-          :allow-move="allowMove"
-          :warehouse-order-code="warehouseOrderCode"
-          @dissolve-item="() => $emit('dissolveItem', item.id)"
-          @packaged="(newItems, batch, trackingType) => $emit('packaged', item.id, newItems, batch, trackingType)"
-          @remove="(amount) => $emit('removeItem', item.id, amount)"
-          @moved="(location) => $emit('moved', item.warehouse_item_id!, location)"
-          @offloaded="$emit('offloaded')"
-          class="flex-1"
-        ></InboundWarehouseItemEditableRow>
-      </div>
+    <TransitionGroup name="list" tag="div" class="flex flex-col gap-2">
+      <InboundWarehouseItemEditableRow
+        v-for="(item, index) in items"
+        :key="item.id"
+        :index="index"
+        :item="item"
+        :readonly="readonly"
+        :allow-move="allowMove"
+        :warehouse-order-code="warehouseOrderCode"
+        @dissolve-item="() => $emit('dissolveItem', item.id)"
+        @packaged="
+          (newItems, batch, trackingType) =>
+            $emit('packaged', item.id, newItems, batch, trackingType)
+        "
+        @remove="(amount) => $emit('removeItem', item.id, amount)"
+        @moved="(location) => $emit('moved', item.warehouse_item_id!, location)"
+        @offloaded="$emit('offloaded')"
+      />
     </TransitionGroup>
-    <!-- </q-list> -->
   </div>
   <EmptyPanel v-else icon="sym_o_apps_outage">
     <div class="flex flex-col gap-2 items-start py-10">
@@ -38,7 +38,6 @@ import type {
 import type { TrackingType } from './InboundWarehouseOrderTrackDialog.vue'
 import EmptyPanel from '../EmptyPanel.vue'
 import InboundWarehouseItemEditableRow from './InboundWarehouseItemEditableRow.vue'
-import IndexRectangle from '../IndexRectangle.vue'
 
 defineEmits<{
   (e: 'dissolveItem', itemId: number): void

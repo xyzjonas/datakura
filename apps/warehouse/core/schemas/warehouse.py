@@ -57,7 +57,7 @@ class WarehouseItemSchema(BaseSchema):
     product: ProductSchema
     unit_of_measure: str
     amount: float
-    location: WarehouseLocationSchema
+    location: WarehouseLocationSchema | None = None
     tracking_level: TrackingLevel
     inbound_order_code: str | None = None
     outbound_order_code: str | None = None

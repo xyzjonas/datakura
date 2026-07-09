@@ -540,7 +540,7 @@ export type WarehouseItemSchema = {
      * Amount
      */
     amount: number;
-    location: WarehouseLocationSchema;
+    location?: WarehouseLocationSchema | null;
     tracking_level: TrackingLevel;
     /**
      * Inbound Order Code
@@ -665,7 +665,7 @@ export type WarehouseItemDetailSchema = {
      * Amount
      */
     amount: number;
-    location: WarehouseLocationSchema;
+    location?: WarehouseLocationSchema | null;
     tracking_level: TrackingLevel;
     /**
      * Inbound Order Code

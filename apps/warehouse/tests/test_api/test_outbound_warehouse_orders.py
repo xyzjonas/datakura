@@ -3,6 +3,8 @@ from decimal import Decimal
 from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.warehouse import routes
+from apps.warehouse.core.schemas.context import RequestContext
+from apps.warehouse.core.services.warehouse import WarehouseService
 from apps.warehouse.models.orders import OutboundOrderState
 from apps.warehouse.models.warehouse import (
     Batch,
@@ -329,3 +331,95 @@ def test_price_at_shipment_is_null_for_unassigned_items(db) -> None:
     data = res.json()["data"]
     assert data["order_items"][0]["price_at_shipment"] is None
     assert float(data["total_price_at_shipment"]) == 0.0
+
+
+def test_pick_clears_warehouse_item_location(db) -> None:
+    """Picking a warehouse item sets its location to None (bug #5 fix)."""
+    client = TestClient(routes)
+    product = StockProductFactory()
+    outbound_order = OutboundOrderFactory.it()
+    source_order_item = OutboundOrderItemFactory.it(
+        order=outbound_order, stock_product=product, amount=4
+    )
+    warehouse_order: OutboundWarehouseOrder = WarehouseOrderOutFactory.it(
+        order=outbound_order, state=OutboundWarehouseOrderState.PENDING
+    )
+    requirement: OutboundWarehouseOrderItem = OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_order_item,
+        stock_product=product,
+        amount=4,
+    )
+    source_inbound = InboundWarehouseOrderFactory(
+        state=InboundWarehouseOrderState.PENDING
+    )
+    location = WarehouseLocationFactory(is_putaway=False)
+    matching_item: WarehouseItem = WarehouseItemFactory.it(
+        order_in=source_inbound,
+        stock_product=product,
+        amount=4,
+        location=location,
+    )
+
+    res = client.post(
+        f"/orders-outgoing/{warehouse_order.code}/order-items/{requirement.pk}/assign",
+        json={"warehouse_item_id": matching_item.pk},
+    )
+
+    assert res.status_code == 200
+    matching_item.refresh_from_db()
+    assert matching_item.location is None, (
+        "Picked item must have location cleared to None"
+    )
+
+    # API response must expose location as null
+    order_item_data = next(
+        i for i in res.json()["data"]["order_items"] if i["id"] == requirement.pk
+    )
+    assert order_item_data["warehouse_item"]["location"] is None
+
+
+def test_cancel_outbound_warehouse_order_restores_item_location(db) -> None:
+    """Cancelling a warehouse order restores picked items to their original location."""
+    product = StockProductFactory()
+    outbound_order = OutboundOrderFactory.it()
+    source_order_item = OutboundOrderItemFactory.it(
+        order=outbound_order, stock_product=product, amount=4
+    )
+    warehouse_order: OutboundWarehouseOrder = WarehouseOrderOutFactory.it(
+        order=outbound_order, state=OutboundWarehouseOrderState.PENDING
+    )
+    requirement: OutboundWarehouseOrderItem = OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_order_item,
+        stock_product=product,
+        amount=4,
+    )
+    source_inbound = InboundWarehouseOrderFactory(
+        state=InboundWarehouseOrderState.PENDING
+    )
+    original_location = WarehouseLocationFactory(is_putaway=False)
+    matching_item: WarehouseItem = WarehouseItemFactory.it(
+        order_in=source_inbound,
+        stock_product=product,
+        amount=4,
+        location=original_location,
+    )
+
+    # Pick the item (location becomes None)
+    ctx = RequestContext(user_id=None)
+    WarehouseService.assign_outbound_item(
+        warehouse_order_code=warehouse_order.code,
+        order_item_id=requirement.pk,
+        warehouse_item_id=matching_item.pk,
+        context=ctx,
+    )
+    matching_item.refresh_from_db()
+    assert matching_item.location is None
+
+    # Cancel the order — location must be restored
+    WarehouseService.cancel_outbound_warehouse_order(warehouse_order, ctx)
+    matching_item.refresh_from_db()
+    assert matching_item.location == original_location, (
+        "Cancelled pick must restore item location to original"
+    )

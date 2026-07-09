@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex flex-col xl:flex-row w-full justify-between items-start xl:items-center gap-5">
-      <div class="flex items-start gap-3">
+      <div class="flex gap-4 items-start xl:items-center">
         <IndexRectangle :index="item.index + 1" />
         <div class="flex flex-col gap-2">
           <div>

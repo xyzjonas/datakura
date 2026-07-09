@@ -1,112 +1,96 @@
 <template>
-  <div>
-    <div class="flex items-center min-h-20 py-1">
-      <div class="flex flex-col gap-2">
-        <div class="flex items-center gap-2">
-          <a
-            @click="
-              $router.push({
-                name: 'productDetail',
-                params: { productCode: item.product.code },
-              })
-            "
-            class="link"
-            >{{ item.product.name }}</a
-          >
-          <q-btn
-            v-if="item.warehouse_item_id"
-            dense
-            flat
-            round
-            size="10px"
-            icon="sym_o_open_in_new"
-            :to="{ name: 'warehouseItemDetail', params: { itemId: item.warehouse_item_id } }"
-          >
-            <q-tooltip :offset="[0, 10]">Detail skladové položky</q-tooltip>
-          </q-btn>
-        </div>
-        <div class="flex gap-2">
-          <q-badge class="py-1" :color="item.pending ? 'warning' : 'positive'">
-            {{ item.pending ? 'K NASKLADNĚNÍ' : 'HOTOVO' }}
-          </q-badge>
-          <q-badge
-            v-if="item.outbound_order_code"
-            color="primary"
-            class="py-1 cursor-pointer"
-            @click="
-              $router.push({
-                name: 'warehouseOutboundOrderDetail',
-                params: { code: item.outbound_order_code },
-              })
-            "
-          >
-            VÝDEJKA {{ item.outbound_order_code }}
-          </q-badge>
-          <TrackingLevelBadge :level="item.tracking_level" />
-          <PackageTypeBadge v-if="item.package" :package-type="item.package.type" />
-          <BatchBadge v-if="item.batch_barcode" :batch-code="item.batch_barcode" />
-        </div>
+  <div
+    :class="[
+      'flex flex-col lg:flex-row lg:items-center lg:justify-between flex-1 py-1 border border-l-5 rounded-sm px-5 py-4 min-h-30',
+      item.pending ? 'border-l-orange' : 'border-l-positive',
+    ]"
+  >
+    <div class="flex gap-4 items-start lg:items-center">
+      <IndexRectangle :index="index + 1" />
+      <div class="flex flex-col gap-1">
+      <span :class="['text-xs font-bold', item.pending ? 'text-orange' : 'text-positive']">
+        {{ item.pending ? 'K NASKLADNĚNÍ' : 'HOTOVO' }}
+      </span>
+      <router-link :to="{ name: 'productDetail', params: { productCode: item.product.code } }">
+        <h5 class="link text-lg">{{ item.product.name }}</h5>
+      </router-link>
+      <span class="text-muted text-xs">{{ item.product.code }}</span>
+
+      <div class="flex flex-wrap gap-2 items-center">
+        <WarehouseItemAmountBadge :item="amountBadgeItem" />
+        <TrackingLevelBadge :level="item.tracking_level" />
+        <PackageTypeBadge v-if="item.package" :package-type="item.package.type" />
+        <BatchBadge v-if="item.batch_barcode" :batch-code="item.batch_barcode" />
+        <q-badge
+          v-if="item.outbound_order_code"
+          color="primary"
+          class="py-1 cursor-pointer"
+          @click="
+            $router.push({
+              name: 'warehouseOutboundOrderDetail',
+              params: { code: item.outbound_order_code },
+            })
+          "
+        >
+          VÝDEJKA {{ item.outbound_order_code }}
+        </q-badge>
       </div>
-      <div class="light:text-gray-5 dark:text-gray-3 q-gutter-xs ml-auto">
-        <q-btn
-          v-if="isRemovable"
-          @click="removeItemDialog = true"
-          size="14px"
-          flat
-          dense
-          round
-          icon="delete"
-        >
-          <q-tooltip :offset="[0, 10]">Odstranit položku z příjemky do dobropisu</q-tooltip>
-        </q-btn>
-        <q-btn
-          v-if="isRemovable"
-          @click="dissolveDialog = true"
-          size="14px"
-          flat
-          dense
-          round
-          icon="close"
-        >
-          <q-tooltip :offset="[0, 10]">Zrušit evidenci položky ⤍ skladem volně</q-tooltip>
-        </q-btn>
-        <q-btn
-          v-if="isReadyToBeTracked"
-          @click="setItemTrackingDialog = true"
-          size="14px"
-          flat
-          dense
-          round
-          icon="sym_o_qr_code_scanner"
-        >
-          <q-tooltip :offset="[0, 10]">Evidovat položku</q-tooltip>
-        </q-btn>
-        <q-btn
-          v-if="allowMove"
-          @click="moveDialog = true"
-          size="14px"
-          flat
-          dense
-          round
-          icon="sym_o_move_up"
-        >
-          <q-tooltip :offset="[0, 10]">Přesunout položku</q-tooltip>
-        </q-btn>
-        <q-btn
-          v-if="!props.readonly"
-          @click="offloadDialog = true"
-          size="14px"
-          flat
-          dense
-          round
-          icon="sym_o_move_down"
-        >
-          <q-tooltip :offset="[0, 10]">Přesunout do podřízené objednávky</q-tooltip>
-        </q-btn>
+
+      <div v-if="item.warehouse_item_id" class="text-sm text-gray-6">
+        <WarehouseItemLink :item-id="item.warehouse_item_id!" />
       </div>
-      <q-separator vertical class="mx-8" inset />
-      <WarehouseItemAmountBadge :item="amountBadgeItem" class="min-w-30" />
     </div>
+    </div>
+
+    <div class="flex gap-1 items-center self-end lg:self-auto">
+      <q-btn
+        v-if="isRemovable"
+        @click="removeItemDialog = true"
+        flat
+        dense
+        round
+        icon="delete"
+        color="negative"
+      >
+        <q-tooltip :offset="[0, 10]">Odstranit položku z příjemky do dobropisu</q-tooltip>
+      </q-btn>
+      <q-btn
+        v-if="isRemovable"
+        @click="dissolveDialog = true"
+        flat
+        dense
+        round
+        icon="close"
+        color="warning"
+      >
+        <q-tooltip :offset="[0, 10]">Zrušit evidenci položky ⤍ skladem volně</q-tooltip>
+      </q-btn>
+      <q-btn
+        v-if="isReadyToBeTracked"
+        flat
+        color="primary"
+        icon="sym_o_qr_code_scanner"
+        label="evidovat"
+        @click="setItemTrackingDialog = true"
+      />
+      <q-btn
+        v-if="allowMove"
+        flat
+        color="primary"
+        icon="sym_o_move_up"
+        label="přesunout"
+        @click="moveDialog = true"
+      />
+      <q-btn
+        v-if="!props.readonly"
+        flat
+        color="warning"
+        icon="sym_o_move_down"
+        label="do podřízené"
+        @click="offloadDialog = true"
+      />
+    </div>
+  </div>
     <InboundWarehouseOrderTrackDialog
       v-model:show="setItemTrackingDialog"
       :item="asOrderItem"
@@ -139,7 +123,6 @@
       :loading="offloadLoading"
       @confirm="onOffload"
     />
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -162,8 +145,11 @@ import InboundWarehouseOrderTrackDialog, {
 } from './InboundWarehouseOrderTrackDialog.vue'
 import LocationSelectionDialog from './LocationSelectionDialog.vue'
 import OffloadItemToChildOrderDialog from './OffloadItemToChildOrderDialog.vue'
+import WarehouseItemLink from '../links/WarehouseItemLink.vue'
+import IndexRectangle from '../IndexRectangle.vue'
 
 const props = defineProps<{
+  index: number
   item: InboundWarehouseOrderItemSchema
   allowMove?: boolean
   readonly?: boolean

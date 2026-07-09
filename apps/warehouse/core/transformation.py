@@ -530,7 +530,7 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
         created=item.created,
         changed=item.changed,
         amount=float(amount or 0),
-        location=location_orm_to_schema(item.location),
+        location=location_orm_to_schema(item.location) if item.location else None,
         inbound_order_code=item.order_in.code if item.order_in else None,
         outbound_order_code=item.outbound_assignment.warehouse_order.code
         if hasattr(item, "outbound_assignment") and item.outbound_assignment is not None
@@ -786,7 +786,11 @@ def inbound_warehouse_order_item_to_schema(
     is_pending = item.warehouse_order.state == InboundWarehouseOrderState.DRAFT or (
         bool(linked_items)
         if item.tracking_level == TrackingLevel.FUNGIBLE
-        else any(linked_item.location.is_putaway for linked_item in linked_items)
+        else any(
+            linked_item.location.is_putaway
+            for linked_item in linked_items
+            if linked_item.location is not None
+        )
     )
     if outbound_order_code is not None:
         is_pending = False
@@ -916,7 +920,7 @@ def warehouse_inbound_order_orm_to_schema(
                 for item in w_order.items.order_by(
                     F("package_type").asc(nulls_first=True)
                 )
-                if not item.location.is_putaway
+                if item.location is None or not item.location.is_putaway
             ]
         ),
         total_amount=total_amount,

@@ -380,6 +380,10 @@ def get_product_warehouse_info(
 
     filtered_items = list(items)
     for item in filtered_items:
+        if not item.location:
+            # outbound_assignment has to be non-null which also means location will always be null
+            # this is here only to satisfy the type checker
+            continue
         warehouse_model = item.location.warehouse
         if warehouse_model.name not in warehouse_names:
             warehouse = WarehouseExpandedSchema(
