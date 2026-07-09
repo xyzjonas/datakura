@@ -22,6 +22,7 @@ vi.mock('@/composables/query/use-products-query', async () => {
       pageSize: ref(20),
       search: ref(''),
       stockProductCode: ref<string | null>(null),
+      includeAll: ref(false),
     }),
   }
 })

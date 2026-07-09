@@ -119,6 +119,21 @@ export function useQueryProducts() {
     },
   })
 
+  const includeAll = computed<boolean>({
+    get() {
+      return route.query.include_all === '1'
+    },
+    set(val: boolean) {
+      const query = { ...route.query }
+      if (val) {
+        query.include_all = '1'
+      } else {
+        delete query.include_all
+      }
+      router.push({ query })
+    },
+  })
+
   return {
     search,
     page,
@@ -126,5 +141,6 @@ export function useQueryProducts() {
     productType,
     productGroup,
     stockProductCode,
+    includeAll,
   }
 }

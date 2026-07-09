@@ -38,6 +38,7 @@
           hint=""
           class="min-w-[300px] flex-1"
         />
+        <q-toggle v-model="includeAll" label="Zobrazit vše" color="primary" />
       </div>
     </template>
 
@@ -195,7 +196,7 @@ const emit = defineEmits<{
 const selectedOrders = defineModel<OutboundOrderSchema[]>('selectedOrders', { default: [] })
 const customerFilter = defineModel<CustomerSchema | undefined>('customerFilter')
 
-const { page, pageSize, search, stockProductCode } = useQueryProducts()
+const { page, pageSize, search, stockProductCode, includeAll } = useQueryProducts()
 const { onResponse } = useApi()
 const $q = useQuasar()
 
@@ -218,6 +219,7 @@ const fetchOrders = async () => {
         search_term: search.value,
         customer_code: customerFilter.value?.code,
         stock_product_code: stockProductCode.value ?? undefined,
+        include_all: includeAll.value || undefined,
       },
     })
     const data = onResponse(response)
@@ -259,6 +261,7 @@ const onPaginationChange = async (requestProp: { pagination: QTableProps['pagina
 watch(search, fetchOrders)
 watch(() => customerFilter.value?.code, fetchOrders)
 watch(stockProductCode, fetchOrders)
+watch(includeAll, fetchOrders)
 
 watch(
   () => props.invoiceMode,

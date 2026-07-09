@@ -38,6 +38,7 @@
             hint=""
             class="min-w-[300px] flex-1"
           />
+          <q-toggle v-model="includeAll" label="Zobrazit vše" color="primary" />
         </div>
       </template>
       <template #body-cell-code="props">
@@ -113,7 +114,7 @@ import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CustomerLink from '../links/CustomerLink.vue'
 
-const { page, pageSize, search, stockProductCode } = useQueryProducts()
+const { page, pageSize, search, stockProductCode, includeAll } = useQueryProducts()
 
 export type Pagination = NonNullable<QTableProps['pagination']>
 
@@ -186,6 +187,7 @@ watch(currentRoute, () => {
 
 watch(search, fetch)
 watch(stockProductCode, fetch)
+watch(includeAll, fetch)
 
 const columns: QTableColumn[] = [
   {

@@ -34,6 +34,7 @@ def get_inbound_orders(
     request: HttpRequest,
     search_term: str | None = None,
     stock_product_code: str | None = None,
+    include_all: bool = False,
 ):
     """
     List incoming orders, optionally filtered by code or supplier name.
@@ -43,6 +44,7 @@ def get_inbound_orders(
         inbound_orders_service.get_inbound_orders(
             search_term=search_term,
             stock_product_code=stock_product_code,
+            include_all=include_all,
         ),
     )
     return qs.all()

@@ -323,19 +323,22 @@ class OutboundOrdersService:
         search_term: str | None = None,
         stock_product_code: str | None = None,
         customer_code: str | None = None,
+        include_all: bool = False,
     ) -> QuerySet[OutboundOrder]:
         qs = OutboundOrder.objects.select_related(
             "customer",
             "invoice__customer",
             "invoice__supplier",
             "invoice__payment_method",
-        ).exclude(
-            state__in=[
-                OutboundOrderState.CANCELLED,
-                OutboundOrderState.COMPLETED,
-                OutboundOrderState.COMPLETED_PAID,
-            ]
         )
+        if not include_all:
+            qs = qs.exclude(
+                state__in=[
+                    OutboundOrderState.CANCELLED,
+                    OutboundOrderState.COMPLETED,
+                    OutboundOrderState.COMPLETED_PAID,
+                ]
+            )
 
         if search_term:
             search_term = search_term.lower()

@@ -34,6 +34,7 @@ def get_outbound_orders(
     search_term: str | None = None,
     stock_product_code: str | None = None,
     customer_code: str | None = None,
+    include_all: bool = False,
 ):
     qs = cast(
         QuerySet[OutboundOrder],
@@ -41,6 +42,7 @@ def get_outbound_orders(
             search_term=search_term,
             stock_product_code=stock_product_code,
             customer_code=customer_code,
+            include_all=include_all,
         ),
     )
     return qs.all()

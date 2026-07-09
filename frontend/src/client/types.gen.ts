@@ -6432,6 +6432,10 @@ export type WarehouseApiRoutesInboundOrdersGetInboundOrdersData = {
          */
         stock_product_code?: string | null;
         /**
+         * Include All
+         */
+        include_all?: boolean;
+        /**
          * Page
          */
         page?: number;
@@ -6768,6 +6772,10 @@ export type WarehouseApiRoutesOutboundOrdersGetOutboundOrdersData = {
          * Customer Code
          */
         customer_code?: string | null;
+        /**
+         * Include All
+         */
+        include_all?: boolean;
         /**
          * Page
          */
