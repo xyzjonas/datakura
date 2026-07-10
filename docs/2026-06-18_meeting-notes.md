@@ -1,3 +1,17 @@
+## Od minula
+
+[ ] kod zakaznika = je potreba mit expedicni stitek
+[ ] obchodaci muzou hybat cenou +- % (e.g. 5%)
+[ ] zakaz evidence/rozpadnuti pro urcite skupiny (i produkt)
+[ ] soubory (dokumenty) vazat na produkt (certifikace) + poznamka (cislo sarze atp.)
+[ ] globalni minimalni cena polozka plosna pro kusovy prodej a v objednavce se prepise a zasviti. Moznost vyclenit urcite zakazniky (VIP) - v karte zakaznika
+[ ] navazat soubory (vice)
+[ ] multiselect na tisk stitku v prijemce
+[ ] tisk dodaciho listu (vydejka)
+[ ] export produktu do tabulky a zpet po editaci (manualni korekce cen)
+[ ] vratky (to be discussed)
+
+
 ## Prijem
 
 [x] chyba v souctu hmotnosti - prijemka
