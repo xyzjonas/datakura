@@ -104,7 +104,7 @@
       :order-code="order.code"
       :customer-code="order.customer.code"
       @remove-item="removeItem"
-      @reorder-items="reorderItems"
+      @reorder-item="reorderItem"
       @add-item="addItemDialog = true"
     />
 
@@ -162,31 +162,31 @@ import {
   warehouseApiRoutesOutboundOrdersDuplicateOutboundOrder,
   warehouseApiRoutesOutboundOrdersGetOutboundOrder,
   warehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrder,
+  warehouseApiRoutesOutboundOrdersReorderItemInOutboundOrder,
   warehouseApiRoutesOutboundOrdersTransitionOutboundOrder,
-  warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder,
   warehouseApiRoutesOutboundOrdersUpdateOutboundOrder,
   type OutboundOrderCreateOrUpdateSchema,
   type OutboundOrderItemCreateSchema,
   type OutboundOrderSchema,
 } from '@/client'
+import CommentCard from '@/components/CommentCard.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
-import NewOutboundOrderItemDialog from '@/components/order/NewOutboundOrderItemDialog.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
-import OutboundOrderTimeline from '@/components/order/OutboundOrderTimeline.vue'
+import NewOutboundOrderItemDialog from '@/components/order/NewOutboundOrderItemDialog.vue'
 import OutboundOrderDetailsListCard from '@/components/order/OutboundOrderDetailsListCard.vue'
-import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
-import OutboundOrderUpdateOrCreateDialog from '@/components/order/OutboundOrderUpdateOrCreateDialog.vue'
 import OutboundOrderProductsList from '@/components/order/OutboundOrderProductsList.vue'
+import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
+import OutboundOrderTimeline from '@/components/order/OutboundOrderTimeline.vue'
+import OutboundOrderUpdateOrCreateDialog from '@/components/order/OutboundOrderUpdateOrCreateDialog.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
+import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
-import { ref, computed } from 'vue'
-import CommentCard from '@/components/CommentCard.vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{ code: string }>()
 const order = ref<OutboundOrderSchema>()
@@ -236,56 +236,30 @@ const addItem = async (item: OutboundOrderItemCreateSchema) => {
   }
 }
 
-const removeItem = async (product_code: string) => {
+const removeItem = async (item_index: number) => {
   if (!order.value) {
     return
   }
   const result = await warehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrder({
-    path: { order_code: order.value.code, product_code },
+    path: { order_code: order.value.code, item_index },
   })
   const data = onResponse(result)
   if (data) {
-    order.value.items = order.value.items?.filter((it) => it.product.code !== product_code)
+    order.value.items = order.value.items?.filter((it) => it.index !== item_index)
   }
 }
 
-const reorderItems = async (items: NonNullable<OutboundOrderSchema['items']>) => {
+const reorderItem = async (itemIndex: number, newIndex: number) => {
   if (!order.value) {
     return
   }
-
-  const indexedItems = items.map((it, index) => ({ ...it, index }))
-  order.value.items = indexedItems
-
-  let hasError = false
-  for (const item of indexedItems) {
-    const res = await warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder({
-      path: { order_code: order.value!.code },
-      body: {
-        product_code: item.product.code,
-        product_name: item.product.name,
-        amount: item.amount,
-        total_price: item.total_price,
-        unit_price: item.unit_price,
-        index: item.index,
-        desired_package_type_name: item.desired_package_type_name,
-        desired_batch_code: item.desired_batch_code,
-      },
-    })
-    const data = onResponse(res)
-    if (!data?.data) {
-      hasError = true
-    }
-  }
-
-  if (hasError) {
-    const refreshResponse = await warehouseApiRoutesOutboundOrdersGetOutboundOrder({
-      path: { order_code: order.value.code },
-    })
-    const refreshData = onResponse(refreshResponse)
-    if (refreshData?.data) {
-      order.value = refreshData.data
-    }
+  const res = await warehouseApiRoutesOutboundOrdersReorderItemInOutboundOrder({
+    path: { order_code: order.value.code, item_index: itemIndex },
+    body: { new_index: newIndex },
+  })
+  const data = onResponse(res)
+  if (data) {
+    order.value = data.data
   }
 }
 

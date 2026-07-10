@@ -3,7 +3,7 @@
     <TransitionGroup>
       <ForegroundPanel
         v-for="(item, index) in items"
-        :key="item.product.code"
+        :key="item.index"
         :class="[
           'w-full',
           draggingIndex === index ? 'dragging' : '',
@@ -26,7 +26,7 @@
           :currency="currency"
           :order-code="orderCode"
           :customer-code="customerCode"
-          @remove="emit('removeItem', item.product.code)"
+          @remove="emit('removeItem', item.index)"
         />
       </ForegroundPanel>
     </TransitionGroup>
@@ -47,9 +47,9 @@ import ForegroundPanel from '../ForegroundPanel.vue'
 import OutboundOrderItemRowCompact from './OutboundOrderItemRowCompact.vue'
 
 const emit = defineEmits<{
-  (e: 'removeItem', productCode: string): void
+  (e: 'removeItem', itemIndex: number): void
   (e: 'addItem'): void
-  (e: 'reorderItems', items: OutboundOrderItemSchema[]): void
+  (e: 'reorderItem', itemIndex: number, newIndex: number): void
 }>()
 
 defineProps<{
@@ -102,7 +102,7 @@ const handleDrop = (event: DragEvent, dropIndex: number) => {
   newItems.splice(dropIndex, 0, draggedItem)
   items.value = newItems
   dragOverIndex.value = null
-  emit('reorderItems', newItems)
+  emit('reorderItem', draggedItem.index, dropIndex)
 }
 </script>
 

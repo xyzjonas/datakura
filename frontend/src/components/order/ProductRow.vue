@@ -107,6 +107,7 @@ import { computed, ref } from 'vue'
 import IndexRectangle from '../IndexRectangle.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 import SellingPriceEditor from './SellingPriceEditor.vue'
+import { isIndexedOrderItem } from '../type-guards/order.ts'
 
 const $q = useQuasar()
 const { onResponse } = useApi()
@@ -171,6 +172,11 @@ const pricingContext = computed(() => {
 const isPersistingOverride = ref(false)
 
 const update = async (changedField: 'amount' | 'unit' | 'total') => {
+  if (!isIndexedOrderItem(item.value)) {
+    $q.notify({ type: 'negative', message: 'Nelze upravit položku bez indexu' })
+    return
+  }
+
   if (props.orderType === 'outbound') {
     if (changedField === 'total') {
       unitPrice.value = computeUnitFromTotal()
@@ -189,14 +195,18 @@ const update = async (changedField: 'amount' | 'unit' | 'total') => {
     unit_price: unitPrice.value,
   }
 
+  if (props.orderType === 'outbound') {
+    payload['unit_price'] = unitPrice.value
+  }
+
   const res =
     props.orderType === 'outbound'
       ? await warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder({
-          path: { order_code: props.orderCode },
+          path: { order_code: props.orderCode, item_index: item.value.index ?? 0 },
           body: payload,
         })
       : await warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder({
-          path: { order_code: props.orderCode },
+          path: { order_code: props.orderCode, item_index: item.value.index ?? 0 },
           body: payload,
         })
 

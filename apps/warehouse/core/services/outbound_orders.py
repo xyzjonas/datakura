@@ -22,6 +22,7 @@ from apps.warehouse.core.schemas.orders import (
     OutboundOrderSchema,
 )
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.item_reorder import reorder_order_items
 from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.services.warehouse_order_factory import (
     WarehouseOrderKind,
@@ -677,13 +678,6 @@ class OutboundOrdersService:
         )
         desired_batch = cls._get_desired_batch_or_none(item.desired_batch_code)
 
-        if OutboundOrderItem.objects.filter(
-            order=order, stock_product=stock_product
-        ).exists():
-            raise WarehouseItemBadRequestError(
-                f"Item for product '{stock_product.code}' already exists in order '{order.code}'"
-            )
-
         with transaction.atomic():
             next_index = order.items.count()
             amount = Decimal(str(item.amount))
@@ -723,6 +717,7 @@ class OutboundOrdersService:
     def update_item(
         cls,
         code: str,
+        item_index: int,
         item: OutboundOrderItemCreateSchema,
         context: RequestContext,
     ) -> OutboundOrderItemSchema:
@@ -730,9 +725,7 @@ class OutboundOrdersService:
             code=code
         )
         cls._assert_order_editable(order)
-        item_model = OutboundOrderItem.objects.get(
-            order=order, stock_product__code=item.product_code
-        )
+        item_model = OutboundOrderItem.objects.get(order=order, index=item_index)
         desired_package_type = cls._get_desired_package_or_none(
             item.desired_package_type_name
         )
@@ -775,7 +768,7 @@ class OutboundOrdersService:
     def remove_item(
         cls,
         code: str,
-        product_code: str,
+        item_index: int,
         context: RequestContext,
     ) -> bool:
         order = OutboundOrder.objects.prefetch_related("warehouse_orders").get(
@@ -784,7 +777,7 @@ class OutboundOrdersService:
         cls._assert_order_editable(order)
         item_model = OutboundOrderItem.objects.get(
             order=order,
-            stock_product__code=product_code,
+            index=item_index,
         )
         if cls._get_assigned_warehouse_requirements(item_model).exists():
             raise WarehouseItemBadRequestError(
@@ -795,6 +788,18 @@ class OutboundOrdersService:
             item_model.delete()
 
         return True
+
+    @classmethod
+    def reorder_item(
+        cls, code: str, item_index: int, new_index: int
+    ) -> OutboundOrderSchema:
+        order = OutboundOrder.objects.get(code=code)
+        cls._assert_order_editable(order)
+        with transaction.atomic():
+            reorder_order_items(order.items.select_for_update(), item_index, new_index)
+
+        schema = outbound_order_orm_to_schema(order)
+        return cls._with_pricing_details(schema, order)
 
     @classmethod
     def transition_order(

@@ -243,7 +243,7 @@ const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements'
   }
 
   const res = await warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder({
-    path: { order_code: props.orderCode },
+    path: { order_code: props.orderCode, item_index: item.value.index },
     body: {
       product_code: item.value.product.code,
       product_name: item.value.product.name,

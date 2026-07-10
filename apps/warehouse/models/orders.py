@@ -240,6 +240,11 @@ class InboundOrderItem(BaseModel):
 
     class Meta(BaseModel.Meta):
         ordering = ["index", "created"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "index"], name="unique_inbound_order_item_order_index"
+            )
+        ]
 
     def __str__(self):
         return f"{self.amount} × {self.stock_product.name}"
@@ -343,6 +348,11 @@ class OutboundOrderItem(BaseModel):
 
     class Meta(BaseModel.Meta):
         ordering = ["index", "created"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "index"], name="unique_outbound_order_item_order_index"
+            )
+        ]
 
     def __str__(self):
         return f"{self.amount} × {self.stock_product.name}"

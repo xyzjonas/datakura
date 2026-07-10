@@ -19,6 +19,7 @@ from apps.warehouse.core.schemas.orders import (
     InboundOrderCreateOrUpdateSchema,
     GetInboundOrderResponse,
     InboundOrderTransitionSchema,
+    ReorderItemSchema,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
@@ -145,15 +146,17 @@ def add_item_to_inbound_order(
 
 
 @routes.put(
-    "/{order_code}/items", response={200: CreateInboundOrderItemResponse}, auth=None
+    "/{order_code}/items/{item_index}",
+    response={200: CreateInboundOrderItemResponse},
+    auth=None,
 )
 def update_item_in_inbound_order(
-    request: HttpRequest, order_code: str, item: InboundOrderItemCreateSchema
+    request: HttpRequest,
+    order_code: str,
+    item_index: int,
+    item: InboundOrderItemCreateSchema,
 ):
-    """
-    Update an existing item in incoming order by stock product code.
-    """
-    updated_item = inbound_orders_service.update_item(order_code, item)
+    updated_item = inbound_orders_service.update_item(order_code, item_index, item)
     return CreateInboundOrderItemResponse(data=updated_item)
 
 
@@ -182,12 +185,23 @@ def transition_inbound_order(
     return GetInboundOrderResponse(data=new_item)
 
 
-@routes.delete("/{order_code}/items/{product_code}", response={200: EmptyResponse})
-def remove_items_from_inbound_order(
-    request: HttpRequest, order_code: str, product_code: str
+@routes.put(
+    "/{order_code}/items/{item_index}/reorder",
+    response={200: GetInboundOrderResponse},
+    auth=None,
+)
+def reorder_item_in_inbound_order(
+    request: HttpRequest, order_code: str, item_index: int, payload: ReorderItemSchema
 ):
-    """
-    Retrieve a single incoming order by code.
-    """
-    result = inbound_orders_service.remove_item(order_code, product_code)
+    updated_order = inbound_orders_service.reorder_item(
+        order_code, item_index, payload.new_index
+    )
+    return GetInboundOrderResponse(data=updated_order)
+
+
+@routes.delete("/{order_code}/items/{item_index}", response={200: EmptyResponse})
+def remove_items_from_inbound_order(
+    request: HttpRequest, order_code: str, item_index: int
+):
+    result = inbound_orders_service.remove_item(order_code, item_index)
     return EmptyResponse(success=result)

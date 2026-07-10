@@ -249,7 +249,7 @@ def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
     assert pricing_details["source"] == "CUSTOMER_OVERRIDE"
 
     update_res = client.put(
-        f"/{order.code}/items",
+        f"/{order.code}/items/0",
         json={
             "product_code": product.code,
             "product_name": product.name,
@@ -262,9 +262,62 @@ def test_add_update_remove_outbound_order_item_keeps_index(db) -> None:
     assert update_res.json()["data"]["index"] == 5
     assert update_res.json()["data"]["pricing_details"]["selected_unit_price"] == 5.0
 
-    delete_res = client.delete(f"/{order.code}/items/{product.code}")
+    delete_res = client.delete(f"/{order.code}/items/5")
     assert delete_res.status_code == 200
     assert delete_res.json()["success"] is True
+
+
+def test_duplicate_product_items_update_and_remove_by_index(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    product = StockProductFactory()
+
+    add1 = client.post(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 1,
+            "total_price": 10,
+        },
+    )
+    assert add1.status_code == 200
+    index1 = add1.json()["data"]["index"]
+
+    add2 = client.post(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 3,
+            "total_price": 30,
+        },
+    )
+    assert add2.status_code == 200
+    index2 = add2.json()["data"]["index"]
+    assert index2 != index1
+
+    update_res = client.put(
+        f"/{order.code}/items/{index2}",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 99,
+            "total_price": 990,
+            "index": index2,
+        },
+    )
+    assert update_res.status_code == 200
+    assert update_res.json()["data"]["amount"] == 99
+
+    delete_res = client.delete(f"/{order.code}/items/{index1}")
+    assert delete_res.status_code == 200
+    assert delete_res.json()["success"] is True
+
+    from apps.warehouse.models.orders import OutboundOrderItem
+
+    assert OutboundOrderItem.objects.filter(order=order).count() == 1
+    assert OutboundOrderItem.objects.get(order=order).index == index2
 
 
 def test_add_outbound_order_item_pricing_details_explain_no_discount_product(
@@ -318,7 +371,7 @@ def test_update_outbound_order_item_without_index_keeps_existing_index(db) -> No
     assert add_res.json()["data"]["index"] == 4
 
     update_res = client.put(
-        f"/{order.code}/items",
+        f"/{order.code}/items/4",
         json={
             "product_code": product.code,
             "product_name": product.name,
@@ -354,13 +407,13 @@ def test_update_outbound_order_item_syncs_open_warehouse_requirement(db) -> None
     )
 
     response = client.put(
-        f"/{order.code}/items",
+        f"/{order.code}/items/{source_item.index}",
         json={
             "product_code": product.code,
             "product_name": product.name,
             "amount": 6,
             "total_price": 60,
-            "index": 0,
+            "index": source_item.index,
         },
     )
 
@@ -437,13 +490,13 @@ def test_update_outbound_order_item_cannot_decrease_below_assigned_amount(db) ->
         match="Assigned warehouse items prevent decreasing amount below already assigned quantity",
     ):
         client.put(
-            f"/{order.code}/items",
+            f"/{order.code}/items/{source_item.index}",
             json={
                 "product_code": product.code,
                 "product_name": product.name,
                 "amount": 2,
                 "total_price": 20,
-                "index": 0,
+                "index": source_item.index,
             },
         )
 
@@ -470,7 +523,7 @@ def test_remove_outbound_order_item_cannot_remove_assigned_requirement(db) -> No
         WarehouseItemBadRequestError,
         match="Assigned warehouse items prevent removing this order item",
     ):
-        client.delete(f"/{order.code}/items/{product.code}")
+        client.delete(f"/{order.code}/items/{source_item.index}")
 
 
 def test_update_outbound_order_rejects_changes_after_invoice(db) -> None:

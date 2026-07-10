@@ -4,7 +4,6 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.warehouse.core.exceptions import (
-    WarehouseItemBadRequestError,
     WarehouseOrderNotEditableError,
 )
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
@@ -56,7 +55,7 @@ def test_incoming_order_add_item(db):
     assert created_item.stock_product.name == product.name
 
 
-def test_incoming_order_add_item_duplicate_product_fails(db):
+def test_incoming_order_add_item_duplicate_product_allowed(db):
     product = StockProductFactory.it()
     order = InboundOrderFactory.it()
 
@@ -70,18 +69,18 @@ def test_incoming_order_add_item_duplicate_product_fails(db):
         ),
     )
 
-    with pytest.raises(WarehouseItemBadRequestError):
-        inbound_orders_service.add_item(
-            order.code,
-            InboundOrderItemCreateSchema(
-                product_code=product.code,
-                product_name=product.name,
-                total_price=300,
-                amount=5,
-            ),
-        )
+    second = inbound_orders_service.add_item(
+        order.code,
+        InboundOrderItemCreateSchema(
+            product_code=product.code,
+            product_name=product.name,
+            total_price=300,
+            amount=5,
+        ),
+    )
 
-    assert order.items.count() == 1
+    assert order.items.count() == 2
+    assert second.index == 1
 
 
 def test_incoming_order_update_item(db):
@@ -90,6 +89,7 @@ def test_incoming_order_update_item(db):
 
     result = inbound_orders_service.update_item(
         order.code,
+        item.index,
         InboundOrderItemCreateSchema(
             product_code=item.stock_product.code,
             product_name=item.stock_product.name,
@@ -146,6 +146,7 @@ def test_incoming_order_update_item_can_change_index(db):
 
     result = inbound_orders_service.update_item(
         order.code,
+        item.index,
         InboundOrderItemCreateSchema(
             product_code=item.stock_product.code,
             product_name=item.stock_product.name,
@@ -162,23 +163,26 @@ def test_incoming_order_update_item_can_change_index(db):
 
 def test_incoming_order_remove_item(db):
     order = InboundOrderFactory.it()
-    item = InboundOrderItemFactory.it(order=order)
+    item = InboundOrderItemFactory.it(order=order, index=99)
     InboundOrderItemFactory.create_batch(9, order=order)
 
-    assert inbound_orders_service.remove_item(order.code, item.stock_product.code)
+    assert inbound_orders_service.remove_item(order.code, item.index)
 
     assert order.items.count() == 9
 
 
-def test_incoming_order_remove_2_items_same_product(db):
+def test_incoming_order_duplicate_product_remove_each_by_index(db):
     order = InboundOrderFactory.it()
     product = StockProductFactory.it()
-    InboundOrderItemFactory.create_batch(2, order=order, stock_product=product)
+    item_a = InboundOrderItemFactory.it(order=order, stock_product=product, index=0)
+    item_b = InboundOrderItemFactory.it(order=order, stock_product=product, index=1)
 
     assert order.items.count() == 2
 
-    assert inbound_orders_service.remove_item(order.code, product.code)
+    assert inbound_orders_service.remove_item(order.code, item_a.index)
+    assert order.items.count() == 1
 
+    assert inbound_orders_service.remove_item(order.code, item_b.index)
     assert order.items.count() == 0
 
 
@@ -316,6 +320,7 @@ def test_incoming_order_mutations_blocked_after_warehouse_order_created(
             assert existing_item is not None
             inbound_orders_service.update_item(
                 order.code,
+                existing_item.index,
                 InboundOrderItemCreateSchema(
                     product_code=existing_item.stock_product.code,
                     product_name=existing_item.stock_product.name,
@@ -325,9 +330,7 @@ def test_incoming_order_mutations_blocked_after_warehouse_order_created(
             )
         elif operation == "remove_item":
             assert existing_item is not None
-            inbound_orders_service.remove_item(
-                order.code, existing_item.stock_product.code
-            )
+            inbound_orders_service.remove_item(order.code, existing_item.index)
         elif operation == "store_invoice":
             inbound_orders_service.store_invoice(
                 order.code,

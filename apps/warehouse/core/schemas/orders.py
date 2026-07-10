@@ -47,6 +47,10 @@ class InboundOrderCreateOrUpdateSchema(Schema):
     requested_delivery_date: datetime | None = None
 
 
+class ReorderItemSchema(Schema):
+    new_index: int
+
+
 class InboundOrderTransitionSchema(Schema):
     action: Literal["next", "cancel", "rollback"] = "next"
 

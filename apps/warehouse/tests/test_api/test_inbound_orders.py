@@ -290,7 +290,7 @@ def test_update_inbound_order_item_without_index_keeps_existing_index(db) -> Non
     assert add_res.json()["data"]["index"] == 3
 
     update_res = client.put(
-        f"/{order.code}/items",
+        f"/{order.code}/items/3",
         json={
             "product_code": product.code,
             "product_name": product.name,
@@ -349,7 +349,7 @@ def test_update_inbound_order_allows_submitted_order_without_warehouse_order(
         ),
         (
             "put",
-            "/items",
+            "/items/{item_index}",
             lambda order: {
                 "product_code": order.items.first().stock_product.code,
                 "product_name": order.items.first().stock_product.name,
@@ -359,7 +359,7 @@ def test_update_inbound_order_allows_submitted_order_without_warehouse_order(
         ),
         (
             "delete",
-            "/items/{product_code}",
+            "/items/{item_index}",
             lambda order: None,
         ),
         (
@@ -388,8 +388,8 @@ def test_inbound_order_mutation_routes_block_after_warehouse_order_created(
     InboundWarehouseOrderFactory(order=order)
 
     path = f"/{order.code}{path_suffix}"
-    if "{product_code}" in path:
-        path = path.format(product_code=item.stock_product.code)
+    if "{item_index}" in path:
+        path = path.format(item_index=item.index)
 
     kwargs = {}
     payload = payload_factory(order)

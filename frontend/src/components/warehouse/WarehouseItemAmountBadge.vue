@@ -1,10 +1,7 @@
 <template>
-  <div>
+  <div class="flex items-center">
     <span class="text-lg mr-2">{{ amount ?? item.amount }}</span>
-    <span
-      class="light:text-gray-5 dark:text-gray-3 text-xs border-solid light:border-gray-3 dark:border-gray-5 border-1 rounded-[1px] px-[4px] py-[1px]"
-      >{{ item.unit_of_measure }}</span
-    >
+    <q-badge rounded color="gray">{{ item.unit_of_measure }}</q-badge>
   </div>
 </template>
 

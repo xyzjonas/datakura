@@ -131,7 +131,7 @@
         :order-code="order.code"
         order-type="inbound"
         @dissolve-item="removeItem"
-        @reorder-items="reorderItems"
+        @reorder-item="reorderItem"
         @add-item="addItemDialog = true"
       />
     </div>
@@ -194,17 +194,17 @@
 
 <script setup lang="ts">
 import {
-  type CustomerSchema,
-  type GetCustomerResponse,
   warehouseApiRoutesInboundOrdersAddItemToInboundOrder,
   warehouseApiRoutesInboundOrdersDuplicateInboundOrder,
   warehouseApiRoutesInboundOrdersGetInboundOrder,
   warehouseApiRoutesInboundOrdersGetInboundOrderPdf,
   warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder,
+  warehouseApiRoutesInboundOrdersReorderItemInInboundOrder,
   warehouseApiRoutesInboundOrdersTransitionInboundOrder,
   warehouseApiRoutesInboundOrdersUpdateInboundOrder,
-  warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder,
   warehouseApiRoutesWarehouseCreateInboundWarehouseOrder,
+  type CustomerSchema,
+  type GetCustomerResponse,
   type GetInboundOrderResponse,
   type InboundOrderCreateOrUpdateSchema,
   type InboundOrderItemCreateSchema,
@@ -213,16 +213,18 @@ import {
 } from '@/client'
 import { formDataBodySerializer } from '@/client/client'
 import { client } from '@/client/client.gen'
+import CommentCard from '@/components/CommentCard.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import InboundOrderDetailsListCard from '@/components/order/InboundOrderDetailsListCard.vue'
 import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDialog.vue'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import InboundOrderTimeline from '@/components/order/InboundOrderTimeline.vue'
 import InboundOrderUpdateOrCreateDialog from '@/components/order/InboundOrderUpdateOrCreateDialog.vue'
+import type { InvoiceUpsertSubmitPayload } from '@/components/order/invoice-upload'
+import { toInvoiceMultipartBody } from '@/components/order/invoice-upload'
 import InvoiceUpsertDialog from '@/components/order/InvoiceUpsertDialog.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
@@ -230,14 +232,12 @@ import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
 import PrintDropdownButton from '@/components/PrintDropdownButton.vue'
+import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
 import { getInboundOrderStep, isInboundOrderEditable } from '@/constants/inbound-order'
-import type { InvoiceUpsertSubmitPayload } from '@/components/order/invoice-upload'
-import { toInvoiceMultipartBody } from '@/components/order/invoice-upload'
 import { useQuasar } from 'quasar'
 import { ref, watch } from 'vue'
-import CommentCard from '@/components/CommentCard.vue'
 
 const props = defineProps<{ code: string }>()
 const order = ref<InboundOrderSchema>()
@@ -294,56 +294,30 @@ const addItem = async (item: InboundOrderItemCreateSchema) => {
   }
 }
 
-const removeItem = async (product_code: string) => {
+const removeItem = async (item_index: number) => {
   if (!order.value) {
     return
   }
   const result = await warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder({
-    path: { order_code: order.value.code, product_code },
+    path: { order_code: order.value.code, item_index },
   })
   const data = onResponse(result)
   if (data) {
-    order.value.items = order.value.items?.filter((it) => it.product.code !== product_code)
+    order.value.items = order.value.items?.filter((it) => it.index !== item_index)
   }
 }
 
-const reorderItems = async (items: NonNullable<InboundOrderSchema['items']>) => {
+const reorderItem = async (itemIndex: number, newIndex: number) => {
   if (!order.value) {
     return
   }
-
-  const indexedItems = items.map((it, index) => ({ ...it, index }))
-  order.value.items = indexedItems
-
-  let hasError = false
-  await Promise.all(
-    indexedItems.map(async (item) => {
-      const res = await warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder({
-        path: { order_code: order.value!.code },
-        body: {
-          product_code: item.product.code,
-          product_name: item.product.name,
-          amount: item.amount,
-          total_price: item.total_price,
-          unit_price: item.unit_price,
-          index: item.index,
-        },
-      })
-      const data = onResponse(res)
-      if (!data?.data) {
-        hasError = true
-      }
-    }),
-  )
-
-  if (hasError) {
-    const refreshResponse = await warehouseApiRoutesInboundOrdersGetInboundOrder({
-      path: { order_code: order.value.code },
-    })
-    const refreshData = onResponse(refreshResponse)
-    if (refreshData?.data) {
-      order.value = refreshData.data
-    }
+  const res = await warehouseApiRoutesInboundOrdersReorderItemInInboundOrder({
+    path: { order_code: order.value.code, item_index: itemIndex },
+    body: { new_index: newIndex },
+  })
+  const data = onResponse(res)
+  if (data) {
+    order.value = data.data
   }
 }
 

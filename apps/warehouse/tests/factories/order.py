@@ -28,6 +28,7 @@ class InboundOrderItemFactory(DjangoModelFactory):
     stock_product = factory.SubFactory(StockProductFactory)
     amount = factory.Faker("random_int", min=1, max=100, step=1)
     order = None
+    index = factory.LazyAttribute(lambda o: o.order.items.count() if o.order else 0)
     unit_price = factory.Faker("random_int", min=1, max=200, step=1)
     total_price = factory.LazyAttribute(lambda o: o.amount * o.unit_price)
 
@@ -66,6 +67,7 @@ class OutboundOrderItemFactory(DjangoModelFactory):
     stock_product = factory.SubFactory(StockProductFactory)
     amount = factory.Faker("random_int", min=1, max=100, step=1)
     order = None
+    index = factory.LazyAttribute(lambda o: o.order.items.count() if o.order else 0)
     unit_price = factory.Faker("random_int", min=1, max=200, step=1)
     total_price = factory.LazyAttribute(lambda o: o.amount * o.unit_price)
     desired_package_type = None

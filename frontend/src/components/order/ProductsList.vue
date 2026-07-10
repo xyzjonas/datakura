@@ -3,7 +3,7 @@
     <TransitionGroup>
       <ForegroundPanel
         v-for="(item, index) in items"
-        :key="item.product.code"
+        :key="item.index"
         :class="{ dragging: draggingIndex === index, 'drag-over': dragOverIndex === index }"
         :draggable="!props.readonly"
         @dragstart="handleDragStart($event, index)"
@@ -25,7 +25,7 @@
           :order-code="props.orderCode"
           :order-type="props.orderType"
           :customer-code="props.customerCode"
-          @dissolve-item="() => emit('dissolveItem', item.product.code)"
+          @dissolve-item="() => emit('dissolveItem', item.index)"
         ></ProductRow>
       </ForegroundPanel>
     </TransitionGroup>
@@ -48,9 +48,9 @@ import ProductRow from './ProductRow.vue'
 type OrderItem = InboundOrderItemSchema | OutboundOrderItemSchema
 
 const emit = defineEmits<{
-  (e: 'dissolveItem', product_code: string): void
+  (e: 'dissolveItem', item_index: number): void
   (e: 'addItem'): void
-  (e: 'reorderItems', items: Array<OrderItem>): void
+  (e: 'reorderItem', itemIndex: number, newIndex: number): void
 }>()
 const props = defineProps<{
   currency: string
@@ -126,7 +126,7 @@ const handleDrop = (event: Event, dropIndex: number) => {
 
   items.value = newItems
   dragOverIndex.value = null
-  emit('reorderItems', newItems)
+  emit('reorderItem', draggedItem.index, dropIndex)
 }
 </script>
 

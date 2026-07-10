@@ -24,6 +24,7 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.item_reorder import reorder_order_items
 from apps.warehouse.core.services.pdf import print_html_to_pdf
 from apps.warehouse.core.transformation import (
     inbound_order_item_orm_to_schema,
@@ -216,13 +217,6 @@ class OrdersService:
         OrdersService._ensure_inbound_order_editable(order)
         stock_product = StockProduct.objects.get(code=item.product_code)
 
-        if InboundOrderItem.objects.filter(
-            order=order, stock_product=stock_product
-        ).exists():
-            raise WarehouseItemBadRequestError(
-                f"Item for product '{stock_product.code}' already exists in order '{order.code}'"
-            )
-
         with transaction.atomic():
             next_index = order.items.count()
             amount = Decimal(str(item.amount))
@@ -240,13 +234,11 @@ class OrdersService:
 
     @staticmethod
     def update_item(
-        code: str, item: InboundOrderItemCreateSchema
+        code: str, item_index: int, item: InboundOrderItemCreateSchema
     ) -> InboundOrderItemSchema:
         order = InboundOrder.objects.get(code=code)
         OrdersService._ensure_inbound_order_editable(order)
-        item_model = InboundOrderItem.objects.get(
-            order=order, stock_product__code=item.product_code
-        )
+        item_model = InboundOrderItem.objects.get(order=order, index=item_index)
 
         with transaction.atomic():
             amount = Decimal(str(item.amount))
@@ -263,16 +255,23 @@ class OrdersService:
         return inbound_order_item_orm_to_schema(item_model)
 
     @staticmethod
-    def remove_item(code: str, product_code: str) -> bool:
+    def remove_item(code: str, item_index: int) -> bool:
         order = InboundOrder.objects.get(code=code)
         OrdersService._ensure_inbound_order_editable(order)
-        items = InboundOrderItem.objects.filter(
-            order=order, stock_product__code=product_code
-        )
+        item = InboundOrderItem.objects.get(order=order, index=item_index)
         with transaction.atomic():
-            items.delete()
+            item.delete()
 
         return True
+
+    @staticmethod
+    def reorder_item(code: str, item_index: int, new_index: int) -> InboundOrderSchema:
+        order = InboundOrder.objects.get(code=code)
+        OrdersService._ensure_inbound_order_editable(order)
+        with transaction.atomic():
+            reorder_order_items(order.items.select_for_update(), item_index, new_index)
+
+        return inbound_order_orm_to_schema(order)
 
     @staticmethod
     def transition_order(

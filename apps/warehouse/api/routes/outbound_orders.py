@@ -19,6 +19,7 @@ from apps.warehouse.core.schemas.orders import (
     OutboundOrderItemCreateSchema,
     OutboundOrderSchema,
     OutboundOrderTransitionSchema,
+    ReorderItemSchema,
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
@@ -117,13 +118,19 @@ def add_item_to_outbound_order(
 
 
 @routes.put(
-    "/{order_code}/items", response={200: CreateOutboundOrderItemResponse}, auth=None
+    "/{order_code}/items/{item_index}",
+    response={200: CreateOutboundOrderItemResponse},
+    auth=None,
 )
 def update_item_in_outbound_order(
-    request: HttpRequest, order_code: str, item: OutboundOrderItemCreateSchema
+    request: HttpRequest,
+    order_code: str,
+    item_index: int,
+    item: OutboundOrderItemCreateSchema,
 ):
     updated_item = outbound_orders_service.update_item(
         order_code,
+        item_index,
         item,
         context=RequestContext.from_django_request(request),
     )
@@ -152,13 +159,27 @@ def transition_outbound_order(
     return GetOutboundOrderResponse(data=new_item)
 
 
-@routes.delete("/{order_code}/items/{product_code}", response={200: EmptyResponse})
+@routes.put(
+    "/{order_code}/items/{item_index}/reorder",
+    response={200: GetOutboundOrderResponse},
+    auth=None,
+)
+def reorder_item_in_outbound_order(
+    request: HttpRequest, order_code: str, item_index: int, payload: ReorderItemSchema
+):
+    updated_order = outbound_orders_service.reorder_item(
+        order_code, item_index, payload.new_index
+    )
+    return GetOutboundOrderResponse(data=updated_order)
+
+
+@routes.delete("/{order_code}/items/{item_index}", response={200: EmptyResponse})
 def remove_items_from_outbound_order(
-    request: HttpRequest, order_code: str, product_code: str
+    request: HttpRequest, order_code: str, item_index: int
 ):
     result = outbound_orders_service.remove_item(
         order_code,
-        product_code,
+        item_index,
         context=RequestContext.from_django_request(request),
     )
     return EmptyResponse(success=result)

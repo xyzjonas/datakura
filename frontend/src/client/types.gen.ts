@@ -3040,6 +3040,16 @@ export type InboundOrderTransitionSchema = {
 };
 
 /**
+ * ReorderItemSchema
+ */
+export type ReorderItemSchema = {
+    /**
+     * New Index
+     */
+    new_index: number;
+};
+
+/**
  * OutboundOrderItemPricingDetailsSchema
  */
 export type OutboundOrderItemPricingDetailsSchema = {
@@ -6676,6 +6686,31 @@ export type WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses = {
 
 export type WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponse = WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersAddItemToInboundOrderResponses];
 
+export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+        /**
+         * Item Index
+         */
+        item_index: number;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/items/{item_index}';
+};
+
+export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: EmptyResponse;
+};
+
+export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponse = WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses];
+
 export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderData = {
     body: InboundOrderItemCreateSchema;
     path: {
@@ -6683,9 +6718,13 @@ export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderData = {
          * Order Code
          */
         order_code: string;
+        /**
+         * Item Index
+         */
+        item_index: number;
     };
     query?: never;
-    url: '/api/v1/orders/{order_code}/items';
+    url: '/api/v1/orders/{order_code}/items/{item_index}';
 };
 
 export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses = {
@@ -6739,30 +6778,30 @@ export type WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses = {
 
 export type WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponse = WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersTransitionInboundOrderResponses];
 
-export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderData = {
-    body?: never;
+export type WarehouseApiRoutesInboundOrdersReorderItemInInboundOrderData = {
+    body: ReorderItemSchema;
     path: {
         /**
          * Order Code
          */
         order_code: string;
         /**
-         * Product Code
+         * Item Index
          */
-        product_code: string;
+        item_index: number;
     };
     query?: never;
-    url: '/api/v1/orders/{order_code}/items/{product_code}';
+    url: '/api/v1/orders/{order_code}/items/{item_index}/reorder';
 };
 
-export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses = {
+export type WarehouseApiRoutesInboundOrdersReorderItemInInboundOrderResponses = {
     /**
      * OK
      */
-    200: EmptyResponse;
+    200: GetInboundOrderResponse;
 };
 
-export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponse = WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses];
+export type WarehouseApiRoutesInboundOrdersReorderItemInInboundOrderResponse = WarehouseApiRoutesInboundOrdersReorderItemInInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersReorderItemInInboundOrderResponses];
 
 export type WarehouseApiRoutesOutboundOrdersGetOutboundOrdersData = {
     body?: never;
@@ -6979,6 +7018,31 @@ export type WarehouseApiRoutesOutboundOrdersAddItemToOutboundOrderResponses = {
 
 export type WarehouseApiRoutesOutboundOrdersAddItemToOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersAddItemToOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersAddItemToOutboundOrderResponses];
 
+export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+        /**
+         * Item Index
+         */
+        item_index: number;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}/items/{item_index}';
+};
+
+export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses = {
+    /**
+     * OK
+     */
+    200: EmptyResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses];
+
 export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderData = {
     body: OutboundOrderItemCreateSchema;
     path: {
@@ -6986,9 +7050,13 @@ export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderData = {
          * Order Code
          */
         order_code: string;
+        /**
+         * Item Index
+         */
+        item_index: number;
     };
     query?: never;
-    url: '/api/v1/orders-outgoing/{order_code}/items';
+    url: '/api/v1/orders-outgoing/{order_code}/items/{item_index}';
 };
 
 export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses = {
@@ -7042,30 +7110,30 @@ export type WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderResponses = {
 
 export type WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersTransitionOutboundOrderResponses];
 
-export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderData = {
-    body?: never;
+export type WarehouseApiRoutesOutboundOrdersReorderItemInOutboundOrderData = {
+    body: ReorderItemSchema;
     path: {
         /**
          * Order Code
          */
         order_code: string;
         /**
-         * Product Code
+         * Item Index
          */
-        product_code: string;
+        item_index: number;
     };
     query?: never;
-    url: '/api/v1/orders-outgoing/{order_code}/items/{product_code}';
+    url: '/api/v1/orders-outgoing/{order_code}/items/{item_index}/reorder';
 };
 
-export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses = {
+export type WarehouseApiRoutesOutboundOrdersReorderItemInOutboundOrderResponses = {
     /**
      * OK
      */
-    200: EmptyResponse;
+    200: GetOutboundOrderResponse;
 };
 
-export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses];
+export type WarehouseApiRoutesOutboundOrdersReorderItemInOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersReorderItemInOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersReorderItemInOutboundOrderResponses];
 
 export type WarehouseApiRoutesPackagingGetPackageTypesData = {
     body?: never;
