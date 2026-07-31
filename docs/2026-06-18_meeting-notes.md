@@ -15,11 +15,11 @@
 ## Prijem
 
 [x] chyba v souctu hmotnosti - prijemka
-[ ] prijmova faktura - schovat generovani pdf - jen odkaz na stazeni nahraneho pdf
-[ ] Pole nesmí být číslo větší než 9999 -> 999999
+[x] prijmova faktura - schovat generovani pdf - jen odkaz na stazeni nahraneho pdf
+[x] Pole nesmí být číslo větší než 9999 -> 999999
 [ ] kontrola konzistence mnozstvi polozek, objednavame zcestne malo? nebo moc? vykricnik! - aritmeticky za poslednich 10
-[ ] presun naskladneni nesledovano nezmizi z "polozky k naskladneni"
-[ ] presun nesledovaneho produktu podel kodu stock product karty - nenajde (hleda podle product code a ne barcode) - ale jen ve webovem rozhrani
+[x] presun naskladneni nesledovano nezmizi z "polozky k naskladneni"
+[x] presun nesledovaneho produktu podel kodu stock product karty - nenajde (hleda podle product code a ne barcode) - ale jen ve webovem rozhrani
 
 
 ## Tisk
@@ -51,7 +51,6 @@
 [ ] muze byt i externi, rozdil v prijmova cena navysena o sluzbu - vydana cena.
 [ ] moznost nahrat fakturu
 [x] vydejky/prijemky maji svoji ciselnou rada
-
 
 
 DONE

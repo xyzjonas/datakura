@@ -43,14 +43,14 @@
           icon="sym_o_scan_delete"
           @click="cancelDialog = true"
         />
-        <PrintDropdownButton
+        <!-- <PrintDropdownButton
           :items="[
             {
               label: 'PDF bez cen',
               onClick: openPdf,
             },
           ]"
-        />
+        /> -->
         <q-btn
           unelevated
           color="secondary"
@@ -197,7 +197,6 @@ import {
   warehouseApiRoutesInboundOrdersAddItemToInboundOrder,
   warehouseApiRoutesInboundOrdersDuplicateInboundOrder,
   warehouseApiRoutesInboundOrdersGetInboundOrder,
-  warehouseApiRoutesInboundOrdersGetInboundOrderPdf,
   warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder,
   warehouseApiRoutesInboundOrdersReorderItemInInboundOrder,
   warehouseApiRoutesInboundOrdersTransitionInboundOrder,
@@ -231,7 +230,6 @@ import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
 import ProductsList from '@/components/order/ProductsList.vue'
 import TotalPrice from '@/components/order/TotalPrice.vue'
 import TotalWeight from '@/components/order/TotalWeight.vue'
-import PrintDropdownButton from '@/components/PrintDropdownButton.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
@@ -479,16 +477,16 @@ const attachInvoice = async (payload: InvoiceUpsertSubmitPayload) => {
   }
 }
 
-const openPdf = async () => {
-  const resonse = await warehouseApiRoutesInboundOrdersGetInboundOrderPdf({
-    path: { order_code: props.code },
-  })
-  if (!resonse.error) {
-    const blobUrl = URL.createObjectURL(resonse.data as unknown as Blob)
-    window.open(blobUrl, '_blank')
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
-  }
-}
+// const openPdf = async () => {
+//   const resonse = await warehouseApiRoutesInboundOrdersGetInboundOrderPdf({
+//     path: { order_code: props.code },
+//   })
+//   if (!resonse.error) {
+//     const blobUrl = URL.createObjectURL(resonse.data as unknown as Blob)
+//     window.open(blobUrl, '_blank')
+//     setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
+//   }
+// }
 </script>
 
 <style lang="scss" scoped></style>

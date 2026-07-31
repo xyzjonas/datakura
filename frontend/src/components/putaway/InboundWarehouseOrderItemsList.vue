@@ -2,9 +2,9 @@
   <div v-if="items.length > 0" class="flex flex-col gap-2">
     <TransitionGroup name="list" tag="div" class="flex flex-col gap-2">
       <InboundWarehouseItemEditableRow
-        v-for="(item, index) in items"
+        v-for="item in items"
         :key="item.id"
-        :index="index"
+        :index="item.index"
         :item="item"
         :readonly="readonly"
         :allow-move="allowMove"

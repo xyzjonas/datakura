@@ -22,17 +22,17 @@
             type="textarea"
           />
           <CustomerSearchSelect
-            v-model="supplier"
-            label="Dodavatel"
-            hint="Zákazník zajišťující výrobu (volitelné)"
+            v-model="customer"
+            label="Zákazník"
+            hint="Zákazník objednávající výrobu (volitelné)"
             :required="false"
           />
           <q-toggle v-model="item.is_external" label="Externí výroba" />
           <CustomerSearchSelect
             v-show="item.is_external"
-            v-model="customer"
-            label="Zákazník"
-            hint="Zákazník objednávající výrobu (volitelné)"
+            v-model="supplier"
+            label="Dodavatel"
+            hint="Zákazník zajišťující výrobu (volitelné)"
             :required="false"
           />
           <q-btn
@@ -136,7 +136,6 @@ watch(supplier, (val) => {
     item.value.supplier_name = null
   }
 })
-
 
 const emit = defineEmits<{
   (e: 'createOrder', item: ManufacturingOrderCreateOrUpdateSchema): void

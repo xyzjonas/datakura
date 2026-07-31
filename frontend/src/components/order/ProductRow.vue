@@ -29,6 +29,8 @@
         label="Počet"
         @update:model-value="update('amount')"
         :debounce="500"
+        :rules="[rules.max99999]"
+        hide-bottom-space
       >
         <template #append>
           <span class="text-xs">{{ item.product.unit }}</span>
@@ -74,6 +76,8 @@
         outlined
         label="Celková cena"
         :debounce="500"
+        :rules="[rules.max99999]"
+        hide-bottom-space
       >
         <template #append>
           <span class="text-xs">{{ currency }}</span>
@@ -108,6 +112,7 @@ import IndexRectangle from '../IndexRectangle.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 import SellingPriceEditor from './SellingPriceEditor.vue'
 import { isIndexedOrderItem } from '../type-guards/order.ts'
+import { rules } from '@/utils/rules.ts'
 
 const $q = useQuasar()
 const { onResponse } = useApi()

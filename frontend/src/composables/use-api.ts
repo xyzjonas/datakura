@@ -48,6 +48,12 @@ export const useApi = () => {
     const statusCode = response.response.status
     let message = 'Neočekávaná chyba, kontaktujte administrátora'
     let caption = response.response.statusText
+    let type = 'negative'
+
+    if (statusCode === 401) {
+      message = 'Neautorizovaný přístup, prosím přihlašte se'
+      type = 'warning'
+    }
 
     // custom app error codes (handled exceptions)
     console.info(response.error)
@@ -63,7 +69,7 @@ export const useApi = () => {
     $q.notify({
       message: message,
       caption: `${statusCode}: ${caption}`,
-      type: 'negative',
+      type: type,
     })
     return undefined
   }

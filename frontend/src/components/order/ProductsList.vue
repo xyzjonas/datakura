@@ -4,7 +4,10 @@
       <ForegroundPanel
         v-for="(item, index) in items"
         :key="item.index"
-        :class="{ dragging: draggingIndex === index, 'drag-over': dragOverIndex === index }"
+        :class="{
+          dragging: draggingIndex === index,
+          'drag-over': dragOverIndex === index,
+        }"
         :draggable="!props.readonly"
         @dragstart="handleDragStart($event, index)"
         @dragend="handleDragEnd"
