@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q, QuerySet
 from django.db import transaction
 
-from apps.warehouse.core.exceptions import NotFoundException, WarehouseGenericError
+from apps.warehouse.core.exceptions import WarehouseGenericError, SelfNotFoundException
 from apps.warehouse.core.schemas.customer import (
     CustomerCreateOrUpdateSchema,
     ContactPersonCreateOrUpdateSchema,
@@ -65,7 +65,7 @@ class CustomerService:
         try:
             customer = CustomerService.list_customers(is_self=True).get()
         except Customer.DoesNotExist as exc:
-            raise NotFoundException("Active self customer not found") from exc
+            raise SelfNotFoundException("Active self customer not found") from exc
 
         return customer_orm_to_schema(customer)
 

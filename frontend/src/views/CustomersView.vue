@@ -258,6 +258,12 @@ const columns: QTableColumn[] = [
     label: 'Slevová skupina',
     align: 'left',
   },
+  {
+    name: 'responsibleUser',
+    field: (cust: CustomerSchema) => cust.responsible_user ?? '-',
+    label: 'Odpovědná osoba',
+    align: 'left',
+  },
   // {
   //   name: 'type',
   //   field: (cust: CustomerSchema) => cust.customer_type.toLowerCase(),

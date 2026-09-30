@@ -1,7 +1,8 @@
-import { useStorage } from '@vueuse/core'
+import { useLocalStorage } from '@vueuse/core'
 import { useQuasar } from 'quasar'
+import { watch } from 'vue'
 
-const isDark = useStorage('theme-dark', false)
+const isDark = useLocalStorage('theme-dark', false)
 
 export const useDarkmode = () => {
   // Toggle Quasar dark theme
@@ -15,6 +16,8 @@ export const useDarkmode = () => {
     isDark.value = !isDark.value
     $q.dark.set(isDark.value)
   }
+
+  watch(isDark, () => $q.dark.set(isDark.value))
 
   return {
     isDark,

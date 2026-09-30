@@ -1,5 +1,5 @@
 <template>
-  <q-badge :color="getSnapshotCoverageTone(snapshot)" class="uppercase">
+  <q-badge :color="getSnapshotCoverageTone(snapshot)" class="capitalize">
     {{ getSnapshotCoverageLabel(snapshot) }}
   </q-badge>
 </template>

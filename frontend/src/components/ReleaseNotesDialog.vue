@@ -1,6 +1,6 @@
 <template>
-  <q-dialog v-model="show" persistent>
-    <q-card class="max-h-[80vh] flex flex-col">
+  <q-dialog v-model="show">
+    <q-card class="flex flex-col min-w-lg" style="max-width: 640px">
       <q-card-section class="border-b border-gray-200">
         <h2 v-if="showAll">CHANGELOG</h2>
         <h2 v-else>Nový release! 🚀</h2>
@@ -10,7 +10,7 @@
         </div>
       </q-card-section>
 
-      <q-card-section class="flex-1 overflow-y-auto">
+      <q-card-section class="flex-1">
         <section v-for="entry in entries" :key="entry.version" class="mb-4 last:mb-0">
           <div class="flex items-center gap-2 mb-2">
             <h2 class="text-subtitle1 font-semibold">{{ entry.version }}</h2>

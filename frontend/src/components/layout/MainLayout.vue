@@ -139,16 +139,6 @@
           <q-list class="flex flex-col gap-2"> </q-list>
         </q-scroll-area>
 
-        <q-list class="flex flex-col gap-2 mb-3">
-          <q-item clickable v-ripple @click="toggle" dense class="rounded-md">
-            <q-item-section avatar>
-              <q-icon :name="isDark ? 'light_mode' : 'dark_mode'" />
-            </q-item-section>
-
-            <q-item-section>{{ isDark ? 'Light Mode' : 'Dark Mode' }}</q-item-section>
-          </q-item>
-        </q-list>
-
         <DrawerSelfCustomerCard />
       </div>
     </q-drawer>
@@ -168,7 +158,6 @@
 </template>
 
 <script setup lang="ts">
-import { useDarkmode } from '@/composables/use-dark-mode'
 import { useDrawer } from '@/composables/use-drawer'
 import { useGlobalLoading } from '@/composables/use-global-loading'
 import { computed, ref } from 'vue'
@@ -182,7 +171,6 @@ import LoginInfo from './LoginInfo.vue'
 import ToggleDrawerButton from './ToggleDrawerButton.vue'
 
 const search = ref('')
-const { isDark, toggle } = useDarkmode()
 const { isOpened } = useDrawer()
 
 const { currentRoute } = useRouter()

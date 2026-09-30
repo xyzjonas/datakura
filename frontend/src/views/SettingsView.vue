@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import AppSettingsTab from '@/components/settings/AppSettingsTab.vue'
+import DataImportSettingsTab from '@/components/settings/DataImportSettingsTab.vue'
 import CustomerSettingsTab from '@/components/settings/CustomerSettingsTab.vue'
 import DiscountSettingsTab from '@/components/settings/DiscountSettingsTab.vue'
 import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue'
@@ -65,6 +66,7 @@ const validTabs = new Set([
   'discounts',
   'payments',
   'printers',
+  'import',
   'users',
 ])
 
@@ -103,6 +105,8 @@ watch(
       selectedTabComponent.value = PaymentSettingsTab
     } else if (value === 'printers') {
       selectedTabComponent.value = PrintersSettingsTab
+    } else if (value === 'import') {
+      selectedTabComponent.value = DataImportSettingsTab
     }
   },
   { immediate: true },
@@ -148,6 +152,11 @@ const items = [
     key: 'printers',
     label: 'Tiskárny',
     icon: 'sym_o_print',
+  },
+  {
+    key: 'import',
+    label: 'Import dat',
+    icon: 'sym_o_upload_file',
   },
 ]
 

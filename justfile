@@ -16,6 +16,12 @@ preview:
 manage *ARGS:
     uv run manage.py {{ARGS}}
 
+worker:
+    uv run celery -A conf worker --loglevel=info
+
+redis:
+    docker run -it --rm -p 6379:6379 redis:7-alpine
+
 shell:
     uv run manage.py shell
 
@@ -97,3 +103,12 @@ docker-build:
 docker-run:
     docker run -it --rm  -p "8082:8000" -e "SECRET_KEY=123456789" -e "JWT_SECRET_KEY=987654321" datakura
 
+
+import-stock FILE WAREHOUSE:
+    uv run manage.py import_warehouse_stock --file "{{FILE}}" --warehouse "{{WAREHOUSE}}"
+
+import-products-json FILE:
+    uv run manage.py import_products --file "{{FILE}}"
+
+import-customers-json FILE:
+    uv run manage.py import_customers --file "{{FILE}}"

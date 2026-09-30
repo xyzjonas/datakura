@@ -6,7 +6,9 @@ from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 
-from apps.warehouse.core.services.product_import import ProductCsvImportService
+from apps.warehouse.core.services.data_import.product_import_csv_legacy import (
+    ProductCsvImportService,
+)
 from apps.warehouse.models.customer import ContactPerson, Customer, CustomerGroup
 from apps.warehouse.models.orders import (
     InboundOrder,

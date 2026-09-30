@@ -232,3 +232,13 @@ def get_vite_manifest():
 
 
 VITE_MANIFEST = get_vite_manifest()
+
+
+# Celery (Redis as broker and result backend)
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
+CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=False, cast=bool)
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_RESULT_EXPIRES = 24 * 60 * 60
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True

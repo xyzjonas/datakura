@@ -3,7 +3,9 @@
 from pathlib import Path
 
 from django.core.management.base import BaseCommand
-from apps.warehouse.core.services.product_import import ProductCsvImportService
+from apps.warehouse.core.services.data_import.product_import_csv_legacy import (
+    ProductCsvImportService,
+)
 
 
 class Command(BaseCommand):

@@ -4840,6 +4840,169 @@ export type DeletePrinterResponse = {
     data: PrinterSchema;
 };
 
+/**
+ * DataImportJobStartedResponse
+ */
+export type DataImportJobStartedResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: DataImportJobStartedSchema;
+};
+
+/**
+ * DataImportJobStartedSchema
+ */
+export type DataImportJobStartedSchema = {
+    /**
+     * Job Id
+     */
+    job_id: string;
+};
+
+/**
+ * CustomerImportResultSchema
+ */
+export type CustomerImportResultSchema = {
+    /**
+     * Created
+     */
+    created: number;
+    /**
+     * Updated
+     */
+    updated: number;
+    /**
+     * Contacts
+     */
+    contacts: number;
+    /**
+     * Groups Created
+     */
+    groups_created: number;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
+ * DataImportJobStatusResponse
+ */
+export type DataImportJobStatusResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: DataImportJobStatusSchema;
+};
+
+/**
+ * DataImportJobStatusSchema
+ */
+export type DataImportJobStatusSchema = {
+    /**
+     * Job Id
+     */
+    job_id: string;
+    /**
+     * State
+     */
+    state: 'pending' | 'running' | 'succeeded' | 'failed';
+    /**
+     * Stage
+     */
+    stage?: string | null;
+    /**
+     * Phase
+     */
+    phase?: string | null;
+    /**
+     * Stage Done
+     */
+    stage_done?: number;
+    /**
+     * Stage Total
+     */
+    stage_total?: number;
+    /**
+     * Percent
+     */
+    percent?: number;
+    result?: DataImportResultSchema | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+};
+
+/**
+ * DataImportResultSchema
+ */
+export type DataImportResultSchema = {
+    products?: ProductImportResultSchema | null;
+    customers?: CustomerImportResultSchema | null;
+    /**
+     * Warehouses
+     */
+    warehouses: Array<WarehouseImportResultSchema>;
+};
+
+/**
+ * ProductImportResultSchema
+ */
+export type ProductImportResultSchema = {
+    /**
+     * Created
+     */
+    created: number;
+    /**
+     * Updated
+     */
+    updated: number;
+    /**
+     * Skipped
+     */
+    skipped: number;
+    /**
+     * Barcodes Attached
+     */
+    barcodes_attached: number;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
+ * WarehouseImportResultSchema
+ */
+export type WarehouseImportResultSchema = {
+    /**
+     * Warehouse
+     */
+    warehouse: string;
+    /**
+     * Warehouse Created
+     */
+    warehouse_created: boolean;
+    /**
+     * Locations Created
+     */
+    locations_created: number;
+    /**
+     * Locations Existing
+     */
+    locations_existing: number;
+    /**
+     * Items Created
+     */
+    items_created: number;
+};
+
 export type WarehouseApiRoutesAuthLoginUserData = {
     body: LoginFormSchema;
     path?: never;
@@ -8280,3 +8443,60 @@ export type WarehouseApiRoutesPrintersUpdatePrinterResponses = {
 };
 
 export type WarehouseApiRoutesPrintersUpdatePrinterResponse = WarehouseApiRoutesPrintersUpdatePrinterResponses[keyof WarehouseApiRoutesPrintersUpdatePrinterResponses];
+
+export type WarehouseApiRoutesDataImportStartDataImportData = {
+    /**
+     * MultiPartBodyParams
+     */
+    body: {
+        /**
+         * Warehouse Ids
+         */
+        warehouse_ids?: Array<string>;
+        /**
+         * Products File
+         */
+        products_file?: Blob | File | null;
+        /**
+         * Customers File
+         */
+        customers_file?: Blob | File | null;
+        /**
+         * Warehouse Files
+         */
+        warehouse_files?: Array<Blob | File>;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/data-import';
+};
+
+export type WarehouseApiRoutesDataImportStartDataImportResponses = {
+    /**
+     * Accepted
+     */
+    202: DataImportJobStartedResponse;
+};
+
+export type WarehouseApiRoutesDataImportStartDataImportResponse = WarehouseApiRoutesDataImportStartDataImportResponses[keyof WarehouseApiRoutesDataImportStartDataImportResponses];
+
+export type WarehouseApiRoutesDataImportGetDataImportJobData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/v1/data-import/jobs/{job_id}';
+};
+
+export type WarehouseApiRoutesDataImportGetDataImportJobResponses = {
+    /**
+     * OK
+     */
+    200: DataImportJobStatusResponse;
+};
+
+export type WarehouseApiRoutesDataImportGetDataImportJobResponse = WarehouseApiRoutesDataImportGetDataImportJobResponses[keyof WarehouseApiRoutesDataImportGetDataImportJobResponses];

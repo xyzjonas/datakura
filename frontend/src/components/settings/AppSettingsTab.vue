@@ -7,6 +7,18 @@
 
     <div class="flex flex-col gap-10">
       <section>
+        <h2 class="text-lg font-semibold uppercase mb-3">Zobrazení</h2>
+        <q-toggle
+          v-model="isDark"
+          size="lg"
+          :label="isDark ? 'Tmavý režim' : 'Světlý režim'"
+          color="primary"
+          checked-icon="sym_o_bedtime"
+          icon="sym_o_wb_sunny"
+        />
+      </section>
+
+      <section>
         <h2 class="text-lg font-semibold uppercase mb-3">Ovládání</h2>
         <q-list bordered separator class="rounded overflow-hidden">
           <q-item tag="label">
@@ -114,6 +126,7 @@ import PrinterUpsertDialog from '@/components/settings/printers/PrinterUpsertDia
 import { useApi } from '@/composables/use-api'
 import { useAppSettings } from '@/composables/use-app-settings'
 import { useAuth } from '@/composables/use-auth'
+import { useDarkmode } from '@/composables/use-dark-mode'
 import { computed, ref, watch } from 'vue'
 
 const { scannerMode } = useAppSettings()
@@ -125,6 +138,8 @@ const printerSelectKey = ref(0)
 const showCreateDialog = ref(false)
 const savingDefaultPrinter = ref(false)
 const creatingPrinter = ref(false)
+
+const { isDark } = useDarkmode()
 
 const createDefaultPrinterForm = (): PrinterCreateOrUpdateSchema => ({
   code: '',

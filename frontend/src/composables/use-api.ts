@@ -14,6 +14,11 @@ const ERROR_CODES: { [key: string]: { title: string; caption: string } } = {
     title: 'Chybné balení',
     caption: 'Položka nelze rozdělit do požadovaného balení beze zbytku!',
   },
+  NOT_FOUND_0002: {
+    title: 'Vlastní firma není nastavena',
+    caption:
+      'Jednoho ze zákazníků můžete označit jako „vlastní firmu“. Její údaje se pak automaticky předvyplní v objednávkách a na fakturách. Označíte ji na stránce detailu zákazníka.',
+  },
 }
 
 type ResponseStub<D> = (
