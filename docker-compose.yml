@@ -25,6 +25,7 @@ services:
     volumes:
       - datakura_db:/app/data
       - datakura_static:/app/staticfiles
+      - datakura_upload:/app/media
     healthcheck:
       test:
         [
@@ -48,9 +49,10 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env}
       SQLITE_PATH: /app/data/db.sqlite3
       CELERY_BROKER_URL: redis://redis:6379/0
-    command: uv run celery -A conf worker --loglevel=info --concurrency=2
+    command: uv run python -m celery -A conf worker --loglevel=info --concurrency=2
     volumes:
       - datakura_db:/app/data
+      - datakura_upload:/app/media
     depends_on:
       - redis
 
@@ -63,5 +65,6 @@ services:
 
 volumes:
   datakura_db:
+  datakura_upload:
   datakura_redis:
   datakura_static:
