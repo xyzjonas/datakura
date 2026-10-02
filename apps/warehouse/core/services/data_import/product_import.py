@@ -16,13 +16,32 @@ from apps.warehouse.core.services.data_import.common import (
     read_text,
     validate_rows,
 )
+from apps.warehouse.core.audit_messages import AuditMessages
+from apps.warehouse.core.services.data_import.audit import log_import, snapshot
 from apps.warehouse.core.services.data_import.errors import DataImportError
 from apps.warehouse.core.services.data_import.progress import ImportProgress
 from apps.warehouse.models.barcode import Barcode, BarcodeType
 from apps.warehouse.models.currency import CURRENCY_CHOICES
 from apps.warehouse.models.packaging import UnitOfMeasure
-from apps.warehouse.models.product import ProductGroup, ProductType, StockProduct
+from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.product import (
+    ProductGroup,
+    ProductType,
+    StockProduct,
+    StockProductPrice,
+)
 
+AUDITED_FIELDS = (
+    "name",
+    "type",
+    "group",
+    "unit_of_measure",
+    "unit_weight",
+    "purchase_price",
+    "base_price",
+    "currency",
+    "attributes",
+)
 TYPE_MAP = {"GOODS": "Zboží"}
 PROGRESS_EVERY = 1000
 DEFAULT_CURRENCY = "CZK"
@@ -73,6 +92,11 @@ class LegacyPrice(BaseModel):
     def blank(cls, value):
         return _blank_to_none(value)
 
+    @field_validator("uom")
+    @classmethod
+    def uppercase_uom(cls, value):
+        return value.upper() if value else value
+
     @field_validator("unit_count", mode="before")
     @classmethod
     def none_to_one(cls, value):
@@ -97,7 +121,7 @@ class LegacyPrice(BaseModel):
 
 class LegacyBarcode(BaseModel):
     code: str = Field(..., alias="BarCode", min_length=1, max_length=100)
-    amount: Decimal | None = Field(None, alias="Amount")
+    # Legacy "Amount" is garbage: neither validated nor used
 
     model_config = ConfigDict(populate_by_name=True, str_strip_whitespace=True)
 
@@ -146,6 +170,11 @@ class LegacyProduct(BaseModel):
     @classmethod
     def blank(cls, value):
         return _blank_to_none(value)
+
+    @field_validator("uom")
+    @classmethod
+    def uppercase_uom(cls, value):
+        return value.upper() if value else value
 
     @field_validator("buy_price", mode="before")
     @classmethod
@@ -203,14 +232,6 @@ class ProductImportService:
             if position % PROGRESS_EVERY == 0:
                 logger.info("Product import: processed {}/{} records", position, total)
 
-            if product.stock_product is None:
-                logger.debug("Product '{}': no stock product, skipped", product.code)
-                summary.skipped_count += 1
-                summary.warnings.append(
-                    f"Product '{product.code}': no stock product, skipped"
-                )
-                continue
-
             try:
                 with transaction.atomic():
                     created = self._import_product(product, summary)
@@ -254,9 +275,9 @@ class ProductImportService:
     def _import_product(
         self, product: LegacyProduct, summary: ProductImportSummary
     ) -> bool:
+        # Non-physical products (services) have no legacy stock product
         stock = product.stock_product
-        assert stock is not None
-        if stock.code != product.code:
+        if stock is not None and stock.code != product.code:
             raise ValueError(f"StockProduct code '{stock.code}' != product code")
 
         product_type, _ = ProductType.objects.get_or_create(name=product.type_code)
@@ -268,11 +289,11 @@ class ProductImportService:
 
         base_price, currency = self._base_price(product, uom_name, summary)
         defaults: dict[str, Any] = {
-            "name": stock.name or product.name,
+            "name": (stock and stock.name) or product.name,
             "type": product_type,
             "group": group,
             "unit_of_measure": uom,
-            "unit_weight": _to_2dp(stock.weight or Decimal(0)),
+            "unit_weight": _to_2dp((stock and stock.weight) or Decimal(0)),
             "purchase_price": _to_2dp(product.buy_price),
             "base_price": base_price,
             "attributes": {meta.code: meta.value for meta in product.metas},
@@ -280,17 +301,49 @@ class ProductImportService:
         if currency:
             defaults["currency"] = currency
 
-        stock_product, created = StockProduct.objects.update_or_create(
-            code=stock.code, defaults=defaults
+        existing = (
+            StockProduct.objects.select_related("type", "group", "unit_of_measure")
+            .filter(code=product.code)
+            .first()
         )
-        self._attach_barcodes(stock_product, stock, summary)
+        before = self._snapshot(existing) if existing else None
+
+        stock_product, created = StockProduct.objects.update_or_create(
+            code=product.code, defaults=defaults
+        )
+        if stock is not None:
+            self._attach_barcodes(stock_product, stock, summary)
+        self._import_customer_prices(stock_product, product, uom_name, summary)
+        log_import(
+            stock_product,
+            before=before,
+            after=self._snapshot(stock_product),
+            created_message=AuditMessages.PRODUCT_IMPORTED,
+            updated_message=AuditMessages.PRODUCT_UPDATED_BY_IMPORT,
+        )
         return created
+
+    @staticmethod
+    def _snapshot(product: StockProduct) -> dict[str, str]:
+        values = snapshot(product, AUDITED_FIELDS)
+        values["barcodes"] = ", ".join(
+            sorted(product.get_barcodes().values_list("code", flat=True))
+        )
+        values["customer_prices"] = ", ".join(
+            f"{code}{f' from {min_amount.normalize():f}' if min_amount else ''}={price}"
+            for code, min_amount, price in sorted(
+                product.dynamic_prices.values_list(
+                    "customer__code", "min_amount", "fixed_price"
+                ),
+                key=lambda row: (row[0], row[1] or 0),
+            )
+        )
+        return values
 
     @staticmethod
     def _get_or_create_uom(name: str) -> UnitOfMeasure:
         """'100KS' -> UoM '100KS' worth 100 of base UoM 'KS'"""
-        if name.lower() in (DEFAULT_UOM.lower(), f"100{DEFAULT_UOM}".lower()):
-            name = name.upper()
+        name = name.upper()
 
         match = _MULTI_PACK_UOM.match(name)
         if not match:
@@ -325,6 +378,43 @@ class ProductImportService:
         return Decimal(0), None
 
     @staticmethod
+    def _import_customer_prices(
+        stock_product: StockProduct,
+        product: LegacyProduct,
+        uom_name: str,
+        summary: ProductImportSummary,
+    ) -> None:
+        """Customer specific prices (any price type) -> fixed price override per customer,
+        optionally valid from a minimum amount"""
+        for price in product.prices:
+            if price.customer_id is None:
+                continue
+            problem = ProductImportService._customer_price_problem(price, uom_name)
+            customer = (
+                None
+                if problem
+                else Customer.objects.filter(pk=price.customer_id).first()
+            )
+            if customer is None:
+                summary.warnings.append(
+                    f"Product '{product.code}': price for customer "
+                    f"{price.customer_id} skipped ({problem or 'customer not found'})"
+                )
+                continue
+            StockProductPrice.objects.update_or_create(
+                product=stock_product,
+                customer=customer,
+                min_amount=_min_amount(price),
+                defaults={"fixed_price": _to_2dp(price.price / price.unit_count)},
+            )
+
+    @staticmethod
+    def _customer_price_problem(price: LegacyPrice, uom_name: str) -> str | None:
+        if (price.uom or uom_name) != uom_name:
+            return f"UoM '{price.uom}' differs from product UoM '{uom_name}'"
+        return None
+
+    @staticmethod
     def _attach_barcodes(
         stock_product: StockProduct,
         stock: LegacyStockProduct,
@@ -332,12 +422,6 @@ class ProductImportService:
     ) -> None:
         has_primary = stock_product.get_primary_barcode() is not None
         for barcode in stock.barcodes:
-            if barcode.amount is not None:
-                summary.warnings.append(
-                    f"Product '{stock.code}': barcode '{barcode.code}' amount "
-                    f"{barcode.amount} dropped (unsupported)"
-                )
-
             owned_elsewhere = (
                 Barcode.objects.filter(code=barcode.code)
                 .exclude(**_owner(stock_product))
@@ -355,6 +439,13 @@ class ProductImportService:
             )
             has_primary = True
             summary.barcodes_attached += 1
+
+
+def _min_amount(price: LegacyPrice) -> Decimal | None:
+    """Zero or missing minimum quantity means no limit"""
+    if price.quantity_min is None or price.quantity_min <= 0:
+        return None
+    return price.quantity_min
 
 
 def _owner(obj) -> dict[str, Any]:

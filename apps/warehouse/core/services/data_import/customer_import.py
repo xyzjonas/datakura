@@ -17,6 +17,8 @@ from apps.warehouse.core.services.data_import.common import (
     read_text,
     validate_rows,
 )
+from apps.warehouse.core.audit_messages import AuditMessages
+from apps.warehouse.core.services.data_import.audit import log_import, snapshot
 from apps.warehouse.core.services.data_import.errors import DataImportError
 from apps.warehouse.core.services.data_import.progress import ImportProgress
 from apps.warehouse.models.customer import (
@@ -32,6 +34,25 @@ _STATES = {code for code, _ in STATE_CHOICES}
 _CUSTOMER_TYPES = {code for code, _ in Customer.CUSTOMER_TYPE_CHOICES}
 DEFAULT_CUSTOMER_TYPE = "FIRMA"
 DEFAULT_GROUP_CODE = "default"
+AUDITED_FIELDS = (
+    "name",
+    "email",
+    "phone",
+    "street",
+    "city",
+    "postal_code",
+    "state",
+    "identification",
+    "tax_identification",
+    "customer_type",
+    "price_type",
+    "invoice_due_days",
+    "block_after_due_days",
+    "is_valid",
+    "is_deleted",
+    "customer_group",
+    "responsible_user",
+)
 
 
 def _blank_to_none(value: Any) -> Any:
@@ -117,6 +138,7 @@ class LegacyPerson(_Base):
 
 
 class LegacyCustomer(_Base):
+    legacy_id: int | None = Field(None, alias="Id", gt=0)
     code: str = Field(..., alias="Code", min_length=1, max_length=50)
     name: str = Field(..., alias="Name", min_length=1, max_length=255)
     email: str = Field("", alias="Email", max_length=254)
@@ -286,31 +308,57 @@ class CustomerImportService:
         )
         summary.groups_created += group_created
 
+        existing = (
+            Customer.objects.select_related("customer_group", "responsible_user")
+            .filter(code=customer.code)
+            .first()
+        )
+        before = snapshot(existing, AUDITED_FIELDS) if existing else None
+
+        create_defaults: dict[str, Any] = {}
+        if existing is None and customer.legacy_id is not None:
+            if Customer.objects.filter(pk=customer.legacy_id).exists():
+                summary.warnings.append(
+                    f"Customer '{customer.code}': Id {customer.legacy_id} already "
+                    "taken by another customer, new Id assigned"
+                )
+            else:
+                create_defaults["id"] = customer.legacy_id
+
+        defaults = {
+            "name": customer.name,
+            "email": customer.email,
+            "phone": customer.phone,
+            "street": customer.street,
+            "city": customer.city,
+            "postal_code": customer.postal_code,
+            "state": customer.state,
+            "identification": customer.identification,
+            "tax_identification": customer.tax_identification,
+            "register_information": customer.register_information,
+            "note": customer.note,
+            "is_valid": customer.is_valid,
+            "is_deleted": customer.is_deleted,
+            "data_collection_agreement": customer.data_collection_agreement,
+            "marketing_data_use_agreement": customer.marketing_data_use_agreement,
+            "price_type": customer.price_type,
+            "customer_type": customer.customer_type,
+            "invoice_due_days": customer.invoice_due_days,
+            "block_after_due_days": customer.block_after_due_days,
+            "customer_group": group,
+            "responsible_user": self._find_user(customer, summary),
+        }
         result, created = Customer.objects.update_or_create(
             code=customer.code,
-            defaults={
-                "name": customer.name,
-                "email": customer.email,
-                "phone": customer.phone,
-                "street": customer.street,
-                "city": customer.city,
-                "postal_code": customer.postal_code,
-                "state": customer.state,
-                "identification": customer.identification,
-                "tax_identification": customer.tax_identification,
-                "register_information": customer.register_information,
-                "note": customer.note,
-                "is_valid": customer.is_valid,
-                "is_deleted": customer.is_deleted,
-                "data_collection_agreement": customer.data_collection_agreement,
-                "marketing_data_use_agreement": customer.marketing_data_use_agreement,
-                "price_type": customer.price_type,
-                "customer_type": customer.customer_type,
-                "invoice_due_days": customer.invoice_due_days,
-                "block_after_due_days": customer.block_after_due_days,
-                "customer_group": group,
-                "responsible_user": self._find_user(customer, summary),
-            },
+            defaults=defaults,
+            create_defaults={**defaults, **create_defaults},
+        )
+        log_import(
+            result,
+            before=before,
+            after=snapshot(result, AUDITED_FIELDS),
+            created_message=AuditMessages.CUSTOMER_IMPORTED,
+            updated_message=AuditMessages.CUSTOMER_UPDATED_BY_IMPORT,
         )
 
         for person in customer.people:

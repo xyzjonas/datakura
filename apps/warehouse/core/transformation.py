@@ -467,6 +467,11 @@ def dynamic_product_price_orm_to_schema(
         changed=dynamic_price.changed,
         fixed_price=float(fixed_price),
         discount_percent=float(discount_percent),
+        min_amount=(
+            None
+            if dynamic_price.min_amount is None
+            else float(dynamic_price.min_amount)
+        ),
         customer=DynamicProductPriceCustomerSchema(
             code=dynamic_price.customer.code,
             name=dynamic_price.customer.name,

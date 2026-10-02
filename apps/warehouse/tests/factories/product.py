@@ -80,6 +80,7 @@ class StockProductPriceFactory(DjangoModelFactory):
         "pydecimal", left_digits=4, right_digits=2, min_value=0, max_value=10000
     )
     customer = factory.SubFactory(CustomerFactory)
+    min_amount = None
 
 
 class StockProductPriceCustomerFactory(StockProductPriceFactory):

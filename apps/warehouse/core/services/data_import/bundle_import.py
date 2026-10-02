@@ -43,7 +43,8 @@ class WarehouseFile:
 
 class DataImportBundleService:
     """
-    Runs the importers in dependency order (products -> customers -> stock) in a
+    Runs the importers in dependency order (customers -> products -> stock;
+    customer specific product prices need the customers) in a
     single transaction: any failure leaves the database untouched.
     """
 
@@ -64,17 +65,6 @@ class DataImportBundleService:
         result = DataImportResultSchema(warehouses=[])
         progress = progress or ImportProgress()
 
-        if products is not None:
-            logger.info("Data import: products ({} bytes)", len(products))
-            summary = self._step("products", products, ProductImportService(), progress)
-            result.products = ProductImportResultSchema(
-                created=summary.created_count,
-                updated=summary.updated_count,
-                skipped=summary.skipped_count,
-                barcodes_attached=summary.barcodes_attached,
-                warnings=summary.warnings,
-            )
-
         if customers is not None:
             logger.info("Data import: customers ({} bytes)", len(customers))
             summary = self._step(
@@ -85,6 +75,17 @@ class DataImportBundleService:
                 updated=summary.updated_count,
                 contacts=summary.contacts_count,
                 groups_created=summary.groups_created,
+                warnings=summary.warnings,
+            )
+
+        if products is not None:
+            logger.info("Data import: products ({} bytes)", len(products))
+            summary = self._step("products", products, ProductImportService(), progress)
+            result.products = ProductImportResultSchema(
+                created=summary.created_count,
+                updated=summary.updated_count,
+                skipped=summary.skipped_count,
+                barcodes_attached=summary.barcodes_attached,
                 warnings=summary.warnings,
             )
 

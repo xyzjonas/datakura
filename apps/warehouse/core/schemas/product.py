@@ -29,6 +29,7 @@ class DynamicProductPriceSchema(BaseSchema):
     price_id: int
     fixed_price: float
     discount_percent: float
+    min_amount: float | None = None
     customer: DynamicProductPriceCustomerSchema
 
 

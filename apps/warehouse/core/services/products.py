@@ -48,9 +48,11 @@ class StockProductsService:
         base_price = Decimal(str(product.base_price or 0))
 
         if customer:
+            # Quantity limited prices need an amount, which the lookup doesn't have
             customer_discount = StockProductPrice.objects.filter(
                 product=product,
                 customer=customer,
+                min_amount__isnull=True,
             ).first()
             if customer_discount:
                 final_price = Decimal(str(customer_discount.fixed_price))
@@ -228,6 +230,7 @@ class StockProductsService:
         StockProductPrice.objects.update_or_create(
             product=product,
             customer=customer,
+            min_amount=None,
             defaults={"fixed_price": fixed_price},
         )
 

@@ -51,7 +51,7 @@ def test_progress_is_reported_through_all_stages(staged):
     percents = [s.percent for s in snapshots]
     assert percents == sorted(percents), "progress must never go backwards"
     assert percents[-1] == 100.0
-    assert [s.stage for s in snapshots if s.stage][0] == "products"
+    assert [s.stage for s in snapshots if s.stage][0] == "customers"
     assert {s.stage for s in snapshots} >= {"products", "customers", "warehouse 'W'"}
     assert {"validating", "importing", "done"} <= {s.phase for s in snapshots}
 

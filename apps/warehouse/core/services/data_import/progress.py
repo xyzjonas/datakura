@@ -1,4 +1,4 @@
-"""Progress reporting for long running imports"""
+"""Progress reporting for long-running imports"""
 
 import time
 from dataclasses import dataclass

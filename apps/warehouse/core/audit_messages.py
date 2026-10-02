@@ -241,6 +241,30 @@ class AuditMessages:
             AuditLanguage.CS: "Zákazník byl aktualizován",
         }
     )
+    CUSTOMER_IMPORTED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Customer imported",
+            AuditLanguage.CS: "Zákazník byl naimportován",
+        }
+    )
+    CUSTOMER_UPDATED_BY_IMPORT = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Customer already existed, updated through import",
+            AuditLanguage.CS: "Zákazník již existoval, aktualizován importem",
+        }
+    )
+    PRODUCT_IMPORTED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Product imported",
+            AuditLanguage.CS: "Produkt byl naimportován",
+        }
+    )
+    PRODUCT_UPDATED_BY_IMPORT = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Product already existed, updated through import",
+            AuditLanguage.CS: "Produkt již existoval, aktualizován importem",
+        }
+    )
     CONTACT_PERSON_CREATED = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Contact person created",

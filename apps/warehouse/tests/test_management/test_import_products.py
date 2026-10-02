@@ -10,9 +10,13 @@ from apps.warehouse.core.services.data_import.errors import DataImportError
 from apps.warehouse.core.services.data_import.product_import import (
     ProductImportService,
 )
+from apps.warehouse.core.audit_messages import AuditMessages
+from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.barcode import BarcodeType
 from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.product import ProductGroup, ProductType, StockProduct
+from apps.warehouse.models.product import StockProductPrice
+from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
 
 SAMPLE = {
@@ -104,12 +108,43 @@ def test_accepts_single_object():
 
 
 @pytest.mark.django_db
-def test_product_without_stock_product_is_skipped():
+def test_product_without_stock_product_is_imported_with_blank_stock_fields():
     summary = run(sample(StockProduct=None))
 
-    assert summary.skipped_count == 1
-    assert "no stock product" in summary.warnings[0]
-    assert not StockProduct.objects.exists()
+    product = StockProduct.objects.get()
+    assert (summary.created_count, summary.skipped_count) == (1, 0)
+    assert summary.warnings == []
+    assert product.code == SAMPLE["Code"]
+    assert product.name == SAMPLE["Name"]
+    assert product.unit_weight == 0
+    assert product.get_barcodes().count() == 0
+
+
+@pytest.mark.django_db
+def test_service_product_is_imported_and_updated():
+    service = {
+        "Id": 264204,
+        "Code": "ZINKOVÁNÍ",
+        "Name": "ZINKOVÁNÍ",
+        "Note": None,
+        "BuyPrice": 0,
+        "ProductTypeCode": "SERVICE",
+        "ProductGroupCode": "",
+        "UnitTypeCode": "ks",
+        "ProductMetas": [],
+        "ProductPrices": [],
+        "StockProduct": None,
+    }
+
+    run(service)
+    summary = run({**service, "Name": "Zinkování"})
+
+    product = StockProduct.objects.get(code="ZINKOVÁNÍ")
+    assert (summary.created_count, summary.updated_count) == (0, 1)
+    assert product.name == "Zinkování"
+    assert product.type.name == "SERVICE"
+    assert product.group is None
+    assert product.unit_of_measure.name == "KS"
 
 
 @pytest.mark.django_db
@@ -164,8 +199,8 @@ def test_price_in_foreign_uom_is_ignored_with_warning():
         ("", "KS", None),
         ("ks", "KS", None),
         ("100ks", "100KS", "KS"),
-        ("kg", "kg", None),
-        ("10 m", "10 m", "M"),
+        ("kg", "KG", None),
+        ("10 m", "10 M", "M"),
     ],
 )
 def test_unit_of_measure_mapping(uom, expected_name, base_name):
@@ -206,7 +241,7 @@ def test_barcode_type_detection(code, expected):
 
 
 @pytest.mark.django_db
-def test_multiple_barcodes_first_is_primary_and_amount_warns():
+def test_multiple_barcodes_first_is_primary_and_amount_is_ignored():
     stock = {
         **SAMPLE["StockProduct"],
         "StockBarCodes": [
@@ -221,7 +256,49 @@ def test_multiple_barcodes_first_is_primary_and_amount_warns():
     assert product.get_primary_barcode().code == "AAA"  # type: ignore[union-attr]
     assert len(product.get_barcodes()) == 2
     assert summary.barcodes_attached == 2
-    assert "amount 100 dropped" in summary.warnings[0]
+    assert summary.warnings == []
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("amount", [None, 0, 1, -5, 100, "garbage", {"x": 1}, [1]])
+def test_barcode_amount_is_never_validated(amount):
+    stock = {
+        **SAMPLE["StockProduct"],
+        "StockBarCodes": [{"BarCode": "9760801160295", "Amount": amount}],
+    }
+
+    summary = run(sample(StockProduct=stock))
+
+    assert summary.barcodes_attached == 1
+    assert summary.warnings == []
+
+
+@pytest.mark.django_db
+def test_import_writes_audit_logs_for_create_and_update():
+    run(sample())
+    product = StockProduct.objects.get()
+    log = AuditLog.objects.for_object(product).get()
+    assert log.action == AuditAction.CREATE
+    assert log.reason == AuditMessages.PRODUCT_IMPORTED.CS
+    assert log.changes["name"] == {"old": "", "new": "Závlačka ZB 10,0x160"}
+    assert log.changes["barcodes"]["new"] == "4441500020819"
+
+    run(sample(Name="Renamed", StockProduct={**SAMPLE["StockProduct"], "Name": "New"}))
+
+    log = AuditLog.objects.for_object(product).first()
+    assert log.action == AuditAction.UPDATE  # type: ignore[union-attr]
+    assert log.reason == AuditMessages.PRODUCT_UPDATED_BY_IMPORT.CS  # type: ignore[union-attr]
+    assert log.changes == {  # type: ignore[union-attr]
+        "name": {"old": "Závlačka ZB 10,0x160", "new": "New"}
+    }
+
+
+@pytest.mark.django_db
+def test_reimport_of_unchanged_product_writes_no_audit_log():
+    run(sample())
+    run(sample())
+
+    assert AuditLog.objects.count() == 1
 
 
 @pytest.mark.django_db
@@ -375,7 +452,7 @@ def test_command_turns_import_error_into_command_error(tmp_path):
 
 
 @pytest.mark.django_db
-def test_non_stock_service_product_with_negative_buy_price_is_skipped():
+def test_non_stock_service_product_with_negative_buy_price_is_imported():
     service = {
         "Id": 280106,
         "Code": "SLEVA",
@@ -392,8 +469,8 @@ def test_non_stock_service_product_with_negative_buy_price_is_skipped():
 
     summary = run(service, sample())
 
-    assert (summary.skipped_count, summary.created_count) == (1, 1)
-    assert not StockProduct.objects.filter(code="SLEVA").exists()
+    assert (summary.skipped_count, summary.created_count) == (0, 2)
+    assert StockProduct.objects.get(code="SLEVA").purchase_price == Decimal("-500.00")
 
 
 @pytest.mark.django_db
@@ -417,3 +494,169 @@ def test_blank_barcodes_are_dropped(blank):
     assert [b.code for b in product.get_barcodes()] == ["REAL-1"]
     assert product.get_primary_barcode().code == "REAL-1"  # type: ignore[union-attr]
     assert summary.barcodes_attached == 1
+
+
+def customer_price(customer_id, price=4900, **extra) -> dict:
+    return {
+        "ProductPriceTypeCode": "NORMAL",
+        "Price": price,
+        "CurrencyCode": "CZK",
+        "UnitTypeCode": "100KS",
+        "UnitCount": 1,
+        "CustomerId": customer_id,
+        **extra,
+    }
+
+
+@pytest.mark.django_db
+def test_customer_price_is_stored_as_customer_override_not_base_price():
+    customer = CustomerFactory()
+    generic = {**customer_price(None, 575.39)}
+
+    summary = run(sample(ProductPrices=[generic, customer_price(customer.pk)]))
+
+    product = StockProduct.objects.get()
+    assert product.base_price == Decimal("575.39")
+    override = StockProductPrice.objects.get()
+    assert (override.product, override.customer) == (product, customer)
+    assert override.fixed_price == Decimal("4900.00")
+    assert summary.warnings == []
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("price_type", [None, "", "SALE", "NORMAL"])
+def test_customer_price_ignores_price_type(price_type):
+    customer = CustomerFactory()
+    price = customer_price(customer.pk, ProductPriceTypeCode=price_type)
+
+    summary = run(sample(ProductPrices=[price]))
+
+    assert StockProductPrice.objects.get().customer == customer
+    assert summary.warnings == []
+    assert StockProduct.objects.get().base_price == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "product_uom, price_uom", [("KS", "ks"), ("ks", "KS"), ("100ks", "100KS")]
+)
+def test_uom_names_are_uppercased_for_creation_and_comparison(product_uom, price_uom):
+    customer = CustomerFactory()
+    prices = [
+        {"ProductPriceTypeCode": "NORMAL", "Price": 7, "UnitTypeCode": price_uom},
+        customer_price(customer.pk, 5, UnitTypeCode=price_uom),
+    ]
+
+    summary = run(sample(UnitTypeCode=product_uom, ProductPrices=prices))
+
+    product = StockProduct.objects.get()
+    assert product.unit_of_measure.name == product_uom.upper()
+    assert product.base_price == Decimal("7.00")
+    assert StockProductPrice.objects.get().fixed_price == Decimal("5.00")
+    assert summary.warnings == []
+    assert not UnitOfMeasure.objects.filter(name__regex=r"[a-z]").exists()
+
+
+@pytest.mark.django_db
+def test_customer_price_is_divided_by_unit_count_and_updated_on_reimport():
+    customer = CustomerFactory()
+    run(sample(ProductPrices=[customer_price(customer.pk, 100, UnitCount=3)]))
+    assert StockProductPrice.objects.get().fixed_price == Decimal("33.33")
+
+    run(sample(ProductPrices=[customer_price(customer.pk, 50)]))
+
+    assert StockProductPrice.objects.get().fixed_price == Decimal("50.00")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "extra, reason",
+    [
+        ({"CustomerId": 999999}, "customer not found"),
+        ({"UnitTypeCode": "KS"}, "differs from product UoM"),
+    ],
+)
+def test_unusable_customer_price_is_skipped_with_warning(extra, reason):
+    customer = CustomerFactory()
+    price = {**customer_price(customer.pk), **extra}
+
+    summary = run(sample(ProductPrices=[price]))
+
+    assert not StockProductPrice.objects.exists()
+    assert StockProduct.objects.count() == 1
+    assert reason in summary.warnings[0]
+
+
+@pytest.mark.django_db
+def test_customer_prices_show_up_in_audit_log():
+    customer = CustomerFactory(code="ACME")
+
+    run(sample(ProductPrices=[customer_price(customer.pk)]))
+
+    log = AuditLog.objects.for_object(StockProduct.objects.get()).get()
+    assert log.changes["customer_prices"]["new"] == "ACME=4900.00"
+
+
+@pytest.mark.django_db
+def test_quantity_limited_customer_prices_are_stored_next_to_the_unlimited_one():
+    customer = CustomerFactory(code="ACME")
+    prices = [
+        customer_price(customer.pk, 100),
+        customer_price(customer.pk, 90, QuantityMin=10),
+        customer_price(customer.pk, 80, QuantityMin=100),
+    ]
+
+    summary = run(sample(ProductPrices=prices))
+
+    stored = {p.min_amount: p.fixed_price for p in StockProductPrice.objects.all()}
+    assert stored == {
+        None: Decimal("100.00"),
+        Decimal("10"): Decimal("90.00"),
+        Decimal("100"): Decimal("80.00"),
+    }
+    assert summary.warnings == []
+    log = AuditLog.objects.for_object(StockProduct.objects.get()).get()
+    assert (
+        log.changes["customer_prices"]["new"]
+        == "ACME=100.00, ACME from 10=90.00, ACME from 100=80.00"
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("quantity_min", [None, 0, "0.0"])
+def test_zero_or_missing_minimum_quantity_means_no_limit(quantity_min):
+    customer = CustomerFactory()
+
+    run(
+        sample(ProductPrices=[customer_price(customer.pk, 5, QuantityMin=quantity_min)])
+    )
+
+    assert StockProductPrice.objects.get().min_amount is None
+
+
+@pytest.mark.django_db
+def test_quantity_limited_price_is_updated_on_reimport_and_not_duplicated():
+    customer = CustomerFactory()
+    run(sample(ProductPrices=[customer_price(customer.pk, 90, QuantityMin=10)]))
+
+    run(sample(ProductPrices=[customer_price(customer.pk, 70, QuantityMin=10)]))
+
+    price = StockProductPrice.objects.get()
+    assert (price.min_amount, price.fixed_price) == (Decimal("10"), Decimal("70.00"))
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "extra, expected_min",
+    [
+        ({"QuantityMax": 10}, None),
+        ({"QuantityMin": 5, "QuantityMax": 20}, Decimal("5")),
+    ],
+)
+def test_maximum_quantity_is_ignored(extra, expected_min):
+    customer = CustomerFactory()
+
+    summary = run(sample(ProductPrices=[customer_price(customer.pk, 9, **extra)]))
+
+    assert StockProductPrice.objects.get().min_amount == expected_min
+    assert summary.warnings == []

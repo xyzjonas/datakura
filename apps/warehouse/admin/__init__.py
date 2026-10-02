@@ -99,6 +99,7 @@ class StockProductPriceAdmin(admin.ModelAdmin):
         "product",
         "fixed_price",
         "customer",
+        "min_amount",
     ]
 
 

@@ -23,6 +23,11 @@ class CustomerGroup(BaseModel):
         return self.name
 
 
+GHOST_CUSTOMER_CODE = "ghost-customer"
+# Highest possible 32-bit key keeps the low ids free for imported legacy customers
+GHOST_CUSTOMER_ID = 2**31 - 1
+
+
 class Customer(BaseModel):
     """Main customer model"""
 
@@ -128,8 +133,9 @@ class Customer(BaseModel):
         grp, _ = CustomerGroup.objects.get_or_create(name="default")
         return Customer.objects.get_or_create(
             name="N/A",
-            code="ghost-customer",
+            code=GHOST_CUSTOMER_CODE,
             defaults={
+                "id": GHOST_CUSTOMER_ID,
                 "customer_group_id": grp.id,
             },
         )[0].id

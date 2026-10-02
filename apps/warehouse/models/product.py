@@ -101,9 +101,16 @@ class StockProductPrice(BaseModel):
         on_delete=models.CASCADE,
         related_name="product_prices",
     )
+    min_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        help_text="Minimum ordered amount for the price to be valid (empty = no limit)",
+    )
 
     class Meta(BaseModel.Meta):
-        ordering = ["product", "customer", "fixed_price"]
+        ordering = ["product", "customer", "min_amount", "fixed_price"]
         constraints = [
             models.CheckConstraint(
                 condition=Q(fixed_price__gte=0),
@@ -113,8 +120,18 @@ class StockProductPrice(BaseModel):
                 condition=Q(customer__isnull=False),
                 name="warehouse_productprice_customer_required",
             ),
+            models.CheckConstraint(
+                condition=Q(min_amount__isnull=True) | Q(min_amount__gt=0),
+                name="warehouse_productprice_min_amount_positive",
+            ),
+            models.UniqueConstraint(
+                fields=["product", "customer", "min_amount"],
+                condition=Q(min_amount__isnull=False),
+                name="warehouse_unique_product_customer_min_amount_price",
+            ),
             models.UniqueConstraint(
                 fields=["product", "customer"],
+                condition=Q(min_amount__isnull=True),
                 name="warehouse_unique_product_customer_discount",
             ),
         ]
