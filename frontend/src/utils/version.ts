@@ -7,16 +7,19 @@ export type ChangelogEntry = {
   rows: string[]
 }
 
-export const APP_VERSION = '0.0.1dev7'
+export const APP_VERSION = '0.0.1.dev8'
 export const STORAGE_KEY = 'app-last-acknowledged-version'
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
-    {
+  {
+    version: '0.0.1.dev8',
+    releaseDate: '2026-10-07',
+    rows: ['Menší opravy.'],
+  },
+  {
     version: '0.0.1dev7',
     releaseDate: '2026-09-30',
-    rows: [
-      'Možnost importu dat ze systému Vlawoj',
-    ],
+    rows: ['Možnost importu dat ze systému Vlawoj.'],
   },
   {
     version: '0.0.1dev6',

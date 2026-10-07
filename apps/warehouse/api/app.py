@@ -25,7 +25,7 @@ from .routes.data_import import routes as data_import_routes
 api = NinjaAPI(
     auth=django_auth,
     urls_namespace="api/v1",
-    version="0.0.1dev1",
+    version="0.0.1.dev8",
     title="DATAKURA",
     description="Datakura system API",
 )

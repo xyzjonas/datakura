@@ -1,6 +1,6 @@
 {
   "name": "datakura-ui",
-  "version": "0.0.1dev1",
+  "version": "0.0.1.dev8",
   "private": true,
   "type": "module",
   "engines": {
