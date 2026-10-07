@@ -8,41 +8,56 @@
     <div class="flex gap-4 items-start lg:items-center">
       <IndexRectangle :index="index + 1" />
       <div class="flex flex-col gap-1">
-      <span :class="['text-xs font-bold', item.pending ? 'text-orange' : 'text-positive']">
-        {{ item.pending ? 'K NASKLADNĚNÍ' : 'HOTOVO' }}
-      </span>
-      <router-link :to="{ name: 'productDetail', params: { productCode: item.product.code } }">
-        <h5 class="link text-lg">{{ item.product.name }}</h5>
-      </router-link>
-      <span class="text-muted text-xs">{{ item.product.code }}</span>
+        <span :class="['text-xs font-bold', item.pending ? 'text-orange' : 'text-positive']">
+          {{ item.pending ? 'K NASKLADNĚNÍ' : 'HOTOVO' }}
+        </span>
+        <router-link :to="{ name: 'productDetail', params: { productCode: item.product.code } }">
+          <h5 class="link text-lg">{{ item.product.name }}</h5>
+        </router-link>
+        <span class="text-muted text-xs">{{ item.product.code }}</span>
 
-      <div class="flex flex-wrap gap-2 items-center">
-        <WarehouseItemAmountBadge :item="amountBadgeItem" />
-        <TrackingLevelBadge :level="item.tracking_level" />
-        <PackageTypeBadge v-if="item.package" :package-type="item.package.type" />
-        <BatchBadge v-if="item.batch_barcode" :batch-code="item.batch_barcode" />
-        <q-badge
-          v-if="item.outbound_order_code"
-          color="primary"
-          class="py-1 cursor-pointer"
-          @click="
-            $router.push({
-              name: 'warehouseOutboundOrderDetail',
-              params: { code: item.outbound_order_code },
-            })
-          "
-        >
-          VÝDEJKA {{ item.outbound_order_code }}
-        </q-badge>
-      </div>
+        <div class="flex flex-wrap gap-2 items-center">
+          <WarehouseItemAmountBadge :item="amountBadgeItem" />
+          <TrackingLevelBadge :level="item.tracking_level" />
+          <PackageTypeBadge v-if="item.package" :package-type="item.package.type" />
+          <BatchBadge v-if="item.batch_barcode" :batch-code="item.batch_barcode" />
+          <q-badge v-if="missingWeight" color="negative" class="py-1" data-test="missing-weight">
+            <q-icon name="sym_o_warning" class="mr-1" />Chybí hmotnost
+          </q-badge>
+          <q-badge
+            v-if="item.product.customs_declaration_group"
+            outline
+            color="grey-7"
+            class="py-1"
+          >
+            <q-icon name="sym_o_assured_workload" class="mr-1" />
+            {{ item.product.customs_declaration_group }}
+          </q-badge>
+          <q-badge v-else color="warning" class="py-1" data-test="missing-customs">
+            <q-icon name="sym_o_assured_workload" class="mr-1" />CHYBÍ CELNÍ KÓD
+          </q-badge>
+          <q-badge
+            v-if="item.outbound_order_code"
+            color="primary"
+            class="py-1 cursor-pointer"
+            @click="
+              $router.push({
+                name: 'warehouseOutboundOrderDetail',
+                params: { code: item.outbound_order_code },
+              })
+            "
+          >
+            VÝDEJKA {{ item.outbound_order_code }}
+          </q-badge>
+        </div>
 
-      <div v-if="item.warehouse_item_id" class="text-sm text-gray-6">
-        <WarehouseItemLink :item-id="item.warehouse_item_id!" />
+        <div v-if="item.warehouse_item_id" class="text-sm text-gray-6">
+          <WarehouseItemLink :item-id="item.warehouse_item_id!" />
+        </div>
       </div>
     </div>
-    </div>
 
-    <div class="flex gap-1 items-center self-end lg:self-auto">
+    <div class="flex gap-3 items-center self-end lg:self-auto">
       <q-btn
         v-if="isRemovable"
         @click="removeItemDialog = true"
@@ -66,63 +81,87 @@
         <q-tooltip :offset="[0, 10]">Zrušit evidenci položky ⤍ skladem volně</q-tooltip>
       </q-btn>
       <q-btn
+        v-if="!props.readonly"
+        flat
+        dense
+        no-caps
+        :color="missingWeight ? 'negative' : 'grey-7'"
+        icon="sym_o_edit_note"
+        label="Korekce"
+        data-test="correction-btn"
+        @click="correctionDialog = true"
+      >
+        <q-tooltip :offset="[0, 10]">Doplnit hmotnost a celní kód produktu</q-tooltip>
+      </q-btn>
+      <q-btn
         v-if="isReadyToBeTracked"
         flat
+        no-caps
+        dense
         color="primary"
         icon="sym_o_qr_code_scanner"
-        label="evidovat"
+        label="Evidovat"
         @click="setItemTrackingDialog = true"
       />
       <q-btn
         v-if="allowMove"
         flat
+        no-caps
+        dense
         color="primary"
         icon="sym_o_move_up"
-        label="přesunout"
+        label="Přesunout"
         @click="moveDialog = true"
       />
       <q-btn
         v-if="!props.readonly"
         flat
+        no-caps
+        dense
         color="warning"
         icon="sym_o_move_down"
-        label="do podřízené"
+        label="Do podřízené"
         @click="offloadDialog = true"
       />
     </div>
   </div>
-    <InboundWarehouseOrderTrackDialog
-      v-model:show="setItemTrackingDialog"
-      :item="asOrderItem"
-      :tracking-type-in="trackingType"
-      @packaged="(items, batch, trackingType) => $emit('packaged', items, batch, trackingType)"
-    />
-    <InboundWarehouseOrderRemoveItemDialog
-      v-model:show="removeItemDialog"
-      :item="asOrderItem"
-      @remove="(amount) => $emit('remove', amount)"
-    />
-    <ConfirmDialog
-      v-model:show="dissolveDialog"
-      title="Zrušit balení/evidenci?"
-      @confirm="$emit('dissolveItem')"
-    >
-      <div>
-        Položka ztratí zvolený typ balení a bude nadále v systému evidována pouze jako
-        <PackageTypeBadge :package-type="undefined" />.
-      </div>
-    </ConfirmDialog>
-    <LocationSelectionDialog
-      v-model:show="moveDialog"
-      :item="asOrderItem"
-      @confirm="(location) => $emit('moved', location)"
-    />
-    <OffloadItemToChildOrderDialog
-      v-model:show="offloadDialog"
-      :item="asOffloadItem"
-      :loading="offloadLoading"
-      @confirm="onOffload"
-    />
+  <ProductCustomsWeightDialog
+    v-model:show="correctionDialog"
+    :product="item.product"
+    @saved="$emit('corrected')"
+  />
+  <InboundWarehouseOrderTrackDialog
+    v-model:show="setItemTrackingDialog"
+    :item="asOrderItem"
+    :tracking-type-in="trackingType"
+    @packaged="(items, batch, trackingType) => $emit('packaged', items, batch, trackingType)"
+  />
+  <InboundWarehouseOrderRemoveItemDialog
+    v-model:show="removeItemDialog"
+    :item="asOrderItem"
+    @remove="(amount) => $emit('remove', amount)"
+  />
+  <ConfirmDialog
+    v-model:show="dissolveDialog"
+    title="Zrušit balení/evidenci?"
+    @confirm="$emit('dissolveItem')"
+  >
+    <div>
+      Položka ztratí zvolený typ balení a bude nadále v systému evidována pouze jako
+      <PackageTypeBadge :package-type="undefined" />.
+    </div>
+  </ConfirmDialog>
+  <LocationSelectionDialog
+    v-model:show="moveDialog"
+    :item="asOrderItem"
+    @confirm="(location) => $emit('moved', location)"
+  />
+  <OffloadItemToChildOrderDialog
+    v-model:show="offloadDialog"
+    :item="asOffloadItem"
+    :loading="offloadLoading"
+    @confirm="onOffload"
+  />
 </template>
 
 <script setup lang="ts">
@@ -147,6 +186,7 @@ import LocationSelectionDialog from './LocationSelectionDialog.vue'
 import OffloadItemToChildOrderDialog from './OffloadItemToChildOrderDialog.vue'
 import WarehouseItemLink from '../links/WarehouseItemLink.vue'
 import IndexRectangle from '../IndexRectangle.vue'
+import ProductCustomsWeightDialog from '../product/ProductCustomsWeightDialog.vue'
 
 const props = defineProps<{
   index: number
@@ -167,6 +207,7 @@ const emit = defineEmits<{
   ): void
   (e: 'moved', location: WarehouseLocationSchema): void
   (e: 'offloaded'): void
+  (e: 'corrected'): void
 }>()
 
 const dummyLocation = computed(() => ({
@@ -210,6 +251,9 @@ const removeItemDialog = ref(false)
 const moveDialog = ref(false)
 const offloadDialog = ref(false)
 const offloadLoading = ref(false)
+const correctionDialog = ref(false)
+
+const missingWeight = computed(() => props.item.product.unit_weight <= 0)
 
 const trackingType = computed<TrackingType>(() => (props.item.package?.type ? 'package' : ''))
 

@@ -23,6 +23,7 @@ from apps.warehouse.core.schemas.product import (
     GetBarcodeGenerateResponse,
     ProductSchema,
     ProductCreateOrUpdateSchema,
+    ProductCustomsWeightSchema,
     ProductDuplicateSchema,
     ProductBarcodeCreateSchema,
     ProductBarcodeUpdateSchema,
@@ -166,6 +167,17 @@ def update_product(
 ):
     return GetProductResponse(
         data=stock_product_service.update_product(product_code, body)
+    )
+
+
+@routes.patch("/{product_code}/customs-weight", response={200: GetProductResponse})
+def update_product_customs_weight(
+    request: HttpRequest,
+    product_code: str,
+    body: ProductCustomsWeightSchema,
+):
+    return GetProductResponse(
+        data=stock_product_service.update_customs_and_weight(product_code, body)
     )
 
 

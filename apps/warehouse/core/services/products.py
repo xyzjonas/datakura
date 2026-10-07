@@ -9,6 +9,7 @@ from apps.warehouse.core.schemas.product import (
     ProductBarcodeCreateSchema,
     ProductBarcodeUpdateSchema,
     ProductCreateOrUpdateSchema,
+    ProductCustomsWeightSchema,
     ProductDuplicateSchema,
     CustomerPriceOverrideUpsertSchema,
     DynamicProductPriceCreateSchema,
@@ -146,18 +147,7 @@ class StockProductsService:
         return get_product_by_code(product.code)
 
     @staticmethod
-    @transaction.atomic
-    def update_product(product_code: str, params: ProductCreateOrUpdateSchema):
-        product = StockProduct.objects.get(code=product_code)
-        previous = get_product_by_code(product_code)
-
-        product.code = params.code
-        defaults = StockProductsService._build_product_defaults(params)
-        for field, value in defaults.items():
-            setattr(product, field, value)
-        product.save()
-
-        current = get_product_by_code(product.code)
+    def _audit_product_update(product: StockProduct, previous, current) -> None:
         changes: dict[str, dict[str, str]] = {}
         prev_dump = previous.model_dump()
         curr_dump = current.model_dump()
@@ -183,6 +173,36 @@ class StockProductsService:
             changes=changes,
         )
 
+    @staticmethod
+    @transaction.atomic
+    def update_product(product_code: str, params: ProductCreateOrUpdateSchema):
+        product = StockProduct.objects.get(code=product_code)
+        previous = get_product_by_code(product_code)
+
+        product.code = params.code
+        defaults = StockProductsService._build_product_defaults(params)
+        for field, value in defaults.items():
+            setattr(product, field, value)
+        product.save()
+
+        current = get_product_by_code(product.code)
+        StockProductsService._audit_product_update(product, previous, current)
+        return current
+
+    @staticmethod
+    @transaction.atomic
+    def update_customs_and_weight(
+        product_code: str, params: ProductCustomsWeightSchema
+    ):
+        product = StockProduct.objects.get(code=product_code)
+        previous = get_product_by_code(product_code)
+
+        product.unit_weight = Decimal(str(params.unit_weight))
+        product.customs_declaration_group = params.customs_declaration_group
+        product.save()
+
+        current = get_product_by_code(product.code)
+        StockProductsService._audit_product_update(product, previous, current)
         return current
 
     @staticmethod

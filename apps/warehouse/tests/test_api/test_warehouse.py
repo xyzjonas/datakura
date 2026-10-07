@@ -8,6 +8,7 @@ from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.warehouse import routes
 from apps.warehouse.core.exceptions import (
+    MissingProductWeightError,
     WarehouseGenericError,
     WarehouseItemNotFoundError,
 )
@@ -613,3 +614,20 @@ def test_transition_inbound_order_from_pending_is_disallowed(db, client):
             f"orders-incoming/{warehouse_order.code}/transition",
             json={},
         )
+
+
+def test_transition_inbound_order_from_draft_without_weight_returns_400(db, client):
+    product = StockProductFactory.it(unit_weight=Decimal("0"))
+    warehouse_order = InboundWarehouseOrderFactory.create_complete(
+        product=product,
+        amount=Decimal("3.00"),
+        unit_price=Decimal("20.00"),
+        state=InboundWarehouseOrderState.DRAFT,
+    )
+
+    # the 400 mapping lives in the global API exception handler
+    with pytest.raises(MissingProductWeightError, match=product.code):
+        client.post(f"orders-incoming/{warehouse_order.code}/transition", json={})
+
+    warehouse_order.refresh_from_db()
+    assert warehouse_order.state == InboundWarehouseOrderState.DRAFT

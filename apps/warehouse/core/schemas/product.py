@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ninja import Schema
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from .base import BaseSchema, PaginatedResponse, Response
 from .barcode import BarcodeSchema
@@ -58,6 +58,12 @@ class CustomerPriceOverrideUpsertSchema(Schema):
     fixed_price: float
 
 
+def _normalize_customs_code(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return value.strip() or None
+
+
 class ProductSchema(BaseSchema):
     name: str
     code: str
@@ -83,14 +89,31 @@ class ProductCreateOrUpdateSchema(Schema):
     type: str
     unit: str
     group: str | None = None
-    unit_weight: float = 0
+    unit_weight: float = Field(0, ge=0)
     base_price: float = 0
     purchase_price: float = 0
     no_discount: bool = False
     disallow_unpacking: bool = False
     currency: str = "CZK"
-    customs_declaration_group: str | None = None
+    customs_declaration_group: str | None = Field(None, max_length=255)
     attributes: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("customs_declaration_group")
+    @classmethod
+    def _normalize_customs_code(cls, value: str | None) -> str | None:
+        return _normalize_customs_code(value)
+
+
+class ProductCustomsWeightSchema(Schema):
+    """Narrow correction payload used during goods receiving."""
+
+    unit_weight: float = Field(..., gt=0)
+    customs_declaration_group: str | None = Field(None, max_length=255)
+
+    @field_validator("customs_declaration_group")
+    @classmethod
+    def _normalize_customs_code(cls, value: str | None) -> str | None:
+        return _normalize_customs_code(value)
 
 
 class ProductDuplicateSchema(ProductCreateOrUpdateSchema): ...

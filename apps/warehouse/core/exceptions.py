@@ -18,6 +18,8 @@ class ErrorCode(enum.Enum):
     WAREHOUSE_ITEM_NOT_FOUND = ("WAR_0002", "WarehouseItem: not found")
     WAREHOUSE_ITEM_NOT_EDITABLE = ("WAR_0003", "WarehouseOrder: read only")
 
+    MISSING_PRODUCT_WEIGHT = ("WAR_0004", "Products without weight")
+
     DATA_IMPORT_FAILED = ("IMPORT_0001", "Data import failed")
 
     @property
@@ -70,6 +72,11 @@ class WarehouseItemNotFoundError(ApiBaseException):
 
 class WarehouseOrderNotEditableError(ApiBaseException):
     code = ErrorCode.WAREHOUSE_ITEM_NOT_EDITABLE
+    http_status = 400
+
+
+class MissingProductWeightError(ApiBaseException):
+    code = ErrorCode.MISSING_PRODUCT_WEIGHT
     http_status = 400
 
 

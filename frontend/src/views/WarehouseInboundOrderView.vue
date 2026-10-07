@@ -38,15 +38,19 @@
           @click="confirmDialog = true"
           class="ml-auto"
         />
-        <q-btn
-          v-else-if="step === 1"
-          unelevated
-          color="positive"
-          icon="sym_o_order_approve"
-          label="potvrdit"
-          @click="confirmDialog = true"
-          class="ml-auto"
-        />
+        <div v-else-if="step === 1" class="ml-auto">
+          <q-btn
+            unelevated
+            color="positive"
+            icon="sym_o_order_approve"
+            label="potvrdit"
+            :disable="itemsWithoutWeight.length > 0"
+            @click="confirmDialog = true"
+          />
+          <q-tooltip v-if="itemsWithoutWeight.length > 0" :offset="[0, 10]">
+            Doplňte hmotnost u položek: {{ itemsWithoutWeight.join(', ') }}
+          </q-tooltip>
+        </div>
       </div>
     </div>
     <div class="flex gap-5">
@@ -103,6 +107,7 @@
       @remove-item="removeItem"
       @moved="moveItem"
       @offloaded="fetchOrder"
+      @corrected="fetchOrder"
     />
 
     <InboundWarehouseOrderItemsList
@@ -238,6 +243,13 @@ const updateOrderItems = async (
 }
 
 const confirmDialog = ref(false)
+const itemsWithoutWeight = computed(() => [
+  ...new Set(
+    (order.value?.order_items ?? [])
+      .filter((item) => item.product.unit_weight <= 0)
+      .map((item) => item.product.code),
+  ),
+])
 const auditDialog = ref(false)
 const transitionOrder = async (locationCode: string | undefined = undefined) => {
   if (!order.value) {

@@ -387,6 +387,10 @@ export type DynamicProductPriceSchema = {
      * Discount Percent
      */
     discount_percent: number;
+    /**
+     * Min Amount
+     */
+    min_amount?: number | null;
     customer: DynamicProductPriceCustomerSchema;
 };
 
@@ -1782,6 +1786,21 @@ export type CustomerPriceOverrideUpsertSchema = {
      * Fixed Price
      */
     fixed_price: number;
+};
+
+/**
+ * ProductCustomsWeightSchema
+ * Narrow correction payload used during goods receiving.
+ */
+export type ProductCustomsWeightSchema = {
+    /**
+     * Unit Weight
+     */
+    unit_weight: number;
+    /**
+     * Customs Declaration Group
+     */
+    customs_declaration_group?: string | null;
 };
 
 /**
@@ -5832,6 +5851,27 @@ export type WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponses
 };
 
 export type WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponse = WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponses[keyof WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponses];
+
+export type WarehouseApiRoutesProductUpdateProductCustomsWeightData = {
+    body: ProductCustomsWeightSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/customs-weight';
+};
+
+export type WarehouseApiRoutesProductUpdateProductCustomsWeightResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductUpdateProductCustomsWeightResponse = WarehouseApiRoutesProductUpdateProductCustomsWeightResponses[keyof WarehouseApiRoutesProductUpdateProductCustomsWeightResponses];
 
 export type WarehouseApiRoutesProductDuplicateProductData = {
     body: ProductDuplicateSchema;

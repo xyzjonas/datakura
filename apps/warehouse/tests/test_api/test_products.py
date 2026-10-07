@@ -769,3 +769,77 @@ def test_generate_barcode_custom_with_prefix(db, client):
     data = response.json()["data"]
     assert data["code"].startswith("PROD")
     assert len(data["code"]) == 12
+
+
+def test_update_product_customs_weight(db, client):
+    product = cast(
+        StockProduct,
+        StockProductFactory(unit_weight=0, customs_declaration_group=None),
+    )
+
+    response = client.patch(
+        f"/{product.code}/customs-weight",
+        json={"unit_weight": 12.5, "customs_declaration_group": "  8471 30  "},
+    )
+
+    assert response.status_code == 200
+    product.refresh_from_db()
+    assert float(product.unit_weight) == 12.5
+    assert product.customs_declaration_group == "8471 30"
+    audit = AuditLog.objects.filter(action=AuditAction.UPDATE).last()
+    assert audit is not None
+    assert "unit_weight" in audit.changes
+
+
+@pytest.mark.parametrize("code", ["", "   ", None])
+def test_update_product_customs_weight_blank_code_becomes_none(db, client, code):
+    product = cast(StockProduct, StockProductFactory(customs_declaration_group="X"))
+
+    response = client.patch(
+        f"/{product.code}/customs-weight",
+        json={"unit_weight": 1, "customs_declaration_group": code},
+    )
+
+    assert response.status_code == 200
+    product.refresh_from_db()
+    assert product.customs_declaration_group is None
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"unit_weight": 0},
+        {"unit_weight": -1},
+        {},
+        {"unit_weight": 1, "customs_declaration_group": "x" * 256},
+    ],
+)
+def test_update_product_customs_weight_invalid(db, client, payload):
+    product = cast(StockProduct, StockProductFactory(unit_weight=5))
+
+    response = client.patch(f"/{product.code}/customs-weight", json=payload)
+
+    assert response.status_code == 422
+    product.refresh_from_db()
+    assert float(product.unit_weight) == 5
+
+
+def test_update_product_customs_weight_unknown_product(db, client):
+    # 404 mapping lives in the global API exception handler, not the router
+    with pytest.raises(StockProduct.DoesNotExist):
+        client.patch("/NOPE/customs-weight", json={"unit_weight": 1})
+
+
+def test_create_product_negative_weight_rejected(db, client):
+    response = client.post(
+        "/",
+        json={
+            "name": "Neg",
+            "code": "PRD-NEG",
+            "type": "Finished Good",
+            "unit": "KS",
+            "unit_weight": -1,
+        },
+    )
+
+    assert response.status_code == 422

@@ -4,6 +4,7 @@ import pytest
 from django.utils import timezone
 
 from apps.warehouse.core.exceptions import (
+    MissingProductWeightError,
     WarehouseGenericError,
     ApiBaseException,
     ErrorCode,
@@ -1261,3 +1262,50 @@ def test_move_with_unpack_without_amount_raises_error(db, context):
             ),
             context=context,
         )
+
+
+@pytest.mark.parametrize("weight", [Decimal("0"), Decimal("0.00")])
+def test_confirm_draft_blocked_when_product_has_no_weight(db, context, weight):
+    ok_product = StockProductFactory.it()
+    bad_product = StockProductFactory.it(unit_weight=weight)
+    warehouse_order = InboundWarehouseOrderFactory.create_complete(
+        product=bad_product,
+        amount=Decimal("3.00"),
+        unit_price=Decimal("20.00"),
+        state=InboundWarehouseOrderState.DRAFT,
+    )
+    warehouse_order.order_items.create(
+        stock_product=ok_product,
+        unit_price_at_receipt=Decimal("1.00"),
+        amount=Decimal("1.00"),
+        index=99,
+        tracking_level=warehouse_order.order_items.first().tracking_level,
+    )
+
+    with pytest.raises(MissingProductWeightError) as exc:
+        warehouse_service.confirm_draft(warehouse_order.code, context=context)
+
+    assert bad_product.code in str(exc.value)
+    assert ok_product.code not in str(exc.value)
+    warehouse_order.refresh_from_db()
+    assert warehouse_order.state == InboundWarehouseOrderState.DRAFT
+    assert warehouse_order.items.count() == 0
+
+
+def test_confirm_draft_passes_after_weight_corrected(db, context):
+    product = StockProductFactory.it(unit_weight=Decimal("0"))
+    warehouse_order = InboundWarehouseOrderFactory.create_complete(
+        product=product,
+        amount=Decimal("3.00"),
+        unit_price=Decimal("20.00"),
+        state=InboundWarehouseOrderState.DRAFT,
+    )
+    with pytest.raises(MissingProductWeightError):
+        warehouse_service.confirm_draft(warehouse_order.code, context=context)
+
+    product.unit_weight = Decimal("2.50")
+    product.save()
+    warehouse_service.confirm_draft(warehouse_order.code, context=context)
+
+    warehouse_order.refresh_from_db()
+    assert warehouse_order.state == InboundWarehouseOrderState.PENDING

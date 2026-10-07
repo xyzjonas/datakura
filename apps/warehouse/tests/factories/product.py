@@ -1,5 +1,7 @@
 """Factory Boy factories for warehouse and stock models"""
 
+from decimal import Decimal
+
 import factory
 from factory.django import DjangoModelFactory
 from factory.fuzzy import FuzzyChoice
@@ -56,6 +58,7 @@ class StockProductFactory(DjangoModelFactory):
         "pydecimal", left_digits=4, right_digits=2, min_value=1, max_value=10000
     )
     no_discount = False
+    unit_weight = Decimal("1.00")
 
 
 class PriceGroupFactory(DjangoModelFactory):

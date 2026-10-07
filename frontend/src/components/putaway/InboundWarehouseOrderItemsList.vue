@@ -17,6 +17,7 @@
         @remove="(amount) => $emit('removeItem', item.id, amount)"
         @moved="(location) => $emit('moved', item.warehouse_item_id!, location)"
         @offloaded="$emit('offloaded')"
+        @corrected="$emit('corrected')"
       />
     </TransitionGroup>
   </div>
@@ -52,6 +53,7 @@ defineEmits<{
   ): void
   (e: 'moved', warehouseItemId: number, location: WarehouseLocationSchema): void
   (e: 'offloaded'): void
+  (e: 'corrected'): void
 }>()
 defineProps<{
   items: InboundWarehouseOrderItemSchema[]

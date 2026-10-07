@@ -14,6 +14,7 @@ from apps.warehouse.core.exceptions import (
     WarehouseItemBadRequestError,
     WarehouseItemNotFoundError,
     WarehouseOrderNotEditableError,
+    MissingProductWeightError,
     WarehouseGenericError,
 )
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
@@ -1978,6 +1979,20 @@ class WarehouseService:
                 context=context,
             )
 
+    @staticmethod
+    def _ensure_items_have_weight(order_items) -> None:
+        missing = sorted(
+            {
+                item.stock_product.code
+                for item in order_items
+                if item.stock_product.unit_weight <= 0
+            }
+        )
+        if missing:
+            raise MissingProductWeightError(
+                f"Products without weight: {', '.join(missing)}"
+            )
+
     @classmethod
     def confirm_draft(cls, code: str, context: RequestContext) -> None:
         with transaction.atomic():
@@ -2006,6 +2021,7 @@ class WarehouseService:
                     "stock_product", "package_type"
                 ).all()
             )
+            cls._ensure_items_have_weight(order_items)
             cls._recalculate_purchase_prices_for_confirmed_order(
                 order_items,
                 context=context,
