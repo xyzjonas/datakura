@@ -47,7 +47,7 @@ describe('ProductCustomsWeightDialog', () => {
     updateMock.mockResolvedValue({ data: { data: saved } })
     const wrapper = mountDialog()
 
-    await wrapper.find('[data-test="Váha jednotky (g)"]').setValue('12.5')
+    await wrapper.find('[data-test="Váha jednotky (kg)"]').setValue('12.5')
     await wrapper.find('[data-test="Celní nomenklatura"]').setValue('8471 30')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
@@ -63,7 +63,7 @@ describe('ProductCustomsWeightDialog', () => {
     updateMock.mockResolvedValue({ data: { data: {} } })
     const wrapper = mountDialog()
 
-    await wrapper.find('[data-test="Váha jednotky (g)"]').setValue('3')
+    await wrapper.find('[data-test="Váha jednotky (kg)"]').setValue('3')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 

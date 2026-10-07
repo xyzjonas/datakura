@@ -54,25 +54,25 @@ function chipText(wrapper: ReturnType<typeof mount>): string {
 }
 
 describe('TotalWeight', () => {
-  it('shows 0.00 g when items is undefined', () => {
+  it('shows 0.00 kg when items is undefined', () => {
     const wrapper = mountOrder(undefined)
     expect(chipText(wrapper)).toContain('0.00')
   })
 
-  it('shows 0.00 g for an empty items array', () => {
+  it('shows 0.00 kg for an empty items array', () => {
     const wrapper = mountOrder([])
     expect(chipText(wrapper)).toContain('0.00')
   })
 
   it('computes weight for a single item', () => {
     const wrapper = mountOrder([makeItem(3, 100)])
-    // 3 * 100 = 300.00 g
+    // 3 * 100 = 300.00 kg
     expect(chipText(wrapper)).toContain('300.00')
   })
 
   it('sums weight across multiple items', () => {
     const wrapper = mountOrder([makeItem(2, 50), makeItem(4, 25)])
-    // 2*50 + 4*25 = 100 + 100 = 200.00 g
+    // 2*50 + 4*25 = 100 + 100 = 200.00 kg
     expect(chipText(wrapper)).toContain('200.00')
   })
 
@@ -83,7 +83,7 @@ describe('TotalWeight', () => {
   })
 
   it('handles float amount and unit_weight combination', () => {
-    // 3 items each 0.575 g → expect 1.73 g total (3 * 0.575 = 1.725 → rounds to 1.73)
+    // 3 items each 0.575 kg → expect 1.73 kg total (3 * 0.575 = 1.725 → rounds to 1.73)
     const wrapper = mountOrder([makeItem(1, 0.575), makeItem(1, 0.575), makeItem(1, 0.575)])
     expect(chipText(wrapper)).toContain('1.73')
   })

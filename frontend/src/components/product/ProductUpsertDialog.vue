@@ -33,7 +33,7 @@
             type="number"
             min="0"
             step="0.01"
-            label="Váha jednotky (g)"
+            label="Váha jednotky (kg)"
             hint="Hmotnost jedné jednotky v gramech"
             :rules="[rules.notEmpty, rules.atLeastZero]"
           />
