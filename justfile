@@ -93,6 +93,10 @@ ci-js: eslint ts-check test-js
 [parallel]
 ci-python: lint format-check type-check test
 
+# bump version (dev|patch|minor|major), update changelog
+release BUMP="dev":
+    ./scripts/release.sh {{BUMP}}
+
 docker:
     docker build -t scotch3840/datakura .
     docker push scotch3840/datakura
