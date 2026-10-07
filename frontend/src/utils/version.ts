@@ -7,10 +7,18 @@ export type ChangelogEntry = {
   rows: string[]
 }
 
-export const APP_VERSION = '0.0.1.dev8'
+export const APP_VERSION = '0.0.1.dev9'
 export const STORAGE_KEY = 'app-last-acknowledged-version'
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+  {
+    version: '0.0.1.dev9',
+    releaseDate: '2026-10-07',
+    rows: [
+      'Změna jednotky váhy na kg',
+      'Možnost opravit celní kód a váhu + kontrola a validace při příjmu.',
+    ],
+  },
   {
     version: '0.0.1.dev8',
     releaseDate: '2026-10-07',
