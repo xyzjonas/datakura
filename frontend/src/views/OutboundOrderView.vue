@@ -81,7 +81,13 @@
 
     <div class="flex gap-5">
       <OutboundOrderDetailsListCard :order="order" class="flex-[2]" />
-      <CustomerCard :customer="order.customer" title="ODBĚRATEL" class="flex-1" />
+      <CustomerCard
+        :customer="order.customer"
+        v-model:contact="contact"
+        :editable-contact="isEditable"
+        title="ODBĚRATEL"
+        class="flex-1"
+      />
       <LinkedEntitiesCard
         show-outbound-warehouse-orders
         :outbound-warehouse-orders="order.warehouse_orders"
@@ -202,11 +208,14 @@ import TotalWeight from '@/components/order/TotalWeight.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
+import { contactFullName } from '@/utils/contact-name'
+import { useQuasar } from 'quasar'
 import { computed, ref } from 'vue'
 
 const props = defineProps<{ code: string }>()
 const order = ref<OutboundOrderSchema>()
 
+const $q = useQuasar()
 const { onResponse } = useApi()
 
 const response = await warehouseApiRoutesOutboundOrdersGetOutboundOrder({
@@ -280,9 +289,9 @@ const reorderItem = async (itemIndex: number, newIndex: number) => {
 }
 
 const editOrderDialog = ref(false)
-const updateOrder = async (body: OutboundOrderCreateOrUpdateSchema) => {
+const updateOrder = async (body: OutboundOrderCreateOrUpdateSchema): Promise<boolean> => {
   if (!order.value) {
-    return
+    return false
   }
   const result = await warehouseApiRoutesOutboundOrdersUpdateOutboundOrder({
     body: body,
@@ -293,7 +302,35 @@ const updateOrder = async (body: OutboundOrderCreateOrUpdateSchema) => {
     order.value = data.data
     editOrderDialog.value = false
   }
+  return !!data
 }
+
+const contact = computed({
+  get: () => order.value?.contact ?? null,
+  set: async (newContact) => {
+    if (!order.value || newContact?.id === order.value.contact?.id) {
+      return
+    }
+    const saved = await updateOrder({
+      currency: order.value.currency,
+      customer_code: order.value.customer.code,
+      customer_name: order.value.customer.name,
+      external_code: order.value.external_code,
+      description: order.value.description,
+      note: order.value.note,
+      requested_delivery_date: order.value.requested_delivery_date,
+      contact_id: newContact?.id ?? null,
+    })
+    if (saved) {
+      $q.notify({
+        type: 'positive',
+        message: newContact
+          ? `Kontakt změněn: ${contactFullName(newContact)}`
+          : 'Kontakt odebrán z objednávky',
+      })
+    }
+  },
+})
 
 const cancelDialog = ref(false)
 const cancel = async () => {

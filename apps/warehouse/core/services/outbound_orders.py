@@ -34,7 +34,7 @@ from apps.warehouse.core.transformation import (
 )
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.barcode import Barcode
-from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.customer import ContactPerson, Customer
 from apps.warehouse.models.orders import (
     Invoice,
     InvoicePaymentMethod,
@@ -609,6 +609,21 @@ class OutboundOrdersService:
             ).delete()
 
     @staticmethod
+    def _get_customer_contact_or_none(
+        customer: Customer, contact_id: int | None
+    ) -> ContactPerson | None:
+        if contact_id is None:
+            return None
+        contact = ContactPerson.objects.filter(
+            id=contact_id, customer=customer, is_deleted=False
+        ).first()
+        if contact is None:
+            raise WarehouseItemBadRequestError(
+                f"Contact '{contact_id}' does not belong to customer '{customer.code}'."
+            )
+        return contact
+
+    @staticmethod
     def update_or_create_outgoing(
         params: OutboundOrderCreateOrUpdateSchema,
         context: RequestContext,
@@ -624,6 +639,9 @@ class OutboundOrdersService:
             previous_order_schema = outbound_order_orm_to_schema(existing_order)
 
         customer = Customer.objects.get(code=params.customer_code)
+        contact = OutboundOrdersService._get_customer_contact_or_none(
+            customer, params.contact_id
+        )
         with transaction.atomic():
             order, created = OutboundOrder.objects.update_or_create(
                 code=code,
@@ -634,6 +652,7 @@ class OutboundOrdersService:
                     note=params.note,
                     currency=params.currency,
                     customer=customer,
+                    contact=contact,
                     requested_delivery_date=params.requested_delivery_date,
                 ),
                 defaults=dict(
@@ -642,6 +661,7 @@ class OutboundOrdersService:
                     note=params.note,
                     currency=params.currency,
                     customer=customer,
+                    contact=contact,
                     requested_delivery_date=params.requested_delivery_date,
                 ),
             )
@@ -956,6 +976,7 @@ class OutboundOrdersService:
                 note=source.note,
                 currency=source.currency,
                 customer=source.customer,
+                contact=source.contact,
                 supplier=source.supplier,
                 requested_delivery_date=source.requested_delivery_date,
                 state=OutboundOrderState.DRAFT,

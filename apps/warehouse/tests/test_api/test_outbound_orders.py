@@ -24,7 +24,10 @@ from apps.warehouse.tests.factories.order import (
     OutboundOrderFactory,
     OutboundOrderItemFactory,
 )
-from apps.warehouse.tests.factories.customer import CustomerFactory
+from apps.warehouse.tests.factories.customer import (
+    ContactPersonFactory,
+    CustomerFactory,
+)
 from apps.warehouse.tests.factories.packaging import PackageTypeFactory
 from apps.warehouse.tests.factories.product import (
     PriceGroupFactory,
@@ -955,3 +958,91 @@ def test_duplicate_confirmed_order_creates_new_calculation(db) -> None:
     assert data["code"].startswith("K")
     assert data["calculation_code"] == data["code"]
     assert data["code"] != source.calculation_code
+
+
+def _order_payload(customer, **overrides) -> dict:
+    return {
+        "currency": "CZK",
+        "customer_code": customer.code,
+        "customer_name": customer.name,
+        **overrides,
+    }
+
+
+def test_create_outbound_order_without_contact_defaults_to_null(db) -> None:
+    client = TestClient(routes)
+    customer = CustomerFactory()
+
+    response = client.post("", json=_order_payload(customer))
+
+    assert response.status_code == 200
+    assert response.json()["data"]["contact"] is None
+    assert OutboundOrder.objects.get().contact is None
+
+
+def test_create_and_update_outbound_order_contact(db) -> None:
+    client = TestClient(routes)
+    customer = CustomerFactory()
+    first, second = (ContactPersonFactory.it(customer=customer) for _ in range(2))
+
+    created = client.post("", json=_order_payload(customer, contact_id=first.id))
+    assert created.status_code == 200
+    data = created.json()["data"]
+    assert data["contact"]["id"] == first.id
+
+    updated = client.put(
+        f"/{data['code']}", json=_order_payload(customer, contact_id=second.id)
+    )
+    assert updated.json()["data"]["contact"]["id"] == second.id
+    assert OutboundOrder.objects.get(code=data["code"]).contact == second
+
+    # omitting / nulling the contact clears the FK
+    cleared = client.put(f"/{data['code']}", json=_order_payload(customer))
+    assert cleared.json()["data"]["contact"] is None
+    assert OutboundOrder.objects.get(code=data["code"]).contact is None
+
+    got = client.get(f"/{data['code']}")
+    assert got.json()["data"]["contact"] is None
+
+
+@pytest.mark.parametrize("contact_kind", ["other_customer", "deleted", "missing"])
+def test_outbound_order_rejects_invalid_contact(db, contact_kind: str) -> None:
+    client = TestClient(routes)
+    customer = CustomerFactory()
+    contact_id = {
+        "other_customer": lambda: ContactPersonFactory.it().id,
+        "deleted": lambda: (
+            ContactPersonFactory.it(customer=customer, is_deleted=True).id
+        ),
+        "missing": lambda: 999_999,
+    }[contact_kind]()
+
+    with pytest.raises(WarehouseItemBadRequestError, match="does not belong"):
+        client.post("", json=_order_payload(customer, contact_id=contact_id))
+
+    assert not OutboundOrder.objects.exists()
+
+
+def test_update_outbound_order_rejects_contact_of_changed_customer(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    contact = ContactPersonFactory.it(customer=order.customer)
+    other_customer = CustomerFactory()
+
+    with pytest.raises(WarehouseItemBadRequestError, match="does not belong"):
+        client.put(
+            f"/{order.code}",
+            json=_order_payload(other_customer, contact_id=contact.id),
+        )
+
+
+def test_duplicate_outbound_order_keeps_contact(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    contact = ContactPersonFactory.it(customer=order.customer)
+    order.contact = contact
+    order.save()
+
+    response = client.post(f"/{order.code}/duplicate")
+
+    assert response.json()["data"]["contact"]["id"] == contact.id

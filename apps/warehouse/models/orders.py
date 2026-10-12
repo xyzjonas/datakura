@@ -9,7 +9,7 @@ from django.db.models.fields.related import ForeignKey
 
 from .base import BaseModel
 from .currency import CURRENCY_CHOICES
-from .customer import Customer
+from .customer import ContactPerson, Customer
 from .packaging import PackageType
 from .product import StockProduct
 
@@ -310,6 +310,16 @@ class OutboundOrder(BaseModel):
         on_delete=models.SET_DEFAULT,
         related_name="outbound_orders_as_supplier",
         default=Customer.get_ghost_customer,
+    )
+    # Where to ship / whom to invoice within `customer` (e.g. one of many shops).
+    # Always a contact of `customer`; null = not specified.
+    contact = models.ForeignKey(
+        ContactPerson,
+        null=True,
+        blank=True,
+        default=None,
+        on_delete=models.SET_NULL,
+        related_name="outbound_orders",
     )
     items: QuerySet["OutboundOrderItem"]
 

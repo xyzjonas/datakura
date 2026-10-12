@@ -29,18 +29,29 @@
         <h5>{{ customer.code }}</h5>
         <CopyToClipBoardButton :text="customer.code" />
       </span>
+      <div v-if="editableContact" class="mt-2">
+        <ContactPersonSelect v-model="contact" :customer-code="customer.code" dense />
+      </div>
+      <span v-else-if="contact" class="flex items-center gap-1 text-gray-5 text-sm mb-1">
+        <q-icon name="sym_o_storefront" size="16px" />
+        <span>{{ contactFullName(contact) }}</span>
+      </span>
     </div>
   </ForegroundPanel>
 </template>
 
 <script setup lang="ts">
-import type { CustomerBaseSchema } from '@/client'
+import type { ContactPersonSchema, CustomerBaseSchema } from '@/client'
 import { useAppRouter } from '@/composables/use-app-router'
+import { contactFullName } from '@/utils/contact-name'
 import CopyToClipBoardButton from '../CopyToClipBoardButton.vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
+import ContactPersonSelect from '../selects/ContactPersonSelect.vue'
 import CustomerTypeIcon from './CustomerTypeIcon.vue'
 
-defineProps<{ customer: CustomerBaseSchema; title: string }>()
+defineProps<{ customer: CustomerBaseSchema; title: string; editableContact?: boolean }>()
+
+const contact = defineModel<ContactPersonSchema | null>('contact', { default: null })
 
 const { goToCustomer } = useAppRouter()
 </script>

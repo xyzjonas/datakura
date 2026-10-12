@@ -12,6 +12,7 @@ from .base_orders import (
     CreditNoteBaseSchema,
     BaseOrder,
 )
+from .customer import ContactPersonSchema
 from .invoice import InvoiceSchema
 from .product import ProductSchema
 
@@ -127,6 +128,8 @@ class OutboundOrderCreateOrUpdateSchema(Schema):
     currency: str
     customer_code: str
     customer_name: str
+    # must be a (non-deleted) contact of `customer_code`; null = not specified
+    contact_id: int | None = None
     state: OutboundOrderState | None = None
     requested_delivery_date: datetime | None = None
 
@@ -136,6 +139,7 @@ class OutboundOrderTransitionSchema(Schema):
 
 
 class OutboundOrderSchema(BaseOrder):
+    contact: ContactPersonSchema | None = None
     calculation_code: str | None = None
     is_calculation: bool = True
     external_code: str | None = None

@@ -3189,6 +3189,7 @@ export type OutboundOrderSchema = {
      * Currency
      */
     currency: string;
+    contact?: ContactPersonSchema | null;
     /**
      * Calculation Code
      */
@@ -3304,6 +3305,10 @@ export type OutboundOrderCreateOrUpdateSchema = {
      * Customer Name
      */
     customer_name: string;
+    /**
+     * Contact Id
+     */
+    contact_id?: number | null;
     state?: OutboundOrderState | null;
     /**
      * Requested Delivery Date

@@ -12,6 +12,11 @@
             v-model="customer"
             hint="Vyhledat subjekt podle názvu, kódu, IČO nebo DIČ."
           />
+          <ContactPersonSelect
+            v-model="contact"
+            :customer-code="customer?.code"
+            hint="Pobočka / kontakt zákazníka pro doručení a fakturaci (volitelné)"
+          />
           <q-input
             v-model.trim="item.external_code"
             outlined
@@ -55,11 +60,13 @@
 
 <script setup lang="ts">
 import type {
+  ContactPersonSchema,
   CustomerBaseSchema,
   OutboundOrderCreateOrUpdateSchema,
   OutboundOrderSchema,
 } from '@/client'
 import { ref, watch } from 'vue'
+import ContactPersonSelect from '../selects/ContactPersonSelect.vue'
 import CustomerSearchSelect from '../selects/CustomerSearchSelect.vue'
 import CurrencyDropdown from './CurrencyDropdown.vue'
 
@@ -82,6 +89,7 @@ export interface OutboundOrderDialogExpose {
 }
 
 const customer = ref<CustomerBaseSchema>()
+const contact = ref<ContactPersonSchema | null>(null)
 
 const propToRef = (order?: OutboundOrderSchema) => {
   if (!order) {
@@ -89,6 +97,7 @@ const propToRef = (order?: OutboundOrderSchema) => {
   }
 
   customer.value = order.customer
+  contact.value = order.contact ?? null
   if (order.requested_delivery_date) {
     deliveryDate.value = new Date(order.requested_delivery_date).toISOString()
   }
@@ -98,6 +107,7 @@ const propToRef = (order?: OutboundOrderSchema) => {
     description: order.description,
     customer_code: order.customer.code,
     customer_name: order.customer.name,
+    contact_id: order.contact?.id ?? null,
     external_code: order.external_code,
     requested_delivery_date: order.requested_delivery_date,
   } as OutboundOrderCreateOrUpdateSchema
@@ -114,7 +124,15 @@ const item = ref<OutboundOrderCreateOrUpdateSchema>(
   },
 )
 
-watch(customer, (newValue: CustomerBaseSchema | undefined) => {
+watch(contact, (newValue) => {
+  item.value.contact_id = newValue?.id ?? null
+})
+
+watch(customer, (newValue: CustomerBaseSchema | undefined, oldValue) => {
+  // contacts belong to a single customer
+  if (oldValue && newValue?.code !== oldValue.code) {
+    contact.value = null
+  }
   if (newValue) {
     item.value.customer_code = newValue.code
     item.value.customer_name = newValue.name
@@ -146,6 +164,7 @@ const reset = () => {
     note: '',
   }
   customer.value = undefined
+  contact.value = null
   showDialog.value = false
 }
 

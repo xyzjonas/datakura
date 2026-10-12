@@ -746,6 +746,7 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
         is_calculation=order.is_calculation,
         external_code=order.external_code,
         customer=customer_orm_to_base_schema(order.customer),
+        contact=ContactPersonSchema.from_orm(order.contact) if order.contact else None,
         supplier=customer_orm_to_base_schema(order.supplier),
         type=OrderType.Outbound,
         description=order.description,

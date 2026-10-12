@@ -51,16 +51,16 @@
             <MenuList
               :items="[
                 {
-                  label: 'Objednávky',
-                  icon: 'sym_o_receipt',
-                  routeName: 'orders',
-                  routeMatch: 'orders',
-                },
-                {
                   label: 'Kalkulace',
                   icon: 'sym_o_calculate',
                   routeName: 'outboundCalculations',
                   routeMatch: 'outboundCalculations',
+                },
+                {
+                  label: 'Objednávky',
+                  icon: 'sym_o_receipt',
+                  routeName: 'orders',
+                  routeMatch: 'orders',
                 },
                 {
                   label: 'Faktury',

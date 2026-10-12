@@ -102,6 +102,10 @@ class ContactPersonFactory(DjangoModelFactory):
     class Meta:
         model = ContactPerson
 
+    @classmethod
+    def it(cls, **kwargs) -> ContactPerson:
+        return cls(**kwargs)  # type: ignore
+
     # Name components
     title_pre = factory.Iterator(["Ing.", "Mgr.", "Bc.", "Dr.", ""])
     first_name = factory.Faker("first_name")
