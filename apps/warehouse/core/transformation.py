@@ -47,6 +47,7 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.schemas.packaging import PackageTypeSchema
 from apps.warehouse.core.schemas.printer import PrinterSchema
+from apps.warehouse.core.schemas.settings import GlobalSettingsSchema
 from apps.warehouse.core.schemas.product import (
     ProductSchema,
     DynamicProductPriceSchema,
@@ -69,6 +70,7 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.customer import Customer, CustomerGroup
+from apps.warehouse.models.settings import GlobalSettings
 from apps.warehouse.models.manufacturing import (
     ManufacturingOrder,
     ManufacturingOrderItem,
@@ -346,6 +348,14 @@ def customer_orm_to_base_schema(customer: Customer) -> CustomerBaseSchema:
     )
 
 
+def global_settings_orm_to_schema(settings: GlobalSettings) -> GlobalSettingsSchema:
+    return GlobalSettingsSchema(
+        created=settings.created,
+        changed=settings.changed,
+        minimum_item_value=float(settings.minimum_item_value),
+    )
+
+
 def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
     return CustomerSchema(
         created=customer.created,
@@ -366,6 +376,10 @@ def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
         block_after_due_days=customer.block_after_due_days,
         is_self=customer.is_self,
         is_supplier=customer.is_supplier,
+        minimum_item_value_enabled=customer.minimum_item_value_enabled,
+        minimum_item_value=float(customer.minimum_item_value)
+        if customer.minimum_item_value is not None
+        else None,
         data_collection_agreement=customer.data_collection_agreement,
         marketing_data_use_agreement=customer.marketing_data_use_agreement,
         is_valid=customer.is_valid,

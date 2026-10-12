@@ -1,3 +1,4 @@
+from decimal import Decimal
 from datetime import timedelta
 from typing import cast
 
@@ -10,7 +11,11 @@ from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
-from apps.warehouse.models.orders import OutboundOrder, OutboundOrderState
+from apps.warehouse.models.orders import (
+    OutboundOrder,
+    OutboundOrderItem,
+    OutboundOrderState,
+)
 from apps.warehouse.models.product import PriceGroup
 from apps.warehouse.models.warehouse import (
     Batch,
@@ -29,6 +34,7 @@ from apps.warehouse.tests.factories.customer import (
     CustomerFactory,
 )
 from apps.warehouse.tests.factories.packaging import PackageTypeFactory
+from apps.warehouse.tests.factories.settings import GlobalSettingsFactory
 from apps.warehouse.tests.factories.product import (
     PriceGroupFactory,
     StockProductFactory,
@@ -1046,3 +1052,130 @@ def test_duplicate_outbound_order_keeps_contact(db) -> None:
     response = client.post(f"/{order.code}/duplicate")
 
     assert response.json()["data"]["contact"]["id"] == contact.id
+
+
+def _add_item(client, order, product, *, amount: float, total_price: float):
+    return client.post(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": amount,
+            "total_price": total_price,
+            "index": 0,
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "total_price, expected_total, rounded",
+    [
+        (0.1, 5.0, True),
+        (4.99, 5.0, True),
+        (5.0, 5.0, True),
+        (5.01, 5.01, False),
+        (100, 100.0, False),
+    ],
+)
+def test_add_outbound_order_item_rounds_up_to_global_minimum(
+    db, total_price, expected_total, rounded
+) -> None:
+    GlobalSettingsFactory(minimum_item_value=5)
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    product = StockProductFactory(base_price=0.01, purchase_price=0)
+
+    response = _add_item(client, order, product, amount=10, total_price=total_price)
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["total_price"] == expected_total
+    assert data["unit_price"] == pytest.approx(expected_total / 10)
+    assert OutboundOrderItem.objects.get(order=order).total_price == Decimal(
+        str(expected_total)
+    )
+    reason = data["pricing_details"]["reason"]
+    assert ("Minimum item value 5.00 (global)" in reason) is rounded
+
+
+def test_add_outbound_order_item_customer_override_beats_global(db) -> None:
+    GlobalSettingsFactory(minimum_item_value=5)
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    order.customer.minimum_item_value = Decimal("20")
+    order.customer.save()
+    product = StockProductFactory(base_price=0.01, purchase_price=0)
+
+    response = _add_item(client, order, product, amount=10, total_price=0.1)
+
+    data = response.json()["data"]
+    assert data["total_price"] == 20.0
+    assert (
+        "Minimum item value 20.00 (customer override)"
+        in (data["pricing_details"]["reason"])
+    )
+
+
+def test_add_outbound_order_item_no_rounding_when_disabled_for_customer(db) -> None:
+    GlobalSettingsFactory(minimum_item_value=5)
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    order.customer.minimum_item_value_enabled = False
+    order.customer.minimum_item_value = Decimal("20")
+    order.customer.save()
+    product = StockProductFactory(base_price=0.01, purchase_price=0)
+
+    response = _add_item(client, order, product, amount=10, total_price=0.1)
+
+    data = response.json()["data"]
+    assert data["total_price"] == 0.1
+    assert "Minimum item value" not in data["pricing_details"]["reason"]
+
+
+def test_add_outbound_order_item_no_rounding_without_any_minimum(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    product = StockProductFactory(base_price=0.01, purchase_price=0)
+
+    response = _add_item(client, order, product, amount=10, total_price=0.1)
+
+    assert response.json()["data"]["total_price"] == 0.1
+
+
+def test_update_outbound_order_item_rounds_up_to_minimum(db) -> None:
+    GlobalSettingsFactory(minimum_item_value=5)
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    product = StockProductFactory(base_price=0.01, purchase_price=0)
+    _add_item(client, order, product, amount=10, total_price=50)
+
+    response = client.put(
+        f"/{order.code}/items/0",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 10,
+            "total_price": 0.1,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["total_price"] == 5.0
+    assert data["pricing_details"]["selected_unit_price"] == 0.5
+    assert "Minimum item value 5.00 (global)" in data["pricing_details"]["reason"]
+
+
+def test_get_outbound_order_explains_minimum_in_pricing_details(db) -> None:
+    GlobalSettingsFactory(minimum_item_value=5)
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    product = StockProductFactory(base_price=0.01, purchase_price=0)
+    OutboundOrderItemFactory(
+        order=order, stock_product=product, amount=10, unit_price=0.5, total_price=5
+    )
+
+    response = client.get(f"/{order.code}")
+
+    item = response.json()["data"]["items"][0]
+    assert "Minimum item value 5.00 (global)" in item["pricing_details"]["reason"]

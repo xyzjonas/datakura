@@ -78,6 +78,12 @@
             <q-checkbox v-model="form.is_supplier" label="Dodavatel (výchozí je odběratel)" />
           </div>
 
+          <!-- Minimum item value -->
+          <CustomerMinimumValueFields
+            v-model:enabled="form.minimum_item_value_enabled"
+            v-model:minimum-item-value="form.minimum_item_value"
+          />
+
           <!-- Relationships -->
           <div class="grid grid-cols-2 gap-2">
             <q-select
@@ -129,6 +135,7 @@
 
 <script setup lang="ts">
 import type { CustomerCreateOrUpdateSchema, CustomerGroupSchema } from '@/client'
+import CustomerMinimumValueFields from '@/components/customer/CustomerMinimumValueFields.vue'
 import InvoicePaymentMethodSelect from '@/components/selects/InvoicePaymentMethodSelect.vue'
 import { rules } from '@/utils/rules'
 

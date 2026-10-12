@@ -115,6 +115,8 @@ const newCustomer = ref<CustomerCreateOrUpdateSchema>({
   block_after_due_days: 30,
   is_self: false,
   is_supplier: false,
+  minimum_item_value_enabled: true,
+  minimum_item_value: null,
   default_payment_method_name: undefined,
   state: 'CZ',
   data_collection_agreement: false,

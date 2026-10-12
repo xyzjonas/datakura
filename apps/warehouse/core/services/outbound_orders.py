@@ -24,6 +24,7 @@ from apps.warehouse.core.schemas.orders import (
 from apps.warehouse.core.services import audit_service
 from apps.warehouse.core.services.item_reorder import reorder_order_items
 from apps.warehouse.core.services.products import stock_product_service
+from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.services.warehouse_order_factory import (
     WarehouseOrderKind,
     create_warehouse_order,
@@ -262,6 +263,7 @@ class OutboundOrdersService:
                     order=order_model,
                     stock_product=product,
                     selected_unit_price=Decimal(str(schema_item.unit_price)),
+                    total_price=Decimal(str(schema_item.total_price)),
                 )
             )
         return order
@@ -283,11 +285,17 @@ class OutboundOrdersService:
         order: OutboundOrder,
         stock_product: StockProduct,
         selected_unit_price: Decimal,
+        total_price: Decimal,
     ) -> OutboundOrderItemPricingDetailsSchema:
         suggested = stock_product_service.get_selling_price_lookup(
             product_code=stock_product.code,
             customer_code=order.customer.code if order.customer else None,
         )
+
+        reason = suggested.reason
+        minimum = settings_service.resolve_minimum_item_value(order.customer)
+        if minimum is not None and total_price == minimum.value:
+            reason = f"{reason}; {minimum.explanation}"
 
         avg_purchase_price = Decimal(str(stock_product.purchase_price or 0))
         margin_amount = selected_unit_price - avg_purchase_price
@@ -303,7 +311,7 @@ class OutboundOrdersService:
             suggested_unit_price=suggested.final_price,
             selected_unit_price=float(selected_unit_price),
             discount_percent=suggested.discount_percent,
-            reason=suggested.reason,
+            reason=reason,
             source=suggested.source,
             margin_amount=float(
                 margin_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -716,7 +724,9 @@ class OutboundOrdersService:
         with transaction.atomic():
             next_index = order.items.count()
             amount = Decimal(str(item.amount))
-            total_price = Decimal(str(item.total_price))
+            total_price = settings_service.apply_minimum_item_value(
+                order.customer, Decimal(str(item.total_price))
+            )
             cls._validate_desired_packaging(
                 stock_product=stock_product,
                 amount=amount,
@@ -743,6 +753,7 @@ class OutboundOrdersService:
             order=order,
             stock_product=stock_product,
             selected_unit_price=selected_unit_price,
+            total_price=total_price,
         )
         return outbound_order_item_orm_to_schema(
             item_model, pricing_details=pricing_details
@@ -768,7 +779,9 @@ class OutboundOrdersService:
 
         with transaction.atomic():
             amount = Decimal(str(item.amount))
-            total_price = Decimal(str(item.total_price))
+            total_price = settings_service.apply_minimum_item_value(
+                order.customer, Decimal(str(item.total_price))
+            )
             cls._validate_desired_packaging(
                 stock_product=item_model.stock_product,
                 amount=amount,
@@ -794,6 +807,7 @@ class OutboundOrdersService:
             order=order,
             stock_product=item_model.stock_product,
             selected_unit_price=item_model.unit_price,
+            total_price=item_model.total_price,
         )
         return outbound_order_item_orm_to_schema(
             item_model, pricing_details=pricing_details

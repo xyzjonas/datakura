@@ -434,3 +434,62 @@ def test_update_customer_without_is_supplier_resets_to_buyer(db, client) -> None
 
     assert res.status_code == 200
     assert res.json()["data"]["is_supplier"] is False
+
+
+def test_customer_minimum_item_value_defaults(db, client) -> None:
+    from apps.warehouse.tests.factories.customer import CustomerGroupFactory
+
+    group = CustomerGroupFactory()
+    res = client.post(
+        "/",
+        json={
+            "code": "NEWMIN",
+            "name": "Min",
+            "customer_type": "FIRMA",
+            "price_type": "FIRMY",
+            "customer_group_code": group.code,
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["minimum_item_value_enabled"] is True
+    assert data["minimum_item_value"] is None
+
+
+@pytest.mark.parametrize(
+    "enabled, minimum",
+    [(True, None), (True, 0), (True, 12.5), (False, None), (False, 12.5)],
+)
+def test_update_customer_minimum_item_value(db, client, enabled, minimum) -> None:
+    customer = cast(Customer, CustomerFactoryWithContacts())
+
+    res = client.put(
+        f"/{customer.code}",
+        json=_customer_payload(
+            customer, minimum_item_value_enabled=enabled, minimum_item_value=minimum
+        ),
+    )
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["minimum_item_value_enabled"] is enabled
+    assert data["minimum_item_value"] == minimum
+    customer.refresh_from_db()
+    assert customer.minimum_item_value_enabled is enabled
+    assert (
+        None
+        if customer.minimum_item_value is None
+        else float(customer.minimum_item_value)
+    ) == minimum
+
+
+def test_update_customer_rejects_negative_minimum_item_value(db, client) -> None:
+    customer = cast(Customer, CustomerFactoryWithContacts())
+
+    res = client.put(
+        f"/{customer.code}",
+        json=_customer_payload(customer, minimum_item_value=-1),
+    )
+
+    assert res.status_code == 422

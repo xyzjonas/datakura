@@ -20,6 +20,7 @@ from apps.warehouse.models.orders import (
 )
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.printer import Printer, UserAppSettings
+from apps.warehouse.models.settings import GlobalSettings
 from apps.warehouse.models.product import (
     StockProduct,
     UnitOfMeasure,
@@ -119,6 +120,7 @@ admin.site.register(OutboundOrderItem)
 admin.site.register(Invoice)
 admin.site.register(InvoicePaymentMethod)
 admin.site.register(UserAppSettings)
+admin.site.register(GlobalSettings)
 
 
 @admin.register(Printer)

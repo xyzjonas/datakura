@@ -10,8 +10,10 @@
       >
         <q-popup-proxy>
           <q-card class="p-3 max-w-80">
-            <div class="text-sm font-bold mb-2">Vysvětlení ceny</div>
-            <div class="text-xs mb-1">Základní cena: {{ basePrice.toFixed(2) }} {{ currency }}</div>
+            <div class="text-lg font-bold text-primary mb-2">Vysvětlení ceny</div>
+            <div class="text-xs mb-1 font-bold">
+              Základní cena: {{ basePrice.toFixed(2) }} {{ currency }}
+            </div>
             <div class="text-xs mb-1">
               Nákupní cena (průměr): {{ avgPurchasePrice.toFixed(2) }} {{ currency }}
             </div>
@@ -22,7 +24,7 @@
             <div class="text-xs mb-1">
               Navržená cena: {{ suggestedPrice.toFixed(2) }} {{ currency }}
             </div>
-            <div class="text-xs font-medium">
+            <div class="text-positive font-medium">
               Zvolená cena: {{ resolvedModelValue.toFixed(2) }} {{ currency }}
             </div>
           </q-card>

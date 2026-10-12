@@ -2331,6 +2331,14 @@ export type CustomerSchema = {
      */
     is_supplier?: boolean;
     /**
+     * Minimum Item Value Enabled
+     */
+    minimum_item_value_enabled?: boolean;
+    /**
+     * Minimum Item Value
+     */
+    minimum_item_value?: number | null;
+    /**
      * Data Collection Agreement
      */
     data_collection_agreement: boolean;
@@ -2491,6 +2499,14 @@ export type CustomerCreateOrUpdateSchema = {
      * Is Supplier
      */
     is_supplier?: boolean;
+    /**
+     * Minimum Item Value Enabled
+     */
+    minimum_item_value_enabled?: boolean;
+    /**
+     * Minimum Item Value
+     */
+    minimum_item_value?: number | null;
     /**
      * Default Payment Method Name
      */
@@ -5041,6 +5057,46 @@ export type WarehouseImportResultSchema = {
      * Items Created
      */
     items_created: number;
+};
+
+/**
+ * GetGlobalSettingsResponse
+ */
+export type GetGlobalSettingsResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: GlobalSettingsSchema;
+};
+
+/**
+ * GlobalSettingsSchema
+ */
+export type GlobalSettingsSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Minimum Item Value
+     */
+    minimum_item_value: number;
+};
+
+/**
+ * GlobalSettingsUpdateSchema
+ */
+export type GlobalSettingsUpdateSchema = {
+    /**
+     * Minimum Item Value
+     */
+    minimum_item_value: number;
 };
 
 export type WarehouseApiRoutesAuthLoginUserData = {
@@ -8569,3 +8625,35 @@ export type WarehouseApiRoutesDataImportGetDataImportJobResponses = {
 };
 
 export type WarehouseApiRoutesDataImportGetDataImportJobResponse = WarehouseApiRoutesDataImportGetDataImportJobResponses[keyof WarehouseApiRoutesDataImportGetDataImportJobResponses];
+
+export type WarehouseApiRoutesSettingsGetGlobalSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/settings';
+};
+
+export type WarehouseApiRoutesSettingsGetGlobalSettingsResponses = {
+    /**
+     * OK
+     */
+    200: GetGlobalSettingsResponse;
+};
+
+export type WarehouseApiRoutesSettingsGetGlobalSettingsResponse = WarehouseApiRoutesSettingsGetGlobalSettingsResponses[keyof WarehouseApiRoutesSettingsGetGlobalSettingsResponses];
+
+export type WarehouseApiRoutesSettingsUpdateGlobalSettingsData = {
+    body: GlobalSettingsUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/settings';
+};
+
+export type WarehouseApiRoutesSettingsUpdateGlobalSettingsResponses = {
+    /**
+     * OK
+     */
+    200: GetGlobalSettingsResponse;
+};
+
+export type WarehouseApiRoutesSettingsUpdateGlobalSettingsResponse = WarehouseApiRoutesSettingsUpdateGlobalSettingsResponses[keyof WarehouseApiRoutesSettingsUpdateGlobalSettingsResponses];

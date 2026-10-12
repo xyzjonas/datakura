@@ -26,6 +26,10 @@ vi.mock('@/client', () => ({
   warehouseApiRoutesPrintersCreatePrinter: mocks.createPrinter,
 }))
 
+vi.mock('@/components/settings/MinimumItemValueSetting.vue', () => ({
+  default: { template: '<div />' },
+}))
+
 vi.mock('@/composables/use-api', () => ({
   useApi: () => ({
     onResponse: (response: { data?: unknown }) => response.data,

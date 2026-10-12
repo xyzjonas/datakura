@@ -20,6 +20,7 @@ from .routes.invoice_payment_methods import routes as invoice_payment_method_rou
 from .routes.manufacturing_orders import routes as manufacturing_orders_routes
 from .routes.printers import routes as printer_routes
 from .routes.data_import import routes as data_import_routes
+from .routes.settings import routes as settings_routes
 
 
 api = NinjaAPI(
@@ -46,6 +47,7 @@ api.add_router(router=invoice_payment_method_routes, prefix="invoice-payment-met
 api.add_router(router=manufacturing_orders_routes, prefix="manufacturing-orders")
 api.add_router(router=printer_routes, prefix="printers")
 api.add_router(router=data_import_routes, prefix="data-import")
+api.add_router(router=settings_routes, prefix="settings")
 
 
 @api.exception_handler(ApiBaseException)

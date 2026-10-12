@@ -68,6 +68,13 @@ class Customer(BaseModel):
     # appears on sales orders (`OutboundOrder`). True = supplier: mostly appears on
     # purchase orders (`InboundOrder`). Only drives what the customer detail shows.
     is_supplier = models.BooleanField(default=False)
+    # Rounding of order item value up to a minimum. When enabled, `minimum_item_value`
+    # overrides the global one (null = use the global one), when disabled no minimum
+    # applies to this customer at all.
+    minimum_item_value_enabled = models.BooleanField(default=True)
+    minimum_item_value = models.DecimalField(
+        max_digits=12, decimal_places=4, null=True, blank=True
+    )
 
     # Agreements
     data_collection_agreement = models.BooleanField(default=False)

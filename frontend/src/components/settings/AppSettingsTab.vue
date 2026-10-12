@@ -42,6 +42,11 @@
       </section>
 
       <section>
+        <h2 class="text-lg font-semibold uppercase mb-3">Minimální hodnota položky</h2>
+        <MinimumItemValueSetting />
+      </section>
+
+      <section>
         <h2 class="text-lg font-semibold uppercase mb-3">Výchozí tiskárna</h2>
 
         <q-card flat bordered class="rounded-md">
@@ -121,6 +126,7 @@ import {
   warehouseApiRoutesPrintersCreatePrinter,
   type PrinterCreateOrUpdateSchema,
 } from '@/client'
+import MinimumItemValueSetting from '@/components/settings/MinimumItemValueSetting.vue'
 import PrinterSelect from '@/components/selects/PrinterSelect.vue'
 import PrinterUpsertDialog from '@/components/settings/printers/PrinterUpsertDialog.vue'
 import { useApi } from '@/composables/use-api'

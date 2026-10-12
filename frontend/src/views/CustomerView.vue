@@ -313,6 +313,8 @@ const onEditCustomer = () => {
     block_after_due_days: customer.value.block_after_due_days,
     is_self: customer.value.is_self,
     is_supplier: customer.value.is_supplier,
+    minimum_item_value_enabled: customer.value.minimum_item_value_enabled,
+    minimum_item_value: customer.value.minimum_item_value,
     default_payment_method_name: customer.value.default_payment_method?.name,
     data_collection_agreement: customer.value.data_collection_agreement,
     marketing_data_use_agreement: customer.value.marketing_data_use_agreement,

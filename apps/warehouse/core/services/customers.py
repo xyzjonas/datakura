@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from django.db.models import Q, QuerySet
 from django.db import transaction
@@ -68,6 +70,10 @@ class CustomerService:
             raise SelfNotFoundException("Active self customer not found") from exc
 
         return customer_orm_to_schema(customer)
+
+    @staticmethod
+    def _to_decimal_or_none(value: float | None) -> Decimal | None:
+        return None if value is None else Decimal(str(value))
 
     @staticmethod
     def _get_owner_or_none(username: str | None) -> User | None:
@@ -157,6 +163,10 @@ class CustomerService:
             block_after_due_days=params.block_after_due_days,
             is_self=params.is_self,
             is_supplier=params.is_supplier,
+            minimum_item_value_enabled=params.minimum_item_value_enabled,
+            minimum_item_value=CustomerService._to_decimal_or_none(
+                params.minimum_item_value
+            ),
             data_collection_agreement=params.data_collection_agreement,
             marketing_data_use_agreement=params.marketing_data_use_agreement,
             is_valid=params.is_valid,
@@ -216,6 +226,10 @@ class CustomerService:
         customer.block_after_due_days = params.block_after_due_days
         customer.is_self = params.is_self
         customer.is_supplier = params.is_supplier
+        customer.minimum_item_value_enabled = params.minimum_item_value_enabled
+        customer.minimum_item_value = CustomerService._to_decimal_or_none(
+            params.minimum_item_value
+        )
         customer.data_collection_agreement = params.data_collection_agreement
         customer.marketing_data_use_agreement = params.marketing_data_use_agreement
         customer.is_valid = params.is_valid
