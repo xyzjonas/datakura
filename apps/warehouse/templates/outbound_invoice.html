@@ -380,7 +380,7 @@
             <div class="summary-panel totals">
                 <div class="total-row">
                     <span>Platebni metoda</span>
-                    <span>{{ invoice.payment_method.name }}</span>
+                    <span>{{ invoice.payment_method.name|default:"-" }}</span>
                 </div>
                 {% if invoice.external_code %}
                     <div class="total-row">

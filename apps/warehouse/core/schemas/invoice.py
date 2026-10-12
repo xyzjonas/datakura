@@ -29,11 +29,11 @@ class InvoiceSchema(BaseSchema):
     code: str
     customer: CustomerSchema | None = None
     supplier: CustomerSchema | None = None
-    issued_date: date
-    due_date: date
-    payment_method: InvoicePaymentMethodSchema
+    issued_date: date | None = None
+    due_date: date | None = None
+    payment_method: InvoicePaymentMethodSchema | None = None
     external_code: str | None = None
-    taxable_supply_date: date
+    taxable_supply_date: date | None = None
     paid_date: date | None = None
     currency: str
     note: str | None = None
@@ -44,13 +44,13 @@ class InvoiceStoreSchema(Schema):
     customer_code: str | None = None
     supplier_code: str | None = None
     code: str
-    issued_date: date
-    due_date: date
-    payment_method_name: str
+    issued_date: date | None = None
+    due_date: date | None = None
+    payment_method_name: str | None = None
     external_code: str | None = None
-    taxable_supply_date: date
+    taxable_supply_date: date | None = None
     paid_date: date | None = None
-    currency: str
+    currency: str = "CZK"
     note: str | None = None
 
 

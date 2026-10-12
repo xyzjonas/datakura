@@ -34,16 +34,16 @@
         <span class="flex items-center gap-1 text-muted">FAKTURA</span>
         <h1 class="mb-1 h1">{{ invoice.code }}</h1>
         <div class="flex flex-wrap items-center gap-2 text-muted">
-          <span>{{ invoice.issued_date }}</span>
-          <span>/</span>
-          <span>splatnost {{ invoice.due_date }}</span>
+          <span v-if="invoice.issued_date">{{ invoice.issued_date }}</span>
+          <span v-if="invoice.issued_date && invoice.due_date">/</span>
+          <span v-if="invoice.due_date">splatnost {{ invoice.due_date }}</span>
         </div>
       </div>
 
       <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <ForegroundPanel class="min-w-[10rem]">
           <div class="text-xs uppercase text-muted">Platební metoda</div>
-          <div class="mt-2 text-lg font-semibold">{{ invoice.payment_method.name }}</div>
+          <div class="mt-2 text-lg font-semibold">{{ invoice.payment_method?.name ?? '-' }}</div>
         </ForegroundPanel>
         <ForegroundPanel class="min-w-[10rem]">
           <div class="text-xs uppercase text-muted">Měna</div>
@@ -76,7 +76,7 @@
       <ForegroundPanel class="flex flex-col gap-3">
         <div>
           <div class="text-xs uppercase tracking-[0.16em] text-gray-5">DUZP</div>
-          <div class="mt-1 text-lg font-semibold">{{ invoice.taxable_supply_date }}</div>
+          <div class="mt-1 text-lg font-semibold">{{ invoice.taxable_supply_date ?? '-' }}</div>
         </div>
         <div v-if="invoice.external_code">
           <div class="text-xs uppercase tracking-[0.16em] text-gray-5">
@@ -217,10 +217,10 @@ const editLoading = ref(false)
 const markPaidLoading = ref(false)
 const invoiceForm = ref<InvoiceStoreSchema>({
   code: '',
-  issued_date: '',
-  due_date: '',
-  payment_method_name: '',
-  taxable_supply_date: '',
+  issued_date: undefined,
+  due_date: undefined,
+  payment_method_name: undefined,
+  taxable_supply_date: undefined,
   currency: 'CZK',
   external_code: undefined,
   paid_date: undefined,
@@ -235,10 +235,10 @@ const $q = useQuasar()
 
 const toInvoiceForm = (currentInvoice?: InvoiceDetailModel): InvoiceStoreSchema => ({
   code: currentInvoice?.code ?? '',
-  issued_date: currentInvoice?.issued_date ?? '',
-  due_date: currentInvoice?.due_date ?? '',
-  payment_method_name: currentInvoice?.payment_method.name ?? '',
-  taxable_supply_date: currentInvoice?.taxable_supply_date ?? '',
+  issued_date: currentInvoice?.issued_date ?? undefined,
+  due_date: currentInvoice?.due_date ?? undefined,
+  payment_method_name: currentInvoice?.payment_method?.name ?? undefined,
+  taxable_supply_date: currentInvoice?.taxable_supply_date ?? undefined,
   currency: currentInvoice?.currency ?? 'CZK',
   external_code: currentInvoice?.external_code ?? undefined,
   paid_date: currentInvoice?.paid_date ?? undefined,

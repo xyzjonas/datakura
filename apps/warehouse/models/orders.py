@@ -113,6 +113,14 @@ class InvoicePaymentMethod(BaseModel):
     def __str__(self) -> str:
         return self.name
 
+    @classmethod
+    def resolve(cls, name: str | None) -> "InvoicePaymentMethod | None":
+        """Get or create a payment method by name; blank name means none."""
+        normalized_name = (name or "").strip()
+        if not normalized_name:
+            return None
+        return cls.objects.get_or_create(name=normalized_name)[0]
+
 
 class Invoice(BaseModel):
     customer = models.ForeignKey(
@@ -130,16 +138,17 @@ class Invoice(BaseModel):
         related_name="supplier_invoices",
     )
     code = models.CharField(max_length=50, null=False, unique=True)
-    issued_date = models.DateField()
-    due_date = models.DateField()
+    issued_date = models.DateField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
     payment_method = models.ForeignKey(
         InvoicePaymentMethod,
-        null=False,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
         related_name="invoices",
     )
     external_code = models.CharField(max_length=50, null=True, blank=True)
-    taxable_supply_date = models.DateField()
+    taxable_supply_date = models.DateField(null=True, blank=True)
     paid_date = models.DateField(null=True, blank=True)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
     note = models.TextField(null=True, blank=True)

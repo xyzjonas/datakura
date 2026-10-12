@@ -33,7 +33,7 @@
 
     <template #body-cell-dueDate="props">
       <q-td>
-        <span v-if="new Date(props.row.due_date) < new Date()" class="text-negative">
+        <span v-if="props.row.due_date && new Date(props.row.due_date) < new Date()" class="text-negative">
           {{ props.row.due_date }} (po termínu)
         </span>
         <span v-else>
@@ -163,7 +163,7 @@ const columns = computed<QTableColumn[]>(() => [
   },
   {
     name: 'paymentMethod',
-    field: (invoice: InvoiceSchema) => invoice.payment_method.name,
+    field: (invoice: InvoiceSchema) => invoice.payment_method?.name,
     label: 'Platební metoda',
     align: 'left',
   },

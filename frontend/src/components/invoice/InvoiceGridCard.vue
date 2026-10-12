@@ -11,8 +11,8 @@
         </button>
       </div>
       <div class="text-right text-sm text-gray-6">
-        <div>{{ invoice.issued_date }}</div>
-        <div>splatnost {{ invoice.due_date }}</div>
+        <div v-if="invoice.issued_date">{{ invoice.issued_date }}</div>
+        <div v-if="invoice.due_date">splatnost {{ invoice.due_date }}</div>
       </div>
     </div>
 
@@ -24,7 +24,7 @@
     <div class="grid gap-2 text-sm text-gray-6 sm:grid-cols-3">
       <div>
         <div class="text-xs uppercase tracking-[0.16em] text-gray-5">Platební metoda</div>
-        <div class="mt-1 font-medium text-slate-8">{{ invoice.payment_method.name }}</div>
+        <div class="mt-1 font-medium text-slate-8">{{ invoice.payment_method?.name ?? '-' }}</div>
       </div>
       <div>
         <div class="text-xs uppercase tracking-[0.16em] text-gray-5">Měna</div>

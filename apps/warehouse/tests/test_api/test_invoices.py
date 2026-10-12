@@ -349,7 +349,7 @@ def test_update_invoice_moves_outbound_orders_to_waiting_for_payment(db) -> None
             "code": invoice.code,
             "issued_date": timezone.localdate().isoformat(),
             "due_date": past_due_date.isoformat(),
-            "payment_method_name": payment_method.name,
+            "payment_method_name": str(payment_method),
             "external_code": invoice.external_code,
             "taxable_supply_date": timezone.localdate().isoformat(),
             "currency": "CZK",
@@ -396,7 +396,7 @@ def test_update_invoice_accepts_multipart_put_with_document(
                 "code": invoice.code,
                 "issued_date": "2026-04-01",
                 "due_date": "2026-04-15",
-                "payment_method_name": invoice.payment_method.name,
+                "payment_method_name": str(invoice.payment_method),
                 "taxable_supply_date": "2026-04-01",
                 "currency": "CZK",
                 "note": "Updated over multipart PUT",
@@ -509,3 +509,59 @@ def test_get_invoice_pdf_returns_pdf_document(db) -> None:
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/pdf"
     assert response.content.startswith(b"%PDF")
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {},
+        {"payment_method_name": ""},
+        {"issued_date": "2026-04-01"},
+        {"payment_method_name": "  Cash  "},
+    ],
+)
+def test_update_invoice_requires_only_code(db, extra) -> None:
+    client = TestClient(routes)
+    invoice = InvoiceFactory.it(currency="EUR")
+
+    response = client.put(f"/{invoice.code}", data={"code": invoice.code, **extra})
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["code"] == invoice.code
+    assert data["currency"] == "CZK"
+    assert data["due_date"] is None
+    assert data["taxable_supply_date"] is None
+    assert data["issued_date"] == extra.get("issued_date")
+    expected_method = extra.get("payment_method_name", "").strip()
+    assert (data["payment_method"] or {}).get("name", "") == expected_method
+
+
+def test_update_invoice_rejects_missing_code(db) -> None:
+    client = TestClient(routes)
+    invoice = InvoiceFactory.it()
+
+    response = client.put(f"/{invoice.code}", data={})
+
+    assert response.status_code == 422
+
+
+def test_invoice_without_optional_fields_is_listed_and_rendered(db) -> None:
+    client = TestClient(routes)
+    invoice = InvoiceFactory.it(
+        issued_date=None,
+        due_date=None,
+        taxable_supply_date=None,
+        payment_method=None,
+    )
+    order = OutboundOrderFactory.it(invoice=invoice)
+
+    listing = client.get("/outbound")
+    detail = client.get(f"/{invoice.code}")
+    html = client.get(f"/{invoice.code}/html")
+
+    assert order.invoice == invoice
+    assert listing.status_code == 200
+    assert detail.status_code == 200
+    assert detail.json()["data"]["payment_method"] is None
+    assert html.status_code == 200

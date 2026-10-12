@@ -30,82 +30,92 @@
             clearable
           />
 
-          <q-select
-            v-model="form.currency"
-            outlined
-            label="Měna"
-            hint="Měna, ve které je faktura vystavena."
-            :options="currencies"
-            :rules="[rules.notEmpty]"
-            emit-value
+          <q-btn
+            flat
+            no-caps
+            color="primary"
+            class="self-start"
+            :icon="showOptional ? 'expand_less' : 'expand_more'"
+            :label="showOptional ? 'Skrýt další údaje' : 'Další údaje (volitelné)'"
+            data-testid="invoice-optional-toggle"
+            @click="showOptional = !showOptional"
           />
 
-          <CustomerSearchSelect
-            v-model="customer"
-            label="Odběratel"
-            hint="Odběratel je vždy naše firma."
-            :required="true"
-            :disable="lockCustomer"
-          />
-          <CustomerSearchSelect
-            v-model="supplier"
-            label="Dodavatel"
-            hint="Vyberte dodavatele, který fakturu vystavil."
-            :required="true"
-          />
+          <q-slide-transition>
+            <div v-show="showOptional" class="flex flex-col gap-3" data-testid="invoice-optional">
+              <q-select
+                v-model="form.currency"
+                outlined
+                label="Měna"
+                hint="Měna, ve které je faktura vystavena."
+                :options="currencies"
+                emit-value
+              />
 
-          <q-input
-            v-model="form.issued_date"
-            outlined
-            label="Datum vystavení"
-            hint="Datum uvedené na faktuře jako datum vystavení."
-            type="date"
-            :rules="[rules.notEmpty]"
-          />
-          <q-input
-            v-model="form.taxable_supply_date"
-            outlined
-            label="Datum zdanitelného plnění"
-            hint="Datum, ke kterému vznikla daňová povinnost."
-            type="date"
-            :rules="[rules.notEmpty]"
-          />
-          <q-input
-            v-model="form.due_date"
-            outlined
-            label="Splatnost"
-            hint="Termín, do kdy má být faktura uhrazena."
-            type="date"
-            :rules="[rules.notEmpty]"
-          />
+              <CustomerSearchSelect
+                v-model="customer"
+                label="Odběratel"
+                hint="Odběratel je vždy naše firma."
+                :required="false"
+                :disable="lockCustomer"
+              />
+              <CustomerSearchSelect
+                v-model="supplier"
+                label="Dodavatel"
+                hint="Vyberte dodavatele, který fakturu vystavil."
+                :required="false"
+              />
 
-          <InvoicePaymentMethodSelect
-            v-model="form.payment_method_name"
-            label="Platební metoda"
-            hint="Zvolte způsob úhrady uvedený na faktuře."
-            :rules="[rules.notEmpty]"
-          />
+              <q-input
+                v-model="form.issued_date"
+                outlined
+                label="Datum vystavení"
+                hint="Datum uvedené na faktuře jako datum vystavení."
+                type="date"
+              />
+              <q-input
+                v-model="form.taxable_supply_date"
+                outlined
+                label="Datum zdanitelného plnění"
+                hint="Datum, ke kterému vznikla daňová povinnost."
+                type="date"
+              />
+              <q-input
+                v-model="form.due_date"
+                outlined
+                label="Splatnost"
+                hint="Termín, do kdy má být faktura uhrazena."
+                type="date"
+              />
 
-          <q-input
-            v-model="form.paid_date"
-            outlined
-            label="Datum úhrady (volitelné)"
-            hint="Vyplňte pouze pokud je faktura již zaplacena."
-            type="date"
-          />
+              <InvoicePaymentMethodSelect
+                v-model="form.payment_method_name"
+                label="Platební metoda"
+                hint="Zvolte způsob úhrady uvedený na faktuře."
+              />
 
-          <q-input
-            v-model.trim="form.external_code"
-            outlined
-            label="Číslo objednávky zákazníka (volitelné)"
-            hint="Číslo faktury v systému partnera."
-          />
-          <q-input
-            v-model.trim="form.note"
-            outlined
-            label="Poznámka (volitelné)"
-            hint="Doplňující informace k faktuře."
-          />
+              <q-input
+                v-model="form.paid_date"
+                outlined
+                label="Datum úhrady"
+                hint="Vyplňte pouze pokud je faktura již zaplacena."
+                type="date"
+              />
+
+              <q-input
+                v-model.trim="form.external_code"
+                outlined
+                label="Číslo objednávky zákazníka"
+                hint="Číslo faktury v systému partnera."
+              />
+              <q-input
+                v-model.trim="form.note"
+                outlined
+                label="Poznámka"
+                hint="Doplňující informace k faktuře."
+              />
+            </div>
+          </q-slide-transition>
 
           <div class="mt-4 flex justify-end gap-2">
             <q-btn flat color="primary" label="Zrušit" v-close-popup />
@@ -163,6 +173,7 @@ const emit = defineEmits<{
 const customer = ref<CustomerBaseSchema | undefined>()
 const supplier = ref<CustomerBaseSchema | undefined>()
 const invoiceFile = ref<File | null>(null)
+const showOptional = ref(false)
 const currencies = ['CZK', 'EUR', 'PLN']
 
 const invoiceFileRule = (val: File | null) => !!val || 'Nahrajte PDF faktury.'
@@ -182,6 +193,7 @@ watch(
       return
     }
     invoiceFile.value = null
+    showOptional.value = false
     customer.value = props.defaultCustomer ?? undefined
     supplier.value = props.defaultSupplier ?? undefined
     syncPaymentMethodFromCustomer(customer.value)
@@ -196,6 +208,12 @@ watch(customer, (selectedCustomer) => {
 const onSubmit = () => {
   const body: InvoiceStoreSchema = {
     ...form.value,
+    issued_date: form.value.issued_date || undefined,
+    due_date: form.value.due_date || undefined,
+    taxable_supply_date: form.value.taxable_supply_date || undefined,
+    paid_date: form.value.paid_date || undefined,
+    payment_method_name: form.value.payment_method_name || undefined,
+    currency: form.value.currency || 'CZK',
     customer_code: customer.value?.code,
     supplier_code: supplier.value?.code,
   }

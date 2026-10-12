@@ -2842,12 +2842,12 @@ export type InvoiceSchema = {
     /**
      * Issued Date
      */
-    issued_date: string;
+    issued_date?: string | null;
     /**
      * Due Date
      */
-    due_date: string;
-    payment_method: InvoicePaymentMethodSchema;
+    due_date?: string | null;
+    payment_method?: InvoicePaymentMethodSchema | null;
     /**
      * External Code
      */
@@ -2855,7 +2855,7 @@ export type InvoiceSchema = {
     /**
      * Taxable Supply Date
      */
-    taxable_supply_date: string;
+    taxable_supply_date?: string | null;
     /**
      * Paid Date
      */
@@ -2983,15 +2983,15 @@ export type InvoiceStoreSchema = {
     /**
      * Issued Date
      */
-    issued_date: string;
+    issued_date?: string | null;
     /**
      * Due Date
      */
-    due_date: string;
+    due_date?: string | null;
     /**
      * Payment Method Name
      */
-    payment_method_name: string;
+    payment_method_name?: string | null;
     /**
      * External Code
      */
@@ -2999,7 +2999,7 @@ export type InvoiceStoreSchema = {
     /**
      * Taxable Supply Date
      */
-    taxable_supply_date: string;
+    taxable_supply_date?: string | null;
     /**
      * Paid Date
      */
@@ -3007,7 +3007,7 @@ export type InvoiceStoreSchema = {
     /**
      * Currency
      */
-    currency: string;
+    currency?: string;
     /**
      * Note
      */
@@ -4268,12 +4268,12 @@ export type InvoiceDetailSchema = {
     /**
      * Issued Date
      */
-    issued_date: string;
+    issued_date?: string | null;
     /**
      * Due Date
      */
-    due_date: string;
-    payment_method: InvoicePaymentMethodSchema;
+    due_date?: string | null;
+    payment_method?: InvoicePaymentMethodSchema | null;
     /**
      * External Code
      */
@@ -4281,7 +4281,7 @@ export type InvoiceDetailSchema = {
     /**
      * Taxable Supply Date
      */
-    taxable_supply_date: string;
+    taxable_supply_date?: string | null;
     /**
      * Paid Date
      */
@@ -6801,15 +6801,15 @@ export type WarehouseApiRoutesInboundOrdersStoreInboundOrderInvoiceData = {
         /**
          * Issued Date
          */
-        issued_date: string;
+        issued_date?: string | null;
         /**
          * Due Date
          */
-        due_date: string;
+        due_date?: string | null;
         /**
          * Payment Method Name
          */
-        payment_method_name: string;
+        payment_method_name?: string | null;
         /**
          * External Code
          */
@@ -6817,7 +6817,7 @@ export type WarehouseApiRoutesInboundOrdersStoreInboundOrderInvoiceData = {
         /**
          * Taxable Supply Date
          */
-        taxable_supply_date: string;
+        taxable_supply_date?: string | null;
         /**
          * Paid Date
          */
@@ -6825,7 +6825,7 @@ export type WarehouseApiRoutesInboundOrdersStoreInboundOrderInvoiceData = {
         /**
          * Currency
          */
-        currency: string;
+        currency?: string;
         /**
          * Note
          */
@@ -7175,15 +7175,15 @@ export type WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceData = {
         /**
          * Issued Date
          */
-        issued_date: string;
+        issued_date?: string | null;
         /**
          * Due Date
          */
-        due_date: string;
+        due_date?: string | null;
         /**
          * Payment Method Name
          */
-        payment_method_name: string;
+        payment_method_name?: string | null;
         /**
          * External Code
          */
@@ -7191,7 +7191,7 @@ export type WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceData = {
         /**
          * Taxable Supply Date
          */
-        taxable_supply_date: string;
+        taxable_supply_date?: string | null;
         /**
          * Paid Date
          */
@@ -7199,7 +7199,7 @@ export type WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceData = {
         /**
          * Currency
          */
-        currency: string;
+        currency?: string;
         /**
          * Note
          */
@@ -8009,15 +8009,15 @@ export type WarehouseApiRoutesInvoicesUpdateInvoiceData = {
         /**
          * Issued Date
          */
-        issued_date: string;
+        issued_date?: string | null;
         /**
          * Due Date
          */
-        due_date: string;
+        due_date?: string | null;
         /**
          * Payment Method Name
          */
-        payment_method_name: string;
+        payment_method_name?: string | null;
         /**
          * External Code
          */
@@ -8025,7 +8025,7 @@ export type WarehouseApiRoutesInvoicesUpdateInvoiceData = {
         /**
          * Taxable Supply Date
          */
-        taxable_supply_date: string;
+        taxable_supply_date?: string | null;
         /**
          * Paid Date
          */
@@ -8033,7 +8033,7 @@ export type WarehouseApiRoutesInvoicesUpdateInvoiceData = {
         /**
          * Currency
          */
-        currency: string;
+        currency?: string;
         /**
          * Note
          */

@@ -49,12 +49,12 @@ class InvoicesService:
         *,
         customer: Customer | None,
         supplier: Customer | None,
-        payment_method: InvoicePaymentMethod,
+        payment_method: InvoicePaymentMethod | None,
         code: str,
-        issued_date: date,
-        due_date: date,
+        issued_date: date | None,
+        due_date: date | None,
         external_code: str | None,
-        taxable_supply_date: date,
+        taxable_supply_date: date | None,
         paid_date: date | None,
         currency: str,
         note: str | None,
@@ -73,19 +73,22 @@ class InvoicesService:
             "code": (invoice.code, code),
             "issued_date": (
                 invoice.issued_date.isoformat() if invoice.issued_date else None,
-                issued_date.isoformat(),
+                issued_date.isoformat() if issued_date else None,
             ),
             "due_date": (
                 invoice.due_date.isoformat() if invoice.due_date else None,
-                due_date.isoformat(),
+                due_date.isoformat() if due_date else None,
             ),
-            "payment_method": (invoice.payment_method.name, payment_method.name),
+            "payment_method": (
+                invoice.payment_method.name if invoice.payment_method else None,
+                payment_method.name if payment_method else None,
+            ),
             "external_code": (invoice.external_code, external_code),
             "taxable_supply_date": (
                 invoice.taxable_supply_date.isoformat()
                 if invoice.taxable_supply_date
                 else None,
-                taxable_supply_date.isoformat(),
+                taxable_supply_date.isoformat() if taxable_supply_date else None,
             ),
             "paid_date": (
                 invoice.paid_date.isoformat() if invoice.paid_date else None,
@@ -392,9 +395,7 @@ class InvoicesService:
             if params.supplier_code
             else None
         )
-        payment_method, _ = InvoicePaymentMethod.objects.get_or_create(
-            name=params.payment_method_name
-        )
+        payment_method = InvoicePaymentMethod.resolve(params.payment_method_name)
         changes = cls._build_invoice_changes(
             invoice,
             customer=customer,

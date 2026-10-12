@@ -155,7 +155,7 @@ def test_get_inbound_order_includes_invoice(db, settings, tmp_path) -> None:
     assert res.status_code == 200
     invoice_data = res.json()["data"]["invoice"]
     assert invoice_data["code"] == invoice.code
-    assert invoice_data["payment_method"]["name"] == invoice.payment_method.name
+    assert invoice_data["payment_method"]["name"] == str(invoice.payment_method)
     assert invoice_data["document"]["name"] == "invoice.pdf"
     assert invoice_data["document"]["url"].endswith("invoice.pdf")
 

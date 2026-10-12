@@ -83,7 +83,7 @@ class OutboundOrdersService:
         if invoice.paid_date is not None:
             return OutboundOrderState.COMPLETED_PAID
 
-        if invoice.due_date < timezone.localdate():
+        if invoice.due_date and invoice.due_date < timezone.localdate():
             return OutboundOrderState.WAITING_FOR_PAYMENT
 
         return OutboundOrderState.INVOICED
@@ -1026,9 +1026,7 @@ class OutboundOrdersService:
 
         customer = cls._get_customer_or_none(params.customer_code)
         supplier = cls._get_customer_or_none(params.supplier_code)
-        payment_method, _ = InvoicePaymentMethod.objects.get_or_create(
-            name=params.payment_method_name
-        )
+        payment_method = InvoicePaymentMethod.resolve(params.payment_method_name)
 
         with transaction.atomic():
             if order.invoice:

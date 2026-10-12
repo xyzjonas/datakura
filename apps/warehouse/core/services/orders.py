@@ -500,9 +500,7 @@ class OrdersService:
 
         customer = cls._get_self_customer()
         supplier = cls._get_customer_or_none(params.supplier_code)
-        payment_method, _ = InvoicePaymentMethod.objects.get_or_create(
-            name=params.payment_method_name
-        )
+        payment_method = InvoicePaymentMethod.resolve(params.payment_method_name)
 
         with transaction.atomic():
             if order.invoice:

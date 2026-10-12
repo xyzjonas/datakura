@@ -177,7 +177,9 @@ def invoice_orm_to_schema(invoice: Invoice) -> InvoiceSchema:
         supplier=customer_orm_to_schema(invoice.supplier) if invoice.supplier else None,
         issued_date=invoice.issued_date,
         due_date=invoice.due_date,
-        payment_method=invoice_payment_method_orm_to_schema(invoice.payment_method),
+        payment_method=invoice_payment_method_orm_to_schema(invoice.payment_method)
+        if invoice.payment_method
+        else None,
         external_code=invoice.external_code,
         taxable_supply_date=invoice.taxable_supply_date,
         paid_date=invoice.paid_date,
