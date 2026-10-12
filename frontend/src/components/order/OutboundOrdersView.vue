@@ -28,12 +28,13 @@
           @click="invoiceDialog = true"
         />
         <q-btn
+          flat
           color="primary"
-          unelevated
-          label="vytvořit"
-          icon="sym_o_add"
-          @click="newOrderDialog = true"
+          label="kalkulace"
+          icon="sym_o_calculate"
+          :to="{ name: 'outboundCalculations' }"
         />
+        <OutboundCalculationCreateButton />
       </div>
     </div>
 
@@ -42,12 +43,6 @@
       v-model:customer-filter="customerFilter"
       :invoice-mode="invoiceMode"
       @apply-customer-filter="applyCustomerFilter"
-    />
-
-    <NewOrderDialog
-      v-model="newOrderDialog"
-      ref="newOrderDialogComponent"
-      @create-order="createOrder"
     />
 
     <OutboundInvoiceCreateDialog
@@ -65,14 +60,12 @@ import {
   type CustomerSchema,
   type GetCustomerResponse,
   warehouseApiRoutesInvoicesCreateOutboundInvoice,
-  warehouseApiRoutesOutboundOrdersCreateOutboundOrder,
   type OutboundInvoiceCreateSchema,
-  type OutboundOrderCreateOrUpdateSchema,
   type OutboundOrderSchema,
 } from '@/client'
 import { client } from '@/client/client.gen'
 import OutboundInvoiceCreateDialog from '@/components/order/OutboundInvoiceCreateDialog.vue'
-import NewOrderDialog from '@/components/order/OutboundOrderUpdateOrCreateDialog.vue'
+import OutboundCalculationCreateButton from '@/components/order/OutboundCalculationCreateButton.vue'
 import { useApi } from '@/composables/use-api'
 import router from '@/router'
 import { useQuasar } from 'quasar'
@@ -81,8 +74,6 @@ import OutboundOrdersTable from './OutboundOrdersTable.vue'
 
 const { onResponse } = useApi()
 
-const newOrderDialog = ref(false)
-const newOrderDialogComponent = ref<InstanceType<typeof NewOrderDialog>>()
 const selectedOrders = ref<OutboundOrderSchema[]>([])
 const customerFilter = ref<CustomerSchema>()
 const invoiceMode = ref(false)
@@ -119,19 +110,6 @@ const toggleInvoiceMode = () => {
   if (!invoiceMode.value) {
     selectedOrders.value = []
     invoiceDialog.value = false
-  }
-}
-
-const createOrder = async (params: OutboundOrderCreateOrUpdateSchema) => {
-  const response = await warehouseApiRoutesOutboundOrdersCreateOutboundOrder({ body: params })
-  const data = onResponse(response)
-  if (data && newOrderDialogComponent.value) {
-    newOrderDialogComponent.value.reset()
-    $q.notify({
-      type: 'positive',
-      message: `vydaná objednávka úspěšně vytvořena: ${data.data.code}`,
-    })
-    router.push({ name: 'outboundOrderDetail', params: { code: data.data.code } })
   }
 }
 

@@ -183,9 +183,12 @@ export type Pagination = NonNullable<QTableProps['pagination']>
 const props = withDefaults(
   defineProps<{
     invoiceMode?: boolean
+    /** list calculations (not yet confirmed with the client) instead of orders */
+    calculations?: boolean
   }>(),
   {
     invoiceMode: false,
+    calculations: false,
   },
 )
 
@@ -220,6 +223,7 @@ const fetchOrders = async () => {
         customer_code: customerFilter.value?.code,
         stock_product_code: stockProductCode.value ?? undefined,
         include_all: includeAll.value || undefined,
+        calculations: props.calculations || undefined,
       },
     })
     const data = onResponse(response)
@@ -387,12 +391,22 @@ const columns = computed<QTableColumn[]>(() => {
       label: 'Stav',
       align: 'left',
     },
-    {
-      name: 'warehouseOrder',
-      field: (order: OutboundOrderSchema) => order.warehouse_order_codes?.join(', '),
-      label: 'Vydejka',
-      align: 'left',
-    },
+    ...(props.calculations
+      ? []
+      : [
+          {
+            name: 'calculationCode',
+            field: (order: OutboundOrderSchema) => order.calculation_code ?? '',
+            label: 'Kalkulace',
+            align: 'left',
+          } satisfies QTableColumn,
+          {
+            name: 'warehouseOrder',
+            field: (order: OutboundOrderSchema) => order.warehouse_order_codes?.join(', '),
+            label: 'Vydejka',
+            align: 'left',
+          } satisfies QTableColumn,
+        ]),
     {
       name: 'created',
       field: 'created',

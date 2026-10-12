@@ -158,7 +158,16 @@ class Invoice(BaseModel):
 
 
 class InboundOrder(BaseModel):
-    """Incoming order, or "purchase" order"""
+    """
+    PURCHASE order: WE buy goods FROM a supplier (CZ UI: "Vydané objednávky" -
+    orders *issued* by us). Goods come IN to our warehouse, hence "inbound":
+    receiving/put-away happens via `InboundWarehouseOrder` (příjemka).
+
+    - `supplier` is the party we buy from (`customer` is us, the ghost/self customer).
+    - Not to be confused with `OutboundOrder`, the sales order a client places with us.
+    - Single table, no calculation (draft) concept: drafts are listed together
+      with the other states.
+    """
 
     code = models.CharField(max_length=50, null=False, unique=True)
     external_code = models.CharField(
@@ -251,7 +260,19 @@ class InboundOrderItem(BaseModel):
 
 
 class OutboundOrder(BaseModel):
-    """Outgoing order, or "sales" order"""
+    """
+    SALES order: a CLIENT buys goods FROM us (CZ UI: "Přijaté objednávky" -
+    orders *received* by us). Goods go OUT of our warehouse, hence "outbound":
+    picking/shipping happens via `OutboundWarehouseOrder` (výdejka).
+
+    - `customer` is the buyer (`supplier` is us, the ghost/self customer).
+    - Not to be confused with `InboundOrder`, the purchase order we place with a supplier.
+    - Starts as a *calculation* (offer, code `K...`, `is_calculation=True`) and becomes
+      a real order (code `OV...`, `is_calculation=False`) once confirmed with the
+      client (transition to PICKING). `calculation_code` keeps the original number.
+    - A calculation that is cancelled before confirmation stays a calculation forever
+      (`is_calculation` only flips on confirmation), so it is only listed among calculations.
+    """
 
     code = models.CharField(max_length=50, null=False, unique=True)
     calculation_code = models.CharField(
@@ -260,6 +281,9 @@ class OutboundOrder(BaseModel):
         blank=True,
         unique=True,
     )
+    # True until the calculation is confirmed with the client, then False for good.
+    # Splits "calculations" from "orders" without matching on code prefixes or state.
+    is_calculation = models.BooleanField(default=True)
     external_code = models.CharField(
         max_length=50, null=True, blank=True
     )  # todo: add unique constraint

@@ -48,6 +48,7 @@
       label="Výchozí platební metoda"
     ></q-input>
     <q-checkbox v-model="customer.is_self" label="Naše firma" disable />
+    <q-checkbox v-model="customer.is_supplier" label="Dodavatel" disable />
     <q-input
       type="textarea"
       outlined
@@ -73,6 +74,7 @@ interface CustomerIn {
   block_after_due_days: number
   default_payment_method: string
   is_self: boolean
+  is_supplier: boolean
   data_collection_agreement: boolean
   marketing_data_use_agreement: boolean
   is_valid: boolean
@@ -97,6 +99,7 @@ const customer = defineModel<CustomerIn>({
     block_after_due_days: 0,
     default_payment_method: '',
     is_self: false,
+    is_supplier: false,
     data_collection_agreement: false,
     marketing_data_use_agreement: false,
     is_valid: true,

@@ -379,3 +379,58 @@ def test_contact_fields_validation(db, client) -> None:
     )
 
     assert res.status_code != 200
+
+
+def _customer_payload(customer: Customer, **overrides) -> dict:
+    return {
+        "code": customer.code,
+        "name": customer.name,
+        "customer_type": customer.customer_type,
+        "price_type": customer.price_type,
+        "customer_group_code": customer.customer_group.code,
+        **overrides,
+    }
+
+
+def test_customer_is_buyer_by_default(db, client) -> None:
+    from apps.warehouse.tests.factories.customer import CustomerGroupFactory
+
+    group = CustomerGroupFactory()
+    res = client.post(
+        "/",
+        json={
+            "code": "NEWBUYER",
+            "name": "Buyer",
+            "customer_type": "FIRMA",
+            "price_type": "FIRMY",
+            "customer_group_code": group.code,
+        },
+    )
+
+    assert res.status_code == 200
+    assert res.json()["data"]["is_supplier"] is False
+    assert Customer.objects.get(code="NEWBUYER").is_supplier is False
+
+
+@pytest.mark.parametrize("is_supplier", [True, False])
+def test_update_customer_is_supplier(db, client, is_supplier) -> None:
+    customer = cast(Customer, CustomerFactoryWithContacts(is_supplier=not is_supplier))
+
+    res = client.put(
+        f"/{customer.code}",
+        json=_customer_payload(customer, is_supplier=is_supplier),
+    )
+
+    assert res.status_code == 200
+    assert res.json()["data"]["is_supplier"] is is_supplier
+    customer.refresh_from_db()
+    assert customer.is_supplier is is_supplier
+
+
+def test_update_customer_without_is_supplier_resets_to_buyer(db, client) -> None:
+    customer = cast(Customer, CustomerFactoryWithContacts(is_supplier=True))
+
+    res = client.put(f"/{customer.code}", json=_customer_payload(customer))
+
+    assert res.status_code == 200
+    assert res.json()["data"]["is_supplier"] is False

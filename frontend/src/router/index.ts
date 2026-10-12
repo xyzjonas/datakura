@@ -14,6 +14,7 @@ import InventorySnapshotView from '@/views/InventorySnapshotView.vue'
 import InventorySnapshotsView from '@/views/InventorySnapshotsView.vue'
 import InvoicesView from '@/views/InvoicesView.vue'
 import InvoiceView from '@/views/InvoiceView.vue'
+import OutboundCalculationsView from '@/views/OutboundCalculationsView.vue'
 import OutboundOrderView from '@/views/OutboundOrderView.vue'
 import LoginView from '@/views/LoginView.vue'
 import OrdersView from '@/views/OrdersView.vue'
@@ -135,6 +136,11 @@ const router = createRouter({
       name: 'inboundOrderDetail',
       component: InboundOrderView,
       props: true,
+    },
+    {
+      path: '/outbound-calculations',
+      name: 'outboundCalculations',
+      component: OutboundCalculationsView,
     },
     {
       path: '/outbound-orders/:code',

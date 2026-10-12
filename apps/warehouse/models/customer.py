@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.core.validators import EmailValidator
-from django.db import models
+from django.db import connection, models
 from django.db.models import Q, QuerySet
 
 from .base import BaseModel
@@ -64,6 +64,10 @@ class Customer(BaseModel):
     invoice_due_days = models.IntegerField(default=14)
     block_after_due_days = models.IntegerField(default=30)
     is_self = models.BooleanField(default=False)
+    # Admin hint about the main role of this customer. False (default) = buyer: mostly
+    # appears on sales orders (`OutboundOrder`). True = supplier: mostly appears on
+    # purchase orders (`InboundOrder`). Only drives what the customer detail shows.
+    is_supplier = models.BooleanField(default=False)
 
     # Agreements
     data_collection_agreement = models.BooleanField(default=False)
@@ -129,7 +133,23 @@ class Customer(BaseModel):
         return ", ".join(filter(None, parts))
 
     @staticmethod
+    def _table_matches_model() -> bool:
+        with connection.cursor() as cursor:
+            columns = {
+                column.name
+                for column in connection.introspection.get_table_description(
+                    cursor, Customer._meta.db_table
+                )
+            }
+        return {field.column for field in Customer._meta.concrete_fields} <= columns
+
+    @staticmethod
     def get_ghost_customer():
+        # Historic migrations (0077) call this as a field default against a table that
+        # may predate the current Customer columns, so the row can't be created/read
+        # with the current model then. Nothing references the ghost row at that point.
+        if not Customer._table_matches_model():
+            return GHOST_CUSTOMER_ID
         grp, _ = CustomerGroup.objects.get_or_create(name="default")
         return Customer.objects.get_or_create(
             name="N/A",

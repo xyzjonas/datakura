@@ -6,6 +6,7 @@ from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
     OutboundOrder,
+    OutboundOrderState,
     OutboundOrderItem,
     CreditNoteToSupplier,
     Invoice,
@@ -93,6 +94,11 @@ class OutboundOrderFactory(DjangoModelFactory):
     customer = factory.SubFactory(CustomerFactory)
     currency = CURRENCY_CHOICES[0][0]
     invoice = None
+    state = OutboundOrderState.DRAFT
+    # anything past the client confirmation (PICKING and later) is a real order
+    is_calculation = factory.LazyAttribute(
+        lambda o: o.state in (OutboundOrderState.DRAFT, OutboundOrderState.SUBMITTED)
+    )
 
 
 class CreditNoteSupplierFactory(DjangoModelFactory):

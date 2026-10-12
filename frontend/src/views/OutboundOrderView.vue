@@ -4,6 +4,12 @@
       <q-breadcrumbs class="mb-5">
         <q-breadcrumbs-el label="Home" :to="{ name: 'home' }" />
         <q-breadcrumbs-el
+          v-if="order.is_calculation"
+          label="Kalkulace"
+          :to="{ name: 'outboundCalculations' }"
+        />
+        <q-breadcrumbs-el
+          v-else
           label="Přijaté Objednávky"
           :to="{ name: 'orders', query: { tab: 'outbound' } }"
         />
@@ -17,11 +23,21 @@
     <div class="mb-2 flex justify-between items-center">
       <div class="flex gap-2 items-center">
         <div>
-          <span class="text-gray-5 flex items-center gap-1">PŘIJATÁ OBJEDNÁVKA</span>
+          <span class="text-gray-5 flex items-center gap-1">{{
+            order.is_calculation ? 'KALKULACE PŘIJATÉ OBJEDNÁVKY' : 'PŘIJATÁ OBJEDNÁVKA'
+          }}</span>
           <h1 class="h1 mb-1">{{ order.code }}</h1>
           <div class="flex items-center gap-1">
             <h5>{{ order.code }}</h5>
             <CopyToClipBoardButton v-if="order.code" :text="order.code" />
+          </div>
+          <div
+            v-if="order.calculation_code && order.calculation_code !== order.code"
+            class="text-gray-5 text-sm flex items-center gap-1"
+            data-test="calculation-code"
+          >
+            <q-icon name="sym_o_calculate" />
+            Kalkulace {{ order.calculation_code }}
           </div>
         </div>
         <OutboundOrderStateBadge :state="order.state" />
@@ -297,7 +313,7 @@ const cancel = async () => {
 
 const auditDialog = ref(false)
 
-const { goToOrderOut } = useAppRouter()
+const { goToOrderOut, replaceOrderOut } = useAppRouter()
 const duplicating = ref(false)
 const duplicateOrder = async () => {
   if (!order.value) return
@@ -328,6 +344,10 @@ const confirmOrder = async () => {
   if (data) {
     order.value = data.data
     confirmDialog.value = false
+    if (data.data.code !== props.code) {
+      // confirmed calculation got a real order code
+      replaceOrderOut(data.data.code)
+    }
   }
 }
 </script>

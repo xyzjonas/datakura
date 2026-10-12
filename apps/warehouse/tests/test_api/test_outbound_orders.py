@@ -141,11 +141,14 @@ def test_get_outbound_orders_supports_filtering(
     other_customer = CustomerFactory()
 
     matching_order = OutboundOrderFactory.it(
-        code="SORD-MATCH-0001", customer=matching_customer
+        code="SORD-MATCH-0001",
+        customer=matching_customer,
+        state=OutboundOrderState.PICKING,
     )
     non_matching_order = OutboundOrderFactory.it(
         code="SORD-OTHER-0001",
         customer=other_customer,
+        state=OutboundOrderState.PICKING,
     )
 
     OutboundOrderItemFactory(order=matching_order, stock_product=shared_product)
@@ -751,3 +754,204 @@ def test_transition_outbound_order_cancel_rejects_invoiced_order(db) -> None:
 
     with pytest.raises(WarehouseItemBadRequestError, match="can no longer be edited"):
         client.post(f"/{order.code}/transition", json={"action": "cancel"})
+
+
+def _codes(res) -> list[str]:
+    return [o["code"] for o in res.json()["data"]]
+
+
+@pytest.mark.parametrize("query", ["", "include_all=true", "search_term=K2026"])
+def test_calculations_never_listed_among_outbound_orders(db, query) -> None:
+    client = TestClient(routes)
+    for state in (
+        OutboundOrderState.DRAFT,
+        OutboundOrderState.SUBMITTED,
+        OutboundOrderState.CANCELLED,
+    ):
+        OutboundOrderFactory.it(
+            code=f"K2026100{state}",
+            calculation_code=f"K2026100{state}",
+            state=state,
+            is_calculation=True,
+        )
+    confirmed = OutboundOrderFactory.it(
+        code="OV2026100001",
+        calculation_code="K2026100099",
+        state=OutboundOrderState.PICKING,
+    )
+
+    codes = _codes(client.get(f"/?{query}"))
+
+    # the search also matches the preserved calculation code of the confirmed order
+    assert codes == [confirmed.code]
+
+
+def test_search_finds_confirmed_order_by_calculation_code(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(
+        code="OV2026100001",
+        calculation_code="K2026100007",
+        state=OutboundOrderState.PICKING,
+    )
+
+    data = client.get("/?search_term=K2026100007").json()["data"]
+
+    assert [o["code"] for o in data] == [order.code]
+    assert data[0]["calculation_code"] == "K2026100007"
+    assert data[0]["is_calculation"] is False
+
+
+def test_get_outbound_orders_calculations_only(db) -> None:
+    client = TestClient(routes)
+    draft = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+    submitted = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
+    OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
+    OutboundOrderFactory.it(state=OutboundOrderState.COMPLETED)
+
+    res = client.get("/?calculations=true")
+
+    assert set(_codes(res)) == {draft.code, submitted.code}
+    assert all(o["is_calculation"] for o in res.json()["data"])
+
+
+def test_cancelled_calculation_only_with_include_all_in_calculations(db) -> None:
+    client = TestClient(routes)
+    draft = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+    cancelled = OutboundOrderFactory.it(
+        state=OutboundOrderState.CANCELLED, is_calculation=True
+    )
+
+    assert _codes(client.get("/?calculations=true")) == [draft.code]
+    assert set(_codes(client.get("/?calculations=true&include_all=true"))) == {
+        draft.code,
+        cancelled.code,
+    }
+    assert cancelled.code in _codes(
+        client.get(f"/?calculations=true&search_term={cancelled.code}")
+    )
+
+
+def test_cancelled_confirmed_order_stays_order_not_calculation(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(
+        state=OutboundOrderState.CANCELLED, is_calculation=False
+    )
+
+    assert _codes(client.get("/?include_all=true")) == [order.code]
+    assert _codes(client.get("/?calculations=true&include_all=true")) == []
+
+
+@pytest.mark.parametrize("calculations", [False, True])
+def test_get_outbound_orders_customer_filter_all_states_paginated(
+    db, calculations
+) -> None:
+    client = TestClient(routes)
+    customer = CustomerFactory.it()
+    states = (
+        (
+            OutboundOrderState.DRAFT,
+            OutboundOrderState.SUBMITTED,
+            OutboundOrderState.CANCELLED,
+        )
+        if calculations
+        else (
+            OutboundOrderState.PICKING,
+            OutboundOrderState.COMPLETED,
+            OutboundOrderState.CANCELLED,
+        )
+    )
+    for state in states:
+        OutboundOrderFactory.it(
+            customer=customer, state=state, is_calculation=calculations
+        )
+    OutboundOrderFactory.it(
+        state=states[0], is_calculation=calculations
+    )  # other customer
+
+    res = client.get(
+        f"/?customer_code={customer.code}&include_all=true"
+        f"&calculations={str(calculations).lower()}&page=1&page_size=2"
+    )
+
+    data = res.json()
+    assert data["count"] == 3
+    assert len(data["data"]) == 2
+    assert data["next"] == 2
+
+
+def test_confirming_calculation_flips_is_calculation_and_keeps_number(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(
+        code="K2026100007",
+        calculation_code="K2026100007",
+        state=OutboundOrderState.DRAFT,
+    )
+    OutboundOrderItemFactory(order=order, stock_product=StockProductFactory(), amount=2)
+
+    res = client.post(f"/{order.code}/transition", json={"action": "next"})
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["is_calculation"] is False
+    assert data["calculation_code"] == "K2026100007"
+    assert client.get("/?calculations=true").json()["count"] == 0
+    assert _codes(client.get("/")) == [data["code"]]
+
+
+def test_cancelling_calculation_keeps_is_calculation(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+
+    res = client.post(f"/{order.code}/transition", json={"action": "cancel"})
+
+    assert res.status_code == 200
+    order.refresh_from_db()
+    assert order.state == OutboundOrderState.CANCELLED
+    assert order.is_calculation is True
+    assert _codes(client.get("/?include_all=true")) == []
+
+
+def test_updating_confirmed_order_keeps_calculation_code(db) -> None:
+    client = TestClient(routes)
+    customer = CustomerFactory.it()
+    order = OutboundOrderFactory.it(
+        code="OV2026100001",
+        calculation_code="K2026100007",
+        customer=customer,
+        state=OutboundOrderState.PICKING,
+    )
+
+    res = client.put(
+        f"/{order.code}",
+        json={
+            "currency": "CZK",
+            "customer_code": customer.code,
+            "customer_name": customer.name,
+            "note": "changed",
+        },
+    )
+
+    assert res.status_code == 200
+    order.refresh_from_db()
+    assert order.note == "changed"
+    assert order.calculation_code == "K2026100007"
+    assert order.code == "OV2026100001"
+    assert order.is_calculation is False
+
+
+def test_duplicate_confirmed_order_creates_new_calculation(db) -> None:
+    client = TestClient(routes)
+    source = OutboundOrderFactory.it(
+        code="OV2026100001",
+        calculation_code="K2026100001",
+        state=OutboundOrderState.PICKING,
+    )
+    OutboundOrderItemFactory(order=source, stock_product=StockProductFactory())
+
+    res = client.post(f"/{source.code}/duplicate")
+
+    data = res.json()["data"]
+    assert data["is_calculation"] is True
+    assert data["code"].startswith("K")
+    assert data["calculation_code"] == data["code"]
+    assert data["code"] != source.calculation_code

@@ -57,6 +57,12 @@
                   routeMatch: 'orders',
                 },
                 {
+                  label: 'Kalkulace',
+                  icon: 'sym_o_calculate',
+                  routeName: 'outboundCalculations',
+                  routeMatch: 'outboundCalculations',
+                },
+                {
                   label: 'Faktury',
                   icon: 'sym_o_attach_money',
                   routeName: 'invoices',

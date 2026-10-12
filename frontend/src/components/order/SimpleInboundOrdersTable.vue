@@ -66,7 +66,11 @@ import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
 
 const props = defineProps<{
-  stockProductCode: string
+  stockProductCode?: string
+  /** only orders of this supplier */
+  supplierCode?: string
+  /** include cancelled and completed orders */
+  includeAll?: boolean
   hideSearch?: boolean
   forceGrid?: boolean
 }>()
@@ -94,6 +98,8 @@ const fetchOrders = async () => {
         page_size: Number(pagination.value.rowsPerPage),
         search_term: search.value || undefined,
         stock_product_code: props.stockProductCode,
+        supplier_code: props.supplierCode,
+        include_all: props.includeAll || undefined,
       },
     })
 
@@ -125,7 +131,7 @@ watch(search, () => {
 })
 
 watch(
-  () => props.stockProductCode,
+  () => [props.stockProductCode, props.supplierCode, props.includeAll],
   () => {
     pagination.value.page = 1
     fetchOrders()

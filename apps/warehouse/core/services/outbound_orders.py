@@ -325,8 +325,14 @@ class OutboundOrdersService:
         stock_product_code: str | None = None,
         customer_code: str | None = None,
         include_all: bool = False,
+        calculations: bool = False,
     ) -> QuerySet[OutboundOrder]:
-        qs = OutboundOrder.objects.select_related(
+        """
+        Calculations and confirmed orders are disjoint listings, split by
+        `is_calculation`: a calculation (even a cancelled one) never shows up among
+        orders, and an order never shows up among calculations.
+        """
+        qs = OutboundOrder.objects.filter(is_calculation=calculations).select_related(
             "customer",
             "invoice__customer",
             "invoice__supplier",
@@ -346,6 +352,7 @@ class OutboundOrdersService:
             qs = qs.filter(
                 Q(code__iexact=search_term)
                 | Q(code__icontains=search_term)
+                | Q(calculation_code__icontains=search_term)
                 | Q(customer__name__icontains=search_term)
             )
 
@@ -620,8 +627,16 @@ class OutboundOrdersService:
         with transaction.atomic():
             order, created = OutboundOrder.objects.update_or_create(
                 code=code,
-                defaults=dict(
+                create_defaults=dict(
                     calculation_code=code,
+                    external_code=params.external_code,
+                    description=params.description,
+                    note=params.note,
+                    currency=params.currency,
+                    customer=customer,
+                    requested_delivery_date=params.requested_delivery_date,
+                ),
+                defaults=dict(
                     external_code=params.external_code,
                     description=params.description,
                     note=params.note,
@@ -872,6 +887,7 @@ class OutboundOrdersService:
                 if not order.calculation_code:
                     order.calculation_code = order.code
                 order.code = cls.generate_next_outgoing_order_code()
+                order.is_calculation = False
 
             order.state = new_state
 

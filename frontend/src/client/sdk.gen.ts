@@ -1644,6 +1644,9 @@ export const warehouseApiRoutesInboundOrdersReorderItemInInboundOrder = <ThrowOn
 
 /**
  * Get Outbound Orders
+ * List sales orders. Calculations (orders not yet confirmed with the client,
+ * cancelled ones included) are listed only with `calculations=true`,
+ * confirmed orders only without it.
  */
 export const warehouseApiRoutesOutboundOrdersGetOutboundOrders = <ThrowOnError extends boolean = false>(options?: Options<WarehouseApiRoutesOutboundOrdersGetOutboundOrdersData, ThrowOnError>) => {
     return (options?.client ?? client).get<WarehouseApiRoutesOutboundOrdersGetOutboundOrdersResponses, unknown, ThrowOnError>({

@@ -136,6 +136,8 @@ class OutboundOrderTransitionSchema(Schema):
 
 
 class OutboundOrderSchema(BaseOrder):
+    calculation_code: str | None = None
+    is_calculation: bool = True
     external_code: str | None = None
     description: str | None = None
     note: str | None = None

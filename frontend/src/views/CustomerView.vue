@@ -89,6 +89,13 @@
         </div>
       </EmptyPanel>
     </div>
+    <div class="flex flex-col gap-2">
+      <CustomerInboundOrdersWidget v-if="customer.is_supplier" :customer-code="customer.code" />
+      <template v-else>
+        <CustomerOutboundOrdersWidget :customer-code="customer.code" />
+        <CustomerOutboundOrdersWidget :customer-code="customer.code" calculations />
+      </template>
+    </div>
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
@@ -144,6 +151,8 @@ import ContactPersonUpsertDialog from '@/components/customer/ContactPersonUpsert
 import CustomerContactForm from '@/components/customer/CustomerContactForm.vue'
 import CustomerContactPersonForm from '@/components/customer/CustomerContactPersonForm.vue'
 import CustomerDiscountGroupDialog from '@/components/customer/CustomerDiscountGroupDialog.vue'
+import CustomerInboundOrdersWidget from '@/components/customer/CustomerInboundOrdersWidget.vue'
+import CustomerOutboundOrdersWidget from '@/components/customer/CustomerOutboundOrdersWidget.vue'
 import CustomerInformationForm from '@/components/customer/CustomerInformationForm.vue'
 import CustomerTypeIcon from '@/components/customer/CustomerTypeIcon.vue'
 import CustomerUpsertDialog from '@/components/customer/CustomerUpsertDialog.vue'
@@ -245,6 +254,7 @@ if (customer.value) {
     block_after_due_days: customer.value.block_after_due_days,
     default_payment_method: customer.value.default_payment_method?.name ?? '',
     is_self: customer.value.is_self,
+    is_supplier: customer.value.is_supplier,
     data_collection_agreement: customer.value.data_collection_agreement,
     marketing_data_use_agreement: customer.value.marketing_data_use_agreement,
     is_valid: customer.value.is_valid,
@@ -271,6 +281,7 @@ const editingCustomer = ref<CustomerCreateOrUpdateSchema>({
   price_type: '',
   customer_group_code: '',
   is_self: false,
+  is_supplier: false,
 })
 
 const editingContact = ref<ContactPersonCreateOrUpdateSchema>({
@@ -301,6 +312,7 @@ const onEditCustomer = () => {
     invoice_due_days: customer.value.invoice_due_days,
     block_after_due_days: customer.value.block_after_due_days,
     is_self: customer.value.is_self,
+    is_supplier: customer.value.is_supplier,
     default_payment_method_name: customer.value.default_payment_method?.name,
     data_collection_agreement: customer.value.data_collection_agreement,
     marketing_data_use_agreement: customer.value.marketing_data_use_agreement,
@@ -343,6 +355,7 @@ const onSaveCustomer = async (body: CustomerCreateOrUpdateSchema) => {
       block_after_due_days: customer.value.block_after_due_days,
       default_payment_method: customer.value.default_payment_method?.name ?? '',
       is_self: customer.value.is_self,
+      is_supplier: customer.value.is_supplier,
       data_collection_agreement: customer.value.data_collection_agreement,
       marketing_data_use_agreement: customer.value.marketing_data_use_agreement,
       is_valid: customer.value.is_valid,

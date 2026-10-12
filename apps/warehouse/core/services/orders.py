@@ -69,6 +69,7 @@ class OrdersService:
         search_term: str | None = None,
         stock_product_code: str | None = None,
         include_all: bool = False,
+        supplier_code: str | None = None,
     ) -> QuerySet[InboundOrder]:
         qs = InboundOrder.objects.select_related(
             "supplier",
@@ -91,6 +92,9 @@ class OrdersService:
 
         if stock_product_code:
             qs = qs.filter(items__stock_product__code=stock_product_code).distinct()
+
+        if supplier_code:
+            qs = qs.filter(supplier__code=supplier_code)
 
         return qs
 

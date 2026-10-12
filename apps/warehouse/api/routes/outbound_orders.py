@@ -36,7 +36,13 @@ def get_outbound_orders(
     stock_product_code: str | None = None,
     customer_code: str | None = None,
     include_all: bool = False,
+    calculations: bool = False,
 ):
+    """
+    List sales orders. Calculations (orders not yet confirmed with the client,
+    cancelled ones included) are listed only with `calculations=true`,
+    confirmed orders only without it.
+    """
     qs = cast(
         QuerySet[OutboundOrder],
         outbound_orders_service.get_outbound_orders(
@@ -44,6 +50,7 @@ def get_outbound_orders(
             stock_product_code=stock_product_code,
             customer_code=customer_code,
             include_all=include_all,
+            calculations=calculations,
         ),
     )
     return qs.all()

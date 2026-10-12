@@ -398,3 +398,27 @@ def test_inbound_order_mutation_routes_block_after_warehouse_order_created(
 
     with pytest.raises(WarehouseOrderNotEditableError, match="read only"):
         getattr(client, method)(path, **kwargs)
+
+
+def test_get_inbound_orders_filter_by_supplier_code_all_states(db) -> None:
+    client = TestClient(routes)
+    supplier = CustomerFactory.it()
+    for state in InboundOrderState:
+        InboundOrderFactory.it(supplier=supplier, state=state)
+    InboundOrderFactory.it(state=InboundOrderState.SUBMITTED)  # other supplier
+
+    res = client.get(
+        f"/?supplier_code={supplier.code}&include_all=true&page=1&page_size=4"
+    )
+
+    data = res.json()
+    assert data["count"] == len(InboundOrderState)
+    assert len(data["data"]) == 4
+    assert {o["supplier"]["code"] for o in data["data"]} == {supplier.code}
+
+
+def test_get_inbound_orders_unknown_supplier_code_is_empty(db) -> None:
+    client = TestClient(routes)
+    InboundOrderFactory.it(state=InboundOrderState.SUBMITTED)
+
+    assert client.get("/?supplier_code=nope").json()["data"] == []

@@ -2327,6 +2327,10 @@ export type CustomerSchema = {
      */
     is_self: boolean;
     /**
+     * Is Supplier
+     */
+    is_supplier?: boolean;
+    /**
      * Data Collection Agreement
      */
     data_collection_agreement: boolean;
@@ -2483,6 +2487,10 @@ export type CustomerCreateOrUpdateSchema = {
      * Is Self
      */
     is_self?: boolean;
+    /**
+     * Is Supplier
+     */
+    is_supplier?: boolean;
     /**
      * Default Payment Method Name
      */
@@ -3181,6 +3189,14 @@ export type OutboundOrderSchema = {
      * Currency
      */
     currency: string;
+    /**
+     * Calculation Code
+     */
+    calculation_code?: string | null;
+    /**
+     * Is Calculation
+     */
+    is_calculation?: boolean;
     /**
      * External Code
      */
@@ -6657,6 +6673,10 @@ export type WarehouseApiRoutesInboundOrdersGetInboundOrdersData = {
          */
         include_all?: boolean;
         /**
+         * Supplier Code
+         */
+        supplier_code?: string | null;
+        /**
          * Page
          */
         page?: number;
@@ -7026,6 +7046,10 @@ export type WarehouseApiRoutesOutboundOrdersGetOutboundOrdersData = {
          * Include All
          */
         include_all?: boolean;
+        /**
+         * Calculations
+         */
+        calculations?: boolean;
         /**
          * Page
          */

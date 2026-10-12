@@ -93,6 +93,7 @@ class CustomerSchema(CustomerBaseSchema):
     invoice_due_days: int
     block_after_due_days: int
     is_self: bool
+    is_supplier: bool = False
 
     # Agreements
     data_collection_agreement: bool
@@ -192,6 +193,7 @@ class CustomerCreateOrUpdateSchema(Schema):
     invoice_due_days: int = 30
     block_after_due_days: int = 30
     is_self: bool = False
+    is_supplier: bool = False
     default_payment_method_name: Optional[str] = None
 
     # Agreements

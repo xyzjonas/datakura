@@ -156,6 +156,7 @@ class CustomerService:
             invoice_due_days=params.invoice_due_days,
             block_after_due_days=params.block_after_due_days,
             is_self=params.is_self,
+            is_supplier=params.is_supplier,
             data_collection_agreement=params.data_collection_agreement,
             marketing_data_use_agreement=params.marketing_data_use_agreement,
             is_valid=params.is_valid,
@@ -214,6 +215,7 @@ class CustomerService:
         customer.invoice_due_days = params.invoice_due_days
         customer.block_after_due_days = params.block_after_due_days
         customer.is_self = params.is_self
+        customer.is_supplier = params.is_supplier
         customer.data_collection_agreement = params.data_collection_agreement
         customer.marketing_data_use_agreement = params.marketing_data_use_agreement
         customer.is_valid = params.is_valid

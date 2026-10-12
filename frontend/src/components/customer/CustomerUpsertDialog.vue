@@ -75,6 +75,7 @@
               hint="Použije se jako předvyplněná metoda při tvorbě faktury."
             />
             <q-checkbox v-model="form.is_self" label="Naše firma (dodavatel na faktuře)" />
+            <q-checkbox v-model="form.is_supplier" label="Dodavatel (výchozí je odběratel)" />
           </div>
 
           <!-- Relationships -->
