@@ -22,6 +22,7 @@ import { onMounted, ref } from 'vue'
 import MainLayout from './components/layout/MainLayout.vue'
 import { client } from './client/client.gen'
 import { getCsrfFromCookie, getCsrfToken } from './utils/csrf'
+import { fetchWithEncodedPath } from './utils/encode-api-path'
 import ReleaseNotesDialog from '@/components/ReleaseNotesDialog.vue'
 import { useVersion } from './utils/version'
 import { useRouter } from 'vue-router'
@@ -53,6 +54,7 @@ onMounted(() => {
   }
 
   client.setConfig({
+    fetch: fetchWithEncodedPath,
     headers: {
       'X-CSRFToken': csrfToken ?? 'not-set',
     },

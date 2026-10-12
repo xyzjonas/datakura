@@ -7,6 +7,9 @@ class WarehouseConfig(AppConfig):
     name = "apps.warehouse"
 
     def ready(self):
+        from .api.path_converters import register_path_converters
+
+        register_path_converters()
         connection_created.connect(
             self._configure_sqlite_connection, dispatch_uid="warehouse.sqlite.pragmas"
         )
