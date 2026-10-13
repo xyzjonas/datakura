@@ -7,10 +7,22 @@ export type ChangelogEntry = {
   rows: string[]
 }
 
-export const APP_VERSION = '0.0.1.dev9'
+export const APP_VERSION = '0.0.1.dev10'
 export const STORAGE_KEY = 'app-last-acknowledged-version'
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+  {
+    version: '0.0.1.dev10',
+    releaseDate: '2026-10-13',
+    rows: [
+      'Kalkulace jsou nyní oddělené do samostatného modulu.',
+      'Zobrazení celního kódu a hmotnosti, validace hmotnosti při příjmu zboží.',
+      'Možnost globální minimální ceny, možnost individuálního nastavení pro jednotlivé zákazníky.',
+      'Volitelné pole fakturační údaje jsou skryté a zobrazí se pouze v případě potřeby.',
+      'Objednávka přijatá nyní obsahuje vazbu na kontakt - pro potřeby fakturačních a dodacích údajů.',
+      'Drobné opravy...',
+    ],
+  },
   {
     version: '0.0.1.dev9',
     releaseDate: '2026-10-07',
