@@ -17,6 +17,13 @@ class AuthData(BaseModel):
     user_id: int
     username: str
     group: str | None = None
+    email: str = ""
+    first_name: str = ""
+    last_name: str = ""
+    is_superuser: bool = False
+    avatar_url: str | None = None
+    last_login: datetime | None = None
+    date_joined: datetime | None = None
     expiry_date: datetime
     default_printer: PrinterSchema | None = None
 
@@ -32,4 +39,8 @@ class WhoamiResponse(BaseResponse):
 
 
 class SignoutResponse(BaseResponse):
+    data: None = None
+
+
+class ChangePasswordResponse(BaseResponse):
     data: None = None

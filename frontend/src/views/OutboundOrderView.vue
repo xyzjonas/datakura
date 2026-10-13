@@ -154,8 +154,7 @@
               >
             </div>
             <span :class="[isMarginPositive ? 'text-green' : 'text-red']"
-              ><strong class="text-lg">{{ formattedMarginValue }}</strong
-              >{{ currency }}</span
+              ><strong class="text-lg">{{ formattedMarginValue }}</strong> {{ currency }}</span
             >
           </div>
           <q-separator vertical />

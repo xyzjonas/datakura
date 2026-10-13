@@ -40,6 +40,8 @@
 </template>
 
 <script setup lang="ts">
+import AccountSettingsTab from '@/components/settings/AccountSettingsTab.vue'
+import UsersSettingsTab from '@/components/settings/UsersSettingsTab.vue'
 import AppSettingsTab from '@/components/settings/AppSettingsTab.vue'
 import DataImportSettingsTab from '@/components/settings/DataImportSettingsTab.vue'
 import CustomerSettingsTab from '@/components/settings/CustomerSettingsTab.vue'
@@ -50,11 +52,14 @@ import PrintersSettingsTab from '@/components/settings/PrintersSettingsTab.vue'
 import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
 import { computed, ref, shallowRef, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuth } from '@/composables/use-auth'
 import { APP_VERSION } from '@/utils/version'
 import ReleaseNotesDialog from '@/components/ReleaseNotesDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { user } = useAuth()
+const isSuperuser = computed(() => user.value.is_superuser === true)
 const selectedTabComponent = shallowRef<Component>()
 
 const validTabs = new Set([
@@ -68,12 +73,19 @@ const validTabs = new Set([
   'printers',
   'import',
   'users',
+  'account',
 ])
+
+const superuserTabs = new Set(['users'])
 
 const selectedTab = computed<string>({
   get() {
     const raw = route.query.tab
-    if (typeof raw === 'string' && validTabs.has(raw)) {
+    if (
+      typeof raw === 'string' &&
+      validTabs.has(raw) &&
+      (isSuperuser.value || !superuserTabs.has(raw))
+    ) {
       return raw
     }
     return 'app'
@@ -107,12 +119,16 @@ watch(
       selectedTabComponent.value = PrintersSettingsTab
     } else if (value === 'import') {
       selectedTabComponent.value = DataImportSettingsTab
+    } else if (value === 'users') {
+      selectedTabComponent.value = UsersSettingsTab
+    } else if (value === 'account') {
+      selectedTabComponent.value = AccountSettingsTab
     }
   },
   { immediate: true },
 )
 
-const items = [
+const allItems = [
   {
     key: 'app',
     label: 'Přizpůsobení',
@@ -154,11 +170,25 @@ const items = [
     icon: 'sym_o_print',
   },
   {
+    key: 'users',
+    label: 'Uživatelé',
+    icon: 'sym_o_manage_accounts',
+  },
+  {
+    key: 'account',
+    label: 'Můj účet',
+    icon: 'sym_o_account_circle',
+  },
+  {
     key: 'import',
     label: 'Import dat',
     icon: 'sym_o_upload_file',
   },
 ]
+
+const items = computed(() =>
+  allItems.filter((item) => isSuperuser.value || !superuserTabs.has(item.key)),
+)
 
 const showWhatsNewDialog = ref(false)
 </script>

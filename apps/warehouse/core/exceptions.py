@@ -7,6 +7,9 @@ class ErrorCode(enum.Enum):
     NOT_FOUND = ("NOT_FOUND_0001", "Not found")
     NOT_FOUND_SELF = ("NOT_FOUND_0002", "'self' customer not found")
 
+    FORBIDDEN = ("AUTH_0001", "Forbidden")
+    USER_INVALID = ("USER_0001", "Invalid user data")
+
     INVALID_CONVERSION = ("PACKAGING_0001", "Invalid conversion")
     INVALID_BARCODE = (
         "PACKAGING_0002",
@@ -48,6 +51,16 @@ class ApiBaseException(TrackableException):
 class NotFoundException(ApiBaseException):
     code = ErrorCode.NOT_FOUND
     http_status = 404
+
+
+class ForbiddenException(ApiBaseException):
+    code = ErrorCode.FORBIDDEN
+    http_status = 403
+
+
+class UserValidationError(ApiBaseException):
+    code = ErrorCode.USER_INVALID
+    http_status = 400
 
 
 class SelfNotFoundException(ApiBaseException):

@@ -11,6 +11,7 @@ dependencies = [
     "django-ninja>=1.4.3",
     "gunicorn>=25.0.3",
     "loguru>=0.7.3",
+    "pillow>=12.2.0",
     "pyjwt>=2.10.1",
     "python-decouple>=3.8",
     "sentry-sdk>=2.60.0",

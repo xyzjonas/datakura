@@ -3,7 +3,9 @@ from datetime import timedelta, datetime, timezone
 import jwt
 from django.conf import settings
 from django.contrib.auth.models import User
-from ninja.security import HttpBearer
+from ninja.security import HttpBearer, SessionAuth
+
+from apps.warehouse.core.exceptions import ForbiddenException
 from loguru import logger
 
 
@@ -65,3 +67,18 @@ def generate_refresh_token(user) -> str:
         "iat": datetime.now(tz=timezone.utc).timestamp(),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+
+class SuperuserSessionAuth(SessionAuth):
+    """Session auth: anonymous => 401, authenticated non-superuser => 403."""
+
+    def authenticate(self, request, key):
+        user = super().authenticate(request, key)
+        if user is None:
+            return None
+        if not user.is_superuser:
+            raise ForbiddenException("Superuser permissions required")
+        return user
+
+
+superuser_auth = SuperuserSessionAuth()

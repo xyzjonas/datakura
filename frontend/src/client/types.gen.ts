@@ -21,6 +21,34 @@ export type AuthData = {
      */
     group?: string | null;
     /**
+     * Email
+     */
+    email?: string;
+    /**
+     * First Name
+     */
+    first_name?: string;
+    /**
+     * Last Name
+     */
+    last_name?: string;
+    /**
+     * Is Superuser
+     */
+    is_superuser?: boolean;
+    /**
+     * Avatar Url
+     */
+    avatar_url?: string | null;
+    /**
+     * Last Login
+     */
+    last_login?: string | null;
+    /**
+     * Date Joined
+     */
+    date_joined?: string | null;
+    /**
      * Expiry Date
      */
     expiry_date: string;
@@ -156,6 +184,35 @@ export type SetDefaultPrinterRequestSchema = {
      * Printer Code
      */
     printer_code?: string | null;
+};
+
+/**
+ * ChangePasswordResponse
+ */
+export type ChangePasswordResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data?: null;
+};
+
+/**
+ * ChangePasswordSchema
+ */
+export type ChangePasswordSchema = {
+    /**
+     * Current Password
+     */
+    current_password: string;
+    /**
+     * New Password
+     */
+    new_password: string;
 };
 
 /**
@@ -5099,6 +5156,155 @@ export type GlobalSettingsUpdateSchema = {
     minimum_item_value: number;
 };
 
+/**
+ * GetUsersResponse
+ */
+export type GetUsersResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<UserSchema>;
+};
+
+/**
+ * UserSchema
+ */
+export type UserSchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * First Name
+     */
+    first_name: string;
+    /**
+     * Last Name
+     */
+    last_name: string;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
+     * Is Superuser
+     */
+    is_superuser: boolean;
+    /**
+     * Last Login
+     */
+    last_login?: string | null;
+    /**
+     * Date Joined
+     */
+    date_joined: string;
+};
+
+/**
+ * GetUserResponse
+ */
+export type GetUserResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: UserSchema;
+};
+
+/**
+ * UserCreateSchema
+ */
+export type UserCreateSchema = {
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Password
+     */
+    password: string;
+    /**
+     * Email
+     */
+    email?: string;
+    /**
+     * First Name
+     */
+    first_name?: string;
+    /**
+     * Last Name
+     */
+    last_name?: string;
+    /**
+     * Is Active
+     */
+    is_active?: boolean;
+    /**
+     * Is Superuser
+     */
+    is_superuser?: boolean;
+};
+
+/**
+ * UserUpdateSchema
+ */
+export type UserUpdateSchema = {
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Email
+     */
+    email?: string;
+    /**
+     * First Name
+     */
+    first_name?: string;
+    /**
+     * Last Name
+     */
+    last_name?: string;
+    /**
+     * Is Active
+     */
+    is_active?: boolean;
+    /**
+     * Is Superuser
+     */
+    is_superuser?: boolean;
+    /**
+     * Password
+     */
+    password?: string | null;
+};
+
+/**
+ * DeleteUserResponse
+ */
+export type DeleteUserResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: UserSchema;
+};
+
 export type WarehouseApiRoutesAuthLoginUserData = {
     body: LoginFormSchema;
     path?: never;
@@ -5180,6 +5386,62 @@ export type WarehouseApiRoutesAuthSetDefaultPrinterResponses = {
 };
 
 export type WarehouseApiRoutesAuthSetDefaultPrinterResponse = WarehouseApiRoutesAuthSetDefaultPrinterResponses[keyof WarehouseApiRoutesAuthSetDefaultPrinterResponses];
+
+export type WarehouseApiRoutesAuthChangePasswordData = {
+    body: ChangePasswordSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/change-password';
+};
+
+export type WarehouseApiRoutesAuthChangePasswordResponses = {
+    /**
+     * OK
+     */
+    200: ChangePasswordResponse;
+};
+
+export type WarehouseApiRoutesAuthChangePasswordResponse = WarehouseApiRoutesAuthChangePasswordResponses[keyof WarehouseApiRoutesAuthChangePasswordResponses];
+
+export type WarehouseApiRoutesAuthDeleteAvatarData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/avatar';
+};
+
+export type WarehouseApiRoutesAuthDeleteAvatarResponses = {
+    /**
+     * OK
+     */
+    200: WhoamiResponse;
+};
+
+export type WarehouseApiRoutesAuthDeleteAvatarResponse = WarehouseApiRoutesAuthDeleteAvatarResponses[keyof WarehouseApiRoutesAuthDeleteAvatarResponses];
+
+export type WarehouseApiRoutesAuthUploadAvatarData = {
+    /**
+     * FileParams
+     */
+    body: {
+        /**
+         * Avatar
+         */
+        avatar: Blob | File;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/avatar';
+};
+
+export type WarehouseApiRoutesAuthUploadAvatarResponses = {
+    /**
+     * OK
+     */
+    200: WhoamiResponse;
+};
+
+export type WarehouseApiRoutesAuthUploadAvatarResponse = WarehouseApiRoutesAuthUploadAvatarResponses[keyof WarehouseApiRoutesAuthUploadAvatarResponses];
 
 export type WarehouseApiRoutesWarehouseGetWarehousesData = {
     body?: never;
@@ -8657,3 +8919,82 @@ export type WarehouseApiRoutesSettingsUpdateGlobalSettingsResponses = {
 };
 
 export type WarehouseApiRoutesSettingsUpdateGlobalSettingsResponse = WarehouseApiRoutesSettingsUpdateGlobalSettingsResponses[keyof WarehouseApiRoutesSettingsUpdateGlobalSettingsResponses];
+
+export type WarehouseApiRoutesUsersGetUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+    };
+    url: '/api/v1/users';
+};
+
+export type WarehouseApiRoutesUsersGetUsersResponses = {
+    /**
+     * OK
+     */
+    200: GetUsersResponse;
+};
+
+export type WarehouseApiRoutesUsersGetUsersResponse = WarehouseApiRoutesUsersGetUsersResponses[keyof WarehouseApiRoutesUsersGetUsersResponses];
+
+export type WarehouseApiRoutesUsersCreateUserData = {
+    body: UserCreateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/users';
+};
+
+export type WarehouseApiRoutesUsersCreateUserResponses = {
+    /**
+     * OK
+     */
+    200: GetUserResponse;
+};
+
+export type WarehouseApiRoutesUsersCreateUserResponse = WarehouseApiRoutesUsersCreateUserResponses[keyof WarehouseApiRoutesUsersCreateUserResponses];
+
+export type WarehouseApiRoutesUsersDeleteUserData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: number;
+    };
+    query?: never;
+    url: '/api/v1/users/{user_id}';
+};
+
+export type WarehouseApiRoutesUsersDeleteUserResponses = {
+    /**
+     * OK
+     */
+    200: DeleteUserResponse;
+};
+
+export type WarehouseApiRoutesUsersDeleteUserResponse = WarehouseApiRoutesUsersDeleteUserResponses[keyof WarehouseApiRoutesUsersDeleteUserResponses];
+
+export type WarehouseApiRoutesUsersUpdateUserData = {
+    body: UserUpdateSchema;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: number;
+    };
+    query?: never;
+    url: '/api/v1/users/{user_id}';
+};
+
+export type WarehouseApiRoutesUsersUpdateUserResponses = {
+    /**
+     * OK
+     */
+    200: GetUserResponse;
+};
+
+export type WarehouseApiRoutesUsersUpdateUserResponse = WarehouseApiRoutesUsersUpdateUserResponses[keyof WarehouseApiRoutesUsersUpdateUserResponses];

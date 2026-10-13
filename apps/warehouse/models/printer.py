@@ -6,6 +6,10 @@ from django.db import models
 from .base import BaseModel
 
 
+def avatar_upload_to(instance: UserAppSettings, filename: str) -> str:
+    return f"avatars/{instance.user_id}/{filename}"
+
+
 class Printer(BaseModel):
     code = models.CharField(max_length=100, unique=True)
     description = models.TextField(null=True, blank=True)
@@ -30,6 +34,7 @@ class UserAppSettings(BaseModel):
         on_delete=models.SET_NULL,
         related_name="default_for_users",
     )
+    avatar = models.ImageField(upload_to=avatar_upload_to, null=True, blank=True)
 
     def __str__(self) -> str:
         return f"{self.user} settings"
