@@ -301,7 +301,7 @@ const removeItem = async (item_index: number) => {
   })
   const data = onResponse(result)
   if (data) {
-    order.value.items = order.value.items?.filter((it) => it.index !== item_index)
+    order.value = data.data
   }
 }
 

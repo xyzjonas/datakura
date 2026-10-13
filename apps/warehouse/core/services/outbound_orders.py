@@ -22,7 +22,10 @@ from apps.warehouse.core.schemas.orders import (
     OutboundOrderSchema,
 )
 from apps.warehouse.core.services import audit_service
-from apps.warehouse.core.services.item_reorder import reorder_order_items
+from apps.warehouse.core.services.item_reorder import (
+    compact_order_items,
+    reorder_order_items,
+)
 from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.services.warehouse_order_factory import (
@@ -722,6 +725,8 @@ class OutboundOrdersService:
         desired_batch = cls._get_desired_batch_or_none(item.desired_batch_code)
 
         with transaction.atomic():
+            # lock the order row to serialize concurrent index allocation
+            OutboundOrder.objects.select_for_update().get(pk=order.pk)
             next_index = order.items.count()
             amount = Decimal(str(item.amount))
             total_price = settings_service.apply_minimum_item_value(
@@ -819,7 +824,7 @@ class OutboundOrdersService:
         code: str,
         item_index: int,
         context: RequestContext,
-    ) -> bool:
+    ) -> OutboundOrderSchema:
         order = OutboundOrder.objects.prefetch_related("warehouse_orders").get(
             code=code
         )
@@ -834,9 +839,11 @@ class OutboundOrdersService:
             )
 
         with transaction.atomic():
+            OutboundOrder.objects.select_for_update().get(pk=order.pk)
             item_model.delete()
+            compact_order_items(order.items.select_for_update())
 
-        return True
+        return cls.get_outbound_order(code)
 
     @classmethod
     def reorder_item(

@@ -89,19 +89,27 @@
           @persist-override="persistOverrideForCustomer"
         />
 
-        <q-input
-          :readonly="readonly"
-          v-model.number="totalPrice"
-          @update:model-value="update('total')"
-          dense
-          outlined
-          label="Celková cena"
-          :debounce="500"
-        >
-          <template #append>
-            <span class="text-xs">{{ currency }}</span>
-          </template>
-        </q-input>
+        <div class="flex flex-col gap-1">
+          <q-input
+            :readonly="readonly"
+            v-model.number="totalPrice"
+            @update:model-value="update('total')"
+            dense
+            outlined
+            label="Celková cena"
+            :debounce="500"
+          >
+            <template #append>
+              <span class="text-xs">{{ currency }}</span>
+            </template>
+          </q-input>
+          <ItemMarginSummary
+            :currency="currency"
+            :amount="item.amount"
+            :purchase-price="pricingContext.avgPurchasePrice"
+            :total-price="totalPrice"
+          />
+        </div>
 
         <q-btn
           v-if="!readonly"
@@ -165,6 +173,7 @@ import BatchBadge from '../warehouse/BatchBadge.vue'
 import IndexRectangle from '../IndexRectangle.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
+import ItemMarginSummary from './ItemMarginSummary.vue'
 import SellingPriceEditor from './SellingPriceEditor.vue'
 import OutboundOrderItemRequirementsDialog from './OutboundOrderItemRequirementsDialog.vue'
 

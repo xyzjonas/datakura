@@ -83,14 +83,7 @@
           <span class="text-xs">{{ currency }}</span>
         </template>
       </q-input>
-      <q-btn
-        v-if="!readonly"
-        icon="sym_o_close_small"
-        color="negative"
-        flat
-        dense
-        @click="$emit('dissolveItem')"
-      ></q-btn>
+      <CloseIconButton v-if="!readonly" @click="$emit('dissolveItem')" />
     </div>
   </div>
 </template>
@@ -104,6 +97,7 @@ import {
   type InboundOrderItemSchema,
   type OutboundOrderItemSchema,
 } from '@/client'
+
 import { useApi } from '@/composables/use-api'
 import { round } from '@/utils/round'
 import { useQuasar } from 'quasar'
@@ -113,6 +107,7 @@ import ProductAvailability from '../product/ProductAvailability.vue'
 import SellingPriceEditor from './SellingPriceEditor.vue'
 import { isIndexedOrderItem } from '../type-guards/order.ts'
 import { rules } from '@/utils/rules.ts'
+import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 
 const $q = useQuasar()
 const { onResponse } = useApi()

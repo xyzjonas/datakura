@@ -1,78 +1,86 @@
 <template>
-  <div class="flex items-center gap-4 w-full flex-nowrap flex-col md:flex-row">
-    <IndexRectangle :index="item.index + 1" />
-    <div
-      class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_5rem_8rem_8rem] items-center gap-x-3 gap-y-1.5 w-full min-w-0"
-    >
-      <div class="flex items-center gap-5 min-w-0">
-        <!-- Product -->
-        <div class="min-w-12">
-          <router-link
-            :to="{ name: 'productDetail', params: { productCode: item.product.code } }"
-            class="link text-sm font-medium leading-tight"
-            >{{ item.product.name }}</router-link
-          >
-          <div class="text-xs text-gray-5 mt-0.5">{{ item.product.code }}</div>
-        </div>
+  <div class="flex items-center w-full flex-nowrap">
+    <div class="w-12">
+      <IndexRectangle :index="item.index + 1" />
+    </div>
+    <!-- Product -->
+    <div class="w-xs">
+      <router-link
+        :to="{ name: 'productDetail', params: { productCode: item.product.code } }"
+        class="link font-medium leading-tight"
+        >{{ item.product.name }}</router-link
+      >
+      <div class="text-xs text-gray-5">{{ item.product.code }}</div>
+    </div>
 
-        <!-- Note (readonly) -->
-        <CommentCard v-if="item.note" title="Poznámka" class="text-xs max-w-xs">
-          {{ item.note }}
-        </CommentCard>
-      </div>
-
-      <!-- Status badges -->
-      <div class="hidden sm:flex items-center gap-1.5">
-        <ProductAvailability :product-code="item.product.code" />
-        <PackageTypeBadge
-          v-if="item.desired_package_type_name"
-          :package-type="item.desired_package_type_name"
-        />
-        <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
-        <q-icon v-if="item.note" name="sym_o_sticky_note_2" size="xs" class="text-gray-4">
-          <q-tooltip class="text-xs">{{ item.note }}</q-tooltip>
-        </q-icon>
-      </div>
-
+    <div class="grid items-center grid-cols-6 flex-1 text-right">
       <!-- Amount -->
-      <div class="md:text-right">
-        <div class="tabular-nums flex items-center md:justify-end gap-1">
-          <span class="text-lg">{{ item.amount }}</span>
-          <q-badge color="gray" rounded>{{ item.product.unit }}</q-badge>
+      <div class="flex flex-col">
+        <span class="text-lg font-bold tabular-nums">{{ item.amount }}</span>
+        <div class="text-xs text-gray-5">
+          {{ item.amount }} x <q-badge color="gray">{{ item.product.unit }}</q-badge>
         </div>
-        <div class="text-xs text-gray-5">Množství</div>
       </div>
 
-      <!-- Unit price -->
-      <div class="md:text-right">
-        <div class="text-sm tabular-nums text-nowrap">{{ unitPrice }} {{ currency }}</div>
-        <div class="text-xs text-gray-5">/ {{ item.product.unit }}</div>
+      <!-- Purchase price -->
+      <div class="flex flex-col" data-test="item-purchase-price">
+        <span class="tabular-nums">{{ pricing.avgPurchasePrice.toFixed(2) }}</span>
+        <span>{{ currency }}</span>
+        <span class="text-xs text-muted">za {{ item.product.unit }}</span>
+      </div>
+
+      <!-- Unit price (asking price) -->
+      <div>
+        <div class="flex flex-col" data-test="item-unit-price">
+          <div class="flex items-center justify-end">
+            <PriceExplanationButton
+              :currency="currency"
+              :base-price="pricing.basePrice"
+              :suggested-price="pricing.suggestedPrice"
+              :avg-purchase-price="pricing.avgPurchasePrice"
+              :selected-price="Number(item.unit_price)"
+              :discount-percent="pricing.discountPercent"
+              :reason="pricing.reason"
+              :price-source="pricing.source"
+            />
+            <span class="tabular-nums font-semibold">{{ unitPrice }}</span>
+          </div>
+          <span>{{ currency }}</span>
+        </div>
+        <div class="text-xs text-muted">za {{ item.product.unit }}</div>
+      </div>
+
+      <!-- Margin -->
+      <div data-test="item-margin" class="flex flex-col">
+        <div class="text-sm tabular-nums text-nowrap">
+          <MarginText :margin="margin" />
+        </div>
+        <span :class="margin.amount >= 0 ? 'text-green-600' : 'text-red'">{{ currency }}</span>
+        <span><MarginPercent :margin="margin" /></span>
       </div>
 
       <!-- Total price -->
-      <div class="md:text-right">
-        <div class="text-sm font-semibold tabular-nums text-primary">
-          {{ totalPrice }} {{ currency }}
-        </div>
-        <div class="text-xs text-gray-5">Celkem</div>
+      <div class="flex flex-col">
+        <span class="text-lg font-bold tabular-nums">{{ totalPrice }}</span>
+        <span>{{ currency }}</span>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-1 justify-end">
+        <EditIconButton @click="editDialog = true" :disable="readonly">
+          <q-tooltip>Upravit</q-tooltip>
+        </EditIconButton>
+        <CloseIconButton @click="removeDialog = true" :disable="readonly">
+          <q-tooltip>Odebrat</q-tooltip>
+        </CloseIconButton>
       </div>
     </div>
-    <!-- Actions -->
-    <div v-if="!readonly" class="flex items-center gap-8 sm:gap-2 shrink-0 pl-5">
-      <q-btn unelevated icon="sym_o_delete" color="negative" @click="$emit('remove')">
-        <q-tooltip>Odebrat</q-tooltip>
-      </q-btn>
-      <q-btn
-        unelevated
-        icon="sym_o_edit"
-        label="upravit"
-        color="primary"
-        @click="editDialog = true"
-      >
-        <q-tooltip>Upravit</q-tooltip>
-      </q-btn>
-    </div>
   </div>
+
+  <ConfirmDialog v-model:show="removeDialog" title="Odebrat položku" @confirm="$emit('remove')">
+    Opravdu odebrat položku <strong>{{ item.product.name }}</strong
+    >?
+  </ConfirmDialog>
 
   <OutboundOrderItemEditDialog
     v-model:show="editDialog"
@@ -85,13 +93,16 @@
 
 <script setup lang="ts">
 import type { OutboundOrderItemSchema } from '@/client'
-import { computed, ref } from 'vue'
+import { calculateMargin } from '@/utils/margin'
+import { computed, defineEmits, defineModel, defineProps, ref } from 'vue'
+import ConfirmDialog from '../ConfirmDialog.vue'
 import IndexRectangle from '../IndexRectangle.vue'
-import PackageTypeBadge from '../PackageTypeBadge.vue'
-import BatchBadge from '../warehouse/BatchBadge.vue'
-import ProductAvailability from '../product/ProductAvailability.vue'
+import MarginText from './MarginText.vue'
+import MarginPercent from './MarginPercent.vue'
 import OutboundOrderItemEditDialog from './OutboundOrderItemEditDialog.vue'
-import CommentCard from '../CommentCard.vue'
+import PriceExplanationButton from './PriceExplanationButton.vue'
+import CloseIconButton from '../common/buttons/CloseIconButton.vue'
+import EditIconButton from '../common/buttons/EditIconButton.vue'
 
 defineProps<{
   currency: string
@@ -105,7 +116,28 @@ defineEmits<{ (e: 'remove'): void }>()
 const item = defineModel<OutboundOrderItemSchema>('item', { required: true })
 
 const editDialog = ref(false)
+const removeDialog = ref(false)
 
 const unitPrice = computed(() => Number(item.value.unit_price).toFixed(2))
 const totalPrice = computed(() => Number(item.value.total_price).toFixed(2))
+
+const pricing = computed(() => {
+  const details = item.value.pricing_details
+  const unit = Number(item.value.unit_price)
+  return {
+    basePrice: details?.base_price ?? item.value.product.base_price ?? unit,
+    suggestedPrice: details?.suggested_unit_price ?? unit,
+    avgPurchasePrice: details?.avg_purchase_price ?? item.value.product.purchase_price ?? 0,
+    discountPercent: details?.discount_percent ?? 0,
+    reason: details?.reason ?? 'Base selling price',
+    source: details?.source ?? 'BASE_PRICE',
+  }
+})
+
+const margin = computed(() =>
+  calculateMargin(
+    Number(item.value.total_price),
+    item.value.amount * pricing.value.avgPurchasePrice,
+  ),
+)
 </script>

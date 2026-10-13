@@ -32,7 +32,24 @@ def reorder_order_items(items_qs: QuerySet, item_index: int, new_index: int) -> 
     moving_item = items.pop(current_pos)
     items.insert(target_pos, moving_item)
 
-    model = type(moving_item)
+    _assign_sequential_indices(items)
+
+
+def compact_order_items(items_qs: QuerySet) -> None:
+    """
+    Resequence all items to a gap-free 0..n-1 range, keeping their relative order.
+
+    Call after removing an item, inside a ``transaction.atomic()`` block, with a
+    ``select_for_update()`` queryset (or a locked parent order) to prevent races.
+    """
+    items = list(items_qs.order_by("index", "created"))
+    if all(item.index == i for i, item in enumerate(items)):
+        return
+    _assign_sequential_indices(items)
+
+
+def _assign_sequential_indices(items: list) -> None:
+    model = type(items[0])
 
     # The (order, index) unique constraint means the final indices can't be
     # written in one pass: bulk_update's UPDATE still applies row by row

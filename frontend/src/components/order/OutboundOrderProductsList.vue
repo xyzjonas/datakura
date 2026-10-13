@@ -1,4 +1,17 @@
 <template>
+  <div class="flex items-center flex-nowrap px-5 text-muted">
+    <div class="w-16">#</div>
+
+    <div class="w-xs">Produkt</div>
+    <div class="grid grid-cols-6 flex-1 text-right">
+      <div>Množství</div>
+      <div>Nákupní cena</div>
+      <div>Prodejní cena</div>
+      <div>Marže</div>
+      <div>Celkem</div>
+      <div>Akce</div>
+    </div>
+  </div>
   <div class="draggable-container" v-if="items.length > 0">
     <TransitionGroup>
       <ForegroundPanel

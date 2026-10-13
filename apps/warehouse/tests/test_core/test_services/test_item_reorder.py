@@ -1,7 +1,10 @@
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
 
-from apps.warehouse.core.services.item_reorder import reorder_order_items
+from apps.warehouse.core.services.item_reorder import (
+    compact_order_items,
+    reorder_order_items,
+)
 from apps.warehouse.models.orders import InboundOrderItem
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
@@ -160,3 +163,34 @@ def test_reorder_api_endpoint_outbound(db):
     assert body["success"] is True
     assert body["data"]["code"] == order.code
     assert [item["index"] for item in body["data"]["items"]] == [0, 1, 2, 3]
+
+
+@pytest.mark.parametrize(
+    "removed, expected_remaining",
+    [(0, 4), (2, 4), (4, 4)],
+)
+def test_compact_after_removal_closes_gap(db, removed, expected_remaining):
+    order = InboundOrderFactory.it()
+    items = _make_items(order, 5)
+    items[removed].delete()
+
+    compact_order_items(order.items)
+
+    assert _indices(order) == list(range(expected_remaining))
+
+
+def test_compact_keeps_relative_order(db):
+    order = InboundOrderFactory.it()
+    items = _make_items(order, 4)
+    items[1].delete()
+
+    compact_order_items(order.items)
+
+    remaining = list(order.items.order_by("index").values_list("pk", flat=True))
+    assert remaining == [items[0].pk, items[2].pk, items[3].pk]
+
+
+def test_compact_empty_is_noop(db):
+    order = InboundOrderFactory.it()
+    compact_order_items(order.items)
+    assert _indices(order) == []

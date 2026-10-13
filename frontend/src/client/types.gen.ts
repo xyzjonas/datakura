@@ -6990,7 +6990,7 @@ export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses 
     /**
      * OK
      */
-    200: EmptyResponse;
+    200: GetInboundOrderResponse;
 };
 
 export type WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponse = WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrderResponses];
@@ -7326,7 +7326,7 @@ export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponse
     /**
      * OK
      */
-    200: EmptyResponse;
+    200: GetOutboundOrderResponse;
 };
 
 export type WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrderResponses];

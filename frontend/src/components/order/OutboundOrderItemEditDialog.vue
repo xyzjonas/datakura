@@ -5,27 +5,26 @@
         <div class="flex-1 min-w-0">
           <router-link
             :to="{ name: 'productDetail', params: { productCode: item.product.code } }"
-            class="link text-base font-semibold leading-tight"
+            class="link text-xl font-semibold leading-tight"
             >{{ item.product.name }}</router-link
           >
           <div class="text-xs text-gray-5 mt-0.5">{{ item.product.code }}</div>
+          <ProductAvailability :product-code="item.product.code" class="mt-1 translate-x-[-5px]" />
         </div>
         <q-btn flat round dense icon="sym_o_close" v-close-popup class="mt-0.5" />
       </q-card-section>
 
       <q-separator />
 
-      <q-card-section class="flex flex-col gap-6 pt-5 overflow-auto">
-        <ProductAvailability :product-code="item.product.code" />
+      <q-card-section class="flex flex-col gap-4 pt-5 overflow-auto">
+        <!-- <ProductAvailability :product-code="item.product.code" /> -->
 
         <!-- Amount -->
         <div class="flex flex-col gap-2">
-          <div class="section-label">Množství</div>
           <q-input
             v-model.number="item.amount"
-            dense
             outlined
-            label="Počet"
+            label="Množství"
             @update:model-value="update('amount')"
             :debounce="500"
           >
@@ -34,10 +33,9 @@
             </template>
           </q-input>
         </div>
-
+        <q-separator />
         <!-- Pricing -->
-        <div class="flex flex-col gap-2">
-          <div class="section-label">Cena</div>
+        <div class="flex flex-col">
           <div class="flex flex-wrap gap-4 items-start">
             <SellingPriceEditor
               v-model="unitPrice"
@@ -71,15 +69,10 @@
           </div>
         </div>
 
+        <q-separator />
         <!-- Requirements -->
         <div class="flex flex-col gap-2">
-          <div class="section-label">Požadavky</div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <PackageTypeBadge
-              v-if="item.desired_package_type_name"
-              :package-type="item.desired_package_type_name"
-            />
-            <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
+          <div class="flex items-center gap-2 flex-wrap justify-between">
             <q-btn-dropdown
               flat
               dense
@@ -103,34 +96,27 @@
                 </q-item>
               </q-list>
             </q-btn-dropdown>
+            <div>
+              <PackageTypeBadge
+                v-if="item.desired_package_type_name"
+                :package-type="item.desired_package_type_name"
+              />
+              <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
+              <span v-else class="text-muted text-xs">Bez požadavku</span>
+            </div>
           </div>
         </div>
 
-        <!-- Note -->
-        <div class="flex flex-col gap-1">
-          <div class="section-label">Poznámka</div>
-          <q-btn
-            flat
-            dense
-            no-caps
-            size="sm"
-            :icon="showNote ? 'expand_less' : 'expand_more'"
-            :label="showNote ? 'Skrýt' : item.note ? 'Zobrazit' : 'Přidat'"
-            class="self-start text-muted"
-            @click="toggleNote"
-          />
-          <q-input
-            v-if="showNote"
-            v-model.trim="item.note"
-            outlined
-            dense
-            label="Poznámka k položce"
-            type="textarea"
-            autogrow
-            :debounce="600"
-            @update:model-value="update('note')"
-          />
-        </div>
+        <q-input
+          v-model.trim="item.note"
+          outlined
+          dense
+          label="Poznámka k položce"
+          type="textarea"
+          autogrow
+          :debounce="600"
+          @update:model-value="update('note')"
+        />
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -221,14 +207,6 @@ const computeUnitFromTotal = () => {
   return round(totalPrice.value / item.value.amount)
 }
 
-const toggleNote = () => {
-  showNote.value = !showNote.value
-  if (!showNote.value) {
-    item.value.note = null
-    void update('note')
-  }
-}
-
 const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements' | 'note') => {
   if (changedField === 'total') {
     unitPrice.value = computeUnitFromTotal()
@@ -305,13 +283,3 @@ const persistOverrideForCustomer = async () => {
   $q.notify({ type: 'positive', message: 'Cena uložena jako zákaznický override' })
 }
 </script>
-
-<style scoped>
-.section-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--q-color-grey-7, #616161);
-}
-</style>

@@ -24,7 +24,10 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services import audit_service
-from apps.warehouse.core.services.item_reorder import reorder_order_items
+from apps.warehouse.core.services.item_reorder import (
+    compact_order_items,
+    reorder_order_items,
+)
 from apps.warehouse.core.services.pdf import print_html_to_pdf
 from apps.warehouse.core.transformation import (
     inbound_order_item_orm_to_schema,
@@ -222,6 +225,7 @@ class OrdersService:
         stock_product = StockProduct.objects.get(code=item.product_code)
 
         with transaction.atomic():
+            InboundOrder.objects.select_for_update().get(pk=order.pk)
             next_index = order.items.count()
             amount = Decimal(str(item.amount))
             total_price = Decimal(str(item.total_price))
@@ -259,14 +263,17 @@ class OrdersService:
         return inbound_order_item_orm_to_schema(item_model)
 
     @staticmethod
-    def remove_item(code: str, item_index: int) -> bool:
+    def remove_item(code: str, item_index: int) -> InboundOrderSchema:
         order = InboundOrder.objects.get(code=code)
         OrdersService._ensure_inbound_order_editable(order)
         item = InboundOrderItem.objects.get(order=order, index=item_index)
         with transaction.atomic():
+            InboundOrder.objects.select_for_update().get(pk=order.pk)
             item.delete()
+            compact_order_items(order.items.select_for_update())
 
-        return True
+        order.refresh_from_db()
+        return inbound_order_orm_to_schema(order)
 
     @staticmethod
     def reorder_item(code: str, item_index: int, new_index: int) -> InboundOrderSchema:

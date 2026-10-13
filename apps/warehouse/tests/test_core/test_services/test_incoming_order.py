@@ -179,9 +179,13 @@ def test_incoming_order_duplicate_product_remove_each_by_index(db):
 
     assert order.items.count() == 2
 
-    assert inbound_orders_service.remove_item(order.code, item_a.index)
+    result = inbound_orders_service.remove_item(order.code, item_a.index)
+    assert [it.index for it in result.items] == [0]
     assert order.items.count() == 1
 
+    # remaining item shifts down to index 0
+    item_b.refresh_from_db()
+    assert item_b.index == 0
     assert inbound_orders_service.remove_item(order.code, item_b.index)
     assert order.items.count() == 0
 

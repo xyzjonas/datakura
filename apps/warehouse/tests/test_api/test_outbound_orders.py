@@ -329,7 +329,7 @@ def test_duplicate_product_items_update_and_remove_by_index(db) -> None:
     from apps.warehouse.models.orders import OutboundOrderItem
 
     assert OutboundOrderItem.objects.filter(order=order).count() == 1
-    assert OutboundOrderItem.objects.get(order=order).index == index2
+    assert OutboundOrderItem.objects.get(order=order).index == 0
 
 
 def test_add_outbound_order_item_pricing_details_explain_no_discount_product(
@@ -1179,3 +1179,41 @@ def test_get_outbound_order_explains_minimum_in_pricing_details(db) -> None:
 
     item = response.json()["data"]["items"][0]
     assert "Minimum item value 5.00 (global)" in item["pricing_details"]["reason"]
+
+
+@pytest.mark.parametrize("removed", [0, 1, 2])
+def test_remove_item_recomputes_indexes_so_next_add_succeeds(db, removed) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    for _ in range(3):
+        product = StockProductFactory()
+        res = client.post(
+            f"/{order.code}/items",
+            json={
+                "product_code": product.code,
+                "product_name": product.name,
+                "amount": 1,
+                "total_price": 10,
+            },
+        )
+        assert res.status_code == 200
+
+    delete_res = client.delete(f"/{order.code}/items/{removed}")
+    assert delete_res.status_code == 200
+    returned = delete_res.json()["data"]
+    assert returned["code"] == order.code
+    assert [it["index"] for it in returned["items"]] == [0, 1]
+    assert list(order.items.values_list("index", flat=True)) == [0, 1]
+
+    product = StockProductFactory()
+    res = client.post(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 1,
+            "total_price": 10,
+        },
+    )
+    assert res.status_code == 200
+    assert res.json()["data"]["index"] == 2

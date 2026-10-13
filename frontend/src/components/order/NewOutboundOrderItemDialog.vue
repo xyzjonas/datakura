@@ -47,6 +47,13 @@
               <span class="text-sm">{{ currency }}</span>
             </template>
           </q-input>
+          <ItemMarginSummary
+            v-if="product"
+            :currency="currency"
+            :amount="item.amount"
+            :purchase-price="pricingContext.avgPurchasePrice"
+            :total-price="item.total_price"
+          />
           <q-input
             v-model="batchCode"
             outlined
@@ -91,6 +98,7 @@ import { rules } from '@/utils/rules'
 import { computed, ref, watch } from 'vue'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
+import ItemMarginSummary from './ItemMarginSummary.vue'
 import SellingPriceEditor from './SellingPriceEditor.vue'
 
 const showDialog = defineModel('show', { default: false })

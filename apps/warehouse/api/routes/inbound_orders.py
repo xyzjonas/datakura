@@ -9,7 +9,6 @@ from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import IncomingOrdersPagination
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
-from apps.warehouse.core.schemas.base import EmptyResponse
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
@@ -201,9 +200,11 @@ def reorder_item_in_inbound_order(
     return GetInboundOrderResponse(data=updated_order)
 
 
-@routes.delete("/{order_code}/items/{item_index}", response={200: EmptyResponse})
+@routes.delete(
+    "/{order_code}/items/{item_index}", response={200: GetInboundOrderResponse}
+)
 def remove_items_from_inbound_order(
     request: HttpRequest, order_code: str, item_index: int
 ):
     result = inbound_orders_service.remove_item(order_code, item_index)
-    return EmptyResponse(success=result)
+    return GetInboundOrderResponse(data=result)

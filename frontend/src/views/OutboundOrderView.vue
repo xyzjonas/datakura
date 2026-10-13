@@ -101,24 +101,80 @@
 
     <OutboundOrderTimeline :order="order" />
 
-    <div class="flex items-center justify-center gap-2 sm:gap-5 mt-5">
-      <h2>Položky objednávky</h2>
-      <div
-        class="flex items-center justify-center sm:justify-end flex-1 gap-3 min-w-300px flex-row-reverse sm:flex-row"
-      >
-        <TotalWeight :order="order" />
-        <TotalPrice :order="order" />
+    <div class="border rounded shadow-md mb-5">
+      <div class="flex items-center justify-between p-4">
+        <div>
+          <h2>Položky objednávky</h2>
+        </div>
+        <q-btn
+          unelevated
+          color="primary"
+          icon="sym_o_add"
+          label="přidat položku"
+          :disable="!isEditable"
+          @click="addItemDialog = true"
+        ></q-btn>
+      </div>
+      <q-separator />
+      <div class="grid grid-cols-2 sm:grid-cols-4">
+        <div class="flex justify-between">
+          <div class="flex flex-col gap-2 p-4">
+            <span>Hodnota ve skladové ceně</span>
+            <span>
+              <strong class="text-lg">{{ formattedPurchaseValue }}</strong>
+              {{ currency }}</span
+            >
+          </div>
+          <q-separator vertical />
+        </div>
+
+        <div class="flex justify-between">
+          <div class="flex flex-col gap-2 p-4">
+            <span>Celková prodejní cena</span>
+            <span class="text-primary">
+              <strong class="text-lg">{{ formattedTotalPrice }}</strong>
+              {{ currency }}
+            </span>
+          </div>
+          <q-separator vertical />
+        </div>
+
+        <div class="flex justify-between">
+          <div class="flex flex-col gap-2 p-4 flex-1">
+            <div class="flex justify-between">
+              <span>Celková marže</span>
+              <q-badge
+                v-if="formattedMarginPercent"
+                :class="[
+                  'font-bold',
+                  isMarginPositive ? 'bg-green-100' : 'bg-light-red',
+                  isMarginPositive ? 'text-green' : 'text-red',
+                ]"
+                >{{ formattedMarginPercent }}</q-badge
+              >
+            </div>
+            <span :class="[isMarginPositive ? 'text-green' : 'text-red']"
+              ><strong class="text-lg">{{ formattedMarginValue }}</strong
+              >{{ currency }}</span
+            >
+          </div>
+          <q-separator vertical />
+        </div>
+
+        <div class="flex justify-between">
+          <div class="flex flex-col gap-2 p-4">
+            <span>Hmotnost objednávky</span>
+            <div class="flex gap-2 items-center">
+              <q-icon name="sym_o_weight" size="sm" />
+              <span>
+                <strong class="text-lg">{{ formattedWeight }}</strong> kg</span
+              >
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <q-btn
-      v-if="isEditable"
-      flat
-      dense
-      color="primary"
-      icon="sym_o_add"
-      label="přidat položku"
-      @click="addItemDialog = true"
-    ></q-btn>
+
     <OutboundOrderProductsList
       v-model:items="order.items"
       :currency="order.currency"
@@ -203,14 +259,13 @@ import OutboundOrderProductsList from '@/components/order/OutboundOrderProductsL
 import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
 import OutboundOrderTimeline from '@/components/order/OutboundOrderTimeline.vue'
 import OutboundOrderUpdateOrCreateDialog from '@/components/order/OutboundOrderUpdateOrCreateDialog.vue'
-import TotalPrice from '@/components/order/TotalPrice.vue'
-import TotalWeight from '@/components/order/TotalWeight.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
+import { useOrderTotals } from '@/composables/use-order-totals'
 import { contactFullName } from '@/utils/contact-name'
 import { useQuasar } from 'quasar'
-import { computed, ref } from 'vue'
+import { computed, defineProps, ref } from 'vue'
 
 const props = defineProps<{ code: string }>()
 const order = ref<OutboundOrderSchema>()
@@ -270,7 +325,7 @@ const removeItem = async (item_index: number) => {
   })
   const data = onResponse(result)
   if (data) {
-    order.value.items = order.value.items?.filter((it) => it.index !== item_index)
+    order.value = data.data
   }
 }
 
@@ -387,4 +442,14 @@ const confirmOrder = async () => {
     }
   }
 }
+
+const {
+  formattedTotalPrice,
+  formattedPurchaseValue,
+  currency,
+  formattedMarginValue,
+  formattedMarginPercent,
+  formattedWeight,
+  isMarginPositive,
+} = useOrderTotals(() => order.value)
 </script>

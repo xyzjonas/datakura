@@ -2,40 +2,30 @@
   <div class="flex flex-col items-end">
     <span class="text-gray-5"> Celková cena </span>
     <span :class="['flex', 'items-baseline', 'gap-1', negative ? 'text-positive' : '']">
-      <h2 class="text-bold text-3xl">{{ negative ? '-' : '' }}{{ formatNumber(totalPrice) }}</h2>
+      <h2 class="text-bold text-3xl">{{ negative ? '-' : '' }}{{ formattedTotalPrice }}</h2>
       <span class="text-gray-5">{{ order.currency }}</span>
     </span>
+    <div v-if="orderMargin" class="flex flex-col items-end text-sm" data-test="order-margin">
+      <span class="text-gray-5">
+        Hodnota ve skladové ceně: {{ formattedPurchaseValue }}
+        {{ order.currency }}
+      </span>
+      <span>Marže: <MarginText :margin="orderMargin" :currency="order.currency" /></span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { formatNumber } from '@/utils/format-number'
-import { computed } from 'vue'
+import { useOrderTotals, type OrderTotalsSource } from '@/composables/use-order-totals'
+import MarginText from './MarginText.vue'
 
 type Props = {
   negative?: boolean
-  order: {
-    currency: string
-    items?: {
-      amount: number
-      unit_price: number
-      total_price?: number
-    }[]
-  }
+  order: OrderTotalsSource
 }
 
-//  & Record<string, unknown>
-
 const props = defineProps<Props>()
-const totalPrice = computed(() => {
-  if (!props.order) {
-    return 0
-  }
-  return (props.order.items ?? []).reduce(
-    (sum, item) => sum + (item.total_price ?? item.amount * item.unit_price),
-    0,
-  )
-})
+const { formattedTotalPrice, formattedPurchaseValue, orderMargin } = useOrderTotals(
+  () => props.order,
+)
 </script>
-
-<style lang="scss" scoped></style>

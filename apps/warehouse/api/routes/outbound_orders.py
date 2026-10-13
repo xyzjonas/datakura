@@ -9,7 +9,6 @@ from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import OutgoingOrdersPagination
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
-from apps.warehouse.core.schemas.base import EmptyResponse
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
@@ -180,7 +179,9 @@ def reorder_item_in_outbound_order(
     return GetOutboundOrderResponse(data=updated_order)
 
 
-@routes.delete("/{order_code}/items/{item_index}", response={200: EmptyResponse})
+@routes.delete(
+    "/{order_code}/items/{item_index}", response={200: GetOutboundOrderResponse}
+)
 def remove_items_from_outbound_order(
     request: HttpRequest, order_code: str, item_index: int
 ):
@@ -189,4 +190,4 @@ def remove_items_from_outbound_order(
         item_index,
         context=RequestContext.from_django_request(request),
     )
-    return EmptyResponse(success=result)
+    return GetOutboundOrderResponse(data=result)

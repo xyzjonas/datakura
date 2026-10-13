@@ -1,36 +1,23 @@
 <template>
   <div class="flex flex-col min-w-70">
-    <div class="flex items-center gap-1">
-      <q-btn
-        flat
-        dense
-        icon="sym_o_help"
-        size="sm"
-        :color="marginAmount >= 0 ? 'positive' : 'negative'"
-      >
-        <q-popup-proxy>
-          <q-card class="p-3 max-w-80">
-            <div class="text-lg font-bold text-primary mb-2">Vysvětlení ceny</div>
-            <div class="text-xs mb-1 font-bold">
-              Základní cena: {{ basePrice.toFixed(2) }} {{ currency }}
-            </div>
-            <div class="text-xs mb-1">
-              Nákupní cena (průměr): {{ avgPurchasePrice.toFixed(2) }} {{ currency }}
-            </div>
-            <div class="text-xs mb-1">Sleva: {{ discountPercent.toFixed(2) }}% ({{ reason }})</div>
-            <div v-if="isNoDiscountProduct" class="text-xs mb-1 text-negative">
-              Sleva nepoužita: slevové skupiny nejsou pro tento produkt povoleny.
-            </div>
-            <div class="text-xs mb-1">
-              Navržená cena: {{ suggestedPrice.toFixed(2) }} {{ currency }}
-            </div>
-            <div class="text-positive font-medium">
-              Zvolená cena: {{ resolvedModelValue.toFixed(2) }} {{ currency }}
-            </div>
-          </q-card>
-        </q-popup-proxy>
-      </q-btn>
-      <span :class="marginClass">Marže: {{ marginText }}</span>
+    <div class="flex items-center justify-between my-1">
+      <span class="text-muted" data-test="purchase-price">
+        Skladová cena: <strong>{{ avgPurchasePrice.toFixed(2) }} {{ currency }}</strong> /
+        {{ unit }}
+      </span>
+      <div class="flex items-center">
+        <PriceExplanationButton
+          :currency="currency"
+          :base-price="basePrice"
+          :suggested-price="suggestedPrice"
+          :avg-purchase-price="avgPurchasePrice"
+          :selected-price="resolvedModelValue"
+          :discount-percent="discountPercent"
+          :reason="reason"
+          :price-source="priceSource"
+        />
+        <span class="text-xs">Marže: <MarginText :margin="margin" /></span>
+      </div>
     </div>
     <q-input
       :model-value="editorValue"
@@ -69,7 +56,7 @@
         size="sm"
         color="grey-6"
         icon="sym_o_restart_alt"
-        label="Resetovat"
+        label="Resetovat na doporučenou cenu"
         @click="resetToSuggested"
       />
       <q-btn
@@ -89,7 +76,10 @@
 </template>
 
 <script setup lang="ts">
+import { calculateMargin } from '@/utils/margin'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import MarginText from './MarginText.vue'
+import PriceExplanationButton from './PriceExplanationButton.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -145,26 +135,7 @@ const sliderMax = computed(() =>
   Math.max(props.suggestedPrice * 1.5, resolvedModelValue.value * 1.2, 1),
 )
 
-const marginAmount = computed(() => resolvedModelValue.value - props.avgPurchasePrice)
-const marginPercent = computed(() => {
-  if (!props.avgPurchasePrice) {
-    return 0
-  }
-  return (marginAmount.value / props.avgPurchasePrice) * 100
-})
-
-const marginClass = computed(() =>
-  marginAmount.value >= 0
-    ? 'text-xs text-positive font-medium'
-    : 'text-xs text-negative font-medium',
-)
-
-const marginText = computed(() => {
-  const sign = marginAmount.value >= 0 ? '+' : ''
-  return `${sign}${marginAmount.value.toFixed(2)} (${sign}${marginPercent.value.toFixed(1)}%)`
-})
-
-const isNoDiscountProduct = computed(() => props.priceSource === 'NO_DISCOUNT')
+const margin = computed(() => calculateMargin(resolvedModelValue.value, props.avgPurchasePrice))
 
 const isOverridden = computed(
   () => Math.abs(resolvedModelValue.value - props.suggestedPrice) >= 0.01,
