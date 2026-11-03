@@ -31,3 +31,12 @@ export function formatCurrency(
     currency: currencyCode,
   }).format(parsed)
 }
+
+/** Czech decimal formatting with fixed 2 fraction digits (21 200,00). */
+export function formatDecimal(value: number, signed = false): string {
+  return new Intl.NumberFormat('cs-CZ', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    signDisplay: signed ? 'exceptZero' : 'auto',
+  }).format(value)
+}
