@@ -399,11 +399,27 @@ export type BatchSchema = {
      * Id
      */
     id: number;
-    primary_barcode: BarcodeSchema | null;
+    primary_barcode?: BarcodeSchema | null;
     /**
      * Description
      */
-    description: string | null;
+    description?: string | null;
+    certification?: CertificationRefSchema | null;
+};
+
+/**
+ * CertificationRefSchema
+ * Light reference to a certification (e.g. embedded in a batch).
+ */
+export type CertificationRefSchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Code
+     */
+    code: string;
 };
 
 /**
@@ -5762,7 +5778,7 @@ export type CertificationFormSchema = {
 
 /**
  * AvailableCertificationSchema
- * Certified stock of a single product - one row per certification.
+ * Certified stock of a single product - one row per certified batch.
  */
 export type AvailableCertificationSchema = {
     /**
@@ -5820,6 +5836,21 @@ export type DeleteCertificationResponse = {
      * Data
      */
     data?: null;
+};
+
+/**
+ * GetCertificationItemsResponse
+ */
+export type GetCertificationItemsResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<WarehouseItemSchema>;
 };
 
 export type WarehouseApiRoutesAuthLoginUserData = {
@@ -10145,3 +10176,24 @@ export type WarehouseApiRoutesCertificationsUpdateCertificationResponses = {
 };
 
 export type WarehouseApiRoutesCertificationsUpdateCertificationResponse = WarehouseApiRoutesCertificationsUpdateCertificationResponses[keyof WarehouseApiRoutesCertificationsUpdateCertificationResponses];
+
+export type WarehouseApiRoutesCertificationsGetCertificationItemsData = {
+    body?: never;
+    path: {
+        /**
+         * Certification Id
+         */
+        certification_id: number;
+    };
+    query?: never;
+    url: '/api/v1/certifications/{certification_id}/items';
+};
+
+export type WarehouseApiRoutesCertificationsGetCertificationItemsResponses = {
+    /**
+     * OK
+     */
+    200: GetCertificationItemsResponse;
+};
+
+export type WarehouseApiRoutesCertificationsGetCertificationItemsResponse = WarehouseApiRoutesCertificationsGetCertificationItemsResponses[keyof WarehouseApiRoutesCertificationsGetCertificationItemsResponses];

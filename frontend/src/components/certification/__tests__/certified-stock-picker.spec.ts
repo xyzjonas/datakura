@@ -88,6 +88,25 @@ describe('CertifiedStockPicker', () => {
     expect(tableRows[1]!.text()).toContain('bez přílohy')
   })
 
+  it('lists a certification spanning several batches as one row per batch', async () => {
+    getAvailableMock.mockResolvedValue(
+      respond([
+        { ...rows[0], batch_code: 'BAT-A1', amount: 7 },
+        { ...rows[0], batch_code: 'BAT-A2', amount: 4 },
+      ]),
+    )
+
+    const wrapper = mountPicker()
+    await flushPromises()
+
+    const tableRows = wrapper.findAll('[data-test="certified-stock-row"]')
+    expect(tableRows).toHaveLength(2)
+    expect(tableRows[0]!.text()).toContain('BAT-A1')
+    expect(tableRows[1]!.text()).toContain('BAT-A2')
+    await tableRows[1]!.trigger('click')
+    expect(wrapperProps.onUpdate).toHaveBeenCalledWith('BAT-A2')
+  })
+
   it('selecting a row emits the batch code of that certification', async () => {
     getAvailableMock.mockResolvedValue(respond(rows))
 

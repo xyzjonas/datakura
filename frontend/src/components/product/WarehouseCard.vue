@@ -80,6 +80,11 @@
           <PackageTypeBadge :package-type="props.value" />
         </q-td>
       </template>
+      <template #body-cell-batch="props">
+        <q-td auto-width>
+          <ItemBatch :batch="props.row.batch" />
+        </q-td>
+      </template>
       <template #body-cell-tracking="props">
         <q-td auto-width>
           <TrackingLevelBadge :level="props.row.tracking_level" />
@@ -147,6 +152,7 @@ import { useApi } from '@/composables/use-api'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import BarcodeElement from '../BarcodeElement.vue'
 import TrackingLevelBadge from '../warehouse/TrackingLevelBadge.vue'
+import ItemBatch from '../warehouse/ItemBatch.vue'
 
 const { onResponse } = useApi()
 
@@ -262,6 +268,13 @@ watch(
           sortable: true,
         },
         {
+          field: (item: WarehouseItemSchema) => item.batch?.primary_barcode?.code ?? '',
+          name: 'batch',
+          label: 'Šarže',
+          align: 'left' as const,
+          sortable: true,
+        },
+        {
           field: (item: WarehouseItemSchemaWithCount) =>
             item.package?.type ? item.itemsCount : '-',
           name: 'totalCount',
@@ -298,6 +311,13 @@ watch(
           field: (item: WarehouseItemSchema) => item.package?.type,
           name: 'packaging',
           label: 'Balení',
+          align: 'left' as const,
+          sortable: true,
+        },
+        {
+          field: (item: WarehouseItemSchema) => item.batch?.primary_barcode?.code ?? '',
+          name: 'batch',
+          label: 'Šarže',
           align: 'left' as const,
           sortable: true,
         },

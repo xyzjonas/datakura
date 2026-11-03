@@ -18,7 +18,7 @@
       <tbody>
         <tr
           v-for="row in rows"
-          :key="row.id"
+          :key="row.batch_code"
           class="cursor-pointer"
           :class="{ 'bg-blue-1': row.batch_code === modelValue }"
           data-test="certified-stock-row"
@@ -26,6 +26,7 @@
         >
           <td class="text-left">
             <div class="font-semibold">{{ row.code }}</div>
+            <BatchBadge :batch-code="row.batch_code" class="mt-0.5" />
             <div v-if="row.description" class="text-xs text-gray-6 whitespace-normal">
               {{ row.description }}
             </div>
@@ -46,6 +47,7 @@ import {
 } from '@/client'
 import { useApi } from '@/composables/use-api'
 import { onMounted, ref, watch } from 'vue'
+import BatchBadge from '../warehouse/BatchBadge.vue'
 import CertificationFileLink from './CertificationFileLink.vue'
 
 const { onResponse } = useApi()
