@@ -3,13 +3,16 @@
     <span class="text-gray-5">
       Skladová hodnota: {{ purchaseValue.toFixed(2) }} {{ currency }}
     </span>
-    <span>Marže: <MarginText :margin="margin" :currency="currency" /></span>
+    <span>Marže: <MarginPercent :margin="margin" /></span>
+    <span>Přirážka: <MarginPercent :margin="margin" markup /></span>
+    <span>Zisk: <MarginText :margin="margin" :currency="currency" /></span>
   </div>
 </template>
 
 <script setup lang="ts">
 import { calculateMargin } from '@/utils/margin'
 import { computed } from 'vue'
+import MarginPercent from './MarginPercent.vue'
 import MarginText from './MarginText.vue'
 
 const props = defineProps<{

@@ -16,7 +16,7 @@
           :reason="reason"
           :price-source="priceSource"
         />
-        <span class="text-xs">Marže: <MarginText :margin="margin" /></span>
+        <span class="text-xs">Marže: <MarginPercent :margin="margin" /></span>
       </div>
     </div>
     <q-input
@@ -78,7 +78,7 @@
 <script setup lang="ts">
 import { calculateMargin } from '@/utils/margin'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import MarginText from './MarginText.vue'
+import MarginPercent from './MarginPercent.vue'
 import PriceExplanationButton from './PriceExplanationButton.vue'
 
 const props = withDefaults(

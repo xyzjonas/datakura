@@ -10,13 +10,16 @@
         Hodnota ve skladové ceně: {{ formattedPurchaseValue }}
         {{ order.currency }}
       </span>
-      <span>Marže: <MarginText :margin="orderMargin" :currency="order.currency" /></span>
+      <span>Marže: <MarginPercent :margin="orderMargin" /></span>
+      <span>Přirážka: <MarginPercent :margin="orderMargin" markup /></span>
+      <span>Zisk: <MarginText :margin="orderMargin" :currency="order.currency" /></span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useOrderTotals, type OrderTotalsSource } from '@/composables/use-order-totals'
+import MarginPercent from './MarginPercent.vue'
 import MarginText from './MarginText.vue'
 
 type Props = {
