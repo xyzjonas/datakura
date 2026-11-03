@@ -96,15 +96,6 @@ def upsert_outbound_order_shipping(
     )
 
 
-@routes.delete("/{order_code}/shipping", response={200: GetOutboundOrderResponse})
-def delete_outbound_order_shipping(request: HttpRequest, order_code: str):
-    return GetOutboundOrderResponse(
-        data=shipping_service.delete_order_shipping(
-            order_code, context=RequestContext.from_django_request(request)
-        )
-    )
-
-
 @routes.post("/{order_code}/invoice", response={200: GetOutboundOrderResponse})
 def store_outbound_order_invoice(
     request: HttpRequest,

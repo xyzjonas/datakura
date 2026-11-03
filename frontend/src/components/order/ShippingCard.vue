@@ -1,47 +1,19 @@
 <template>
   <ForegroundPanel class="flex flex-col">
     <template #header>
-      <div class="flex items-center justify-between gap-2">
-        <span class="text-xs text-muted">DOPRAVA</span>
-        <q-btn
-          v-if="shipping && editable"
-          flat
-          dense
-          size="sm"
-          icon="sym_o_delete"
-          color="negative"
-          data-testid="shipping-remove"
-          @click="emit('remove')"
-        >
-          <q-tooltip :offset="[0, 10]">Odebrat dopravu</q-tooltip>
-        </q-btn>
-      </div>
+      <span class="text-xs text-muted">DOPRAVA</span>
     </template>
 
-    <div
-      v-if="!shipping"
-      class="flex items-center justify-between gap-3 text-gray-5"
-      data-testid="shipping-empty"
-    >
-      <span class="flex items-center gap-2">
-        <q-icon name="sym_o_local_shipping" size="24px" />
-        Doprava zatím není zadána
-      </span>
-      <q-btn
-        v-if="editable"
-        unelevated
-        color="primary"
-        icon="sym_o_add"
-        label="zadat dopravu"
-        @click="emit('edit')"
-      />
-    </div>
-
-    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
       <div class="flex flex-col gap-1">
         <span class="flex items-center gap-2 text-lg font-bold text-primary">
           <q-icon name="sym_o_local_shipping" size="24px" />
-          {{ shipping.shipping_type.name }}
+          <span v-if="shipping.shipping_type" data-testid="shipping-type">
+            {{ shipping.shipping_type.name }}
+          </span>
+          <span v-else class="text-muted font-normal" data-testid="shipping-type">
+            Typ dopravy nezadán
+          </span>
         </span>
         <div v-if="shipping.package_number" class="flex items-center gap-1 text-sm">
           <small class="text-muted">číslo balíku:</small>
@@ -104,7 +76,7 @@ import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import { computed } from 'vue'
 
 const props = defineProps<{
-  shipping: OutboundOrderShippingSchema | null
+  shipping: OutboundOrderShippingSchema
   /** derived from the order items */
   weight: number
   currency: string

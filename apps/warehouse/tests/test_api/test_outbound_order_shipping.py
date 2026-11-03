@@ -6,7 +6,10 @@ from ninja.testing import TestClient
 from apps.warehouse.api.routes.outbound_orders import routes
 from apps.warehouse.models.audit import AuditLog
 from apps.warehouse.models.shipping import OutboundOrderShipping, ShippingType
-from apps.warehouse.tests.factories.customer import ContactPersonFactory
+from apps.warehouse.tests.factories.customer import (
+    ContactPersonFactory,
+    CustomerFactory,
+)
 from apps.warehouse.tests.factories.order import (
     OutboundOrderFactory,
     OutboundOrderItemFactory,
@@ -39,30 +42,76 @@ def _order_update_payload(order, **overrides) -> dict:
     }
 
 
-def test_order_without_shipping_has_none(db) -> None:
+def test_new_order_always_has_empty_shipping(db) -> None:
     client = TestClient(routes)
     order = OutboundOrderFactory.it()
 
-    data = client.get(f"/{order.code}").json()["data"]
+    shipping = client.get(f"/{order.code}").json()["data"]["shipping"]
 
-    assert data["shipping"] is None
+    assert shipping["shipping_type"] is None
+    assert shipping["package_number"] == ""
+    assert shipping["width"] is None
+    assert shipping["price"] is None
+    assert OutboundOrderShipping.objects.filter(order=order).count() == 1
 
 
-def test_upsert_creates_then_updates_shipping(db) -> None:
+def test_order_created_via_api_has_shipping_seeded_from_contact(db) -> None:
+    client = TestClient(routes)
+    customer = CustomerFactory()
+    contact = ContactPersonFactory.it(customer=customer)
+
+    res = client.post(
+        "",
+        json={
+            "currency": "CZK",
+            "customer_code": customer.code,
+            "customer_name": customer.name,
+            "contact_id": contact.id,
+        },
+    )
+
+    shipping = res.json()["data"]["shipping"]
+    assert shipping["name"] == contact.get_full_name()
+    assert shipping["city"] == contact.city
+    assert shipping["shipping_type"] is None
+
+
+def test_duplicated_order_has_its_own_shipping(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+
+    res = client.post(f"/{order.code}/duplicate")
+
+    assert res.status_code == 200
+    assert OutboundOrderShipping.objects.count() == 2
+
+
+def test_legacy_order_without_shipping_gets_one_on_read(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    OutboundOrderShipping.objects.all().delete()
+
+    res = client.get(f"/{order.code}")
+
+    assert res.json()["data"]["shipping"]["shipping_type"] is None
+    assert OutboundOrderShipping.objects.count() == 1
+
+
+def test_upsert_updates_the_existing_shipping(db) -> None:
     client = TestClient(routes)
     order = OutboundOrderFactory.it()
     ppl = ShippingTypeFactory.it(name="Balík PPL")
     post = ShippingTypeFactory.it(name="Pošta")
 
-    created = client.put(
+    first = client.put(
         f"/{order.code}/shipping",
         json=_payload(
             ppl, width=10.5, height=20, depth=30, price=100, price_with_vat=121
         ),
     )
 
-    assert created.status_code == 200
-    shipping = created.json()["data"]["shipping"]
+    assert first.status_code == 200
+    shipping = first.json()["data"]["shipping"]
     assert shipping["shipping_type"]["name"] == "Balík PPL"
     assert shipping["width"] == 10.5
     assert shipping["price_with_vat"] == 121
@@ -90,14 +139,19 @@ def test_upsert_writes_audit_entry(db) -> None:
     assert AuditLog.objects.filter(reason__contains="dopravě").count() == 1
 
 
-def test_upsert_requires_shipping_type(db) -> None:
+def test_upsert_without_shipping_type_clears_it(db) -> None:
     client = TestClient(routes)
-    order = OutboundOrderFactory.it()
+    shipping = OutboundOrderShippingFactory.it()
 
-    res = client.put(f"/{order.code}/shipping", json={"name": "x"})
+    res = client.put(
+        f"/{shipping.order.code}/shipping",
+        json={"package_number": "X1", "city": "Brno"},
+    )
 
-    assert res.status_code == 422
-    assert not OutboundOrderShipping.objects.exists()
+    assert res.status_code == 200
+    data = res.json()["data"]["shipping"]
+    assert data["shipping_type"] is None
+    assert data["package_number"] == "X1"
 
 
 @pytest.mark.parametrize(
@@ -128,27 +182,14 @@ def test_upsert_with_missing_shipping_type_or_order(db) -> None:
         client.put("/UNKNOWN/shipping", json=_payload(ppl))
 
 
-def test_delete_shipping(db) -> None:
+def test_shipping_cannot_be_deleted_via_api(db) -> None:
     client = TestClient(routes)
     shipping = OutboundOrderShippingFactory.it()
 
     res = client.delete(f"/{shipping.order.code}/shipping")
 
-    assert res.status_code == 200
-    assert res.json()["data"]["shipping"] is None
-    assert not OutboundOrderShipping.objects.exists()
-    # the shipping type itself stays
-    assert ShippingType.objects.filter(pk=shipping.shipping_type.pk).exists()
-
-
-def test_delete_shipping_is_idempotent(db) -> None:
-    client = TestClient(routes)
-    order = OutboundOrderFactory.it()
-
-    res = client.delete(f"/{order.code}/shipping")
-
-    assert res.status_code == 200
-    assert res.json()["data"]["shipping"] is None
+    assert res.status_code == 405
+    assert OutboundOrderShipping.objects.filter(pk=shipping.pk).exists()
 
 
 @pytest.mark.parametrize(
@@ -257,16 +298,3 @@ def test_removing_contact_keeps_shipping_address(db) -> None:
     res = client.put(f"/{order.code}", json=_order_update_payload(order))
 
     assert res.json()["data"]["shipping"]["city"] == "LITOVEL"
-
-
-def test_contact_change_without_shipping_does_not_create_one(db) -> None:
-    client = TestClient(routes)
-    order = OutboundOrderFactory.it()
-    contact = ContactPersonFactory.it(customer=order.customer)
-
-    res = client.put(
-        f"/{order.code}", json=_order_update_payload(order, contact_id=contact.id)
-    )
-
-    assert res.json()["data"]["shipping"] is None
-    assert not OutboundOrderShipping.objects.exists()

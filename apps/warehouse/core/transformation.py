@@ -179,7 +179,9 @@ def outbound_order_shipping_orm_to_schema(
 ) -> OutboundOrderShippingSchema:
     return OutboundOrderShippingSchema(
         id=shipping.pk,
-        shipping_type=shipping_type_orm_to_schema(shipping.shipping_type),
+        shipping_type=shipping_type_orm_to_schema(shipping.shipping_type)
+        if shipping.shipping_type
+        else None,
         package_number=shipping.package_number,
         width=_opt_float(shipping.width),
         height=_opt_float(shipping.height),
@@ -802,8 +804,12 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
     ]
     # reverse one-to-one: missing when the order was not created from a calculation
     calculation = getattr(order, "calculation", None)
-    # same for the shipping information
+    # created with the order (signal); only legacy rows may lack it until migrated
     shipping = getattr(order, "shipping", None)
+    if shipping is None:
+        from apps.warehouse.core.services.shipping import shipping_service
+
+        shipping = shipping_service.ensure_order_shipping(order)
     order_items = list(order.items.all())
     return OutboundOrderSchema(
         created=order.created,
@@ -826,7 +832,7 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
         if getattr(order, "credit_note", None)
         else None,
         invoice=invoice_orm_to_schema(order.invoice) if order.invoice else None,
-        shipping=outbound_order_shipping_orm_to_schema(shipping) if shipping else None,
+        shipping=outbound_order_shipping_orm_to_schema(shipping),
         total_weight=float(
             sum(
                 (item.amount * item.stock_product.unit_weight for item in order_items),

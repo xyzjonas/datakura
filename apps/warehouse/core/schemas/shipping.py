@@ -21,7 +21,7 @@ class GetShippingTypesResponse(PaginatedResponse[ShippingTypeSchema]): ...
 
 class OutboundOrderShippingSchema(BaseSchema):
     id: int
-    shipping_type: ShippingTypeSchema
+    shipping_type: ShippingTypeSchema | None = None
     package_number: str = ""
     width: float | None = None
     height: float | None = None
@@ -40,7 +40,7 @@ class OutboundOrderShippingSchema(BaseSchema):
 class OutboundOrderShippingUpsertSchema(Schema):
     """Weight is deliberately missing: it is always derived from the order items."""
 
-    shipping_type_id: int
+    shipping_type_id: int | None = None
     package_number: str = ""
     width: float | None = Field(None, ge=0)
     height: float | None = Field(None, ge=0)

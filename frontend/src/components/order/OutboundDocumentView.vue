@@ -103,12 +103,11 @@
 
     <ShippingCard
       v-if="orderDocument"
-      :shipping="orderDocument.shipping ?? null"
+      :shipping="orderDocument.shipping"
       :weight="orderDocument.total_weight ?? 0"
       :currency="orderDocument.currency"
       :editable="orderDocument.state !== 'cancelled'"
       @edit="openShippingDialog"
-      @remove="removeShipping"
     />
 
     <CommentCard v-if="order.note">{{ order.note }}</CommentCard>
@@ -154,7 +153,6 @@
       v-if="orderDocument"
       v-model:show="shippingDialog"
       v-model="shippingForm"
-      :title="orderDocument.shipping ? 'Upravit dopravu' : 'Zadat dopravu'"
       :weight="orderDocument.total_weight ?? 0"
       :currency="orderDocument.currency"
       :contact="contact"
@@ -179,7 +177,6 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesOutboundOrdersDeleteOutboundOrderShipping,
   warehouseApiRoutesOutboundOrdersUpsertOutboundOrderShipping,
   type OutboundCalculationCreateOrUpdateSchema,
   type OutboundCalculationSchema,
@@ -215,7 +212,7 @@ import {
 } from '@/composables/use-outbound-document-api'
 import { contactFullName } from '@/utils/contact-name'
 import {
-  shippingFormFromContact,
+  emptyShippingForm,
   shippingFormFromShipping,
   type ShippingForm,
 } from '@/utils/shipping-form'
@@ -346,17 +343,17 @@ const contact = computed({
   },
 })
 
-// shipping exists for orders only; it always comes back as part of the (refreshed) order, so
+// every order has a shipping (possibly empty), orders only; it always comes back as part of the (refreshed) order, so
 // a contact change - which rewrites the shipping address on the backend - shows up right away
 const shippingDialog = ref(false)
 const savingShipping = ref(false)
-const shippingForm = ref<ShippingForm>(shippingFormFromContact(null))
+const shippingForm = ref<ShippingForm>(emptyShippingForm())
 
 const openShippingDialog = () => {
-  const shipping = orderDocument.value?.shipping
-  shippingForm.value = shipping
-    ? shippingFormFromShipping(shipping)
-    : shippingFormFromContact(contact.value)
+  if (!orderDocument.value) {
+    return
+  }
+  shippingForm.value = shippingFormFromShipping(orderDocument.value.shipping)
   shippingDialog.value = true
 }
 
@@ -378,20 +375,6 @@ const saveShipping = async (body: OutboundOrderShippingUpsertSchema) => {
     }
   } finally {
     savingShipping.value = false
-  }
-}
-
-const removeShipping = async () => {
-  if (!orderDocument.value) {
-    return
-  }
-  const data = onResponse(
-    await warehouseApiRoutesOutboundOrdersDeleteOutboundOrderShipping({
-      path: { order_code: orderDocument.value.code },
-    }),
-  )
-  if (data) {
-    order.value = data.data
   }
 }
 

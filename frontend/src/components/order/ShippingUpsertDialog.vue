@@ -9,7 +9,7 @@
 
         <q-form class="flex flex-col gap-3" @submit="onSubmit">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <ShippingTypeSelect v-model="form.shipping_type" required />
+            <ShippingTypeSelect v-model="form.shipping_type" />
             <q-input v-model.trim="form.package_number" outlined label="Číslo balíku" />
           </div>
 
@@ -152,7 +152,7 @@ const props = withDefaults(
     contact?: ContactPersonSchema | null
   }>(),
   {
-    title: 'Doprava',
+    title: 'Upravit dopravu',
     submitLabel: 'uložit',
     loading: false,
     weight: 0,
@@ -175,9 +175,6 @@ const loadFromContact = () => {
 }
 
 const onSubmit = () => {
-  const body = toShippingUpsertBody(form.value)
-  if (body) {
-    emit('submit', body)
-  }
+  emit('submit', toShippingUpsertBody(form.value))
 }
 </script>

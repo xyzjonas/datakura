@@ -207,8 +207,15 @@ class ShippingTypeFactory(DjangoModelFactory):
 
 
 class OutboundOrderShippingFactory(DjangoModelFactory):
+    """The order already has an (empty) shipping, created with it: update that one."""
+
     class Meta:
         model = OutboundOrderShipping
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        order = kwargs.pop("order")
+        return model_class.objects.update_or_create(order=order, defaults=kwargs)[0]
 
     @classmethod
     def it(cls, **kwargs) -> OutboundOrderShipping:

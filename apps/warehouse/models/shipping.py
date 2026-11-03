@@ -29,7 +29,9 @@ class ShippingType(BaseModel):
 
 class OutboundOrderShipping(BaseModel):
     """
-    Where and how an `OutboundOrder` is shipped. At most one per order.
+    Where and how an `OutboundOrder` is shipped. Exactly one per order: it is created
+    together with the order (see `signals.py`), possibly empty, and never deleted
+    on its own.
 
     The address is a snapshot seeded from `OutboundOrder.contact` (overridable);
     it is rewritten whenever the order's contact changes. The weight is not stored,
@@ -40,7 +42,11 @@ class OutboundOrderShipping(BaseModel):
         OutboundOrder, on_delete=models.CASCADE, related_name="shipping"
     )
     shipping_type = models.ForeignKey(
-        ShippingType, on_delete=models.PROTECT, related_name="shippings"
+        ShippingType,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="shippings",
     )
     package_number = models.CharField(max_length=100, blank=True, default="")
 
@@ -69,4 +75,4 @@ class OutboundOrderShipping(BaseModel):
         verbose_name_plural = "Outbound order shippings"
 
     def __str__(self) -> str:
-        return f"{self.order.code} | {self.shipping_type.name}"
+        return f"{self.order.code} | {self.shipping_type or '-'}"

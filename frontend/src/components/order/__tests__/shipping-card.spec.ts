@@ -41,18 +41,24 @@ const mountCard = (props: Partial<InstanceType<typeof ShippingCard>['$props']> =
   })
 
 describe('ShippingCard', () => {
-  it('shows an empty state with a create action when there is no shipping', async () => {
-    const wrapper = mountCard({ shipping: null })
+  it('is rendered for an empty shipping', () => {
+    const wrapper = mountCard({
+      shipping: {
+        ...shipping,
+        shipping_type: null,
+        package_number: '',
+        name: '',
+        width: null,
+        height: null,
+        depth: null,
+        price: null,
+        price_with_vat: null,
+      },
+    })
 
-    expect(wrapper.find('[data-testid="shipping-empty"]').exists()).toBe(true)
-    await wrapper.find('[data-testid="shipping-empty"] button').trigger('click')
-    expect(wrapper.emitted('edit')).toHaveLength(1)
-  })
-
-  it('hides the create action when not editable', () => {
-    const wrapper = mountCard({ shipping: null, editable: false })
-
-    expect(wrapper.find('[data-testid="shipping-empty"] button').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="shipping-type"]').text()).toBe('Typ dopravy nezadán')
+    expect(wrapper.get('[data-testid="shipping-weight"]').text()).toBe('35.10 g')
+    expect(wrapper.get('[data-testid="shipping-dimensions"]').text()).toBe('rozměry nezadány')
   })
 
   it('renders type, dimensions, derived weight, address and prices', () => {
@@ -84,14 +90,16 @@ describe('ShippingCard', () => {
     expect(wrapper.text()).not.toContain('číslo balíku')
   })
 
-  it('emits edit and remove', async () => {
+  it('emits edit', async () => {
     const wrapper = mountCard()
 
     await wrapper.get('[data-testid="shipping-edit"]').trigger('click')
-    await wrapper.get('[data-testid="shipping-remove"]').trigger('click')
 
     expect(wrapper.emitted('edit')).toHaveLength(1)
-    expect(wrapper.emitted('remove')).toHaveLength(1)
+  })
+
+  it('has no remove action at all', () => {
+    expect(mountCard().find('[data-testid="shipping-remove"]').exists()).toBe(false)
   })
 
   it('has no actions when not editable', () => {

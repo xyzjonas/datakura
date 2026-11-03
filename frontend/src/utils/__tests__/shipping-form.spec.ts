@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ContactPersonSchema, OutboundOrderShippingSchema } from '@/client'
 import {
   emptyShippingForm,
-  shippingFormFromContact,
+  addressFromContact,
   shippingFormFromShipping,
   toShippingUpsertBody,
 } from '../shipping-form'
@@ -21,10 +21,9 @@ const contact = {
   phone: '+420 770 181 044',
 } as ContactPersonSchema
 
-describe('shippingFormFromContact', () => {
-  it('seeds the address from the contact, leaves the transit data empty', () => {
-    expect(shippingFormFromContact(contact)).toEqual({
-      ...emptyShippingForm(),
+describe('addressFromContact', () => {
+  it('maps the contact to the address fields', () => {
+    expect(addressFromContact(contact)).toEqual({
       name: 'Ing. Svitlana Zherstenko',
       state: 'SK',
       city: 'LITOVEL',
@@ -35,22 +34,30 @@ describe('shippingFormFromContact', () => {
     })
   })
 
-  it.each([null, undefined])('is an empty form without a contact (%s)', (value) => {
-    expect(shippingFormFromContact(value)).toEqual(emptyShippingForm())
+  it.each([null, undefined])('is empty without a contact (%s)', (value) => {
+    expect(addressFromContact(value)).toEqual({})
   })
 
   it('falls back to blanks and CZ for a contact without an address', () => {
-    const form = shippingFormFromContact({
+    const address = addressFromContact({
       first_name: 'Jan',
       last_name: 'Novák',
       street: null,
       state: null,
     } as ContactPersonSchema)
-    expect(form).toMatchObject({ name: 'Jan Novák', street: '', city: '', state: 'CZ' })
+    expect(address).toMatchObject({ name: 'Jan Novák', street: '', city: '', state: 'CZ' })
   })
 })
 
 describe('shippingFormFromShipping', () => {
+  it('keeps an empty shipping type empty', () => {
+    const form = shippingFormFromShipping({
+      id: 1,
+      shipping_type: null,
+    } as OutboundOrderShippingSchema)
+    expect(form.shipping_type).toBeNull()
+  })
+
   it('maps the stored shipping 1:1 and normalizes missing values', () => {
     const form = shippingFormFromShipping({
       id: 1,
@@ -73,8 +80,8 @@ describe('shippingFormFromShipping', () => {
 })
 
 describe('toShippingUpsertBody', () => {
-  it('requires the shipping type', () => {
-    expect(toShippingUpsertBody(emptyShippingForm())).toBeNull()
+  it('allows an empty shipping type', () => {
+    expect(toShippingUpsertBody(emptyShippingForm())).toMatchObject({ shipping_type_id: null })
   })
 
   it('sends the type id and never the weight', () => {

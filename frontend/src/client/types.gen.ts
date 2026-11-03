@@ -3305,7 +3305,7 @@ export type OutboundOrderSchema = {
     warehouse_orders?: Array<OutboundWarehouseOrderBaseSchema>;
     credit_note?: CreditNoteBaseSchema | null;
     invoice?: InvoiceSchema | null;
-    shipping?: OutboundOrderShippingSchema | null;
+    shipping: OutboundOrderShippingSchema;
     /**
      * Total Weight
      */
@@ -3328,7 +3328,7 @@ export type OutboundOrderShippingSchema = {
      * Id
      */
     id: number;
-    shipping_type: ShippingTypeSchema;
+    shipping_type?: ShippingTypeSchema | null;
     /**
      * Package Number
      */
@@ -3496,7 +3496,7 @@ export type OutboundOrderShippingUpsertSchema = {
     /**
      * Shipping Type Id
      */
-    shipping_type_id: number;
+    shipping_type_id?: number | null;
     /**
      * Package Number
      */
@@ -7815,27 +7815,6 @@ export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponses = {
 };
 
 export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponse = WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponses[keyof WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponses];
-
-export type WarehouseApiRoutesOutboundOrdersDeleteOutboundOrderShippingData = {
-    body?: never;
-    path: {
-        /**
-         * Order Code
-         */
-        order_code: string;
-    };
-    query?: never;
-    url: '/api/v1/orders-outgoing/{order_code}/shipping';
-};
-
-export type WarehouseApiRoutesOutboundOrdersDeleteOutboundOrderShippingResponses = {
-    /**
-     * OK
-     */
-    200: GetOutboundOrderResponse;
-};
-
-export type WarehouseApiRoutesOutboundOrdersDeleteOutboundOrderShippingResponse = WarehouseApiRoutesOutboundOrdersDeleteOutboundOrderShippingResponses[keyof WarehouseApiRoutesOutboundOrdersDeleteOutboundOrderShippingResponses];
 
 export type WarehouseApiRoutesOutboundOrdersUpsertOutboundOrderShippingData = {
     body: OutboundOrderShippingUpsertSchema;

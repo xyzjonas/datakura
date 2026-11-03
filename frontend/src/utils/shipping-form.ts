@@ -65,7 +65,7 @@ export const addressFromContact = (
     : {}
 
 export const shippingFormFromShipping = (shipping: OutboundOrderShippingSchema): ShippingForm => ({
-  shipping_type: shipping.shipping_type,
+  shipping_type: shipping.shipping_type ?? null,
   package_number: shipping.package_number ?? '',
   width: shipping.width ?? null,
   height: shipping.height ?? null,
@@ -81,11 +81,6 @@ export const shippingFormFromShipping = (shipping: OutboundOrderShippingSchema):
   price_with_vat: shipping.price_with_vat ?? null,
 })
 
-/** Form of an order that has no shipping yet: only the address is prefilled. */
-export const shippingFormFromContact = (
-  contact: ContactPersonSchema | null | undefined,
-): ShippingForm => ({ ...emptyShippingForm(), ...addressFromContact(contact) })
-
 // q-input may hand over '' (cleared) or a numeric string
 const toNumberOrNull = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') {
@@ -95,13 +90,7 @@ const toNumberOrNull = (value: unknown): number | null => {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-/** `null` when the (required) shipping type is missing. */
-export const toShippingUpsertBody = (
-  form: ShippingForm,
-): OutboundOrderShippingUpsertSchema | null => {
-  if (!form.shipping_type) {
-    return null
-  }
+export const toShippingUpsertBody = (form: ShippingForm): OutboundOrderShippingUpsertSchema => {
   const { shipping_type, ...rest } = form
   return {
     ...rest,
@@ -110,6 +99,6 @@ export const toShippingUpsertBody = (
     depth: toNumberOrNull(rest.depth),
     price: toNumberOrNull(rest.price),
     price_with_vat: toNumberOrNull(rest.price_with_vat),
-    shipping_type_id: shipping_type.id,
+    shipping_type_id: shipping_type?.id ?? null,
   }
 }

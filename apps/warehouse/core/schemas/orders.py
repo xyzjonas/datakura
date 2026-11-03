@@ -175,7 +175,7 @@ class OutboundOrderSchema(OutboundDocumentSchema):
     )
     credit_note: CreditNoteBaseSchema | None = None
     invoice: InvoiceSchema | None = None
-    shipping: OutboundOrderShippingSchema | None = None
+    shipping: OutboundOrderShippingSchema
     # derived from the items (amount x product unit weight)
     total_weight: float = 0
 

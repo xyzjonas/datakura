@@ -79,11 +79,18 @@ class ShippingService:
         }
 
     @classmethod
+    def ensure_order_shipping(cls, order: OutboundOrder) -> OutboundOrderShipping:
+        """Get the order's shipping, creating an empty one (address from contact)."""
+        return OutboundOrderShipping.objects.get_or_create(
+            order=order, defaults=cls.address_from_contact(order.contact)
+        )[0]
+
+    @classmethod
     def sync_address_with_contact(cls, order: OutboundOrder) -> None:
         """Rewrite the shipping address from the order's (just changed) contact."""
-        shipping = OutboundOrderShipping.objects.filter(order=order).first()
-        if shipping is None or order.contact is None:
+        if order.contact is None:
             return
+        shipping = cls.ensure_order_shipping(order)
         for field, value in cls.address_from_contact(order.contact).items():
             setattr(shipping, field, value)
         shipping.save()
@@ -102,7 +109,11 @@ class ShippingService:
         context: RequestContext,
     ) -> OutboundOrderSchema:
         order = OutboundOrder.objects.get(code=order_code)
-        shipping_type = ShippingType.objects.get(pk=params.shipping_type_id)
+        shipping_type = (
+            ShippingType.objects.get(pk=params.shipping_type_id)
+            if params.shipping_type_id is not None
+            else None
+        )
         values = dict(
             shipping_type=shipping_type,
             package_number=params.package_number.strip(),
@@ -120,27 +131,15 @@ class ShippingService:
             price_with_vat=_to_decimal(params.price_with_vat),
         )
         with transaction.atomic():
-            OutboundOrderShipping.objects.update_or_create(order=order, defaults=values)
+            shipping = cls.ensure_order_shipping(order)
+            for field, value in values.items():
+                setattr(shipping, field, value)
+            shipping.save()
             audit_service.add_entry(
                 order,
                 action=AuditAction.UPDATE,
                 user=context.user_id,
                 reason=AuditMessages.ORDER_SHIPPING_UPDATED.CS,
-            )
-        return cls._schema(order)
-
-    @classmethod
-    def delete_order_shipping(
-        cls, order_code: str, context: RequestContext
-    ) -> OutboundOrderSchema:
-        order = OutboundOrder.objects.get(code=order_code)
-        with transaction.atomic():
-            OutboundOrderShipping.objects.filter(order=order).delete()
-            audit_service.add_entry(
-                order,
-                action=AuditAction.UPDATE,
-                user=context.user_id,
-                reason=AuditMessages.ORDER_SHIPPING_REMOVED.CS,
             )
         return cls._schema(order)
 

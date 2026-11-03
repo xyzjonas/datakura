@@ -47,12 +47,13 @@ describe('ShippingUpsertDialog', () => {
     expect(body).not.toHaveProperty('weight')
   })
 
-  it('does not submit without a shipping type', async () => {
+  it('submits even without a shipping type', async () => {
     const wrapper = mountDialog(emptyShippingForm())
 
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.emitted('submit')).toBeUndefined()
+    const [[body]] = wrapper.emitted('submit') as unknown as [[Record<string, unknown>]]
+    expect(body).toMatchObject({ shipping_type_id: null })
   })
 
   it('offers loading the address from the contact only when there is one', async () => {
