@@ -21,6 +21,15 @@
           >{{ item.product.name }}</router-link
         >
         <div class="text-xs text-gray-5">{{ item.product.code }}</div>
+        <q-badge
+          v-if="item.requires_certification"
+          :color="item.certification ? 'positive' : 'orange'"
+          class="mt-1 py-0.5"
+          data-test="certification-badge"
+        >
+          <q-icon name="sym_o_verified" class="mr-1" size="14px" />
+          {{ item.certification ? item.certification.code : 'chybí certifikát' }}
+        </q-badge>
       </div>
 
       <div class="grid items-center grid-cols-4 flex-1 text-right">

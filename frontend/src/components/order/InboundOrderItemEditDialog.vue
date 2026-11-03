@@ -59,6 +59,20 @@
             <span class="text-xs text-gray-6">{{ currency }}</span>
           </template>
         </q-input>
+
+        <q-separator />
+
+        <q-toggle
+          v-model="item.requires_certification"
+          label="Certifikované zboží"
+          data-test="requires-certification"
+          @update:model-value="update('certification')"
+        />
+        <InboundItemCertification
+          v-if="item.requires_certification"
+          v-model:item="item"
+          :order-code="orderCode"
+        />
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -74,6 +88,7 @@ import { round } from '@/utils/round'
 import { rules } from '@/utils/rules'
 import { useQuasar } from 'quasar'
 import { ref, watch } from 'vue'
+import InboundItemCertification from '../certification/InboundItemCertification.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 
 const $q = useQuasar()
@@ -97,7 +112,7 @@ watch(show, (visible) => {
   }
 })
 
-const update = async (changedField: 'amount' | 'unit' | 'total') => {
+const update = async (changedField: 'amount' | 'unit' | 'total' | 'certification') => {
   if (changedField === 'total') {
     unitPrice.value = item.value.amount ? round(totalPrice.value / item.value.amount) : 0
   } else {
@@ -112,6 +127,8 @@ const update = async (changedField: 'amount' | 'unit' | 'total') => {
       amount: item.value.amount,
       total_price: totalPrice.value,
       unit_price: unitPrice.value,
+      // always sent - omitting it would unflag the row and drop its certificate
+      requires_certification: item.value.requires_certification,
     },
   })
 

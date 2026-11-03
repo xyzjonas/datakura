@@ -134,6 +134,7 @@
     v-model:show="setItemTrackingDialog"
     :item="asOrderItem"
     :tracking-type-in="trackingType"
+    :locked-batch-code="item.pending ? item.batch_barcode : null"
     @packaged="(items, batch, trackingType) => $emit('packaged', items, batch, trackingType)"
   />
   <InboundWarehouseOrderRemoveItemDialog

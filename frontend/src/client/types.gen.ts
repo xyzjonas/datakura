@@ -2741,6 +2741,37 @@ export type CustomerGroupCreateOrUpdateSchema = {
 };
 
 /**
+ * CertificationSchema
+ */
+export type CertificationSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    attachment?: MediaFileSchema | null;
+    /**
+     * Batch Codes
+     */
+    batch_codes?: Array<string>;
+};
+
+/**
  * CreditNoteBaseSchema
  */
 export type CreditNoteBaseSchema = {
@@ -2803,6 +2834,15 @@ export type InboundOrderItemSchema = {
      * Index
      */
     index: number;
+    /**
+     * Requires Certification
+     */
+    requires_certification?: boolean;
+    certification?: CertificationSchema | null;
+    /**
+     * Batch Code
+     */
+    batch_code?: string | null;
 };
 
 /**
@@ -3127,6 +3167,32 @@ export type InboundOrderItemCreateSchema = {
      * Index
      */
     index?: number | null;
+    /**
+     * Requires Certification
+     */
+    requires_certification?: boolean;
+};
+
+/**
+ * CertificationAttachSchema
+ * Attach a certification to an inbound order item.
+ *
+ * Either reuse an existing standalone certification (`certification_id`) or
+ * create a new one from `code` / `description` (+ the uploaded file).
+ */
+export type CertificationAttachSchema = {
+    /**
+     * Certification Id
+     */
+    certification_id?: number | null;
+    /**
+     * Code
+     */
+    code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
 };
 
 /**
@@ -5652,6 +5718,110 @@ export type DeleteUserResponse = {
     data: UserSchema;
 };
 
+/**
+ * GetCertificationsResponse
+ */
+export type GetCertificationsResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<CertificationSchema>;
+};
+
+/**
+ * GetCertificationResponse
+ */
+export type GetCertificationResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: CertificationSchema;
+};
+
+/**
+ * CertificationFormSchema
+ * Multipart form fields - the attachment travels as a separate file part.
+ */
+export type CertificationFormSchema = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+};
+
+/**
+ * AvailableCertificationSchema
+ * Certified stock of a single product - one row per certification.
+ */
+export type AvailableCertificationSchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    attachment?: MediaFileSchema | null;
+    /**
+     * Ordered Date
+     */
+    ordered_date: string;
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Batch Code
+     */
+    batch_code: string;
+};
+
+/**
+ * GetAvailableCertificationsResponse
+ */
+export type GetAvailableCertificationsResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<AvailableCertificationSchema>;
+};
+
+/**
+ * DeleteCertificationResponse
+ */
+export type DeleteCertificationResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data?: null;
+};
+
 export type WarehouseApiRoutesAuthLoginUserData = {
     body: LoginFormSchema;
     path?: never;
@@ -7628,6 +7798,77 @@ export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses = {
 };
 
 export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponse = WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses];
+
+export type WarehouseApiRoutesInboundOrdersRemoveInboundOrderItemCertificationData = {
+    body?: never;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+        /**
+         * Item Index
+         */
+        item_index: number;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/items/{item_index}/certification';
+};
+
+export type WarehouseApiRoutesInboundOrdersRemoveInboundOrderItemCertificationResponses = {
+    /**
+     * OK
+     */
+    200: CreateInboundOrderItemResponse;
+};
+
+export type WarehouseApiRoutesInboundOrdersRemoveInboundOrderItemCertificationResponse = WarehouseApiRoutesInboundOrdersRemoveInboundOrderItemCertificationResponses[keyof WarehouseApiRoutesInboundOrdersRemoveInboundOrderItemCertificationResponses];
+
+export type WarehouseApiRoutesInboundOrdersSetInboundOrderItemCertificationData = {
+    /**
+     * FormParams
+     */
+    body: {
+        /**
+         * Certification Id
+         */
+        certification_id?: number | null;
+        /**
+         * Code
+         */
+        code?: string | null;
+        /**
+         * Description
+         */
+        description?: string | null;
+    };
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+        /**
+         * Item Index
+         */
+        item_index: number;
+    };
+    query?: {
+        /**
+         * Attachment
+         */
+        attachment?: Blob | File | null;
+    };
+    url: '/api/v1/orders/{order_code}/items/{item_index}/certification';
+};
+
+export type WarehouseApiRoutesInboundOrdersSetInboundOrderItemCertificationResponses = {
+    /**
+     * OK
+     */
+    200: CreateInboundOrderItemResponse;
+};
+
+export type WarehouseApiRoutesInboundOrdersSetInboundOrderItemCertificationResponse = WarehouseApiRoutesInboundOrdersSetInboundOrderItemCertificationResponses[keyof WarehouseApiRoutesInboundOrdersSetInboundOrderItemCertificationResponses];
 
 export type WarehouseApiRoutesInboundOrdersDuplicateInboundOrderData = {
     body?: never;
@@ -9749,3 +9990,158 @@ export type WarehouseApiRoutesUsersUpdateUserResponses = {
 };
 
 export type WarehouseApiRoutesUsersUpdateUserResponse = WarehouseApiRoutesUsersUpdateUserResponses[keyof WarehouseApiRoutesUsersUpdateUserResponses];
+
+export type WarehouseApiRoutesCertificationsGetCertificationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+    };
+    url: '/api/v1/certifications';
+};
+
+export type WarehouseApiRoutesCertificationsGetCertificationsResponses = {
+    /**
+     * OK
+     */
+    200: GetCertificationsResponse;
+};
+
+export type WarehouseApiRoutesCertificationsGetCertificationsResponse = WarehouseApiRoutesCertificationsGetCertificationsResponses[keyof WarehouseApiRoutesCertificationsGetCertificationsResponses];
+
+export type WarehouseApiRoutesCertificationsCreateCertificationData = {
+    /**
+     * FormParams
+     */
+    body: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Description
+         */
+        description?: string | null;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Attachment
+         */
+        attachment?: Blob | File | null;
+    };
+    url: '/api/v1/certifications';
+};
+
+export type WarehouseApiRoutesCertificationsCreateCertificationResponses = {
+    /**
+     * OK
+     */
+    200: GetCertificationResponse;
+};
+
+export type WarehouseApiRoutesCertificationsCreateCertificationResponse = WarehouseApiRoutesCertificationsCreateCertificationResponses[keyof WarehouseApiRoutesCertificationsCreateCertificationResponses];
+
+export type WarehouseApiRoutesCertificationsGetAvailableCertificationsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    url: '/api/v1/certifications/available';
+};
+
+export type WarehouseApiRoutesCertificationsGetAvailableCertificationsResponses = {
+    /**
+     * OK
+     */
+    200: GetAvailableCertificationsResponse;
+};
+
+export type WarehouseApiRoutesCertificationsGetAvailableCertificationsResponse = WarehouseApiRoutesCertificationsGetAvailableCertificationsResponses[keyof WarehouseApiRoutesCertificationsGetAvailableCertificationsResponses];
+
+export type WarehouseApiRoutesCertificationsDeleteCertificationData = {
+    body?: never;
+    path: {
+        /**
+         * Certification Id
+         */
+        certification_id: number;
+    };
+    query?: never;
+    url: '/api/v1/certifications/{certification_id}';
+};
+
+export type WarehouseApiRoutesCertificationsDeleteCertificationResponses = {
+    /**
+     * OK
+     */
+    200: DeleteCertificationResponse;
+};
+
+export type WarehouseApiRoutesCertificationsDeleteCertificationResponse = WarehouseApiRoutesCertificationsDeleteCertificationResponses[keyof WarehouseApiRoutesCertificationsDeleteCertificationResponses];
+
+export type WarehouseApiRoutesCertificationsGetCertificationData = {
+    body?: never;
+    path: {
+        /**
+         * Certification Id
+         */
+        certification_id: number;
+    };
+    query?: never;
+    url: '/api/v1/certifications/{certification_id}';
+};
+
+export type WarehouseApiRoutesCertificationsGetCertificationResponses = {
+    /**
+     * OK
+     */
+    200: GetCertificationResponse;
+};
+
+export type WarehouseApiRoutesCertificationsGetCertificationResponse = WarehouseApiRoutesCertificationsGetCertificationResponses[keyof WarehouseApiRoutesCertificationsGetCertificationResponses];
+
+export type WarehouseApiRoutesCertificationsUpdateCertificationData = {
+    /**
+     * FormParams
+     */
+    body: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Description
+         */
+        description?: string | null;
+    };
+    path: {
+        /**
+         * Certification Id
+         */
+        certification_id: number;
+    };
+    query?: {
+        /**
+         * Attachment
+         */
+        attachment?: Blob | File | null;
+    };
+    url: '/api/v1/certifications/{certification_id}';
+};
+
+export type WarehouseApiRoutesCertificationsUpdateCertificationResponses = {
+    /**
+     * OK
+     */
+    200: GetCertificationResponse;
+};
+
+export type WarehouseApiRoutesCertificationsUpdateCertificationResponse = WarehouseApiRoutesCertificationsUpdateCertificationResponses[keyof WarehouseApiRoutesCertificationsUpdateCertificationResponses];

@@ -51,6 +51,30 @@ describe('InboundOrderItemRowCompact', () => {
     expect(wrapper.emitted('remove')).toHaveLength(1)
   })
 
+  it('shows no certification badge for regular rows', () => {
+    const wrapper = mountRow(makeItem(10))
+    expect(wrapper.find('[data-test="certification-badge"]').exists()).toBe(false)
+  })
+
+  it('flags a certified row that still misses its certificate', () => {
+    const wrapper = mountRow({
+      ...makeItem(10),
+      requires_certification: true,
+      certification: null,
+    })
+    const badge = wrapper.get('[data-test="certification-badge"]')
+    expect(badge.text()).toContain('chybí certifikát')
+  })
+
+  it('shows the certificate code once supplied', () => {
+    const wrapper = mountRow({
+      ...makeItem(10),
+      requires_certification: true,
+      certification: { id: 1, code: 'EN-10204' },
+    } as unknown as InboundOrderItemSchema)
+    expect(wrapper.get('[data-test="certification-badge"]').text()).toContain('EN-10204')
+  })
+
   it('disables edit and remove when readonly', () => {
     const wrapper = mountRow(makeItem(10), true)
     expect(

@@ -124,6 +124,7 @@
   <OutboundOrderItemRequirementsDialog
     v-model:show="requirementsDialog"
     :product-name="item.product.name"
+    :product-code="item.product.code"
     :initial-mode="requirementsMode"
     :desired-package-type-name="item.desired_package_type_name"
     :desired-batch-code="item.desired_batch_code"
