@@ -5,6 +5,14 @@
 - Use `just` for all the tasks like lint, test, build, openAPI regen, etc.
 - Use plain `just` to simulate a CI run - this needs to pass before commit!
 
+
+## Git
+- use git worktree
+- each feature is to be started in a new clean worktree / feature branch
+- new feature branches should always be based off of the "origin/main" (!) branch - fetch if needed
+- implement each change as a semantic commit, push the brancha and open a PR once it is ready
+
+
 ## Testing instructions
 
 - use pytest exclusively
