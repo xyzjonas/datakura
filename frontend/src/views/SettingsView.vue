@@ -48,6 +48,7 @@ import CustomerSettingsTab from '@/components/settings/CustomerSettingsTab.vue'
 import DiscountSettingsTab from '@/components/settings/DiscountSettingsTab.vue'
 import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue'
 import PaymentSettingsTab from '@/components/settings/PaymentSettingsTab.vue'
+import ShippingSettingsTab from '@/components/settings/ShippingSettingsTab.vue'
 import PrintersSettingsTab from '@/components/settings/PrintersSettingsTab.vue'
 import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
 import { computed, ref, shallowRef, watch, type Component } from 'vue'
@@ -70,6 +71,7 @@ const validTabs = new Set([
   'customers',
   'discounts',
   'payments',
+  'shipping',
   'printers',
   'import',
   'users',
@@ -115,6 +117,8 @@ watch(
       selectedTabComponent.value = DiscountSettingsTab
     } else if (value === 'payments') {
       selectedTabComponent.value = PaymentSettingsTab
+    } else if (value === 'shipping') {
+      selectedTabComponent.value = ShippingSettingsTab
     } else if (value === 'printers') {
       selectedTabComponent.value = PrintersSettingsTab
     } else if (value === 'import') {
@@ -163,6 +167,11 @@ const allItems = [
     key: 'payments',
     label: 'Platební metody',
     icon: 'sym_o_payments',
+  },
+  {
+    key: 'shipping',
+    label: 'Doprava',
+    icon: 'sym_o_local_shipping',
   },
   {
     key: 'printers',

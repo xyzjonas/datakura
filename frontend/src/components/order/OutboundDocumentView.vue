@@ -101,6 +101,15 @@
       />
     </div>
 
+    <ShippingCard
+      v-if="orderDocument"
+      :shipping="orderDocument.shipping"
+      :weight="orderDocument.total_weight ?? 0"
+      :currency="orderDocument.currency"
+      :editable="orderDocument.state !== 'cancelled'"
+      @edit="openShippingDialog"
+    />
+
     <CommentCard v-if="order.note">{{ order.note }}</CommentCard>
 
     <OutboundOrderTimeline v-if="orderDocument" :order="orderDocument" />
@@ -140,6 +149,17 @@
       @create-order="updateOrder"
     />
 
+    <ShippingUpsertDialog
+      v-if="orderDocument"
+      v-model:show="shippingDialog"
+      v-model="shippingForm"
+      :weight="orderDocument.total_weight ?? 0"
+      :currency="orderDocument.currency"
+      :contact="contact"
+      :loading="savingShipping"
+      @submit="saveShipping"
+    />
+
     <AuditLogDialog
       v-model:show="auditDialog"
       :source="isCalculation ? 'outbound-calculation' : 'outbound-order'"
@@ -156,11 +176,13 @@
 </template>
 
 <script setup lang="ts">
-import type {
-  OutboundCalculationCreateOrUpdateSchema,
-  OutboundCalculationSchema,
-  OutboundOrderItemCreateSchema,
-  OutboundOrderSchema,
+import {
+  warehouseApiRoutesOutboundOrdersUpsertOutboundOrderShipping,
+  type OutboundCalculationCreateOrUpdateSchema,
+  type OutboundCalculationSchema,
+  type OutboundOrderItemCreateSchema,
+  type OutboundOrderSchema,
+  type OutboundOrderShippingUpsertSchema,
 } from '@/client'
 import CommentCard from '@/components/CommentCard.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
@@ -175,6 +197,8 @@ import OutboundOrderActions from '@/components/order/OutboundOrderActions.vue'
 import OutboundOrderDetailsListCard from '@/components/order/OutboundOrderDetailsListCard.vue'
 import OutboundOrderProductsList from '@/components/order/OutboundOrderProductsList.vue'
 import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
+import ShippingCard from '@/components/order/ShippingCard.vue'
+import ShippingUpsertDialog from '@/components/order/ShippingUpsertDialog.vue'
 import OutboundOrderTimeline from '@/components/order/OutboundOrderTimeline.vue'
 import OutboundOrderUpdateOrCreateDialog from '@/components/order/OutboundOrderUpdateOrCreateDialog.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
@@ -187,6 +211,11 @@ import {
   type OutboundDocumentKind,
 } from '@/composables/use-outbound-document-api'
 import { contactFullName } from '@/utils/contact-name'
+import {
+  emptyShippingForm,
+  shippingFormFromShipping,
+  type ShippingForm,
+} from '@/utils/shipping-form'
 import { useQuasar } from 'quasar'
 import { computed, ref } from 'vue'
 
@@ -313,6 +342,41 @@ const contact = computed({
     }
   },
 })
+
+// every order has a shipping (possibly empty), orders only; it always comes back as part of the (refreshed) order, so
+// a contact change - which rewrites the shipping address on the backend - shows up right away
+const shippingDialog = ref(false)
+const savingShipping = ref(false)
+const shippingForm = ref<ShippingForm>(emptyShippingForm())
+
+const openShippingDialog = () => {
+  if (!orderDocument.value) {
+    return
+  }
+  shippingForm.value = shippingFormFromShipping(orderDocument.value.shipping)
+  shippingDialog.value = true
+}
+
+const saveShipping = async (body: OutboundOrderShippingUpsertSchema) => {
+  if (!orderDocument.value) {
+    return
+  }
+  savingShipping.value = true
+  try {
+    const data = onResponse(
+      await warehouseApiRoutesOutboundOrdersUpsertOutboundOrderShipping({
+        path: { order_code: orderDocument.value.code },
+        body,
+      }),
+    )
+    if (data) {
+      order.value = data.data
+      shippingDialog.value = false
+    }
+  } finally {
+    savingShipping.value = false
+  }
+}
 
 const auditDialog = ref(false)
 

@@ -10,6 +10,8 @@ class WarehouseConfig(AppConfig):
         from .api.path_converters import register_path_converters
 
         register_path_converters()
+        from . import signals  # noqa: F401
+
         connection_created.connect(
             self._configure_sqlite_connection, dispatch_uid="warehouse.sqlite.pragmas"
         )

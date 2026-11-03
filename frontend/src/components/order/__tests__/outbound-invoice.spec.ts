@@ -56,6 +56,12 @@ const buildOrder = (overrides: Partial<OutboundOrderSchema> = {}): OutboundOrder
       },
     },
     items: [],
+    shipping: {
+      id: 1,
+      shipping_type: null,
+      created: '2026-04-01T10:00:00Z',
+      changed: '2026-04-01T10:00:00Z',
+    },
     state: 'submitted',
     warehouse_orders: [
       {

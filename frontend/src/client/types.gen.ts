@@ -3305,6 +3305,82 @@ export type OutboundOrderSchema = {
     warehouse_orders?: Array<OutboundWarehouseOrderBaseSchema>;
     credit_note?: CreditNoteBaseSchema | null;
     invoice?: InvoiceSchema | null;
+    shipping: OutboundOrderShippingSchema;
+    /**
+     * Total Weight
+     */
+    total_weight?: number;
+};
+
+/**
+ * OutboundOrderShippingSchema
+ */
+export type OutboundOrderShippingSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    shipping_type?: ShippingTypeSchema | null;
+    /**
+     * Package Number
+     */
+    package_number?: string;
+    /**
+     * Width
+     */
+    width?: number | null;
+    /**
+     * Height
+     */
+    height?: number | null;
+    /**
+     * Depth
+     */
+    depth?: number | null;
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * State
+     */
+    state?: string;
+    /**
+     * City
+     */
+    city?: string;
+    /**
+     * Street
+     */
+    street?: string;
+    /**
+     * Postal Code
+     */
+    postal_code?: string;
+    /**
+     * Email
+     */
+    email?: string;
+    /**
+     * Phone
+     */
+    phone?: string;
+    /**
+     * Price
+     */
+    price?: number | null;
+    /**
+     * Price With Vat
+     */
+    price_with_vat?: number | null;
 };
 
 /**
@@ -3332,6 +3408,28 @@ export type PagedOutboundOrderSchema = {
      * Previous
      */
     previous: number | null;
+};
+
+/**
+ * ShippingTypeSchema
+ */
+export type ShippingTypeSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -3389,6 +3487,69 @@ export type OutboundOrderCreateOrUpdateSchema = {
  * OutboundOrderState
  */
 export type OutboundOrderState = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+
+/**
+ * OutboundOrderShippingUpsertSchema
+ * Weight is deliberately missing: it is always derived from the order items.
+ */
+export type OutboundOrderShippingUpsertSchema = {
+    /**
+     * Shipping Type Id
+     */
+    shipping_type_id?: number | null;
+    /**
+     * Package Number
+     */
+    package_number?: string;
+    /**
+     * Width
+     */
+    width?: number | null;
+    /**
+     * Height
+     */
+    height?: number | null;
+    /**
+     * Depth
+     */
+    depth?: number | null;
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * State
+     */
+    state?: string;
+    /**
+     * City
+     */
+    city?: string;
+    /**
+     * Street
+     */
+    street?: string;
+    /**
+     * Postal Code
+     */
+    postal_code?: string;
+    /**
+     * Email
+     */
+    email?: string;
+    /**
+     * Phone
+     */
+    phone?: string;
+    /**
+     * Price
+     */
+    price?: number | null;
+    /**
+     * Price With Vat
+     */
+    price_with_vat?: number | null;
+};
 
 /**
  * CreateOutboundOrderItemResponse
@@ -4754,6 +4915,55 @@ export type GetInvoicePaymentMethodResponse = {
  * InvoicePaymentMethodCreateOrUpdateSchema
  */
 export type InvoicePaymentMethodCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * PagedShippingTypeSchema
+ */
+export type PagedShippingTypeSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<ShippingTypeSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetShippingTypeResponse
+ */
+export type GetShippingTypeResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: ShippingTypeSchema;
+};
+
+/**
+ * ShippingTypeCreateOrUpdateSchema
+ */
+export type ShippingTypeCreateOrUpdateSchema = {
     /**
      * Name
      */
@@ -7606,6 +7816,27 @@ export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponses = {
 
 export type WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponse = WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponses[keyof WarehouseApiRoutesOutboundOrdersGetOutboundOrderAuditsResponses];
 
+export type WarehouseApiRoutesOutboundOrdersUpsertOutboundOrderShippingData = {
+    body: OutboundOrderShippingUpsertSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}/shipping';
+};
+
+export type WarehouseApiRoutesOutboundOrdersUpsertOutboundOrderShippingResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundOrderResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersUpsertOutboundOrderShippingResponse = WarehouseApiRoutesOutboundOrdersUpsertOutboundOrderShippingResponses[keyof WarehouseApiRoutesOutboundOrdersUpsertOutboundOrderShippingResponses];
+
 export type WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceData = {
     /**
      * FormParams
@@ -8959,6 +9190,93 @@ export type WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodRes
 };
 
 export type WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponse = WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponses[keyof WarehouseApiRoutesInvoicePaymentMethodsUpdateInvoicePaymentMethodResponses];
+
+export type WarehouseApiRoutesShippingTypesGetShippingTypesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/shipping-types';
+};
+
+export type WarehouseApiRoutesShippingTypesGetShippingTypesResponses = {
+    /**
+     * OK
+     */
+    200: PagedShippingTypeSchema;
+};
+
+export type WarehouseApiRoutesShippingTypesGetShippingTypesResponse = WarehouseApiRoutesShippingTypesGetShippingTypesResponses[keyof WarehouseApiRoutesShippingTypesGetShippingTypesResponses];
+
+export type WarehouseApiRoutesShippingTypesCreateShippingTypeData = {
+    body: ShippingTypeCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/shipping-types';
+};
+
+export type WarehouseApiRoutesShippingTypesCreateShippingTypeResponses = {
+    /**
+     * OK
+     */
+    200: GetShippingTypeResponse;
+};
+
+export type WarehouseApiRoutesShippingTypesCreateShippingTypeResponse = WarehouseApiRoutesShippingTypesCreateShippingTypeResponses[keyof WarehouseApiRoutesShippingTypesCreateShippingTypeResponses];
+
+export type WarehouseApiRoutesShippingTypesDeleteShippingTypeData = {
+    body?: never;
+    path: {
+        /**
+         * Type Id
+         */
+        type_id: number;
+    };
+    query?: never;
+    url: '/api/v1/shipping-types/{type_id}';
+};
+
+export type WarehouseApiRoutesShippingTypesDeleteShippingTypeResponses = {
+    /**
+     * OK
+     */
+    200: EmptyResponse;
+};
+
+export type WarehouseApiRoutesShippingTypesDeleteShippingTypeResponse = WarehouseApiRoutesShippingTypesDeleteShippingTypeResponses[keyof WarehouseApiRoutesShippingTypesDeleteShippingTypeResponses];
+
+export type WarehouseApiRoutesShippingTypesUpdateShippingTypeData = {
+    body: ShippingTypeCreateOrUpdateSchema;
+    path: {
+        /**
+         * Type Id
+         */
+        type_id: number;
+    };
+    query?: never;
+    url: '/api/v1/shipping-types/{type_id}';
+};
+
+export type WarehouseApiRoutesShippingTypesUpdateShippingTypeResponses = {
+    /**
+     * OK
+     */
+    200: GetShippingTypeResponse;
+};
+
+export type WarehouseApiRoutesShippingTypesUpdateShippingTypeResponse = WarehouseApiRoutesShippingTypesUpdateShippingTypeResponses[keyof WarehouseApiRoutesShippingTypesUpdateShippingTypeResponses];
 
 export type WarehouseApiRoutesManufacturingOrdersGetManufacturingOrdersData = {
     body?: never;

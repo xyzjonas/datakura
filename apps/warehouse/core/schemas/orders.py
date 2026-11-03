@@ -15,6 +15,7 @@ from .base_orders import (
 from .customer import ContactPersonSchema
 from .invoice import InvoiceSchema
 from .product import ProductSchema
+from .shipping import OutboundOrderShippingSchema
 
 
 # --- IncomingOrderItem Schemas --- #
@@ -174,6 +175,9 @@ class OutboundOrderSchema(OutboundDocumentSchema):
     )
     credit_note: CreditNoteBaseSchema | None = None
     invoice: InvoiceSchema | None = None
+    shipping: OutboundOrderShippingSchema
+    # derived from the items (amount x product unit weight)
+    total_weight: float = 0
 
 
 class OutboundCalculationSchema(OutboundDocumentSchema):

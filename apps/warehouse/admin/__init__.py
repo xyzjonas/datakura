@@ -10,6 +10,7 @@ from apps.warehouse.core.services.data_import.product_import_csv_legacy import (
     ProductCsvImportService,
 )
 from apps.warehouse.models.customer import ContactPerson, Customer, CustomerGroup
+from apps.warehouse.models.shipping import OutboundOrderShipping, ShippingType
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
@@ -123,6 +124,8 @@ admin.site.register(OutboundCalculation)
 admin.site.register(OutboundCalculationItem)
 admin.site.register(Invoice)
 admin.site.register(InvoicePaymentMethod)
+admin.site.register(ShippingType)
+admin.site.register(OutboundOrderShipping)
 admin.site.register(UserAppSettings)
 admin.site.register(GlobalSettings)
 

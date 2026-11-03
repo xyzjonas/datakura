@@ -15,6 +15,7 @@ from apps.warehouse.models.orders import (
     Invoice,
     InvoicePaymentMethod,
 )
+from apps.warehouse.models.shipping import OutboundOrderShipping, ShippingType
 from apps.warehouse.tests.factories.customer import CustomerFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
 
@@ -191,3 +192,42 @@ class InvoiceFactory(DjangoModelFactory):
     paid_date = None
     currency = CURRENCY_CHOICES[0][0]
     note = factory.Faker("text", max_nb_chars=200)
+
+
+class ShippingTypeFactory(DjangoModelFactory):
+    class Meta:
+        model = ShippingType
+        django_get_or_create = ("name",)
+
+    @classmethod
+    def it(cls, **kwargs) -> ShippingType:
+        return cls(**kwargs)  # type: ignore
+
+    name = factory.Sequence(lambda n: f"Shipping Type {n:04d}")
+
+
+class OutboundOrderShippingFactory(DjangoModelFactory):
+    """The order already has an (empty) shipping, created with it: update that one."""
+
+    class Meta:
+        model = OutboundOrderShipping
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        order = kwargs.pop("order")
+        return model_class.objects.update_or_create(order=order, defaults=kwargs)[0]
+
+    @classmethod
+    def it(cls, **kwargs) -> OutboundOrderShipping:
+        return cls(**kwargs)  # type: ignore
+
+    order = factory.SubFactory(OutboundOrderFactory)
+    shipping_type = factory.SubFactory(ShippingTypeFactory)
+    package_number = ""
+    name = factory.Faker("name")
+    state = "CZ"
+    city = factory.Faker("city")
+    street = factory.Faker("street_address")
+    postal_code = "78401"
+    email = factory.Faker("email")
+    phone = "+420 770 181 044"
