@@ -1,6 +1,6 @@
 import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-vitest'
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { InboundOrderItemSchema } from '@/client'
 import CloseIconButton from '../../common/buttons/CloseIconButton.vue'
 import ConfirmDialog from '../../ConfirmDialog.vue'
@@ -73,6 +73,28 @@ describe('InboundOrderItemRowCompact', () => {
       certification: { id: 1, code: 'EN-10204' },
     } as unknown as InboundOrderItemSchema)
     expect(wrapper.get('[data-test="certification-badge"]').text()).toContain('EN-10204')
+  })
+
+  describe('card layout (narrow viewport)', () => {
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('shows the certification badge on the card', () => {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: true,
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+      }))
+      const wrapper = mountRow({
+        ...makeItem(10),
+        requires_certification: true,
+        certification: null,
+      })
+      expect(wrapper.find('[data-test="order-item-card"]').exists()).toBe(true)
+      expect(wrapper.get('[data-test="certification-badge"]').text()).toContain('chybí certifikát')
+    })
   })
 
   it('disables edit and remove when readonly', () => {

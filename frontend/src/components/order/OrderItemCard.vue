@@ -17,6 +17,11 @@
             >{{ item.product.name }}</router-link
           >
           <span class="text-xs text-slate-500 font-mono mt-1">{{ item.product.code }}</span>
+          <CertificationBadge
+            class="mt-1 self-start"
+            :requires-certification="requiresCertification"
+            :certification="certification"
+          />
         </div>
       </div>
       <div class="flex items-center gap-1 shrink-0">
@@ -73,6 +78,7 @@
 <script setup lang="ts">
 import { formatDecimal } from '@/utils/format-number'
 import type { Margin } from '@/utils/margin'
+import CertificationBadge from '../certification/CertificationBadge.vue'
 import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'
 
@@ -86,6 +92,10 @@ const props = defineProps<{
   }
   currency: string
   readonly?: boolean
+  /** Inbound only. */
+  requiresCertification?: boolean
+  /** Inbound only. */
+  certification?: { code: string } | null
   purchasePrice: number
   /** Outbound only. */
   sellingPrice?: number

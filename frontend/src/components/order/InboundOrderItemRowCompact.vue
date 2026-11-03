@@ -5,6 +5,8 @@
     :currency="currency"
     :readonly="readonly"
     :purchase-price="Number(item.unit_price)"
+    :requires-certification="item.requires_certification"
+    :certification="item.certification"
     @edit="editDialog = true"
     @remove="removeDialog = true"
   />
@@ -21,15 +23,11 @@
           >{{ item.product.name }}</router-link
         >
         <div class="text-xs text-gray-5">{{ item.product.code }}</div>
-        <q-badge
-          v-if="item.requires_certification"
-          :color="item.certification ? 'positive' : 'orange'"
-          class="mt-1 py-0.5"
-          data-test="certification-badge"
-        >
-          <q-icon name="sym_o_verified" class="mr-1" size="14px" />
-          {{ item.certification ? item.certification.code : 'chybí certifikát' }}
-        </q-badge>
+        <CertificationBadge
+          class="mt-1"
+          :requires-certification="item.requires_certification"
+          :certification="item.certification"
+        />
       </div>
 
       <div class="grid items-center grid-cols-4 flex-1 text-right">
@@ -85,6 +83,7 @@ import type { InboundOrderItemSchema } from '@/client'
 import { useOrderItemCardLayout } from '@/composables/use-order-item-card-layout'
 import { computed, ref } from 'vue'
 import OrderItemCard from './OrderItemCard.vue'
+import CertificationBadge from '../certification/CertificationBadge.vue'
 import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
