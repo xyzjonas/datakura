@@ -158,6 +158,39 @@ def test_get_all_search_partial(db, client, attr):
     assert len(found) == 1
 
 
+def test_search_prefix_matches_first(db, client):
+    contains = StockProductFactory(code="6912-0801-06-030")
+    prefix = StockProductFactory(code="912-0801-06-03")
+
+    response = client.get("?search_term=912-0801")
+    assert response.status_code == 200
+    codes = [p.code for p in GetProductsResponse(**response.data).data]
+    assert codes == [prefix.code, contains.code]
+
+
+@pytest.mark.parametrize(
+    "term, expected",
+    [
+        # exact > code prefix > code substring > name prefix > name substring
+        ("ab", ["AB", "AB-10", "AB-2", "XAB", "ZZ1", "ZZ2"]),
+        ("AB", ["AB", "AB-10", "AB-2", "XAB", "ZZ1", "ZZ2"]),  # case-insensitive
+        ("nomatch", []),
+    ],
+)
+def test_search_ranking(db, client, term, expected):
+    StockProductFactory(code="XAB", name="other")
+    StockProductFactory(code="AB-2", name="other")
+    StockProductFactory(code="AB-10", name="other")
+    StockProductFactory(code="AB", name="other")
+    StockProductFactory(code="ZZ2", name="xx ab")  # name substring
+    StockProductFactory(code="ZZ1", name="abc")  # name prefix
+
+    response = client.get(f"?search_term={term}")
+    assert response.status_code == 200
+    codes = [p.code for p in GetProductsResponse(**response.data).data]
+    assert codes == expected
+
+
 def test_add_product_barcode(db, client):
     product = cast(StockProduct, StockProductFactory())
 
