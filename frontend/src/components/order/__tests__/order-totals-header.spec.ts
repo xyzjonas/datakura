@@ -41,3 +41,26 @@ describe('OrderTotalsHeader', () => {
     expect(wrapper.text()).toContain('15')
   })
 })
+
+describe('OrderTotalsHeader without margin (inbound)', () => {
+  const mountInbound = (items: object[]) =>
+    mount(OrderTotalsHeader, {
+      props: { order: { currency: 'CZK', items } as never, showMargin: false },
+    })
+
+  it('hides selling-side and margin cards, keeps purchase total and weight', () => {
+    const wrapper = mountInbound([{ amount: 3, unit_price: 5, product: { unit_weight: 2 } }])
+    expect(wrapper.find('[data-test="order-margin-percent"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="order-markup-percent"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="order-profit"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Hodnota ve skladové ceně')
+    expect(wrapper.text()).toContain('Celková nákupní cena')
+    expect(wrapper.text()).toContain('15')
+    expect(wrapper.text()).toContain('6.00')
+  })
+
+  it('handles an order without items', () => {
+    const wrapper = mountInbound([])
+    expect(wrapper.text()).toContain('0.00')
+  })
+})

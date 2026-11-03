@@ -1,6 +1,6 @@
 <template>
   <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6" data-test="order-totals-header">
-    <div class="flex justify-between">
+    <div v-if="showMargin" class="flex justify-between">
       <div class="flex flex-col gap-2 p-4">
         <span>Hodnota ve skladové ceně</span>
         <span>
@@ -12,7 +12,7 @@
 
     <div class="flex justify-between">
       <div class="flex flex-col gap-2 p-4">
-        <span>Celková prodejní cena</span>
+        <span>{{ showMargin ? 'Celková prodejní cena' : 'Celková nákupní cena' }}</span>
         <span class="text-primary">
           <strong class="text-lg">{{ formattedTotalPrice }}</strong> {{ currency }}
         </span>
@@ -20,7 +20,7 @@
       <q-separator vertical />
     </div>
 
-    <div class="flex justify-between" data-test="order-margin-percent">
+    <div v-if="showMargin" class="flex justify-between" data-test="order-margin-percent">
       <div class="flex flex-col gap-2 p-4">
         <span>Marže</span>
         <span :class="marginColor">
@@ -30,7 +30,7 @@
       <q-separator vertical />
     </div>
 
-    <div class="flex justify-between" data-test="order-markup-percent">
+    <div v-if="showMargin" class="flex justify-between" data-test="order-markup-percent">
       <div class="flex flex-col gap-2 p-4">
         <span>Přirážka</span>
         <span :class="marginColor">
@@ -40,7 +40,7 @@
       <q-separator vertical />
     </div>
 
-    <div class="flex justify-between" data-test="order-profit">
+    <div v-if="showMargin" class="flex justify-between" data-test="order-profit">
       <div class="flex flex-col gap-2 p-4">
         <span>Zisk</span>
         <span :class="marginColor">
@@ -68,8 +68,11 @@
 import { computed } from 'vue'
 import { useOrderTotals, type OrderTotalsSource } from '@/composables/use-order-totals'
 
-// Accepts any order-like object with items (outbound today, inbound later).
-const props = defineProps<{ order: OrderTotalsSource }>()
+// Accepts any order-like object with items. Inbound orders have no selling side,
+// so they pass `show-margin="false"` and only get price + weight.
+const props = withDefaults(defineProps<{ order: OrderTotalsSource; showMargin?: boolean }>(), {
+  showMargin: true,
+})
 
 const {
   formattedTotalPrice,

@@ -105,23 +105,13 @@
 
     <OutboundOrderTimeline v-if="orderDocument" :order="orderDocument" />
 
-    <div class="border rounded shadow-md mb-5">
-      <div class="flex items-center justify-between p-4">
-        <div>
-          <h2>{{ isCalculation ? 'Položky kalkulace' : 'Položky objednávky' }}</h2>
-        </div>
-        <q-btn
-          unelevated
-          color="primary"
-          icon="sym_o_add"
-          label="přidat položku"
-          :disable="!isEditable"
-          @click="addItemDialog = true"
-        ></q-btn>
-      </div>
-      <q-separator />
+    <OrderItemsHeader
+      :title="isCalculation ? 'Položky kalkulace' : 'Položky objednávky'"
+      :disabled="!isEditable"
+      @add="addItemDialog = true"
+    >
       <OrderTotalsHeader :order="order" />
-    </div>
+    </OrderItemsHeader>
 
     <OutboundOrderProductsList
       v-model:items="order.items"
@@ -178,6 +168,7 @@ import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import NewOutboundOrderItemDialog from '@/components/order/NewOutboundOrderItemDialog.vue'
+import OrderItemsHeader from '@/components/order/OrderItemsHeader.vue'
 import OrderTotalsHeader from '@/components/order/OrderTotalsHeader.vue'
 import OutboundCalculationActions from '@/components/order/OutboundCalculationActions.vue'
 import OutboundOrderActions from '@/components/order/OutboundOrderActions.vue'
