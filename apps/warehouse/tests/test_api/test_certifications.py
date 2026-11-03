@@ -22,13 +22,17 @@ from apps.warehouse.tests.factories.certification import CertificationFactory
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
     InboundOrderItemFactory,
+    OutboundOrderFactory,
+    OutboundOrderItemFactory,
 )
 from apps.warehouse.tests.factories.packaging import BatchFactory
 from apps.warehouse.tests.factories.product import StockProductFactory
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
+    OutboundWarehouseOrderItemFactory,
     WarehouseItemFactory,
     WarehouseLocationFactory,
+    WarehouseOrderOutFactory,
 )
 
 
@@ -451,7 +455,11 @@ def _batch_with_barcode(cert, code):
     return batch
 
 
-def test_available_certifications_sums_batches_and_picks_largest(db) -> None:
+def test_available_certifications_one_row_per_batch(db) -> None:
+    """
+    A requirement points at a single batch, so every row's amount has to be
+    exactly what that batch can deliver - batches are never summed together.
+    """
     product = StockProductFactory.it()
     cert = CertificationFactory.it(code="C1")
     small = _batch_with_barcode(cert, "BAT-SMALL")
@@ -463,11 +471,12 @@ def test_available_certifications_sums_batches_and_picks_largest(db) -> None:
     res = TestClient(cert_routes).get(f"/available?product_code={product.code}")
 
     assert res.status_code == 200
-    (row,) = res.json()["data"]
-    assert row["id"] == cert.pk
-    assert row["amount"] == 11
-    assert row["batch_code"] == "BAT-BIG"
-    assert row["attachment"]["url"]
+    rows = {r["batch_code"]: r for r in res.json()["data"]}
+    assert set(rows) == {"BAT-SMALL", "BAT-BIG"}
+    assert rows["BAT-SMALL"]["amount"] == 3
+    assert rows["BAT-BIG"]["amount"] == 8
+    assert all(r["id"] == cert.pk and r["code"] == "C1" for r in rows.values())
+    assert rows["BAT-BIG"]["attachment"]["url"]
 
 
 def test_available_certifications_ignores_other_products_uncertified_and_unavailable(
@@ -485,6 +494,78 @@ def test_available_certifications_ignores_other_products_uncertified_and_unavail
     res = TestClient(cert_routes).get(f"/available?product_code={product.code}")
 
     assert res.json()["data"] == []
+
+
+# ── reverse view ─────────────────────────────────────────────────────────────
+
+
+def test_certification_items_lists_stock_of_all_its_batches(db) -> None:
+    product = StockProductFactory.it()
+    other_product = StockProductFactory.it()
+    cert = CertificationFactory.it()
+    other_cert = CertificationFactory.it()
+    batch_a = _batch_with_barcode(cert, "BAT-A")
+    batch_b = _batch_with_barcode(cert, "BAT-B")
+    wanted = [_stock(product, batch_a, 4), _stock(other_product, batch_b, 6)]
+    _stock(product, _batch_with_barcode(other_cert, "BAT-X"), 9)  # other cert
+    _stock(product, BatchFactory.it(), 9)  # no certification at all
+
+    res = TestClient(cert_routes).get(f"/{cert.pk}/items")
+
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert sorted(i["id"] for i in data) == sorted(i.pk for i in wanted)
+    by_batch = {i["batch"]["primary_barcode"]["code"]: i for i in data}
+    assert by_batch["BAT-A"]["amount"] == 4
+    assert by_batch["BAT-A"]["batch"]["certification"] == {
+        "id": cert.pk,
+        "code": cert.code,
+    }
+
+
+def test_certification_items_empty_and_unknown(db) -> None:
+    cert = CertificationFactory.it()
+    client = TestClient(cert_routes)
+
+    assert client.get(f"/{cert.pk}/items").json()["data"] == []
+    with pytest.raises(ObjectDoesNotExist):
+        client.get("/99999/items")
+
+
+def test_certification_items_skips_goods_already_picked(db) -> None:
+    cert = CertificationFactory.it()
+    batch = _batch_with_barcode(cert, "BAT-1")
+    product = StockProductFactory.it()
+    kept = _stock(product, batch, 3)
+    picked = _stock(product, batch, 5)
+    outbound_order = OutboundOrderFactory.it()
+    source = OutboundOrderItemFactory.it(
+        order=outbound_order, stock_product=product, amount=5
+    )
+    OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=WarehouseOrderOutFactory.it(order=outbound_order),
+        source_order_item=source,
+        stock_product=product,
+        warehouse_item=picked,
+        amount=5,
+    )
+
+    ids = [
+        i["id"] for i in TestClient(cert_routes).get(f"/{cert.pk}/items").json()["data"]
+    ]
+
+    assert ids == [kept.pk]
+
+
+def test_batch_of_warehouse_item_exposes_its_certification(db) -> None:
+    from apps.warehouse.core.transformation import warehouse_item_orm_to_schema
+
+    cert = CertificationFactory.it(code="EN-10204")
+    item = _stock(StockProductFactory.it(), _batch_with_barcode(cert, "BAT-1"), 1)
+    plain = _stock(StockProductFactory.it(), BatchFactory.it(), 1)
+
+    assert warehouse_item_orm_to_schema(item).batch.certification.code == "EN-10204"  # type: ignore[union-attr]
+    assert warehouse_item_orm_to_schema(plain).batch.certification is None  # type: ignore[union-attr]
 
 
 def test_available_certifications_unknown_product_is_empty(db) -> None:

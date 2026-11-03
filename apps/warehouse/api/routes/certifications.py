@@ -9,11 +9,15 @@ from apps.warehouse.core.schemas.certification import (
     CertificationFormSchema,
     DeleteCertificationResponse,
     GetAvailableCertificationsResponse,
+    GetCertificationItemsResponse,
     GetCertificationResponse,
     GetCertificationsResponse,
 )
 from apps.warehouse.core.services.certifications import certifications_service
-from apps.warehouse.core.transformation import certification_orm_to_schema
+from apps.warehouse.core.transformation import (
+    certification_orm_to_schema,
+    warehouse_item_orm_to_schema,
+)
 
 routes = Router(tags=["certifications"])
 
@@ -60,6 +64,17 @@ def get_certification(request: HttpRequest, certification_id: int):
         data=certification_orm_to_schema(
             certifications_service.get_certification(certification_id)
         )
+    )
+
+
+@routes.get("/{certification_id}/items", response={200: GetCertificationItemsResponse})
+def get_certification_items(request: HttpRequest, certification_id: int):
+    """Reverse view: warehouse items (batches) carrying this certification."""
+    return GetCertificationItemsResponse(
+        data=[
+            warehouse_item_orm_to_schema(item)
+            for item in certifications_service.get_stock_items(certification_id)
+        ]
     )
 
 

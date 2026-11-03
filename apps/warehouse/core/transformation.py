@@ -8,6 +8,7 @@ from django.db.models import F
 from apps.warehouse.core.schemas.barcode import BarcodeSchema
 from apps.warehouse.core.schemas.base import MediaFileSchema
 from apps.warehouse.core.schemas.certification import CertificationSchema
+from apps.warehouse.core.schemas.certification_ref import CertificationRefSchema
 from apps.warehouse.core.schemas.base_orders import (
     InboundWarehouseOrderBaseSchema,
     OutboundWarehouseOrderBaseSchema,
@@ -340,6 +341,11 @@ def batch_orm_to_schema(batch: Batch) -> BatchSchema:
         created=batch.created,
         changed=batch.changed,
         description=batch.description,
+        certification=CertificationRefSchema(
+            id=batch.certification.pk, code=batch.certification.code
+        )
+        if batch.certification
+        else None,
     )
 
 

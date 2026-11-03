@@ -373,6 +373,7 @@ def get_product_warehouse_info(
             "location",
             "location__warehouse",
             "batch",
+            "batch__certification",
         )
         .all()
     )

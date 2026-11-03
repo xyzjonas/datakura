@@ -5,6 +5,7 @@ from datetime import datetime
 from ninja import Schema
 
 from .base import BaseResponse, BaseSchema, EmptyResponse, MediaFileSchema, Response
+from .warehouse import WarehouseItemSchema
 
 
 class CertificationSchema(BaseSchema):
@@ -36,7 +37,7 @@ class CertificationAttachSchema(Schema):
 
 
 class AvailableCertificationSchema(Schema):
-    """Certified stock of a single product - one row per certification."""
+    """Certified stock of a single product - one row per certified batch."""
 
     id: int
     code: str
@@ -44,7 +45,7 @@ class AvailableCertificationSchema(Schema):
     attachment: MediaFileSchema | None = None
     ordered_date: datetime
     amount: float
-    # Batch (barcode) with the largest available stock - used as `desired_batch`.
+    # Batch (barcode) holding `amount` - used as the `desired_batch` requirement.
     batch_code: str
 
 
@@ -57,6 +58,10 @@ class GetCertificationsResponse(BaseResponse):
 
 class GetAvailableCertificationsResponse(BaseResponse):
     data: list[AvailableCertificationSchema]
+
+
+class GetCertificationItemsResponse(BaseResponse):
+    data: list[WarehouseItemSchema]
 
 
 class DeleteCertificationResponse(EmptyResponse): ...
