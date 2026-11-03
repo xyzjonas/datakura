@@ -42,6 +42,12 @@ export const useOrderTotals = (order: MaybeRefOrGetter<OrderTotalsSource | null 
       : '',
   )
 
+  const formattedMarkupPercent = computed(() =>
+    orderMargin.value
+      ? `${isMarginPositive.value ? '+' : ''}${formatNumber(round(orderMargin.value.markupPercent))}%`
+      : '',
+  )
+
   const totalWeight = computed(() => {
     return (toValue(order)?.items ?? []).reduce(
       (sum, item) => sum + item.amount * (item.product?.unit_weight ?? 0),
@@ -61,6 +67,7 @@ export const useOrderTotals = (order: MaybeRefOrGetter<OrderTotalsSource | null 
     formattedPurchaseValue,
     formattedMarginValue,
     formattedMarginPercent,
+    formattedMarkupPercent,
     totalWeight,
     formattedWeight,
     isMarginPositive,

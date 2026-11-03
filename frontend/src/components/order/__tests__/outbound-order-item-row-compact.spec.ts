@@ -76,7 +76,9 @@ describe('OutboundOrderItemRowCompact margin', () => {
     expect(wrapper.get('[data-test="item-purchase-price"]').text()).toContain('60.00')
     const margin = wrapper.get('[data-test="item-margin"]')
     expect(margin.text()).toContain('+80.00')
-    expect(margin.text()).toContain('+66.7%')
+    expect(margin.text()).toContain('CZK')
+    expect(margin.text()).not.toContain('66.7')
+    expect(margin.text()).toContain('+40.0%')
     expect(margin.find('.text-green-600').exists()).toBe(true)
   })
 
@@ -84,6 +86,7 @@ describe('OutboundOrderItemRowCompact margin', () => {
     const wrapper = mountRow(makeItem(50, 80))
     const margin = wrapper.get('[data-test="item-margin"]')
     expect(margin.text()).toContain('-60.00')
+    expect(margin.text()).toContain('-60.0%')
     expect(margin.find('.text-red').exists()).toBe(true)
   })
 

@@ -1,14 +1,20 @@
+/**
+ * amount: zisk (profit, order currency)
+ * percent: marže - share of the selling price left (selling 100, purchase 70 -> 30 %)
+ * markupPercent: přirážka - markup on top of the purchase price (purchase 100, selling 120 -> 20 %)
+ */
 export type Margin = {
   amount: number
   percent: number
+  markupPercent: number
 }
 
-/** Margin (markup on purchase value): selling vs. purchase value, percent is relative to purchase. */
 export const calculateMargin = (sellingValue: number, purchaseValue: number): Margin => {
   const amount = sellingValue - purchaseValue
   return {
     amount,
-    percent: purchaseValue > 0 ? (amount / purchaseValue) * 100 : 0,
+    percent: sellingValue > 0 ? (amount / sellingValue) * 100 : 0,
+    markupPercent: purchaseValue > 0 ? (amount / purchaseValue) * 100 : 0,
   }
 }
 
@@ -41,6 +47,7 @@ export const calculateOrderMargin = (items?: MarginItem[]): OrderMarginSummary |
   return { sellingValue, purchaseValue, ...calculateMargin(sellingValue, purchaseValue) }
 }
 
+/** Zisk (profit) in currency units, signed. */
 export const formatMargin = (margin: Margin): string => {
   const sign = margin.amount >= 0 ? '+' : ''
   return `${sign}${margin.amount.toFixed(2)}`
@@ -49,4 +56,9 @@ export const formatMargin = (margin: Margin): string => {
 export const formatMarginPercent = (margin: Margin): string => {
   const sign = margin.percent >= 0 ? '+' : ''
   return `${sign}${margin.percent.toFixed(1)}%`
+}
+
+export const formatMarkupPercent = (margin: Margin): string => {
+  const sign = margin.markupPercent >= 0 ? '+' : ''
+  return `${sign}${margin.markupPercent.toFixed(1)}%`
 }

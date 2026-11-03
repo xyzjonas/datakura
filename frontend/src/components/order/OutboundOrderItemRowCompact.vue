@@ -53,11 +53,10 @@
 
         <!-- Margin -->
         <div data-test="item-margin" class="flex flex-col">
-          <div class="text-sm tabular-nums text-nowrap">
-            <MarginText :margin="margin" />
-          </div>
-          <span :class="margin.amount >= 0 ? 'text-green-600' : 'text-red'">{{ currency }}</span>
-          <span><MarginPercent :margin="margin" /></span>
+          <span class="text-lg tabular-nums text-nowrap"><MarginPercent :margin="margin" /></span>
+          <span class="text-sm tabular-nums text-nowrap">
+            <MarginText :margin="margin" :currency="currency" />
+          </span>
         </div>
 
         <!-- Total price -->

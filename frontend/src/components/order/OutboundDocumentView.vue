@@ -120,62 +120,7 @@
         ></q-btn>
       </div>
       <q-separator />
-      <div class="grid grid-cols-2 sm:grid-cols-4">
-        <div class="flex justify-between">
-          <div class="flex flex-col gap-2 p-4">
-            <span>Hodnota ve skladové ceně</span>
-            <span>
-              <strong class="text-lg">{{ formattedPurchaseValue }}</strong>
-              {{ currency }}</span
-            >
-          </div>
-          <q-separator vertical />
-        </div>
-
-        <div class="flex justify-between">
-          <div class="flex flex-col gap-2 p-4">
-            <span>Celková prodejní cena</span>
-            <span class="text-primary">
-              <strong class="text-lg">{{ formattedTotalPrice }}</strong>
-              {{ currency }}
-            </span>
-          </div>
-          <q-separator vertical />
-        </div>
-
-        <div class="flex justify-between">
-          <div class="flex flex-col gap-2 p-4 flex-1">
-            <div class="flex justify-between">
-              <span>Celková marže</span>
-              <q-badge
-                v-if="formattedMarginPercent"
-                :class="[
-                  'font-bold',
-                  isMarginPositive ? 'bg-green-100' : 'bg-light-red',
-                  isMarginPositive ? 'text-green' : 'text-red',
-                ]"
-                >{{ formattedMarginPercent }}</q-badge
-              >
-            </div>
-            <span :class="[isMarginPositive ? 'text-green' : 'text-red']"
-              ><strong class="text-lg">{{ formattedMarginValue }}</strong> {{ currency }}</span
-            >
-          </div>
-          <q-separator vertical />
-        </div>
-
-        <div class="flex justify-between">
-          <div class="flex flex-col gap-2 p-4">
-            <span>Hmotnost {{ isCalculation ? 'kalkulace' : 'objednávky' }}</span>
-            <div class="flex gap-2 items-center">
-              <q-icon name="sym_o_weight" size="sm" />
-              <span>
-                <strong class="text-lg">{{ formattedWeight }}</strong> kg</span
-              >
-            </div>
-          </div>
-        </div>
-      </div>
+      <OrderTotalsHeader :order="order" />
     </div>
 
     <OutboundOrderProductsList
@@ -233,6 +178,7 @@ import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import NewOutboundOrderItemDialog from '@/components/order/NewOutboundOrderItemDialog.vue'
+import OrderTotalsHeader from '@/components/order/OrderTotalsHeader.vue'
 import OutboundCalculationActions from '@/components/order/OutboundCalculationActions.vue'
 import OutboundOrderActions from '@/components/order/OutboundOrderActions.vue'
 import OutboundOrderDetailsListCard from '@/components/order/OutboundOrderDetailsListCard.vue'
@@ -249,7 +195,6 @@ import {
   type OutboundDocument,
   type OutboundDocumentKind,
 } from '@/composables/use-outbound-document-api'
-import { useOrderTotals } from '@/composables/use-order-totals'
 import { contactFullName } from '@/utils/contact-name'
 import { useQuasar } from 'quasar'
 import { computed, ref } from 'vue'
@@ -394,14 +339,4 @@ const duplicateOrder = async () => {
     duplicating.value = false
   }
 }
-
-const {
-  formattedTotalPrice,
-  formattedPurchaseValue,
-  currency,
-  formattedMarginValue,
-  formattedMarginPercent,
-  formattedWeight,
-  isMarginPositive,
-} = useOrderTotals(() => order.value)
 </script>
