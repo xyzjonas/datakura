@@ -47,6 +47,11 @@
       </section>
 
       <section>
+        <h2 class="text-lg font-semibold uppercase mb-3">Číslování dokladů</h2>
+        <CodeSequenceSetting />
+      </section>
+
+      <section>
         <h2 class="text-lg font-semibold uppercase mb-3">Výchozí tiskárna</h2>
 
         <q-card flat bordered class="rounded-md">
@@ -126,6 +131,7 @@ import {
   warehouseApiRoutesPrintersCreatePrinter,
   type PrinterCreateOrUpdateSchema,
 } from '@/client'
+import CodeSequenceSetting from '@/components/settings/CodeSequenceSetting.vue'
 import MinimumItemValueSetting from '@/components/settings/MinimumItemValueSetting.vue'
 import PrinterSelect from '@/components/selects/PrinterSelect.vue'
 import PrinterUpsertDialog from '@/components/settings/printers/PrinterUpsertDialog.vue'

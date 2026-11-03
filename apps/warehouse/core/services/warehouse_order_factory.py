@@ -1,13 +1,13 @@
 import re
-from calendar import monthrange
-from datetime import datetime
 from enum import Enum
 
 from django.db import transaction
-from django.utils import timezone
 
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.schemas.context import RequestContext
+from apps.warehouse.core.services.code_sequence import (
+    generate_next_sequential_code,
+)
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.manufacturing import ManufacturingOrder
@@ -45,36 +45,9 @@ class WarehouseOrderKind(str, Enum):
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
-    last_day = monthrange(date.year, date.month)[1]
-    start = date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    end = date.replace(day=last_day)
-    return start, end
-
-
 def generate_next_code(model, prefix: str) -> str:
-    """
-    Generate the next sequential warehouse order code for *model* with *prefix*.
-
-    Uses last-code-suffix inference rather than a COUNT so concurrent inserts
-    cannot produce collisions (unlike count + 1 which races under load).
-    """
-    now = timezone.now()
-    dt_range = _get_month_range(now)
-    monthly_prefix = f"{prefix}{now.year}{now.month:02d}"
-    last_code = (
-        model.objects.filter(
-            created__range=dt_range,
-            code__startswith=monthly_prefix,
-        )
-        .order_by("-code")
-        .values_list("code", flat=True)
-        .first()
-    )
-    next_number = 1
-    if last_code:
-        next_number = int(str(last_code)[len(monthly_prefix) :]) + 1
-    return f"{monthly_prefix}{next_number:04d}"
+    """Next sequential warehouse order code (period given by the global setting)."""
+    return generate_next_sequential_code(queryset=model.objects.all(), prefix=prefix)
 
 
 def generate_linked_code(

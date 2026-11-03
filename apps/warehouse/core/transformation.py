@@ -77,7 +77,7 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.customer import Customer, CustomerGroup
-from apps.warehouse.models.settings import GlobalSettings
+from apps.warehouse.models.settings import CodeSequence, GlobalSettings
 from apps.warehouse.models.manufacturing import (
     ManufacturingOrder,
     ManufacturingOrderItem,
@@ -410,6 +410,7 @@ def global_settings_orm_to_schema(settings: GlobalSettings) -> GlobalSettingsSch
         created=settings.created,
         changed=settings.changed,
         minimum_item_value=float(settings.minimum_item_value),
+        code_sequence=CodeSequence(settings.code_sequence),
     )
 
 

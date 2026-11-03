@@ -10,8 +10,6 @@ from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import TypeVar
 
-from django.db.models import QuerySet
-from django.utils import timezone
 from pydantic import BaseModel
 
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
@@ -41,31 +39,6 @@ def _get_end_of_month(date: datetime) -> datetime:
 def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
     last_day = _get_end_of_month(date)
     return date.replace(day=1, hour=0, minute=0, second=0, microsecond=0), last_day
-
-
-def generate_next_monthly_code(
-    *,
-    queryset: QuerySet,
-    field_name: str,
-    prefix: str,
-) -> str:
-    now = timezone.now()
-    dt_range = _get_month_range(now)
-    monthly_prefix = f"{prefix}{now.year}{now.month:02d}"
-    last_code = (
-        queryset.filter(
-            created__range=dt_range, **{f"{field_name}__startswith": monthly_prefix}
-        )
-        .exclude(**{field_name: ""})
-        .order_by(f"-{field_name}")
-        .values_list(field_name, flat=True)
-        .first()
-    )
-    next_number = 1
-    if last_code:
-        next_number = int(str(last_code)[len(monthly_prefix) :]) + 1
-
-    return f"{monthly_prefix}{next_number:04d}"
 
 
 def diff_schemas(previous: BaseModel, current: BaseModel) -> dict[str, dict[str, str]]:

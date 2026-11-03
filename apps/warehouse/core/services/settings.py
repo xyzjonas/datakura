@@ -40,7 +40,10 @@ class SettingsService:
     @transaction.atomic
     def update_settings(params: GlobalSettingsUpdateSchema) -> GlobalSettings:
         settings = GlobalSettings.load()
-        settings.minimum_item_value = Decimal(str(params.minimum_item_value))
+        if params.minimum_item_value is not None:
+            settings.minimum_item_value = Decimal(str(params.minimum_item_value))
+        if params.code_sequence is not None:
+            settings.code_sequence = params.code_sequence
         settings.save()
         return settings
 

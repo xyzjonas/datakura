@@ -21,6 +21,9 @@ from apps.warehouse.core.schemas.manufacturing import (
     ManufacturingOrderSchema,
 )
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.code_sequence import (
+    generate_next_sequential_code,
+)
 from apps.warehouse.core.services.warehouse_order_factory import (
     WarehouseOrderKind,
     create_warehouse_order,
@@ -57,22 +60,9 @@ def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
 class ManufacturingOrdersService:
     @staticmethod
     def generate_next_code() -> str:
-        now = timezone.now()
-        dt_range = _get_month_range(now)
-        monthly_prefix = f"PV{now.year}{now.month:02d}"
-        last_code = (
-            ManufacturingOrder.objects.filter(
-                created__range=dt_range,
-                code__startswith=monthly_prefix,
-            )
-            .order_by("-code")
-            .values_list("code", flat=True)
-            .first()
+        return generate_next_sequential_code(
+            queryset=ManufacturingOrder.objects.all(), prefix="PV"
         )
-        next_number = 1
-        if last_code:
-            next_number = int(str(last_code)[len(monthly_prefix) :]) + 1
-        return f"{monthly_prefix}{next_number:04d}"
 
     @staticmethod
     def get_manufacturing_orders(

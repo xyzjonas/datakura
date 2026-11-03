@@ -5546,6 +5546,12 @@ export type WarehouseImportResultSchema = {
 };
 
 /**
+ * CodeSequence
+ * How often the sequential part of generated document codes restarts
+ */
+export type CodeSequence = 'monthly' | 'yearly';
+
+/**
  * GetGlobalSettingsResponse
  */
 export type GetGlobalSettingsResponse = {
@@ -5573,6 +5579,7 @@ export type GlobalSettingsSchema = {
      * Minimum Item Value
      */
     minimum_item_value: number;
+    code_sequence: CodeSequence;
 };
 
 /**
@@ -5582,7 +5589,8 @@ export type GlobalSettingsUpdateSchema = {
     /**
      * Minimum Item Value
      */
-    minimum_item_value: number;
+    minimum_item_value?: number | null;
+    code_sequence?: CodeSequence | null;
 };
 
 /**
