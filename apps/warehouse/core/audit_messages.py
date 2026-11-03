@@ -181,6 +181,18 @@ class AuditMessages:
             AuditLanguage.CS: "Objednávka byla aktualizována",
         }
     )
+    ORDER_SHIPPING_UPDATED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Shipping information updated",
+            AuditLanguage.CS: "Informace o dopravě byly aktualizovány",
+        }
+    )
+    ORDER_SHIPPING_REMOVED = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Shipping information removed",
+            AuditLanguage.CS: "Informace o dopravě byly odebrány",
+        }
+    )
     CALCULATION_CREATED = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Calculation created",

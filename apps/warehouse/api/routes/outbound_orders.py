@@ -20,7 +20,9 @@ from apps.warehouse.core.schemas.orders import (
     OutboundOrderTransitionSchema,
     ReorderItemSchema,
 )
+from apps.warehouse.core.schemas.shipping import OutboundOrderShippingUpsertSchema
 from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.services.shipping import shipping_service
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
 from apps.warehouse.models.orders import OutboundOrder
 
@@ -81,6 +83,26 @@ def update_outbound_order(
         params, context=RequestContext.from_django_request(request), code=order_code
     )
     return GetOutboundOrderResponse(data=updated_order)
+
+
+@routes.put("/{order_code}/shipping", response={200: GetOutboundOrderResponse})
+def upsert_outbound_order_shipping(
+    request: HttpRequest, order_code: str, body: OutboundOrderShippingUpsertSchema
+):
+    return GetOutboundOrderResponse(
+        data=shipping_service.upsert_order_shipping(
+            order_code, body, context=RequestContext.from_django_request(request)
+        )
+    )
+
+
+@routes.delete("/{order_code}/shipping", response={200: GetOutboundOrderResponse})
+def delete_outbound_order_shipping(request: HttpRequest, order_code: str):
+    return GetOutboundOrderResponse(
+        data=shipping_service.delete_order_shipping(
+            order_code, context=RequestContext.from_django_request(request)
+        )
+    )
 
 
 @routes.post("/{order_code}/invoice", response={200: GetOutboundOrderResponse})

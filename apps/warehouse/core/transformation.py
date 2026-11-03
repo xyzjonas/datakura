@@ -34,6 +34,10 @@ from apps.warehouse.core.schemas.invoice import (
     InvoicePaymentMethodSchema,
     InvoiceSchema,
 )
+from apps.warehouse.core.schemas.shipping import (
+    OutboundOrderShippingSchema,
+    ShippingTypeSchema,
+)
 from apps.warehouse.core.schemas.manufacturing import (
     ManufacturingOrderItemSchema,
     ManufacturingOrderSchema,
@@ -95,6 +99,7 @@ from apps.warehouse.models.orders import (
 )
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.printer import Printer
+from apps.warehouse.models.shipping import OutboundOrderShipping, ShippingType
 from apps.warehouse.models.product import (
     StockProduct,
     StockProductPrice,
@@ -153,6 +158,43 @@ def invoice_payment_method_orm_to_schema(
         name=payment_method.name,
         created=payment_method.created,
         changed=payment_method.changed,
+    )
+
+
+def shipping_type_orm_to_schema(shipping_type: ShippingType) -> ShippingTypeSchema:
+    return ShippingTypeSchema(
+        id=shipping_type.pk,
+        name=shipping_type.name,
+        created=shipping_type.created,
+        changed=shipping_type.changed,
+    )
+
+
+def _opt_float(value: Decimal | None) -> float | None:
+    return None if value is None else float(value)
+
+
+def outbound_order_shipping_orm_to_schema(
+    shipping: OutboundOrderShipping,
+) -> OutboundOrderShippingSchema:
+    return OutboundOrderShippingSchema(
+        id=shipping.pk,
+        shipping_type=shipping_type_orm_to_schema(shipping.shipping_type),
+        package_number=shipping.package_number,
+        width=_opt_float(shipping.width),
+        height=_opt_float(shipping.height),
+        depth=_opt_float(shipping.depth),
+        name=shipping.name,
+        state=shipping.state,
+        city=shipping.city,
+        street=shipping.street,
+        postal_code=shipping.postal_code,
+        email=shipping.email,
+        phone=shipping.phone,
+        price=_opt_float(shipping.price),
+        price_with_vat=_opt_float(shipping.price_with_vat),
+        created=shipping.created,
+        changed=shipping.changed,
     )
 
 
@@ -760,6 +802,9 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
     ]
     # reverse one-to-one: missing when the order was not created from a calculation
     calculation = getattr(order, "calculation", None)
+    # same for the shipping information
+    shipping = getattr(order, "shipping", None)
+    order_items = list(order.items.all())
     return OutboundOrderSchema(
         created=order.created,
         changed=order.changed,
@@ -776,11 +821,18 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
         warehouse_order_codes=[wo.code for wo in order.warehouse_orders.all()],
         warehouse_orders=warehouse_orders,
         state=OutboundOrderState.get_label(order.state),
-        items=[outbound_order_item_orm_to_schema(item) for item in order.items.all()],
+        items=[outbound_order_item_orm_to_schema(item) for item in order_items],
         credit_note=credit_note_supplier_orm_to_base_schema(order.credit_note)
         if getattr(order, "credit_note", None)
         else None,
         invoice=invoice_orm_to_schema(order.invoice) if order.invoice else None,
+        shipping=outbound_order_shipping_orm_to_schema(shipping) if shipping else None,
+        total_weight=float(
+            sum(
+                (item.amount * item.stock_product.unit_weight for item in order_items),
+                Decimal(0),
+            )
+        ),
         requested_delivery_date=order.requested_delivery_date,
         cancelled_date=order.cancelled_date,
         fulfilled_date=order.fulfilled_date,

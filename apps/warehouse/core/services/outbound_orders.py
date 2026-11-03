@@ -34,6 +34,7 @@ from apps.warehouse.core.services.outbound_common import (
     with_pricing_details,
 )
 from apps.warehouse.core.services.settings import settings_service
+from apps.warehouse.core.services.shipping import shipping_service
 from apps.warehouse.core.services.warehouse_order_factory import (
     WarehouseOrderKind,
     create_warehouse_order,
@@ -493,6 +494,13 @@ class OutboundOrdersService:
                     requested_delivery_date=params.requested_delivery_date,
                 ),
             )
+            if (
+                existing_order
+                and existing_order.contact_id != order.contact_id
+                and order.contact_id is not None
+            ):
+                # the shipping address follows the contact person
+                shipping_service.sync_address_with_contact(order)
             if created:
                 audit_service.add_entry(
                     order,
