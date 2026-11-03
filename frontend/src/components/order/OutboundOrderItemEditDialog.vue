@@ -71,41 +71,13 @@
 
         <q-separator />
         <!-- Requirements -->
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-2 flex-wrap justify-between">
-            <q-btn-dropdown
-              flat
-              dense
-              color="primary"
-              icon="sym_o_tune"
-              label="požadavek"
-              dropdown-icon="sym_o_arrow_drop_down"
-            >
-              <q-list dense>
-                <q-item clickable v-close-popup @click="openRequirements('package')">
-                  <q-item-section avatar><q-icon name="sym_o_package_2" /></q-item-section>
-                  <q-item-section>Typ balení</q-item-section>
-                </q-item>
-                <q-item clickable v-close-popup @click="openRequirements('batch')">
-                  <q-item-section avatar><q-icon name="sym_o_barcode" /></q-item-section>
-                  <q-item-section>Šarže</q-item-section>
-                </q-item>
-                <q-item clickable v-close-popup @click="clearRequirements">
-                  <q-item-section avatar><q-icon name="sym_o_layers_clear" /></q-item-section>
-                  <q-item-section>Vymazat požadavek</q-item-section>
-                </q-item>
-              </q-list>
-            </q-btn-dropdown>
-            <div>
-              <PackageTypeBadge
-                v-if="item.desired_package_type_name"
-                :package-type="item.desired_package_type_name"
-              />
-              <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
-              <span v-else class="text-muted text-xs">Bez požadavku</span>
-            </div>
-          </div>
-        </div>
+        <OutboundItemRequirements
+          v-model:package-type-name="item.desired_package_type_name"
+          v-model:batch-code="item.desired_batch_code"
+          :product-name="item.product.name"
+          :product-code="item.product.code"
+          @save="update('requirements')"
+        />
 
         <q-input
           v-model.trim="item.note"
@@ -120,16 +92,6 @@
       </q-card-section>
     </q-card>
   </q-dialog>
-
-  <OutboundOrderItemRequirementsDialog
-    v-model:show="requirementsDialog"
-    :product-name="item.product.name"
-    :product-code="item.product.code"
-    :initial-mode="requirementsMode"
-    :desired-package-type-name="item.desired_package_type_name"
-    :desired-batch-code="item.desired_batch_code"
-    @save="saveRequirements"
-  />
 </template>
 
 <script setup lang="ts">
@@ -142,13 +104,9 @@ import { useOutboundDocumentApi } from '@/composables/use-outbound-document-api'
 import { round } from '@/utils/round'
 import { useQuasar } from 'quasar'
 import { computed, ref, watch } from 'vue'
-import PackageTypeBadge from '../PackageTypeBadge.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
-import BatchBadge from '../warehouse/BatchBadge.vue'
-import OutboundOrderItemRequirementsDialog from './OutboundOrderItemRequirementsDialog.vue'
+import OutboundItemRequirements from './OutboundItemRequirements.vue'
 import SellingPriceEditor from './SellingPriceEditor.vue'
-
-type RequirementMode = 'package' | 'batch'
 
 type OutboundPricingDetails = {
   base_price?: number
@@ -175,8 +133,6 @@ const item = defineModel<OutboundOrderItemSchema>('item', { required: true })
 const totalPrice = ref(round(item.value.unit_price * item.value.amount))
 const unitPrice = ref(round(item.value.unit_price))
 const isPersistingOverride = ref(false)
-const requirementsDialog = ref(false)
-const requirementsMode = ref<RequirementMode>('package')
 const showNote = ref(!!item.value.note)
 
 watch(show, (visible) => {
@@ -235,26 +191,6 @@ const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements'
     unitPrice.value = data.data.unit_price
     $q.notify({ type: 'positive', message: 'Položka aktualizována' })
   }
-}
-
-const openRequirements = (mode: RequirementMode) => {
-  requirementsMode.value = mode
-  requirementsDialog.value = true
-}
-
-const clearRequirements = async () => {
-  item.value.desired_package_type_name = null
-  item.value.desired_batch_code = null
-  await update('requirements')
-}
-
-const saveRequirements = async (payload: {
-  desired_package_type_name: string | null
-  desired_batch_code: string | null
-}) => {
-  item.value.desired_package_type_name = payload.desired_package_type_name
-  item.value.desired_batch_code = payload.desired_batch_code
-  await update('requirements')
 }
 
 const persistOverrideForCustomer = async () => {
