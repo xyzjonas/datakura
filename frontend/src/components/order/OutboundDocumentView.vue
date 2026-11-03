@@ -303,7 +303,7 @@ const isEditable = computed(() => {
 
 const addItemDialog = ref(false)
 const addItemDialogComponent = ref<InstanceType<typeof NewOutboundOrderItemDialog>>()
-const addItem = async (item: OutboundOrderItemCreateSchema) => {
+const addItem = async (item: OutboundOrderItemCreateSchema, keepOpen = false) => {
   if (!order.value) {
     return
   }
@@ -313,7 +313,7 @@ const addItem = async (item: OutboundOrderItemCreateSchema) => {
   if (itemData) {
     order.value.items?.push(itemData.data)
     if (addItemDialogComponent.value) {
-      addItemDialogComponent.value.reset()
+      addItemDialogComponent.value.reset(!keepOpen)
     }
   }
 }
