@@ -1892,7 +1892,7 @@ class WarehouseService:
         amount: float | Decimal,
         context: RequestContext,
     ) -> InboundWarehouseOrderSchema:
-        amount = Decimal(amount)
+        amount = Decimal(str(amount))
         warehouse_order = InboundWarehouseOrder.objects.get(code=warehouse_order_code)
 
         if warehouse_order.state != InboundWarehouseOrderState.DRAFT:

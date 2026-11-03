@@ -591,6 +591,33 @@ def test_remove_from_order_to_credit_note_all_gone(db, context):
     assert not InboundWarehouseOrderItem.objects.filter(pk=order_item.pk).exists()
 
 
+@pytest.mark.parametrize("amount", [0.1, 0.3, 1.1, 0.7])
+def test_remove_from_order_to_credit_note_float_amount_whole_item(db, context, amount):
+    """Fractional float amounts (e.g. 0.1 of a 100pc package) must not fail on binary float noise."""
+    w_order = InboundWarehouseOrderFactory.create_complete(amount=amount, unit_price=1)
+    order_item = w_order.order_items.first()
+    assert order_item is not None
+
+    result = warehouse_service.remove_from_order_to_credit_note(
+        w_order.code, order_item.pk, amount, context=context
+    )
+
+    assert len(result.credit_note.items) == 1
+    assert float(result.credit_note.items[0].amount) == amount
+    assert not InboundWarehouseOrderItem.objects.filter(pk=order_item.pk).exists()
+
+
+def test_remove_from_order_to_credit_note_exceeding_amount(db, context):
+    w_order = InboundWarehouseOrderFactory.create_complete(amount=0.1, unit_price=1)
+    order_item = w_order.order_items.first()
+    assert order_item is not None
+
+    with pytest.raises(WarehouseGenericError):
+        warehouse_service.remove_from_order_to_credit_note(
+            w_order.code, order_item.pk, 0.2, context=context
+        )
+
+
 def test_putaway_item_simple(db, context):
     new_location = WarehouseLocationFactory()
     war_order = InboundWarehouseOrderFactory.create_complete(
