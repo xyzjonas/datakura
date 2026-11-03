@@ -106,9 +106,10 @@ def test_delete_shipping_type(db) -> None:
 
 def test_delete_shipping_type_in_use_is_rejected(db) -> None:
     client = TestClient(routes)
-    shipping = OutboundOrderShippingFactory.it()
+    shipping_type = ShippingTypeFactory.it()
+    OutboundOrderShippingFactory.it(shipping_type=shipping_type)
 
     with pytest.raises(WarehouseItemBadRequestError, match="used by existing"):
-        client.delete(f"/{shipping.shipping_type.id}")
+        client.delete(f"/{shipping_type.id}")
 
-    assert ShippingType.objects.filter(pk=shipping.shipping_type.pk).exists()
+    assert ShippingType.objects.filter(pk=shipping_type.pk).exists()
