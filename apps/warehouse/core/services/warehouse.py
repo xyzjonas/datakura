@@ -1747,6 +1747,10 @@ class WarehouseService:
                     batch_barcode: str | None = None
                     if new_item.batch and new_item.batch.primary_barcode:
                         batch_barcode = new_item.batch.primary_barcode.code
+                    # A batch pre-assigned to the source line (certified goods)
+                    # is binding - the client can neither drop nor change it.
+                    if source_item.batch_barcode:
+                        batch_barcode = source_item.batch_barcode
 
                     package_type = (
                         PackageType.objects.get(name=new_item.package.type)

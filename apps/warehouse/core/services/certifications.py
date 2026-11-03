@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from decimal import Decimal
-
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Min, Q, QuerySet, Sum
@@ -88,6 +85,25 @@ class CertificationsService:
             inventory__isnull=True,
             outbound_order_items__isnull=True,
         ).delete()
+
+    @staticmethod
+    def get_stock_items(certification_id: int) -> QuerySet[WarehouseItem]:
+        """Everything physically in the warehouse that carries the certification."""
+        certification = Certification.objects.get(pk=certification_id)
+        return (
+            WarehouseItem.physical_stock.filter(batch__certification=certification)
+            .select_related(
+                "stock_product",
+                "stock_product__unit_of_measure",
+                "location",
+                "location__warehouse",
+                "package_type",
+                "package_type__unit_of_measure",
+                "batch",
+                "batch__certification",
+            )
+            .order_by("stock_product__name", "created", "pk")
+        )
 
     # ── inbound order item binding ──────────────────────────────────────────
 
@@ -178,38 +194,38 @@ class CertificationsService:
     def get_available_for_product(
         product_code: str,
     ) -> list[AvailableCertificationSchema]:
-        """Certified goods of `product_code` that can be picked right now."""
-        rows = (
-            WarehouseItem.available.filter(
+        """
+        Certified goods of `product_code` that can be picked right now.
+
+        One row per certified *batch*: an outbound requirement points at a
+        single batch, so each amount is exactly what that requirement can
+        deliver (a certification spanning several batches yields several rows).
+        """
+        stock = {
+            row["batch_id"]: row["total"]
+            for row in WarehouseItem.available.filter(
                 stock_product__code=product_code,
                 batch__certification__isnull=False,
             )
-            .values("batch_id", "batch__certification_id")
+            .values("batch_id")
             .annotate(total=Sum("amount"))
-        )
-
-        per_cert: dict[int, list[tuple[int, Decimal]]] = defaultdict(list)
-        for row in rows:
-            if row["total"] and row["total"] > 0:
-                per_cert[row["batch__certification_id"]].append(
-                    (row["batch_id"], row["total"])
-                )
-        if not per_cert:
+            if row["total"] and row["total"] > 0
+        }
+        if not stock:
             return []
 
         ordered = dict(
-            InboundOrderItem.objects.filter(certification_id__in=per_cert)
-            .values("certification_id")
+            InboundOrderItem.objects.filter(batch_id__in=stock)
+            .values("batch_id")
             .annotate(first=Min("order__created"))
-            .values_list("certification_id", "first")
+            .values_list("batch_id", "first")
         )
 
         result: list[AvailableCertificationSchema] = []
-        for cert in Certification.objects.filter(pk__in=per_cert):
-            batches = per_cert[cert.pk]
-            best_batch_id = max(batches, key=lambda b: b[1])[0]
-            barcode = batch_primary_barcode(Batch.objects.get(pk=best_batch_id))
-            if barcode is None:
+        for batch in Batch.objects.filter(pk__in=stock).select_related("certification"):
+            cert = batch.certification
+            barcode = batch_primary_barcode(batch)
+            if cert is None or barcode is None:
                 continue
             result.append(
                 AvailableCertificationSchema(
@@ -217,8 +233,8 @@ class CertificationsService:
                     code=cert.code,
                     description=cert.description,
                     attachment=certification_attachment_to_schema(cert),
-                    ordered_date=ordered.get(cert.pk) or cert.created,
-                    amount=float(sum(total for _, total in batches)),
+                    ordered_date=ordered.get(batch.pk) or cert.created,
+                    amount=float(stock[batch.pk]),
                     batch_code=barcode,
                 )
             )
