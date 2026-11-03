@@ -190,19 +190,6 @@ def test_incoming_order_duplicate_product_remove_each_by_index(db):
     assert order.items.count() == 0
 
 
-def test_generate_next_incoming_order_code(db):
-    now = datetime.now()
-    code = inbound_orders_service.generate_next_incoming_order_code()
-    assert code == f"OV{now.year}{now.month:02d}0001"
-
-
-def test_generate_next_incoming_order_code_100(db):
-    InboundOrderFactory.create_batch(99)
-    now = datetime.now()
-    code = inbound_orders_service.generate_next_incoming_order_code()
-    assert code == f"OV{now.year}{now.month:02d}0100"
-
-
 def test_create_empty_incoming(db, context):
     customer = CustomerFactoryMinimal.it()
     incoming_order = inbound_orders_service.update_or_create_incoming(

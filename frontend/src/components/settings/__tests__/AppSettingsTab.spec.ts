@@ -30,6 +30,10 @@ vi.mock('@/components/settings/MinimumItemValueSetting.vue', () => ({
   default: { template: '<div />' },
 }))
 
+vi.mock('@/components/settings/CodeSequenceSetting.vue', () => ({
+  default: { template: '<div />' },
+}))
+
 vi.mock('@/composables/use-api', () => ({
   useApi: () => ({
     onResponse: (response: { data?: unknown }) => response.data,

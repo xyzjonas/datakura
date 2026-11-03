@@ -25,6 +25,9 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.code_sequence import (
+    generate_next_sequential_code,
+)
 from apps.warehouse.core.services.certifications import certifications_service
 from apps.warehouse.core.services.item_reorder import (
     compact_order_items,
@@ -145,10 +148,9 @@ class OrdersService:
 
     @staticmethod
     def generate_next_incoming_order_code() -> str:
-        now = timezone.now()
-        dt_range = _get_month_range(now)
-        orders_this_month = InboundOrder.objects.filter(created__range=dt_range).count()
-        return f"OV{now.year}{now.month:02d}{orders_this_month + 1:04d}"
+        return generate_next_sequential_code(
+            queryset=InboundOrder.objects.all(), prefix="OV"
+        )
 
     @staticmethod
     def generate_next_credit_note_code() -> str:

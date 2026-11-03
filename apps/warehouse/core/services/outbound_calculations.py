@@ -16,6 +16,9 @@ from apps.warehouse.core.schemas.orders import (
     OutboundOrderSchema,
 )
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.code_sequence import (
+    generate_next_sequential_code,
+)
 from apps.warehouse.core.services.item_reorder import (
     compact_order_items,
     reorder_order_items,
@@ -24,7 +27,6 @@ from apps.warehouse.core.services.outbound_common import (
     build_item_pricing_details,
     compute_unit_price,
     diff_schemas,
-    generate_next_monthly_code,
     get_customer_contact_or_none,
     get_desired_batch_or_none,
     get_desired_package_or_none,
@@ -108,9 +110,8 @@ class OutboundCalculationsService:
 
     @staticmethod
     def generate_next_calculation_code() -> str:
-        return generate_next_monthly_code(
+        return generate_next_sequential_code(
             queryset=OutboundCalculation.objects.all(),
-            field_name="code",
             prefix="K",
         )
 
