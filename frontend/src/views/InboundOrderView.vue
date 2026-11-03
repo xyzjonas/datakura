@@ -107,34 +107,23 @@
       <InboundOrderTimeline :state="order.state" />
     </ForegroundPanel>
 
-    <div class="flex items-center justify-between gap-2 mt-5">
-      <div class="flex items-center gap-2">
-        <h2>Položky objednávky</h2>
-        <q-btn
-          v-if="isInboundOrderEditable(order)"
-          flat
-          color="primary"
-          icon="sym_o_add"
-          label="přidat položku"
-          @click="addItemDialog = true"
-          class="ml-5"
-        ></q-btn>
-        <TotalWeight :order="order" />
-      </div>
-      <TotalPrice :order="order" />
-    </div>
-    <div>
-      <ProductsList
-        v-model:items="order.items"
-        :currency="order.currency"
-        :readonly="!isInboundOrderEditable(order)"
-        :order-code="order.code"
-        order-type="inbound"
-        @dissolve-item="removeItem"
-        @reorder-item="reorderItem"
-        @add-item="addItemDialog = true"
-      />
-    </div>
+    <OrderItemsHeader
+      title="Položky objednávky"
+      :disabled="!isInboundOrderEditable(order)"
+      @add="addItemDialog = true"
+    >
+      <OrderTotalsHeader :order="order" :show-margin="false" />
+    </OrderItemsHeader>
+
+    <InboundOrderProductsList
+      v-model:items="order.items"
+      :currency="order.currency"
+      :readonly="!isInboundOrderEditable(order)"
+      :order-code="order.code"
+      @remove-item="removeItem"
+      @reorder-item="reorderItem"
+      @add-item="addItemDialog = true"
+    />
     <NewOrderItemDialog
       ref="addItemDialogComponent"
       v-model:show="addItemDialog"
@@ -218,6 +207,7 @@ import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import InboundOrderDetailsListCard from '@/components/order/InboundOrderDetailsListCard.vue'
+import InboundOrderProductsList from '@/components/order/InboundOrderProductsList.vue'
 import InboundOrderPutawayDialog from '@/components/order/InboundOrderPutawayDialog.vue'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import InboundOrderTimeline from '@/components/order/InboundOrderTimeline.vue'
@@ -227,9 +217,8 @@ import { toInvoiceMultipartBody } from '@/components/order/invoice-upload'
 import InvoiceUpsertDialog from '@/components/order/InvoiceUpsertDialog.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
-import ProductsList from '@/components/order/ProductsList.vue'
-import TotalPrice from '@/components/order/TotalPrice.vue'
-import TotalWeight from '@/components/order/TotalWeight.vue'
+import OrderItemsHeader from '@/components/order/OrderItemsHeader.vue'
+import OrderTotalsHeader from '@/components/order/OrderTotalsHeader.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
