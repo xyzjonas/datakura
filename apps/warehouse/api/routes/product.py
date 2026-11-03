@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import cast
 
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.http import HttpRequest
 from ninja import Router
 from ninja.pagination import paginate
@@ -100,12 +100,7 @@ def get_products(
         ),
     )
     if search_term:
-        search_term = search_term.lower()
-        qs = qs.filter(
-            Q(code__iexact=search_term)
-            | Q(code__icontains=search_term)
-            | Q(name__icontains=search_term)
-        )
+        qs = stock_product_service.search(qs, search_term)
 
     if product_type:
         qs = qs.filter(type__name=product_type)

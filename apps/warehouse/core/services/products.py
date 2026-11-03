@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import IntegrityError, transaction
+from django.db.models import Case, IntegerField, Q, QuerySet, Value, When
 
 from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.core.schemas.product import (
@@ -33,6 +34,28 @@ from apps.warehouse.models.product import (
 
 
 class StockProductsService:
+    @staticmethod
+    def search(qs: QuerySet[StockProduct], term: str) -> QuerySet[StockProduct]:
+        """Substring search on code/name, best matches first.
+
+        Rank: exact code, code prefix, code substring, name prefix, name
+        substring; ties are sorted alphabetically by code.
+        """
+        return (
+            qs.filter(Q(code__icontains=term) | Q(name__icontains=term))
+            .annotate(
+                search_rank=Case(
+                    When(code__iexact=term, then=Value(0)),
+                    When(code__istartswith=term, then=Value(1)),
+                    When(code__icontains=term, then=Value(2)),
+                    When(name__istartswith=term, then=Value(3)),
+                    default=Value(4),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by("search_rank", "code")
+        )
+
     @staticmethod
     def _derive_discount_percent(base_price: Decimal, final_price: Decimal) -> Decimal:
         if base_price <= 0:
