@@ -1,5 +1,14 @@
 <template>
-  <div class="flex flex-col flex-1 gap-2">
+  <OrderItemCard
+    v-if="cardLayout"
+    :item="item"
+    :currency="currency"
+    :readonly="readonly"
+    :purchase-price="Number(item.unit_price)"
+    @edit="editDialog = true"
+    @remove="removeDialog = true"
+  />
+  <div v-else class="flex flex-col flex-1 gap-2">
     <div class="flex items-center w-full flex-nowrap">
       <div class="w-12">
         <IndexRectangle :index="item.index + 1" />
@@ -64,7 +73,9 @@
 
 <script setup lang="ts">
 import type { InboundOrderItemSchema } from '@/client'
+import { useOrderItemCardLayout } from '@/composables/use-order-item-card-layout'
 import { computed, ref } from 'vue'
+import OrderItemCard from './OrderItemCard.vue'
 import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
@@ -81,6 +92,7 @@ defineEmits<{ (e: 'remove'): void }>()
 
 const item = defineModel<InboundOrderItemSchema>('item', { required: true })
 
+const cardLayout = useOrderItemCardLayout()
 const editDialog = ref(false)
 const removeDialog = ref(false)
 
