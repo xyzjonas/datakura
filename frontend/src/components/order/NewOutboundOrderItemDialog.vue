@@ -7,8 +7,8 @@
           <q-btn flat round icon="close" v-close-popup />
         </div>
         <ProductAvailability v-if="product" :product-code="product.code" class="w-fit mb-3" />
-        <q-form class="flex flex-col gap-2" @submit="addItem">
-          <ProductSearchSelect v-model="product" />
+        <q-form ref="form" class="flex flex-col gap-2" @submit="addItem">
+          <ProductSearchSelect ref="productSelect" v-model="product" />
           <q-input
             v-model.number="item.amount"
             outlined
@@ -79,7 +79,24 @@
               autogrow
             />
           </div>
-          <q-btn type="submit" unelevated color="primary" label="přidat" class="h-[3rem] mt-3" />
+          <div class="flex gap-2 mt-3">
+            <q-btn
+              type="submit"
+              unelevated
+              color="primary"
+              label="přidat"
+              class="h-[3rem] flex-1"
+              @click="keepOpen = false"
+            />
+            <q-btn
+              type="submit"
+              outline
+              color="primary"
+              label="přidat a nový"
+              class="h-[3rem] flex-1"
+              @click="keepOpen = true"
+            />
+          </div>
         </q-form>
       </div>
     </q-card>
@@ -95,7 +112,8 @@ import {
 } from '@/client'
 import { useApi } from '@/composables/use-api'
 import { rules } from '@/utils/rules'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import type { QForm } from 'quasar'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 import ItemMarginSummary from './ItemMarginSummary.vue'
@@ -105,7 +123,7 @@ const showDialog = defineModel('show', { default: false })
 const { onResponse } = useApi()
 
 export interface NewOutboundOrderItemDialogExpose {
-  reset: () => void
+  reset: (close?: boolean) => void
 }
 
 const props = defineProps<{
@@ -184,7 +202,7 @@ const recalcUnitFromTotal = () => {
 }
 
 const emit = defineEmits<{
-  (e: 'addItem', item: OutboundOrderItemCreateSchema): void
+  (e: 'addItem', item: OutboundOrderItemCreateSchema, keepOpen: boolean): void
 }>()
 
 const toggleNote = () => {
@@ -194,13 +212,18 @@ const toggleNote = () => {
   }
 }
 
+const form = ref<QForm>()
+const productSelect = ref<InstanceType<typeof ProductSearchSelect>>()
+const keepOpen = ref(false)
+
 const addItem = () => {
   item.value.desired_package_type_name = null
   item.value.desired_batch_code = batchCode.value || null
-  emit('addItem', item.value)
+  emit('addItem', item.value, keepOpen.value)
+  keepOpen.value = false
 }
 
-const reset = () => {
+const reset = (close = true) => {
   item.value = {
     product_code: '',
     product_name: '',
@@ -214,7 +237,14 @@ const reset = () => {
   batchCode.value = ''
   showNote.value = false
   product.value = undefined
-  showDialog.value = false
+  if (close) {
+    showDialog.value = false
+    return
+  }
+  nextTick(() => {
+    form.value?.resetValidation()
+    productSelect.value?.focus()
+  })
 }
 
 defineExpose<NewOutboundOrderItemDialogExpose>({
