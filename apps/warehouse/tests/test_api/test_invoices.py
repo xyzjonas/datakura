@@ -480,6 +480,11 @@ def test_get_invoice_returns_grouped_inbound_orders(db) -> None:
 
 
 def test_get_invoice_pdf_returns_pdf_document(db) -> None:
+    # weasyprint needs system libs (pango); skip where they are missing (slim CI image)
+    try:
+        import weasyprint  # type: ignore  # noqa: F401
+    except OSError as e:
+        pytest.skip(f"weasyprint system libraries missing: {e}")
     client = TestClient(routes)
     customer = CustomerFactory(
         name="ACME s.r.o.",
