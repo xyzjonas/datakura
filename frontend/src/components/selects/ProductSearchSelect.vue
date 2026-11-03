@@ -17,6 +17,14 @@
     clear-icon="sym_o_close_small"
     :rules="[rules.notEmpty]"
   >
+    <template v-slot:option="{ itemProps, opt }">
+      <q-item v-bind="itemProps">
+        <q-item-section>
+          <q-item-label>{{ opt.name }}</q-item-label>
+          <q-item-label caption class="text-xs text-gray-500">{{ opt.code }}</q-item-label>
+        </q-item-section>
+      </q-item>
+    </template>
     <template v-slot:no-option>
       <q-item>
         <q-item-section class="text-grey"> Žádné Výsledky </q-item-section>
