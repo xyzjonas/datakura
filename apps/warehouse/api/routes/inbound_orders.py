@@ -9,6 +9,7 @@ from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import IncomingOrdersPagination
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
+from apps.warehouse.core.schemas.certification import CertificationAttachSchema
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
@@ -159,6 +160,40 @@ def update_item_in_inbound_order(
 ):
     updated_item = inbound_orders_service.update_item(order_code, item_index, item)
     return CreateInboundOrderItemResponse(data=updated_item)
+
+
+@routes.post(
+    "/{order_code}/items/{item_index}/certification",
+    response={200: CreateInboundOrderItemResponse},
+)
+def set_inbound_order_item_certification(
+    request: HttpRequest,
+    order_code: str,
+    item_index: int,
+    body: Form[CertificationAttachSchema],
+    attachment: File[UploadedFile] | None = None,
+):
+    """Create (or pick an existing) certification for a certified order row."""
+    resolved_file = attachment or cast(
+        DjangoUploadedFile | None, request.FILES.get("attachment")
+    )
+    return CreateInboundOrderItemResponse(
+        data=inbound_orders_service.set_item_certification(
+            order_code, item_index, body, resolved_file
+        )
+    )
+
+
+@routes.delete(
+    "/{order_code}/items/{item_index}/certification",
+    response={200: CreateInboundOrderItemResponse},
+)
+def remove_inbound_order_item_certification(
+    request: HttpRequest, order_code: str, item_index: int
+):
+    return CreateInboundOrderItemResponse(
+        data=inbound_orders_service.remove_item_certification(order_code, item_index)
+    )
 
 
 @routes.post("/{order_code}/duplicate", response={200: GetInboundOrderResponse})

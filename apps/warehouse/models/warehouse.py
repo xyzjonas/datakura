@@ -55,8 +55,45 @@ class TrackingLevel(models.TextChoices):
     FUNGIBLE = "FUNGIBLE", "Fully Fungible"
 
 
+def certification_attachment_upload_to(instance: "Certification", filename: str) -> str:
+    return f"certifications/{filename}"
+
+
+class Certification(BaseModel):
+    """
+    A material/quality certificate with an attached document.
+
+    Standalone - `code` is intentionally NOT unique (one supplier certificate
+    number may show up on several deliveries). Linked to one or more batches
+    which makes the certified goods traceable in the warehouse.
+    """
+
+    code = models.CharField(max_length=100, db_index=True)
+    description = models.TextField(null=True, blank=True)
+    attachment = models.FileField(
+        upload_to=certification_attachment_upload_to,
+        null=True,
+        blank=True,
+    )
+
+    batches: QuerySet["Batch"]
+
+    class Meta(BaseModel.Meta):
+        ordering = ["-created"]
+
+    def __str__(self) -> str:
+        return self.code
+
+
 class Batch(BaseModel, BarcodeMixin):
     description = models.CharField(max_length=300, null=True, blank=True)
+    certification = models.ForeignKey(
+        Certification,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="batches",
+    )
 
 
 class AvailableWarehouseItemQuerySet(models.QuerySet["WarehouseItem"]):

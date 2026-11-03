@@ -7,6 +7,7 @@ from django.db.models import F
 
 from apps.warehouse.core.schemas.barcode import BarcodeSchema
 from apps.warehouse.core.schemas.base import MediaFileSchema
+from apps.warehouse.core.schemas.certification import CertificationSchema
 from apps.warehouse.core.schemas.base_orders import (
     InboundWarehouseOrderBaseSchema,
     OutboundWarehouseOrderBaseSchema,
@@ -108,6 +109,7 @@ from apps.warehouse.models.product import (
     ProductType,
 )
 from apps.warehouse.models.warehouse import (
+    Certification,
     WarehouseItem,
     WarehouseMovement,
     InboundWarehouseOrder,
@@ -612,6 +614,39 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
     )
 
 
+def batch_primary_barcode(batch: Batch) -> str | None:
+    primary = batch.get_primary_barcode()
+    return primary.code if primary else None
+
+
+def certification_attachment_to_schema(
+    certification: Certification,
+) -> MediaFileSchema | None:
+    if not certification.attachment or not certification.attachment.name:
+        return None
+    return MediaFileSchema(
+        name=Path(certification.attachment.name).name,
+        url=certification.attachment.url,
+    )
+
+
+def certification_orm_to_schema(certification: Certification) -> CertificationSchema:
+    codes = [
+        code
+        for code in (batch_primary_barcode(b) for b in certification.batches.all())
+        if code
+    ]
+    return CertificationSchema(
+        id=certification.pk,
+        code=certification.code,
+        description=certification.description,
+        attachment=certification_attachment_to_schema(certification),
+        batch_codes=codes,
+        created=certification.created,
+        changed=certification.changed,
+    )
+
+
 def inbound_order_item_orm_to_schema(
     item: InboundOrderItem,
 ) -> InboundOrderItemSchema:
@@ -621,6 +656,11 @@ def inbound_order_item_orm_to_schema(
         unit_price=float(item.unit_price),
         total_price=float(item.total_price),
         index=item.index,
+        requires_certification=item.requires_certification,
+        certification=certification_orm_to_schema(item.certification)
+        if item.certification
+        else None,
+        batch_code=batch_primary_barcode(item.batch) if item.batch else None,
         changed=item.changed,
         created=item.created,
     )

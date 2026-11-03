@@ -32,4 +32,8 @@ class BatchFactory(DjangoModelFactory):
     class Meta:
         model = Batch
 
+    @classmethod
+    def it(cls, **kwargs) -> Batch:
+        return cls(**kwargs)  # type: ignore
+
     description = factory.Sequence(lambda n: f"Batch {n}")

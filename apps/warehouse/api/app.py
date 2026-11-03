@@ -24,6 +24,7 @@ from .routes.printers import routes as printer_routes
 from .routes.data_import import routes as data_import_routes
 from .routes.settings import routes as settings_routes
 from .routes.users import routes as users_routes
+from .routes.certifications import routes as certification_routes
 
 
 api = NinjaAPI(
@@ -54,6 +55,7 @@ api.add_router(router=printer_routes, prefix="printers")
 api.add_router(router=data_import_routes, prefix="data-import")
 api.add_router(router=settings_routes, prefix="settings")
 api.add_router(router=users_routes, prefix="users")
+api.add_router(router=certification_routes, prefix="certifications")
 
 
 @api.exception_handler(ApiBaseException)
