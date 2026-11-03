@@ -12,7 +12,7 @@
           <th class="text-left">Certifikát</th>
           <th class="text-left">Objednáno</th>
           <th class="text-right">Skladem</th>
-          <th class="text-left">Soubor</th>
+          <th class="text-center">Soubor</th>
         </tr>
       </thead>
       <tbody>
@@ -24,7 +24,7 @@
           data-test="certified-stock-row"
           @click="modelValue = row.batch_code"
         >
-          <td class="text-left">
+          <td class="text-left whitespace-normal break-words max-w-48">
             <div class="font-semibold">{{ row.code }}</div>
             <BatchBadge :batch-code="row.batch_code" class="mt-0.5" />
             <div v-if="row.description" class="text-xs text-gray-6 whitespace-normal">
@@ -33,7 +33,9 @@
           </td>
           <td class="text-left tabular-nums">{{ formatDate(row.ordered_date) }}</td>
           <td class="text-right tabular-nums font-semibold">{{ row.amount }}</td>
-          <td class="text-left"><CertificationFileLink :attachment="row.attachment" /></td>
+          <td class="text-center">
+            <CertificationFileLink compact :attachment="row.attachment" />
+          </td>
         </tr>
       </tbody>
     </q-markup-table>

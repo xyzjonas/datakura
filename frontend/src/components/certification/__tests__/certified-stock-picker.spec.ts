@@ -86,6 +86,8 @@ describe('CertifiedStockPicker', () => {
     expect(link.attributes('href')).toBe('/media/certifications/a.pdf')
     expect(link.attributes('target')).toBe('_blank')
     expect(tableRows[1]!.text()).toContain('bez přílohy')
+    // icon only - the (possibly long) file name must not widen the dialog
+    expect(tableRows[0]!.get('[data-test="certification-file-link"]').text()).not.toContain('a.pdf')
   })
 
   it('lists a certification spanning several batches as one row per batch', async () => {
