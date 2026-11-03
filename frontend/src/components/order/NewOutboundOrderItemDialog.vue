@@ -54,11 +54,11 @@
             :purchase-price="pricingContext.avgPurchasePrice"
             :total-price="item.total_price"
           />
-          <q-input
-            v-model="batchCode"
-            outlined
-            label="Požadovaná šarže"
-            hint="Volitelné. Zadejte existující kód šarže."
+          <OutboundItemRequirements
+            v-model:package-type-name="item.desired_package_type_name"
+            v-model:batch-code="item.desired_batch_code"
+            :product-name="item.product_name"
+            :product-code="item.product_code"
           />
           <div class="flex flex-col gap-2">
             <q-btn
@@ -117,6 +117,7 @@ import type { QForm } from 'quasar'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 import ItemMarginSummary from './ItemMarginSummary.vue'
+import OutboundItemRequirements from './OutboundItemRequirements.vue'
 import SellingPriceEditor from './SellingPriceEditor.vue'
 
 const showDialog = defineModel('show', { default: false })
@@ -133,7 +134,6 @@ const props = defineProps<{
 
 const productUom = ref('')
 const pricingLookup = ref<SellingPriceLookupSchema>()
-const batchCode = ref('')
 const showNote = ref(false)
 
 const item = ref<OutboundOrderItemCreateSchema>({
@@ -217,8 +217,6 @@ const productSelect = ref<InstanceType<typeof ProductSearchSelect>>()
 const keepOpen = ref(false)
 
 const addItem = () => {
-  item.value.desired_package_type_name = null
-  item.value.desired_batch_code = batchCode.value || null
   emit('addItem', item.value, keepOpen.value)
   keepOpen.value = false
 }
@@ -234,7 +232,6 @@ const reset = (close = true) => {
     desired_batch_code: null,
     note: null,
   }
-  batchCode.value = ''
   showNote.value = false
   product.value = undefined
   if (close) {

@@ -70,14 +70,25 @@
           <q-separator class="my-4" />
 
           <div class="flex items-center gap-2 mb-2">
-            <q-toggle v-model="attachBatch" label="Přiřadit šarži" />
+            <q-toggle v-model="attachBatch" label="Přiřadit šarži" :disable="!!lockedBatchCode" />
             <div class="description">
               Šarže umožňuje seskupovat zboží podle výrobních dávek, sledovat expirace nebo
               jednoduše organizovat skladové zásoby.
             </div>
           </div>
 
-          <div v-if="attachBatch" class="flex flex-col gap-2">
+          <div
+            v-if="lockedBatchCode"
+            class="flex items-center gap-2 rounded border border-primary p-3"
+            data-test="locked-batch"
+          >
+            <BatchBadge :batch-code="lockedBatchCode" />
+            <span class="text-xs text-gray-6">
+              Šarže je určena certifikovanou objednávkou a nelze ji změnit.
+            </span>
+          </div>
+
+          <div v-else-if="attachBatch" class="flex flex-col gap-2">
             <BatchSearchSelect v-model="selectedBatch" :key="batchSelectKey" />
 
             <div class="flex justify-end -mt-1">
@@ -139,6 +150,7 @@
 <script setup lang="ts">
 import {
   warehouseApiRoutesPackagingBatchPreview,
+  warehouseApiRoutesPackagingGetBatches,
   warehouseApiRoutesPackagingCreateBatch,
   warehouseApiRoutesPackagingCreatePackageType,
   warehouseApiRoutesPackagingPackagePreview,
@@ -154,6 +166,7 @@ import { useAppRouter } from '@/composables/use-app-router'
 import { rules } from '@/utils/rules'
 import { computed, ref, watch } from 'vue'
 import BatchSearchSelect from '../selects/BatchSearchSelect.vue'
+import BatchBadge from '../warehouse/BatchBadge.vue'
 import PackageTypeSearchSelect from '../selects/PackageTypeSearchSelect.vue'
 import BatchUpsertDialog from '../settings/packaging/BatchUpsertDialog.vue'
 import PackageTypeUpsertDialog from '../settings/packaging/PackageTypeUpsertDialog.vue'
@@ -190,6 +203,8 @@ const tracking_type_options: { label: string; value: TrackingType }[] = [
 const props = defineProps<{
   item: WarehouseItemSchema
   trackingTypeIn?: TrackingType
+  /** Batch pre-assigned by a certified purchase order - pre-filled and locked. */
+  lockedBatchCode?: string | null
 }>()
 
 const trackingType = ref(
@@ -326,8 +341,18 @@ watch(showDialog, (value) => {
     batchForm.value = createDefaultBatchForm()
     attachBatch.value = false
     selectedBatch.value = undefined
+    if (props.lockedBatchCode) {
+      prefillLockedBatch(props.lockedBatchCode)
+    }
   }
 })
+
+const prefillLockedBatch = async (code: string) => {
+  attachBatch.value = true
+  const result = await warehouseApiRoutesPackagingGetBatches({ query: { search_term: code } })
+  const batches = onResponse(result)?.data ?? []
+  selectedBatch.value = batches.find((b) => b.primary_barcode?.code === code)
+}
 
 const openCreatePackageTypeDialog = () => {
   packageTypeForm.value = createDefaultPackageTypeForm()

@@ -12,6 +12,7 @@ from .base_orders import (
     CreditNoteBaseSchema,
     BaseOrder,
 )
+from .certification import CertificationSchema
 from .customer import ContactPersonSchema
 from .invoice import InvoiceSchema
 from .product import ProductSchema
@@ -28,6 +29,7 @@ class InboundOrderItemCreateSchema(Schema):
     total_price: Annotated[float, Field(ge=0, lt=100_000_000)]
     unit_price: float | None = None
     index: int | None = None
+    requires_certification: bool = False
 
 
 class InboundOrderItemSchema(BaseSchema):
@@ -36,6 +38,9 @@ class InboundOrderItemSchema(BaseSchema):
     unit_price: float
     total_price: float
     index: int
+    requires_certification: bool = False
+    certification: CertificationSchema | None = None
+    batch_code: str | None = None
 
 
 class InboundOrderCreateOrUpdateSchema(Schema):

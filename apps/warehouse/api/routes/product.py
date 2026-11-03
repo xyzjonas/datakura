@@ -33,6 +33,7 @@ from apps.warehouse.core.schemas.product import (
     DynamicProductPriceCreateSchema,
     DynamicProductPriceUpdateSchema,
 )
+from apps.warehouse.core.services.batches import batches_service
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.schemas.warehouse import (
     GetProductWarehouseInfoResponse,
@@ -373,13 +374,16 @@ def get_product_warehouse_info(
             "location",
             "location__warehouse",
             "batch",
+            "batch__certification",
         )
         .all()
     )
     if package_type_name:
         items = items.filter(package_type__name=package_type_name)
     if batch_code:
-        items = items.filter(batch__barcodes__code=batch_code)
+        items = items.filter(
+            batch_id__in=batches_service.get_batch_ids_by_barcode(batch_code)
+        )
 
     warehouses: list[WarehouseExpandedSchema] = []
     warehouse_names = set()

@@ -3,6 +3,7 @@ import { useGlobalLoading } from '@/composables/use-global-loading'
 import ManufacturingOrdersView from '@/views/ManufacturingOrdersView.vue'
 import ManufacturingOrderView from '@/views/ManufacturingOrderView.vue'
 import BatchesView from '@/views/BatchesView.vue'
+import CertificationView from '@/views/CertificationView.vue'
 import CreditNotesView from '@/views/CreditNotesView.vue'
 import CreditNoteToSupplierView from '@/views/CreditNoteToSupplierView.vue'
 import CustomersView from '@/views/CustomersView.vue'
@@ -88,6 +89,12 @@ const router = createRouter({
       path: '/batches',
       name: 'batches',
       component: BatchesView,
+    },
+    {
+      path: '/certifications/:id',
+      name: 'certificationDetail',
+      component: CertificationView,
+      props: true,
     },
     {
       path: '/products/:productCode',

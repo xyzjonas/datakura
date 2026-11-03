@@ -35,6 +35,11 @@
         </a>
       </div>
 
+      <div v-if="item.batch" class="flex items-center justify-between gap-2">
+        <span class="text-gray-5">Šarže</span>
+        <ItemBatch :batch="item.batch" />
+      </div>
+
       <div v-if="!aggregate" class="flex items-center justify-between gap-2">
         <span class="text-gray-5">Pocet v baleni</span>
         <WarehouseItemCountBadge :item="item" />
@@ -66,6 +71,7 @@ import type { WarehouseItemSchema } from '@/client'
 import type { WarehouseItemSchemaWithCount } from '@/utils/aggregatePackaging'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import TrackingLevelBadge from '../warehouse/TrackingLevelBadge.vue'
+import ItemBatch from '../warehouse/ItemBatch.vue'
 import WarehouseItemCountBadge from './WarehouseItemCountBadge.vue'
 
 const props = defineProps<{

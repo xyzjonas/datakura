@@ -24,6 +24,20 @@ const mountCard = (props = {}) =>
   })
 
 describe('OrderItemCard', () => {
+  it('shows no certification badge by default (e.g. outbound items)', () => {
+    expect(mountCard().find('[data-test="certification-badge"]').exists()).toBe(false)
+  })
+
+  it('flags a certified item that still misses its certificate', () => {
+    const wrapper = mountCard({ requiresCertification: true, certification: null })
+    expect(wrapper.get('[data-test="certification-badge"]').text()).toContain('chybí certifikát')
+  })
+
+  it('shows the certificate code once supplied', () => {
+    const wrapper = mountCard({ requiresCertification: true, certification: { code: 'EN-10204' } })
+    expect(wrapper.get('[data-test="certification-badge"]').text()).toContain('EN-10204')
+  })
+
   it('renders index, product and Czech formatted prices', () => {
     const wrapper = mountCard({ sellingPrice: 2120 })
     expect(wrapper.get('[data-test="item-index"]').text()).toBe('#1')

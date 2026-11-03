@@ -265,6 +265,24 @@ class InboundOrderItem(BaseModel):
     total_price = models.DecimalField(
         max_digits=12, decimal_places=4, default=Decimal("0")
     )
+    # Certified goods: a certification (with its batch) has to be supplied
+    # before the order can be submitted.
+    requires_certification = models.BooleanField(default=False)
+    certification = models.ForeignKey(
+        "warehouse.Certification",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inbound_order_items",
+    )
+    # Batch created along with the certification, pre-filled on goods receipt.
+    batch = models.ForeignKey(
+        "warehouse.Batch",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inbound_order_items",
+    )
 
     class Meta(BaseModel.Meta):
         ordering = ["index", "created"]

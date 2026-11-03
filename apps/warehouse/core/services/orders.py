@@ -13,6 +13,7 @@ from apps.warehouse.core.exceptions import (
     WarehouseItemBadRequestError,
     WarehouseOrderNotEditableError,
 )
+from apps.warehouse.core.schemas.certification import CertificationAttachSchema
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
@@ -24,6 +25,7 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.certifications import certifications_service
 from apps.warehouse.core.services.item_reorder import (
     compact_order_items,
     reorder_order_items,
@@ -236,6 +238,7 @@ class OrdersService:
                 total_price=total_price,
                 unit_price=OrdersService._compute_unit_price(amount, total_price),
                 index=item.index if item.index is not None else next_index,
+                requires_certification=item.requires_certification,
             )
 
         return inbound_order_item_orm_to_schema(item_model)
@@ -258,7 +261,11 @@ class OrdersService:
             )
             if item.index is not None:
                 item_model.index = item.index
+            item_model.requires_certification = item.requires_certification
             item_model.save()
+            if not item.requires_certification:
+                # Unflagged row: drop the certificate link and its batch
+                certifications_service.detach_from_inbound_item(item_model)
 
         return inbound_order_item_orm_to_schema(item_model)
 
@@ -269,6 +276,7 @@ class OrdersService:
         item = InboundOrderItem.objects.get(order=order, index=item_index)
         with transaction.atomic():
             InboundOrder.objects.select_for_update().get(pk=order.pk)
+            certifications_service.release_batch(item)
             item.delete()
             compact_order_items(order.items.select_for_update())
 
@@ -327,6 +335,16 @@ class OrdersService:
                     if not order.items.exists():
                         raise WarehouseItemBadRequestError(
                             "Order must have at least one item before confirmation"
+                        )
+                    missing = list(
+                        order.items.filter(
+                            requires_certification=True, certification__isnull=True
+                        ).values_list("index", flat=True)
+                    )
+                    if missing:
+                        rows = ", ".join(str(i + 1) for i in missing)
+                        raise WarehouseItemBadRequestError(
+                            f"Certification is required for item row(s): {rows}"
                         )
                     new_state = InboundOrderState.SUBMITTED
                 elif old_state == InboundOrderState.SUBMITTED:
@@ -482,6 +500,8 @@ class OrdersService:
                     unit_price=item.unit_price,
                     total_price=item.total_price,
                     index=item.index,
+                    # certificate + batch are per delivery - to be supplied again
+                    requires_certification=item.requires_certification,
                 )
             audit_service.add_entry(
                 new_order,
@@ -555,6 +575,33 @@ class OrdersService:
 
         order.refresh_from_db()
         return inbound_order_orm_to_schema(order)
+
+    @classmethod
+    def set_item_certification(
+        cls,
+        order_code: str,
+        item_index: int,
+        params: CertificationAttachSchema,
+        attachment: UploadedFile | None = None,
+    ) -> InboundOrderItemSchema:
+        """Supply (or replace) the certification of a flagged order row."""
+        order = InboundOrder.objects.get(code=order_code)
+        cls._ensure_inbound_order_editable(order)
+        item = InboundOrderItem.objects.select_related("order").get(
+            order=order, index=item_index
+        )
+        certifications_service.attach_to_inbound_item(item, params, attachment)
+        return inbound_order_item_orm_to_schema(item)
+
+    @classmethod
+    def remove_item_certification(
+        cls, order_code: str, item_index: int
+    ) -> InboundOrderItemSchema:
+        order = InboundOrder.objects.get(code=order_code)
+        cls._ensure_inbound_order_editable(order)
+        item = InboundOrderItem.objects.get(order=order, index=item_index)
+        certifications_service.detach_from_inbound_item(item)
+        return inbound_order_item_orm_to_schema(item)
 
 
 inbound_orders_service = OrdersService()

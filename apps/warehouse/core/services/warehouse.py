@@ -44,6 +44,7 @@ from apps.warehouse.core.services.warehouse_order_factory import (
     create_warehouse_order,
 )
 from apps.warehouse.core.transformation import (
+    batch_primary_barcode,
     warehouse_inbound_order_orm_to_schema,
     warehouse_outbound_order_orm_to_schema,
     product_orm_to_schema,
@@ -1381,8 +1382,15 @@ class WarehouseService:
 
             if w_order.order:
                 source_items = [
-                    (pi.stock_product, pi.amount, pi.unit_price)
-                    for pi in w_order.order.items.order_by("index", "created")
+                    (
+                        pi.stock_product,
+                        pi.amount,
+                        pi.unit_price,
+                        batch_primary_barcode(pi.batch) if pi.batch else None,
+                    )
+                    for pi in w_order.order.items.select_related(
+                        "stock_product", "batch"
+                    ).order_by("index", "created")
                 ]
             elif w_order.manufacturing_order:
                 mfg_order = w_order.manufacturing_order
@@ -1399,17 +1407,25 @@ class WarehouseService:
                         if mi.out_amount > 0
                         else Decimal("0")
                     )
-                    source_items.append((mi.out_product, mi.out_amount, unit_price))
+                    source_items.append(
+                        (mi.out_product, mi.out_amount, unit_price, None)
+                    )
             else:
                 source_items = []
 
-            for index, (stock_product, amount, unit_price) in enumerate(source_items):
+            for index, (stock_product, amount, unit_price, batch_barcode) in enumerate(
+                source_items
+            ):
+                # Certified rows arrive pre-assigned to their batch (the
+                # tracking dialog pre-fills and locks it), so the worker cannot
+                # mix them up. Stays FUNGIBLE so packaging can still be added.
                 order_item = InboundWarehouseOrderItem.objects.create(
                     warehouse_order=w_order,
                     stock_product=stock_product,
                     amount=amount,
                     unit_price_at_receipt=unit_price,
                     tracking_level=TrackingLevel.FUNGIBLE,
+                    batch_barcode=batch_barcode,
                     index=index,
                 )
                 audit_service.add_entry(
@@ -1731,6 +1747,10 @@ class WarehouseService:
                     batch_barcode: str | None = None
                     if new_item.batch and new_item.batch.primary_barcode:
                         batch_barcode = new_item.batch.primary_barcode.code
+                    # A batch pre-assigned to the source line (certified goods)
+                    # is binding - the client can neither drop nor change it.
+                    if source_item.batch_barcode:
+                        batch_barcode = source_item.batch_barcode
 
                     package_type = (
                         PackageType.objects.get(name=new_item.package.type)

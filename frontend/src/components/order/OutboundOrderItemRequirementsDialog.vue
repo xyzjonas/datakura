@@ -22,6 +22,12 @@
 
           <PackageTypeSearchSelect v-if="mode === 'package'" v-model="selectedPackage" />
 
+          <CertifiedStockPicker
+            v-else-if="mode === 'certification'"
+            v-model="certifiedBatchCode"
+            :product-code="productCode"
+          />
+
           <q-input
             v-else
             v-model="batchCode"
@@ -43,12 +49,14 @@
 <script setup lang="ts">
 import type { PackageTypeSchema } from '@/client'
 import { ref, watch } from 'vue'
+import CertifiedStockPicker from '../certification/CertifiedStockPicker.vue'
 import PackageTypeSearchSelect from '../selects/PackageTypeSearchSelect.vue'
 
-type RequirementMode = 'package' | 'batch'
+type RequirementMode = 'package' | 'batch' | 'certification'
 
 const props = defineProps<{
   productName: string
+  productCode: string
   initialMode?: RequirementMode
   desiredPackageTypeName?: string | null
   desiredBatchCode?: string | null
@@ -66,11 +74,13 @@ const showDialog = defineModel<boolean>('show', { default: false })
 const modeOptions = [
   { label: 'Typ balení', value: 'package' },
   { label: 'Šarže', value: 'batch' },
+  { label: 'Certifikace', value: 'certification' },
 ] satisfies { label: string; value: RequirementMode }[]
 
 const mode = ref<RequirementMode>(props.initialMode ?? 'package')
 const selectedPackage = ref<PackageTypeSchema>()
 const batchCode = ref('')
+const certifiedBatchCode = ref<string | null>(null)
 
 watch(
   () => showDialog.value,
@@ -80,6 +90,7 @@ watch(
     }
     mode.value = props.initialMode ?? (props.desiredBatchCode ? 'batch' : 'package')
     batchCode.value = props.desiredBatchCode ?? ''
+    certifiedBatchCode.value = null
     selectedPackage.value = props.desiredPackageTypeName
       ? ({ name: props.desiredPackageTypeName } as PackageTypeSchema)
       : undefined
@@ -90,7 +101,13 @@ const submit = () => {
   emit('save', {
     desired_package_type_name:
       mode.value === 'package' ? (selectedPackage.value?.name ?? null) : null,
-    desired_batch_code: mode.value === 'batch' ? batchCode.value || null : null,
+    // a certification resolves to one of its batches - stored as a plain batch requirement
+    desired_batch_code:
+      mode.value === 'batch'
+        ? batchCode.value || null
+        : mode.value === 'certification'
+          ? certifiedBatchCode.value
+          : null,
   })
   showDialog.value = false
 }

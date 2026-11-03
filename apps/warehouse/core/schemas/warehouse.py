@@ -9,6 +9,7 @@ from ninja import Schema
 from .audit import AuditTimelineEntrySchema
 from .barcode import BarcodeSchema
 from .base import BaseResponse, BaseSchema, PaginatedResponse
+from .certification_ref import CertificationRefSchema
 from .base_orders import (
     InboundWarehouseOrderBaseSchema,
     OutboundWarehouseOrderBaseSchema,
@@ -48,6 +49,7 @@ class BatchSchema(BaseSchema):
     id: int
     primary_barcode: BarcodeSchema | None = None
     description: str | None = None
+    certification: CertificationRefSchema | None = None
 
 
 class WarehouseItemSchema(BaseSchema):
