@@ -1,3 +1,4 @@
+import re
 from calendar import monthrange
 from datetime import datetime
 from enum import Enum
@@ -76,6 +77,44 @@ def generate_next_code(model, prefix: str) -> str:
     return f"{monthly_prefix}{next_number:04d}"
 
 
+def generate_linked_code(
+    model,
+    prefix: str,
+    *,
+    order: InboundOrder | OutboundOrder | None = None,
+    manufacturing_order: ManufacturingOrder | None = None,
+) -> str:
+    """
+    Generate a warehouse order code derived from its parent document's code.
+
+    The numeric part of the parent code is kept and a 3-digit per-parent
+    sequence is appended, e.g. parent ``OP2026110003`` + prefix ``P`` ->
+    ``P2026110003001`` (then ``...002`` and so on). The sequence is shared by
+    all warehouse orders of the parent (children included).
+
+    Falls back to the monthly sequence when there is no parent to derive from.
+    """
+    if order is not None:
+        parent_code, siblings = order.code, model.objects.filter(order=order)
+    elif manufacturing_order is not None:
+        parent_code = manufacturing_order.code
+        siblings = model.objects.filter(manufacturing_order=manufacturing_order)
+    else:
+        return generate_next_code(model, prefix)
+
+    numeric = re.sub(r"\D", "", parent_code)
+    if not numeric:
+        return generate_next_code(model, prefix)
+
+    pattern = re.compile(rf"^[A-Za-z]+{numeric}(\d{{3}})$")
+    used = [
+        int(m.group(1))
+        for code in siblings.values_list("code", flat=True)
+        if (m := pattern.match(code))
+    ]
+    return f"{prefix}{numeric}{max(used, default=0) + 1:03d}"
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Internal creation helpers
 # ──────────────────────────────────────────────────────────────────────────────
@@ -86,7 +125,7 @@ def _create_inbound(
     context: RequestContext,
     prefix: str,
 ) -> InboundWarehouseOrder:
-    code = generate_next_code(InboundWarehouseOrder, prefix)
+    code = generate_linked_code(InboundWarehouseOrder, prefix, order=purchase_order)
     with transaction.atomic():
         order = InboundWarehouseOrder.objects.create(
             code=code,
@@ -109,7 +148,9 @@ def _create_mfg_inbound(
     context: RequestContext,
     prefix: str,
 ) -> InboundWarehouseOrder:
-    code = generate_next_code(InboundWarehouseOrder, prefix)
+    code = generate_linked_code(
+        InboundWarehouseOrder, prefix, manufacturing_order=manufacturing_order
+    )
     with transaction.atomic():
         order = InboundWarehouseOrder.objects.create(
             code=code,
@@ -133,7 +174,12 @@ def _create_child_inbound(
     prefix: str,
     initial_state: InboundWarehouseOrderState,
 ) -> InboundWarehouseOrder:
-    code = generate_next_code(InboundWarehouseOrder, prefix)
+    code = generate_linked_code(
+        InboundWarehouseOrder,
+        prefix,
+        order=primary_order.order,
+        manufacturing_order=primary_order.manufacturing_order,
+    )
     with transaction.atomic():
         child = InboundWarehouseOrder.objects.create(
             code=code,
@@ -170,7 +216,7 @@ def _create_sales_outbound(
     context: RequestContext,
     prefix: str,
 ) -> OutboundWarehouseOrder:
-    code = generate_next_code(OutboundWarehouseOrder, prefix)
+    code = generate_linked_code(OutboundWarehouseOrder, prefix, order=sales_order)
     with transaction.atomic():
         wo = OutboundWarehouseOrder.objects.create(
             code=code,
@@ -193,7 +239,9 @@ def _create_mfg_outbound(
     context: RequestContext,
     prefix: str,
 ) -> OutboundWarehouseOrder:
-    code = generate_next_code(OutboundWarehouseOrder, prefix)
+    code = generate_linked_code(
+        OutboundWarehouseOrder, prefix, manufacturing_order=manufacturing_order
+    )
     with transaction.atomic():
         wo = OutboundWarehouseOrder.objects.create(
             code=code,
@@ -217,7 +265,12 @@ def _create_child_outbound(
     prefix: str,
     initial_state: OutboundWarehouseOrderState,
 ) -> OutboundWarehouseOrder:
-    code = generate_next_code(OutboundWarehouseOrder, prefix)
+    code = generate_linked_code(
+        OutboundWarehouseOrder,
+        prefix,
+        order=primary_order.order,
+        manufacturing_order=primary_order.manufacturing_order,
+    )
     with transaction.atomic():
         child = OutboundWarehouseOrder.objects.create(
             code=code,
