@@ -288,7 +288,7 @@ class InvoicesService:
         invalid_states = [
             order.code
             for order in ordered_orders
-            if order.state in (OutboundOrderState.DRAFT, OutboundOrderState.CANCELLED)
+            if order.state == OutboundOrderState.CANCELLED
         ]
         if invalid_states:
             raise WarehouseItemBadRequestError(

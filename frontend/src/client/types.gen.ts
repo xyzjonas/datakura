@@ -3264,14 +3264,6 @@ export type OutboundOrderSchema = {
     currency: string;
     contact?: ContactPersonSchema | null;
     /**
-     * Calculation Code
-     */
-    calculation_code?: string | null;
-    /**
-     * Is Calculation
-     */
-    is_calculation?: boolean;
-    /**
      * External Code
      */
     external_code?: string | null;
@@ -3284,13 +3276,21 @@ export type OutboundOrderSchema = {
      */
     note?: string | null;
     /**
-     * Warehouse Order Codes
-     */
-    warehouse_order_codes?: Array<string>;
-    /**
      * Requested Delivery Date
      */
     requested_delivery_date?: string | null;
+    /**
+     * Items
+     */
+    items?: Array<OutboundOrderItemSchema>;
+    /**
+     * Calculation Code
+     */
+    calculation_code?: string | null;
+    /**
+     * Warehouse Order Codes
+     */
+    warehouse_order_codes?: Array<string>;
     /**
      * Cancelled Date
      */
@@ -3299,10 +3299,6 @@ export type OutboundOrderSchema = {
      * Fulfilled Date
      */
     fulfilled_date?: string | null;
-    /**
-     * Items
-     */
-    items?: Array<OutboundOrderItemSchema>;
     /**
      * Warehouse Orders
      */
@@ -3382,17 +3378,17 @@ export type OutboundOrderCreateOrUpdateSchema = {
      * Contact Id
      */
     contact_id?: number | null;
-    state?: OutboundOrderState | null;
     /**
      * Requested Delivery Date
      */
     requested_delivery_date?: string | null;
+    state?: OutboundOrderState | null;
 };
 
 /**
  * OutboundOrderState
  */
-export type OutboundOrderState = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+export type OutboundOrderState = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 
 /**
  * CreateOutboundOrderItemResponse
@@ -3456,6 +3452,147 @@ export type OutboundOrderTransitionSchema = {
      * Action
      */
     action?: 'next' | 'cancel';
+};
+
+/**
+ * OutboundCalculationSchema
+ */
+export type OutboundCalculationSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Code
+     */
+    code: string;
+    type: OrderType;
+    customer: CustomerBaseSchema;
+    supplier: CustomerBaseSchema;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Currency
+     */
+    currency: string;
+    contact?: ContactPersonSchema | null;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Requested Delivery Date
+     */
+    requested_delivery_date?: string | null;
+    /**
+     * Items
+     */
+    items?: Array<OutboundOrderItemSchema>;
+    /**
+     * Order Code
+     */
+    order_code?: string | null;
+};
+
+/**
+ * PagedOutboundCalculationSchema
+ */
+export type PagedOutboundCalculationSchema = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<OutboundCalculationSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
+};
+
+/**
+ * GetOutboundCalculationResponse
+ */
+export type GetOutboundCalculationResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: OutboundCalculationSchema;
+};
+
+/**
+ * OutboundCalculationCreateOrUpdateSchema
+ */
+export type OutboundCalculationCreateOrUpdateSchema = {
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Customer Code
+     */
+    customer_code: string;
+    /**
+     * Customer Name
+     */
+    customer_name: string;
+    /**
+     * Contact Id
+     */
+    contact_id?: number | null;
+    /**
+     * Requested Delivery Date
+     */
+    requested_delivery_date?: string | null;
+};
+
+/**
+ * OutboundCalculationTransitionSchema
+ */
+export type OutboundCalculationTransitionSchema = {
+    /**
+     * Action
+     */
+    action: 'close' | 'reopen';
 };
 
 /**
@@ -7370,10 +7507,6 @@ export type WarehouseApiRoutesOutboundOrdersGetOutboundOrdersData = {
          */
         include_all?: boolean;
         /**
-         * Calculations
-         */
-        calculations?: boolean;
-        /**
          * Page
          */
         page?: number;
@@ -7684,6 +7817,306 @@ export type WarehouseApiRoutesOutboundOrdersReorderItemInOutboundOrderResponses 
 };
 
 export type WarehouseApiRoutesOutboundOrdersReorderItemInOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersReorderItemInOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersReorderItemInOutboundOrderResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search Term
+         */
+        search_term?: string | null;
+        /**
+         * Stock Product Code
+         */
+        stock_product_code?: string | null;
+        /**
+         * Customer Code
+         */
+        customer_code?: string | null;
+        /**
+         * Include All
+         */
+        include_all?: boolean;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/calculations-outgoing';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationsResponses = {
+    /**
+     * OK
+     */
+    200: PagedOutboundCalculationSchema;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationsResponse = WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationsResponses[keyof WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationsResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsCreateOutboundCalculationData = {
+    body: OutboundCalculationCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/calculations-outgoing';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsCreateOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundCalculationResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsCreateOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsCreateOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsCreateOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsDeleteOutboundCalculationData = {
+    body?: never;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsDeleteOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: EmptyResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsDeleteOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsDeleteOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsDeleteOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationData = {
+    body?: never;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundCalculationResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsUpdateOutboundCalculationData = {
+    body: OutboundCalculationCreateOrUpdateSchema;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsUpdateOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundCalculationResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsUpdateOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsUpdateOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsUpdateOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationAuditsData = {
+    body?: never;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}/audits';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationAuditsResponses = {
+    /**
+     * OK
+     */
+    200: GetAuditTimelineResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationAuditsResponse = WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationAuditsResponses[keyof WarehouseApiRoutesOutboundCalculationsGetOutboundCalculationAuditsResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsAddItemToOutboundCalculationData = {
+    body: OutboundOrderItemCreateSchema;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}/items';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsAddItemToOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: CreateOutboundOrderItemResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsAddItemToOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsAddItemToOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsAddItemToOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsRemoveItemFromOutboundCalculationData = {
+    body?: never;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+        /**
+         * Item Index
+         */
+        item_index: number;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}/items/{item_index}';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsRemoveItemFromOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundCalculationResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsRemoveItemFromOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsRemoveItemFromOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsRemoveItemFromOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculationData = {
+    body: OutboundOrderItemCreateSchema;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+        /**
+         * Item Index
+         */
+        item_index: number;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}/items/{item_index}';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: CreateOutboundOrderItemResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsReorderItemInOutboundCalculationData = {
+    body: ReorderItemSchema;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+        /**
+         * Item Index
+         */
+        item_index: number;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}/items/{item_index}/reorder';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsReorderItemInOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundCalculationResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsReorderItemInOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsReorderItemInOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsReorderItemInOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsDuplicateOutboundCalculationData = {
+    body?: never;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}/duplicate';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsDuplicateOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundCalculationResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsDuplicateOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsDuplicateOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsDuplicateOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsTransitionOutboundCalculationData = {
+    body: OutboundCalculationTransitionSchema;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}/transition';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsTransitionOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundCalculationResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsTransitionOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsTransitionOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsTransitionOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsCreateOrderFromOutboundCalculationData = {
+    body?: never;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}/create-order';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsCreateOrderFromOutboundCalculationResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundOrderResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsCreateOrderFromOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsCreateOrderFromOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsCreateOrderFromOutboundCalculationResponses];
 
 export type WarehouseApiRoutesPackagingGetPackageTypesData = {
     body?: never;

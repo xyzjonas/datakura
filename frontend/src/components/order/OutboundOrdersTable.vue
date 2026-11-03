@@ -61,7 +61,7 @@
           <component
             :is="OutboundOrderGridCard"
             :order="props.row"
-            detail-route-name="outboundOrderDetail"
+            :detail-route-name="outboundDocumentApi.detailRouteName()"
             class="flex-1"
           />
         </div>
@@ -99,7 +99,7 @@
     <template #body-cell-code="props">
       <q-td>
         <router-link
-          :to="{ name: 'outboundOrderDetail', params: { code: props.row.code } }"
+          :to="{ name: outboundDocumentApi.detailRouteName(), params: { code: props.row.code } }"
           class="link"
         >
           {{ props.row.code }}
@@ -155,11 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  warehouseApiRoutesOutboundOrdersGetOutboundOrders,
-  type CustomerSchema,
-  type OutboundOrderSchema,
-} from '@/client'
+import { type CustomerSchema, type OutboundOrderSchema } from '@/client'
 import OutboundOrderGridCard from '@/components/order/OutboundOrderGridCard.vue'
 import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
 import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'
@@ -168,6 +164,7 @@ import CustomerSearchSelect from '@/components/selects/CustomerSearchSelect.vue'
 import StockProductSearchSelect from '@/components/selects/StockProductSearchSelect.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { useApi } from '@/composables/use-api'
+import { useOutboundDocumentApi } from '@/composables/use-outbound-document-api'
 import { calculateTotalPrice } from '@/utils/total-price'
 import { useQuasar, type QTableColumn, type QTableProps } from 'quasar'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -201,6 +198,9 @@ const customerFilter = defineModel<CustomerSchema | undefined>('customerFilter')
 
 const { page, pageSize, search, stockProductCode, includeAll } = useQueryProducts()
 const { onResponse } = useApi()
+const outboundDocumentApi = useOutboundDocumentApi(() =>
+  props.calculations ? 'calculation' : 'order',
+)
 const $q = useQuasar()
 
 const pagination = ref<Pagination>({
@@ -215,21 +215,18 @@ const loading = ref(false)
 const fetchOrders = async () => {
   loading.value = true
   try {
-    const response = await warehouseApiRoutesOutboundOrdersGetOutboundOrders({
-      query: {
-        page: page.value,
-        page_size: pageSize.value,
-        search_term: search.value,
-        customer_code: customerFilter.value?.code,
-        stock_product_code: stockProductCode.value ?? undefined,
-        include_all: includeAll.value || undefined,
-        calculations: props.calculations || undefined,
-      },
+    const response = await outboundDocumentApi.list({
+      page: page.value,
+      page_size: pageSize.value,
+      search_term: search.value,
+      customer_code: customerFilter.value?.code,
+      stock_product_code: stockProductCode.value,
+      include_all: includeAll.value,
     })
     const data = onResponse(response)
     if (data) {
       pagination.value.rowsNumber = data.count
-      orders.value = data.data
+      orders.value = data.data as OutboundOrderSchema[]
       syncSelection()
       return
     }

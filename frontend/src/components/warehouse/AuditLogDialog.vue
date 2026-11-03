@@ -17,6 +17,7 @@
 <script setup lang="ts">
 import {
   warehouseApiRoutesInboundOrdersGetInboundOrderAudits,
+  warehouseApiRoutesOutboundCalculationsGetOutboundCalculationAudits,
   warehouseApiRoutesManufacturingOrdersGetManufacturingOrderAudits,
   warehouseApiRoutesOutboundOrdersGetOutboundOrderAudits,
   warehouseApiRoutesProductGetProductAudits,
@@ -32,6 +33,7 @@ import { ref, watch } from 'vue'
 type AuditSource =
   | 'inbound-order'
   | 'outbound-order'
+  | 'outbound-calculation'
   | 'warehouse-inbound-order'
   | 'warehouse-outbound-order'
   | 'product'
@@ -94,6 +96,15 @@ const fetchAudits = async () => {
     if (props.source === 'outbound-order') {
       const response = await warehouseApiRoutesOutboundOrdersGetOutboundOrderAudits({
         path: { order_code: props.code },
+      })
+      const payload = onResponse(response)
+      entries.value = payload?.data ?? []
+      return
+    }
+
+    if (props.source === 'outbound-calculation') {
+      const response = await warehouseApiRoutesOutboundCalculationsGetOutboundCalculationAudits({
+        path: { calculation_code: props.code },
       })
       const payload = onResponse(response)
       entries.value = payload?.data ?? []

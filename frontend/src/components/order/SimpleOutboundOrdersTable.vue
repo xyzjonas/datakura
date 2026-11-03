@@ -14,7 +14,10 @@
   >
     <template #item="props">
       <div class="q-pa-xs col-12">
-        <OutboundOrderGridCard :order="props.row" detail-route-name="outboundOrderDetail" />
+        <OutboundOrderGridCard
+          :order="props.row"
+          :detail-route-name="outboundDocumentApi.detailRouteName()"
+        />
       </div>
     </template>
 
@@ -33,7 +36,7 @@
         <a
           @click="
             $router.push({
-              name: 'outboundOrderDetail',
+              name: outboundDocumentApi.detailRouteName(),
               params: { code: props.row.code },
             })
           "
@@ -52,15 +55,12 @@
 </template>
 
 <script setup lang="ts">
-import {
-  warehouseApiRoutesOutboundOrdersGetOutboundOrders,
-  type OutboundOrderSchema,
-  type PagedOutboundOrderSchema,
-} from '@/client'
+import { type OutboundOrderSchema, type PagedOutboundOrderSchema } from '@/client'
 import SearchInput from '@/components/SearchInput.vue'
 import OutboundOrderGridCard from '@/components/order/OutboundOrderGridCard.vue'
 import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
 import { useApi } from '@/composables/use-api'
+import { useOutboundDocumentApi } from '@/composables/use-outbound-document-api'
 import { calculateTotalPrice } from '@/utils/total-price'
 import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
@@ -90,20 +90,20 @@ const loading = ref(false)
 const orders = ref<OutboundOrderSchema[]>([])
 
 const { onResponse } = useApi()
+const outboundDocumentApi = useOutboundDocumentApi(() =>
+  props.calculations ? 'calculation' : 'order',
+)
 
 const fetchOrders = async () => {
   loading.value = true
   try {
-    const result = await warehouseApiRoutesOutboundOrdersGetOutboundOrders({
-      query: {
-        page: Number(pagination.value.page),
-        page_size: Number(pagination.value.rowsPerPage),
-        search_term: search.value || undefined,
-        stock_product_code: props.stockProductCode,
-        customer_code: props.customerCode,
-        calculations: props.calculations || undefined,
-        include_all: props.includeAll || undefined,
-      },
+    const result = await outboundDocumentApi.list({
+      page: Number(pagination.value.page),
+      page_size: Number(pagination.value.rowsPerPage),
+      search_term: search.value,
+      stock_product_code: props.stockProductCode,
+      customer_code: props.customerCode,
+      include_all: props.includeAll,
     })
 
     const data = onResponse(result) as PagedOutboundOrderSchema | undefined

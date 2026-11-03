@@ -53,7 +53,8 @@ class InboundOrderState(models.IntegerChoices):
 
 
 class OutboundOrderState(models.IntegerChoices):
-    DRAFT = 1, "Calculation"
+    # value 1 (the former "Calculation" draft) is retired: calculations live in
+    # their own tables, an order starts as SUBMITTED ("Potvrzeno")
     SUBMITTED = 2, "Submitted"
     PICKING = 3, "Picking"
     PACKING = 4, "Packing"
@@ -70,7 +71,6 @@ class OutboundOrderState(models.IntegerChoices):
         """Return the API string for a given state value."""
         member = value if isinstance(value, cls) else cls(value)
         api_values = {
-            cls.DRAFT: "calculation",
             cls.SUBMITTED: "submitted",
             cls.PICKING: "picking",
             cls.PACKING: "packing",
@@ -85,6 +85,16 @@ class OutboundOrderState(models.IntegerChoices):
         if member in api_values:
             return api_values[member]
         return str(value)
+
+
+class OutboundCalculationState(models.IntegerChoices):
+    OPEN = 1, "Open"
+    CLOSED = 2, "Closed"
+
+    @classmethod
+    def get_label(cls, value):
+        """Return the API string for a given state value."""
+        return {cls.OPEN: "open", cls.CLOSED: "closed"}[cls(value)]
 
 
 class CreditNoteState(models.IntegerChoices):
@@ -276,23 +286,12 @@ class OutboundOrder(BaseModel):
 
     - `customer` is the buyer (`supplier` is us, the ghost/self customer).
     - Not to be confused with `InboundOrder`, the purchase order we place with a supplier.
-    - Starts as a *calculation* (offer, code `K...`, `is_calculation=True`) and becomes
-      a real order (code `OV...`, `is_calculation=False`) once confirmed with the
-      client (transition to PICKING). `calculation_code` keeps the original number.
-    - A calculation that is cancelled before confirmation stays a calculation forever
-      (`is_calculation` only flips on confirmation), so it is only listed among calculations.
+    - Starts as SUBMITTED, either created directly or mirrored 1:1 from an
+      `OutboundCalculation` (`OutboundCalculation.order`). Confirming it
+      (transition to PICKING) creates the warehouse order.
     """
 
     code = models.CharField(max_length=50, null=False, unique=True)
-    calculation_code = models.CharField(
-        max_length=50,
-        null=True,
-        blank=True,
-        unique=True,
-    )
-    # True until the calculation is confirmed with the client, then False for good.
-    # Splits "calculations" from "orders" without matching on code prefixes or state.
-    is_calculation = models.BooleanField(default=True)
     external_code = models.CharField(
         max_length=50, null=True, blank=True
     )  # todo: add unique constraint
@@ -335,11 +334,12 @@ class OutboundOrder(BaseModel):
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
     state = models.PositiveIntegerField(
         choices=OutboundOrderState.choices,
-        default=OutboundOrderState.DRAFT,
+        default=OutboundOrderState.SUBMITTED,
     )
 
     warehouse_orders: "QuerySet[OutboundWarehouseOrder]"
     credit_note: "CreditNoteToCustomer"
+    calculation: "OutboundCalculation | None"
 
     requested_delivery_date = models.DateTimeField(null=True, blank=True)
     cancelled_date = models.DateTimeField(null=True, blank=True)
@@ -394,6 +394,129 @@ class OutboundOrderItem(BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["order", "index"], name="unique_outbound_order_item_order_index"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.amount} × {self.stock_product.name}"
+
+
+class OutboundCalculationQuerySet(models.QuerySet["OutboundCalculation"]):
+    def active(self) -> "OutboundCalculationQuerySet":
+        """Calculations that were not (soft) deleted."""
+        return self.filter(is_deleted=False)
+
+
+class OutboundCalculation(BaseModel):
+    """
+    Offer for a client (the pre-stage of an `OutboundOrder`, i.e. a sales order).
+
+    Mirrors the header of `OutboundOrder` but has its own tables and only two
+    states (open/closed) and no warehouse/invoice side. Once the buyer confirms the
+    deal it is flipped over to an order (`order`), which is an independent 1:1 copy:
+    the calculation stays untouched (just closed).
+
+    Deleting is soft (`is_deleted`), so calculations are never lost.
+    """
+
+    code = models.CharField(max_length=50, null=False, unique=True)
+    external_code = models.CharField(max_length=50, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    note = models.TextField(null=True, blank=True)
+
+    supplier = models.ForeignKey(
+        Customer,
+        null=False,
+        on_delete=models.SET_DEFAULT,
+        related_name="outbound_calculations_as_customer",
+        default=Customer.get_ghost_customer,
+    )
+    customer = models.ForeignKey(
+        Customer,
+        null=False,
+        on_delete=models.SET_DEFAULT,
+        related_name="outbound_calculations_as_supplier",
+        default=Customer.get_ghost_customer,
+    )
+    contact = models.ForeignKey(
+        ContactPerson,
+        null=True,
+        blank=True,
+        default=None,
+        on_delete=models.SET_NULL,
+        related_name="outbound_calculations",
+    )
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
+    state = models.PositiveIntegerField(
+        choices=OutboundCalculationState.choices,
+        default=OutboundCalculationState.OPEN,
+    )
+    requested_delivery_date = models.DateTimeField(null=True, blank=True)
+
+    # the order created from this calculation (null = not flipped over yet)
+    order = models.OneToOneField(
+        OutboundOrder,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="calculation",
+    )
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_date = models.DateTimeField(null=True, blank=True)
+
+    items: QuerySet["OutboundCalculationItem"]
+    objects = OutboundCalculationQuerySet.as_manager()
+
+    class Meta(BaseModel.Meta):
+        ordering = ["-created"]
+
+    def __str__(self) -> str:
+        return f"{self.code} | {self.customer.name}"
+
+
+class OutboundCalculationItem(BaseModel):
+    """Calculation item, field-for-field the same as `OutboundOrderItem`."""
+
+    stock_product = models.ForeignKey(
+        StockProduct, null=False, on_delete=models.PROTECT
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=4, null=False)
+    calculation = models.ForeignKey(
+        OutboundCalculation,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    index = models.PositiveIntegerField(default=0)
+    unit_price = models.DecimalField(
+        max_digits=10, decimal_places=4, default=Decimal("0")
+    )
+    total_price = models.DecimalField(
+        max_digits=12, decimal_places=4, default=Decimal("0")
+    )
+    desired_package_type = models.ForeignKey(
+        PackageType,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="outbound_calculation_items",
+    )
+    desired_batch = models.ForeignKey(
+        "warehouse.Batch",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="outbound_calculation_items",
+    )
+    note = models.TextField(null=True, blank=True)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["index", "created"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["calculation", "index"],
+                name="unique_outbound_calculation_item_index",
             )
         ]
 

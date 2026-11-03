@@ -2,7 +2,6 @@ import type { OutboundInvoiceCreateSchema, OutboundOrderSchema } from '@/client'
 
 type InvoiceSelectionReason =
   | 'already-invoiced'
-  | 'calculation'
   | 'cancelled'
   | 'warehouse-not-completed'
   | 'different-customer'
@@ -30,10 +29,6 @@ export const getOutboundInvoiceSelectionBlockReason = (
 ): InvoiceSelectionReason | null => {
   if (order.invoice) {
     return 'already-invoiced'
-  }
-
-  if (order.state === 'draft' || order.state === 'calculation') {
-    return 'calculation'
   }
 
   if (order.state === 'cancelled') {
@@ -84,7 +79,6 @@ export const createDefaultOutboundInvoiceForm = (
 
 export const outboundInvoiceSelectionReasonLabel: Record<InvoiceSelectionReason, string> = {
   'already-invoiced': 'Objednavka uz ma pripojenou fakturu.',
-  calculation: 'Nejdriv potvrdte objednavku.',
   cancelled: 'Zrusenou objednavku nelze fakturovat.',
   'warehouse-not-completed': 'Fakturu lze vytvorit az po dokonceni vydejky.',
   'different-customer': 'Do jedne faktury lze vybrat jen objednavky stejneho odberatele.',

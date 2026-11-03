@@ -124,7 +124,6 @@ class AnalyticsService:
             InboundOrderState.CANCELLED,
         ]
         outbound_closed_states = [
-            OutboundOrderState.DRAFT,
             OutboundOrderState.COMPLETED,
             OutboundOrderState.CANCELLED,
             OutboundOrderState.COMPLETED_PAID,

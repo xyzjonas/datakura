@@ -5,13 +5,14 @@ import { ref } from 'vue'
 
 import CustomerInboundOrdersWidget from '@/components/customer/CustomerInboundOrdersWidget.vue'
 import CustomerOutboundOrdersWidget from '@/components/customer/CustomerOutboundOrdersWidget.vue'
-import OutboundCalculationCreateButton from '../OutboundCalculationCreateButton.vue'
+import OutboundDocumentCreateButton from '../OutboundDocumentCreateButton.vue'
 import OutboundOrdersTable from '../OutboundOrdersTable.vue'
 import SimpleInboundOrdersTable from '../SimpleInboundOrdersTable.vue'
 import SimpleOutboundOrdersTable from '../SimpleOutboundOrdersTable.vue'
 
 const mocks = vi.hoisted(() => ({
   getOutboundOrders: vi.fn(),
+  getOutboundCalculations: vi.fn(),
   getInboundOrders: vi.fn(),
   goToOrderOut: vi.fn(),
 }))
@@ -19,6 +20,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/client', () => ({
   warehouseApiRoutesOutboundOrdersGetOutboundOrders: mocks.getOutboundOrders,
   warehouseApiRoutesOutboundOrdersCreateOutboundOrder: vi.fn(),
+  warehouseApiRoutesOutboundCalculationsGetOutboundCalculations: mocks.getOutboundCalculations,
+  warehouseApiRoutesOutboundCalculationsCreateOutboundCalculation: vi.fn(),
   warehouseApiRoutesInboundOrdersGetInboundOrders: mocks.getInboundOrders,
 }))
 
@@ -68,7 +71,6 @@ const outboundOrder = {
   code: 'OV2026100001',
   calculation_code: 'K2026100007',
   state: 'picking',
-  is_calculation: false,
   created: '2026-10-01T10:00:00Z',
   customer: { code: 'CUS', name: 'Acme' },
   currency: 'CZK',
@@ -80,6 +82,9 @@ const outboundOrder = {
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.getOutboundOrders.mockResolvedValue({ data: { data: [outboundOrder], count: 1 } })
+  mocks.getOutboundCalculations.mockResolvedValue({
+    data: { data: [{ ...outboundOrder, state: 'open', code: 'K2026100007' }], count: 1 },
+  })
   mocks.getInboundOrders.mockResolvedValue({ data: { data: [], count: 0 } })
 })
 
@@ -88,7 +93,8 @@ describe('OutboundOrdersTable calculations', () => {
     const wrapper = mount(OutboundOrdersTable, { global: { stubs } })
     await flushPromises()
 
-    expect(mocks.getOutboundOrders.mock.calls[0]![0].query.calculations).toBeUndefined()
+    expect(mocks.getOutboundCalculations).not.toHaveBeenCalled()
+    expect(mocks.getOutboundOrders.mock.calls[0]![0].query).not.toHaveProperty('calculations')
     expect(wrapper.text()).toContain('Kalkulace')
     expect(wrapper.text()).toContain('K2026100007')
     expect(wrapper.text()).toContain('Vydejka')
@@ -101,7 +107,9 @@ describe('OutboundOrdersTable calculations', () => {
     })
     await flushPromises()
 
-    expect(mocks.getOutboundOrders.mock.calls[0]![0].query.calculations).toBe(true)
+    // calculations come from their own API, orders are never asked for
+    expect(mocks.getOutboundCalculations).toHaveBeenCalledTimes(1)
+    expect(mocks.getOutboundOrders).not.toHaveBeenCalled()
     expect(wrapper.text()).not.toContain('Kalkulace')
     expect(wrapper.text()).not.toContain('Vydejka')
   })
@@ -115,10 +123,10 @@ describe('Simple tables', () => {
     })
     await flushPromises()
 
-    expect(mocks.getOutboundOrders).toHaveBeenCalledWith({
+    expect(mocks.getOutboundOrders).not.toHaveBeenCalled()
+    expect(mocks.getOutboundCalculations).toHaveBeenCalledWith({
       query: expect.objectContaining({
         customer_code: 'CUS-1',
-        calculations: true,
         include_all: true,
         page: 1,
         page_size: 5,
@@ -134,7 +142,7 @@ describe('Simple tables', () => {
     await flushPromises()
 
     const query = mocks.getOutboundOrders.mock.calls[0]![0].query
-    expect(query.calculations).toBeUndefined()
+    expect(query).not.toHaveProperty('calculations')
     expect(query.include_all).toBeUndefined()
     expect(query.customer_code).toBeUndefined()
 
@@ -169,7 +177,7 @@ describe('Customer widgets', () => {
     expect(wrapper.text()).toContain('Historie objednávek')
     const query = mocks.getOutboundOrders.mock.calls[0]![0].query
     expect(query).toMatchObject({ customer_code: 'CUS-1', include_all: true })
-    expect(query.calculations).toBeUndefined()
+    expect(mocks.getOutboundCalculations).not.toHaveBeenCalled()
   })
 
   it('buyer: lists all-state calculations', async () => {
@@ -180,10 +188,10 @@ describe('Customer widgets', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Kalkulace')
-    expect(mocks.getOutboundOrders.mock.calls[0]![0].query).toMatchObject({
+    expect(mocks.getOutboundOrders).not.toHaveBeenCalled()
+    expect(mocks.getOutboundCalculations.mock.calls[0]![0].query).toMatchObject({
       customer_code: 'CUS-1',
       include_all: true,
-      calculations: true,
     })
   })
 
@@ -203,12 +211,16 @@ describe('Customer widgets', () => {
   })
 })
 
-describe('OutboundCalculationCreateButton', () => {
-  it('is labelled "nová kalkulace"', () => {
-    const wrapper = mount(OutboundCalculationCreateButton, {
+describe('OutboundDocumentCreateButton', () => {
+  it.each([
+    ['calculation', 'nová kalkulace'],
+    ['order', 'nová objednávka'],
+  ] as const)('%s is labelled "%s"', (kind, label) => {
+    const wrapper = mount(OutboundDocumentCreateButton, {
+      props: { kind },
       global: { stubs: { NewOrderDialog: true } },
     })
 
-    expect(wrapper.text()).toContain('nová kalkulace')
+    expect(wrapper.text()).toContain(label)
   })
 })

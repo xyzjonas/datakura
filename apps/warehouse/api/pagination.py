@@ -22,7 +22,10 @@ from apps.warehouse.core.schemas.type import (
 )
 from apps.warehouse.core.schemas.manufacturing import ManufacturingOrderSchema
 from apps.warehouse.core.schemas.orders import GetInboundOrdersResponse
-from apps.warehouse.core.schemas.orders import GetOutboundOrdersResponse
+from apps.warehouse.core.schemas.orders import (
+    GetOutboundCalculationsResponse,
+    GetOutboundOrdersResponse,
+)
 from apps.warehouse.core.schemas.invoice import (
     GetInvoicePaymentMethodsResponse,
     GetInvoicesResponse,
@@ -48,6 +51,7 @@ from apps.warehouse.core.transformation import (
     product_group_orm_to_schema,
     product_type_orm_to_schema,
     inbound_order_orm_to_schema,
+    outbound_calculation_orm_to_schema,
     outbound_order_orm_to_schema,
     warehouse_inbound_order_orm_to_schema,
     warehouse_outbound_order_orm_to_schema,
@@ -63,6 +67,7 @@ from apps.warehouse.models.customer import Customer, CustomerGroup
 from apps.warehouse.models.manufacturing import ManufacturingOrder
 from apps.warehouse.models.orders import (
     InboundOrder,
+    OutboundCalculation,
     OutboundOrder,
     CreditNoteToSupplier,
     Invoice,
@@ -255,6 +260,36 @@ class OutgoingOrdersPagination(PaginationBase):
 
         return {
             "data": [outbound_order_orm_to_schema(order) for order in items],
+            "count": count,
+            "next": pagination.page + 1
+            if offset + pagination.page_size < count
+            else None,
+            "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
+
+
+class OutboundCalculationsPagination(PaginationBase):
+    items_attribute: str = "data"
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 20
+
+    class Output(GetOutboundCalculationsResponse): ...
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[OutboundCalculation],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        offset = (pagination.page - 1) * pagination.page_size
+        items = queryset[offset : offset + pagination.page_size]
+        count = queryset.count()
+
+        return {
+            "data": [outbound_calculation_orm_to_schema(calc) for calc in items],
             "count": count,
             "next": pagination.page + 1
             if offset + pagination.page_size < count

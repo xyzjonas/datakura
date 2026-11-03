@@ -1,16 +1,18 @@
 <template>
-  <q-badge
-    :icon="OUTBOUND_ORDER_STATES[state]?.icon"
-    :color="OUTBOUND_ORDER_STATES[state]?.color"
-    class="text-xs"
-  >
-    <q-icon :name="OUTBOUND_ORDER_STATES[state]?.icon" class="mr-1"></q-icon>
-    {{ OUTBOUND_ORDER_STATES[state]?.label }}
+  <q-badge :color="config?.color" class="text-xs">
+    <q-icon :name="config?.icon" class="mr-1"></q-icon>
+    {{ config?.label }}
   </q-badge>
 </template>
 
 <script setup lang="ts">
-import { OUTBOUND_ORDER_STATES } from '@/constants/outbound-order'
+import { OUTBOUND_CALCULATION_STATES, OUTBOUND_ORDER_STATES } from '@/constants/outbound-order'
+import { computed } from 'vue'
 
-defineProps<{ state: string }>()
+const props = defineProps<{ state: string }>()
+
+// serves both orders and calculations (their state names never overlap)
+const config = computed(
+  () => OUTBOUND_ORDER_STATES[props.state] ?? OUTBOUND_CALCULATION_STATES[props.state],
+)
 </script>

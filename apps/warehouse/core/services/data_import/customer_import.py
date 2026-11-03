@@ -254,8 +254,16 @@ class CustomerImportService:
         errors: list[str] = []
 
         total = len(customers)
+        seen_names: dict[str, str] = {}
         for position, (index, customer) in enumerate(customers, start=1):
             progress.advance()
+            if customer.code in seen_names:
+                summary.warnings.append(
+                    f"Customer #{index} '{customer.code}' ({customer.name}): code "
+                    f"already used earlier in the file by '{seen_names[customer.code]}', "
+                    "that record was overwritten"
+                )
+            seen_names[customer.code] = customer.name
             if position % PROGRESS_EVERY == 0:
                 logger.info("Customer import: processed {}/{}", position, total)
             try:
@@ -314,6 +322,11 @@ class CustomerImportService:
             .first()
         )
         before = snapshot(existing, AUDITED_FIELDS) if existing else None
+        if existing is not None and existing.name != customer.name:
+            summary.warnings.append(
+                f"Customer '{customer.code}': existing '{existing.name}' "
+                f"overwritten by '{customer.name}' (same code)"
+            )
 
         create_defaults: dict[str, Any] = {}
         if existing is None and customer.legacy_id is not None:

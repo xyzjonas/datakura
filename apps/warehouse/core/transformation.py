@@ -41,6 +41,7 @@ from apps.warehouse.core.schemas.manufacturing import (
 from apps.warehouse.core.schemas.orders import (
     InboundOrderSchema,
     InboundOrderItemSchema,
+    OutboundCalculationSchema,
     OutboundOrderSchema,
     OutboundOrderItemSchema,
     OutboundOrderItemPricingDetailsSchema,
@@ -81,6 +82,9 @@ from apps.warehouse.models.orders import (
     InboundOrderItem,
     InboundOrderState,
     OutboundOrder,
+    OutboundCalculation,
+    OutboundCalculationItem,
+    OutboundCalculationState,
     OutboundOrderItem,
     OutboundOrderState,
     CreditNoteToSupplier,
@@ -578,7 +582,7 @@ def inbound_order_item_orm_to_schema(
 
 
 def outbound_order_item_orm_to_schema(
-    item: OutboundOrderItem,
+    item: OutboundOrderItem | OutboundCalculationItem,
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None,
 ) -> OutboundOrderItemSchema:
     desired_batch_barcode = None
@@ -754,12 +758,13 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
         )
         for wo in order.warehouse_orders.order_by("-created").all()
     ]
+    # reverse one-to-one: missing when the order was not created from a calculation
+    calculation = getattr(order, "calculation", None)
     return OutboundOrderSchema(
         created=order.created,
         changed=order.changed,
         code=order.code,
-        calculation_code=order.calculation_code,
-        is_calculation=order.is_calculation,
+        calculation_code=calculation.code if calculation else None,
         external_code=order.external_code,
         customer=customer_orm_to_base_schema(order.customer),
         contact=ContactPersonSchema.from_orm(order.contact) if order.contact else None,
@@ -779,6 +784,32 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
         requested_delivery_date=order.requested_delivery_date,
         cancelled_date=order.cancelled_date,
         fulfilled_date=order.fulfilled_date,
+    )
+
+
+def outbound_calculation_orm_to_schema(
+    calculation: OutboundCalculation,
+) -> OutboundCalculationSchema:
+    return OutboundCalculationSchema(
+        created=calculation.created,
+        changed=calculation.changed,
+        code=calculation.code,
+        external_code=calculation.external_code,
+        customer=customer_orm_to_base_schema(calculation.customer),
+        contact=ContactPersonSchema.from_orm(calculation.contact)
+        if calculation.contact
+        else None,
+        supplier=customer_orm_to_base_schema(calculation.supplier),
+        type=OrderType.Outbound,
+        description=calculation.description,
+        note=calculation.note,
+        currency=calculation.currency,
+        state=OutboundCalculationState.get_label(calculation.state),
+        items=[
+            outbound_order_item_orm_to_schema(item) for item in calculation.items.all()
+        ],
+        requested_delivery_date=calculation.requested_delivery_date,
+        order_code=calculation.order.code if calculation.order else None,
     )
 
 

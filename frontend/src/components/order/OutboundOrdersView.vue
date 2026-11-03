@@ -34,7 +34,7 @@
           icon="sym_o_calculate"
           :to="{ name: 'outboundCalculations' }"
         />
-        <OutboundCalculationCreateButton />
+        <OutboundDocumentCreateButton kind="order" />
       </div>
     </div>
 
@@ -65,7 +65,7 @@ import {
 } from '@/client'
 import { client } from '@/client/client.gen'
 import OutboundInvoiceCreateDialog from '@/components/order/OutboundInvoiceCreateDialog.vue'
-import OutboundCalculationCreateButton from '@/components/order/OutboundCalculationCreateButton.vue'
+import OutboundDocumentCreateButton from '@/components/order/OutboundDocumentCreateButton.vue'
 import { useApi } from '@/composables/use-api'
 import router from '@/router'
 import { useQuasar } from 'quasar'

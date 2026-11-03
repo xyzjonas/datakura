@@ -5,6 +5,9 @@ from apps.warehouse.models.currency import CURRENCY_CHOICES
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderItem,
+    OutboundCalculation,
+    OutboundCalculationItem,
+    OutboundCalculationState,
     OutboundOrder,
     OutboundOrderState,
     OutboundOrderItem,
@@ -94,11 +97,52 @@ class OutboundOrderFactory(DjangoModelFactory):
     customer = factory.SubFactory(CustomerFactory)
     currency = CURRENCY_CHOICES[0][0]
     invoice = None
-    state = OutboundOrderState.DRAFT
-    # anything past the client confirmation (PICKING and later) is a real order
-    is_calculation = factory.LazyAttribute(
-        lambda o: o.state in (OutboundOrderState.DRAFT, OutboundOrderState.SUBMITTED)
+    state = OutboundOrderState.SUBMITTED
+
+
+class OutboundCalculationItemFactory(DjangoModelFactory):
+    """Factory for OutboundCalculationItem model"""
+
+    class Meta:
+        model = OutboundCalculationItem
+
+    @classmethod
+    def it(cls, **kwargs) -> OutboundCalculationItem:
+        return cls(**kwargs)  # type: ignore
+
+    stock_product = factory.SubFactory(StockProductFactory)
+    amount = factory.Faker("random_int", min=1, max=100, step=1)
+    calculation = None
+    index = factory.LazyAttribute(
+        lambda o: o.calculation.items.count() if o.calculation else 0
     )
+    unit_price = factory.Faker("random_int", min=1, max=200, step=1)
+    total_price = factory.LazyAttribute(lambda o: o.amount * o.unit_price)
+    desired_package_type = None
+    desired_batch = None
+
+
+class OutboundCalculationFactory(DjangoModelFactory):
+    """Factory for OutboundCalculation model"""
+
+    class Meta:
+        model = OutboundCalculation
+        django_get_or_create = ("code",)
+
+    @classmethod
+    def it(cls, **kwargs) -> OutboundCalculation:
+        return cls(**kwargs)  # type: ignore
+
+    code = factory.Sequence(lambda n: f"KCALC-{n:04d}")
+    external_code = factory.Sequence(lambda n: f"CEXT-{n:12d}")
+    description = factory.Faker("text", max_nb_chars=50)
+    note = factory.Faker("text", max_nb_chars=200)
+
+    customer = factory.SubFactory(CustomerFactory)
+    currency = CURRENCY_CHOICES[0][0]
+    state = OutboundCalculationState.OPEN
+    order = None
+    is_deleted = False
 
 
 class CreditNoteSupplierFactory(DjangoModelFactory):

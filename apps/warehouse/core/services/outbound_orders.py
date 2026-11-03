@@ -1,6 +1,4 @@
-from calendar import monthrange
-from datetime import datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from typing import cast
 
 from django.core.files.uploadedfile import UploadedFile
@@ -10,14 +8,12 @@ from django.utils import timezone
 from loguru import logger
 
 from apps.warehouse.core.audit_messages import AuditMessages
-from apps.warehouse.core.packaging import get_package_amount_in_product_uom
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
     OutboundOrderCreateOrUpdateSchema,
     OutboundOrderItemCreateSchema,
-    OutboundOrderItemPricingDetailsSchema,
     OutboundOrderItemSchema,
     OutboundOrderSchema,
 )
@@ -26,7 +22,17 @@ from apps.warehouse.core.services.item_reorder import (
     compact_order_items,
     reorder_order_items,
 )
-from apps.warehouse.core.services.products import stock_product_service
+from apps.warehouse.core.services.outbound_common import (
+    build_item_pricing_details,
+    compute_unit_price,
+    diff_schemas,
+    generate_next_monthly_code,
+    get_customer_contact_or_none,
+    get_desired_batch_or_none,
+    get_desired_package_or_none,
+    validate_desired_packaging,
+    with_pricing_details,
+)
 from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.services.warehouse_order_factory import (
     WarehouseOrderKind,
@@ -37,8 +43,7 @@ from apps.warehouse.core.transformation import (
     outbound_order_orm_to_schema,
 )
 from apps.warehouse.models.audit import AuditAction
-from apps.warehouse.models.barcode import Barcode
-from apps.warehouse.models.customer import ContactPerson, Customer
+from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.orders import (
     Invoice,
     InvoicePaymentMethod,
@@ -46,25 +51,13 @@ from apps.warehouse.models.orders import (
     OutboundOrderItem,
     OutboundOrderState,
 )
-from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.product import StockProduct
 from apps.warehouse.models.warehouse import (
-    Batch,
     OutboundWarehouseOrder,
     OutboundWarehouseOrderItem,
     OutboundWarehouseOrderState,
     WarehouseItem,
 )
-
-
-def _get_end_of_month(date: datetime) -> datetime:
-    last_day = monthrange(date.year, date.month)[1]
-    return date.replace(day=last_day)
-
-
-def _get_month_range(date: datetime) -> tuple[datetime, datetime]:
-    last_day = _get_end_of_month(date)
-    return date.replace(day=1, hour=0, minute=0, second=0, microsecond=0), last_day
 
 
 class OutboundOrdersService:
@@ -136,55 +129,6 @@ class OutboundOrdersService:
                 target_state=target_state,
             )
 
-    @staticmethod
-    def _get_desired_package_or_none(name: str | None) -> PackageType | None:
-        if not name:
-            return None
-        return PackageType.objects.get(name=name)
-
-    @staticmethod
-    def _get_desired_batch_or_none(batch_code: str | None) -> Batch | None:
-        if not batch_code:
-            return None
-
-        barcode = (
-            Barcode.objects.select_related("content_type")
-            .filter(code=batch_code)
-            .first()
-        )
-        if not barcode or barcode.content_type.model_class() is not Batch:
-            raise WarehouseItemBadRequestError(f"Batch '{batch_code}' does not exist.")
-        return barcode.content_object  # type: ignore[return-value]
-
-    @staticmethod
-    def _validate_desired_packaging(
-        *,
-        stock_product: StockProduct,
-        amount: Decimal,
-        desired_package_type: PackageType | None,
-    ) -> None:
-        if desired_package_type is None:
-            return
-
-        package_amount = get_package_amount_in_product_uom(
-            desired_package_type, stock_product
-        )
-        if not package_amount:
-            raise WarehouseItemBadRequestError(
-                f"Package '{desired_package_type.name}' cannot be converted to product '{stock_product.code}'."
-            )
-
-        normalized_package_amount = Decimal(str(package_amount))
-        if normalized_package_amount <= 0:
-            raise WarehouseItemBadRequestError(
-                f"Package '{desired_package_type.name}' has invalid amount."
-            )
-
-        if amount % normalized_package_amount != 0:
-            raise WarehouseItemBadRequestError(
-                f"Requested amount '{amount}' does not fit package '{desired_package_type.name}'."
-            )
-
     @classmethod
     def _build_outbound_warehouse_order_items(
         cls,
@@ -250,28 +194,6 @@ class OutboundOrdersService:
                 next_index += 1
 
     @staticmethod
-    def _with_pricing_details(
-        order: OutboundOrderSchema, order_model: OutboundOrder
-    ) -> OutboundOrderSchema:
-        product_by_code = {
-            item.stock_product.code: item.stock_product
-            for item in order_model.items.select_related("stock_product")
-        }
-        for schema_item in order.items:
-            product = product_by_code.get(schema_item.product.code)
-            if product is None:
-                continue
-            schema_item.pricing_details = (
-                OutboundOrdersService._build_item_pricing_details(
-                    order=order_model,
-                    stock_product=product,
-                    selected_unit_price=Decimal(str(schema_item.unit_price)),
-                    total_price=Decimal(str(schema_item.total_price)),
-                )
-            )
-        return order
-
-    @staticmethod
     def get_outbound_order(code: str) -> OutboundOrderSchema:
         order = OutboundOrder.objects.select_related(
             "customer",
@@ -280,55 +202,7 @@ class OutboundOrdersService:
             "invoice__payment_method",
         ).get(code=code)
         schema = outbound_order_orm_to_schema(order)
-        return OutboundOrdersService._with_pricing_details(schema, order)
-
-    @staticmethod
-    def _build_item_pricing_details(
-        *,
-        order: OutboundOrder,
-        stock_product: StockProduct,
-        selected_unit_price: Decimal,
-        total_price: Decimal,
-    ) -> OutboundOrderItemPricingDetailsSchema:
-        suggested = stock_product_service.get_selling_price_lookup(
-            product_code=stock_product.code,
-            customer_code=order.customer.code if order.customer else None,
-        )
-
-        reason = suggested.reason
-        minimum = settings_service.resolve_minimum_item_value(order.customer)
-        if minimum is not None and total_price == minimum.value:
-            reason = f"{reason}; {minimum.explanation}"
-
-        avg_purchase_price = Decimal(str(stock_product.purchase_price or 0))
-        margin_amount = selected_unit_price - avg_purchase_price
-        margin_percent = Decimal("0")
-        if avg_purchase_price > 0:
-            margin_percent = (
-                margin_amount / avg_purchase_price * Decimal("100")
-            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-        return OutboundOrderItemPricingDetailsSchema(
-            base_price=suggested.base_price,
-            avg_purchase_price=float(avg_purchase_price),
-            suggested_unit_price=suggested.final_price,
-            selected_unit_price=float(selected_unit_price),
-            discount_percent=suggested.discount_percent,
-            reason=reason,
-            source=suggested.source,
-            margin_amount=float(
-                margin_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            ),
-            margin_percent=float(margin_percent),
-        )
-
-    @staticmethod
-    def _compute_unit_price(amount: Decimal, total_price: Decimal) -> Decimal:
-        if amount <= 0:
-            return Decimal("0")
-        return (total_price / amount).quantize(
-            Decimal("0.0001"), rounding=ROUND_HALF_UP
-        )
+        return with_pricing_details(schema, order)
 
     @staticmethod
     def get_outbound_orders(
@@ -336,14 +210,8 @@ class OutboundOrdersService:
         stock_product_code: str | None = None,
         customer_code: str | None = None,
         include_all: bool = False,
-        calculations: bool = False,
     ) -> QuerySet[OutboundOrder]:
-        """
-        Calculations and confirmed orders are disjoint listings, split by
-        `is_calculation`: a calculation (even a cancelled one) never shows up among
-        orders, and an order never shows up among calculations.
-        """
-        qs = OutboundOrder.objects.filter(is_calculation=calculations).select_related(
+        qs = OutboundOrder.objects.select_related(
             "customer",
             "invoice__customer",
             "invoice__supplier",
@@ -363,7 +231,7 @@ class OutboundOrdersService:
             qs = qs.filter(
                 Q(code__iexact=search_term)
                 | Q(code__icontains=search_term)
-                | Q(calculation_code__icontains=search_term)
+                | Q(calculation__code__icontains=search_term)
                 | Q(customer__name__icontains=search_term)
             )
 
@@ -381,45 +249,12 @@ class OutboundOrdersService:
             return None
         return Customer.objects.get(code=customer_code)
 
-    @staticmethod
-    def _generate_next_monthly_code(
-        *,
-        queryset: QuerySet[OutboundOrder],
-        field_name: str,
-        prefix: str,
-    ) -> str:
-        now = timezone.now()
-        dt_range = _get_month_range(now)
-        monthly_prefix = f"{prefix}{now.year}{now.month:02d}"
-        last_code = (
-            queryset.filter(
-                created__range=dt_range, **{f"{field_name}__startswith": monthly_prefix}
-            )
-            .exclude(**{field_name: ""})
-            .order_by(f"-{field_name}")
-            .values_list(field_name, flat=True)
-            .first()
-        )
-        next_number = 1
-        if last_code:
-            next_number = int(str(last_code)[len(monthly_prefix) :]) + 1
-
-        return f"{monthly_prefix}{next_number:04d}"
-
     @classmethod
     def generate_next_outgoing_order_code(cls) -> str:
-        return cls._generate_next_monthly_code(
+        return generate_next_monthly_code(
             queryset=OutboundOrder.objects.all(),
             field_name="code",
-            prefix="OV",
-        )
-
-    @classmethod
-    def generate_next_calculation_code(cls) -> str:
-        return cls._generate_next_monthly_code(
-            queryset=OutboundOrder.objects.exclude(calculation_code__isnull=True),
-            field_name="calculation_code",
-            prefix="K",
+            prefix="OP",
         )
 
     @staticmethod
@@ -437,9 +272,9 @@ class OutboundOrdersService:
 
     @staticmethod
     def _requires_warehouse_sync(order: OutboundOrder) -> bool:
-        return order.warehouse_orders.exists() or order.state not in (
-            OutboundOrderState.DRAFT,
-            OutboundOrderState.SUBMITTED,
+        return (
+            order.warehouse_orders.exists()
+            or order.state != OutboundOrderState.SUBMITTED
         )
 
     @classmethod
@@ -620,28 +455,13 @@ class OutboundOrdersService:
             ).delete()
 
     @staticmethod
-    def _get_customer_contact_or_none(
-        customer: Customer, contact_id: int | None
-    ) -> ContactPerson | None:
-        if contact_id is None:
-            return None
-        contact = ContactPerson.objects.filter(
-            id=contact_id, customer=customer, is_deleted=False
-        ).first()
-        if contact is None:
-            raise WarehouseItemBadRequestError(
-                f"Contact '{contact_id}' does not belong to customer '{customer.code}'."
-            )
-        return contact
-
-    @staticmethod
     def update_or_create_outgoing(
         params: OutboundOrderCreateOrUpdateSchema,
         context: RequestContext,
         code: str | None = None,
     ) -> OutboundOrderSchema:
         if code is None:
-            code = OutboundOrdersService.generate_next_calculation_code()
+            code = OutboundOrdersService.generate_next_outgoing_order_code()
 
         previous_order_schema = None
         existing_order = OutboundOrder.objects.filter(code=code).first()
@@ -650,14 +470,11 @@ class OutboundOrdersService:
             previous_order_schema = outbound_order_orm_to_schema(existing_order)
 
         customer = Customer.objects.get(code=params.customer_code)
-        contact = OutboundOrdersService._get_customer_contact_or_none(
-            customer, params.contact_id
-        )
+        contact = get_customer_contact_or_none(customer, params.contact_id)
         with transaction.atomic():
             order, created = OutboundOrder.objects.update_or_create(
                 code=code,
                 create_defaults=dict(
-                    calculation_code=code,
                     external_code=params.external_code,
                     description=params.description,
                     note=params.note,
@@ -685,27 +502,18 @@ class OutboundOrdersService:
                 )
             else:
                 if previous_order_schema:
-                    new_order = outbound_order_orm_to_schema(order).model_dump()
-                    final_diff = {}
-                    for key, value in previous_order_schema.model_dump().items():
-                        if key in ("created", "changed"):
-                            continue
-                        if value != new_order[key]:
-                            final_diff[key] = {
-                                "old": str(value),
-                                "new": str(new_order[key]),
-                            }
-
                     audit_service.add_entry(
                         order,
                         user=context.user_id,
                         action=AuditAction.UPDATE,
                         reason=AuditMessages.ORDER_UPDATED.CS,
-                        changes=final_diff,
+                        changes=diff_schemas(
+                            previous_order_schema, outbound_order_orm_to_schema(order)
+                        ),
                     )
 
         schema = outbound_order_orm_to_schema(order)
-        return OutboundOrdersService._with_pricing_details(schema, order)
+        return with_pricing_details(schema, order)
 
     @classmethod
     def add_item(
@@ -719,10 +527,10 @@ class OutboundOrdersService:
         )
         cls._assert_order_editable(order)
         stock_product = StockProduct.objects.get(code=item.product_code)
-        desired_package_type = cls._get_desired_package_or_none(
+        desired_package_type = get_desired_package_or_none(
             item.desired_package_type_name
         )
-        desired_batch = cls._get_desired_batch_or_none(item.desired_batch_code)
+        desired_batch = get_desired_batch_or_none(item.desired_batch_code)
 
         with transaction.atomic():
             # lock the order row to serialize concurrent index allocation
@@ -732,7 +540,7 @@ class OutboundOrdersService:
             total_price = settings_service.apply_minimum_item_value(
                 order.customer, Decimal(str(item.total_price))
             )
-            cls._validate_desired_packaging(
+            validate_desired_packaging(
                 stock_product=stock_product,
                 amount=amount,
                 desired_package_type=desired_package_type,
@@ -742,7 +550,7 @@ class OutboundOrdersService:
                 amount=amount,
                 order=order,
                 total_price=total_price,
-                unit_price=cls._compute_unit_price(amount, total_price),
+                unit_price=compute_unit_price(amount, total_price),
                 index=item.index if item.index is not None else next_index,
                 desired_package_type=desired_package_type,
                 desired_batch=desired_batch,
@@ -753,8 +561,8 @@ class OutboundOrdersService:
                 order_item=item_model,
                 context=context,
             )
-        selected_unit_price = cls._compute_unit_price(amount, total_price)
-        pricing_details = cls._build_item_pricing_details(
+        selected_unit_price = compute_unit_price(amount, total_price)
+        pricing_details = build_item_pricing_details(
             order=order,
             stock_product=stock_product,
             selected_unit_price=selected_unit_price,
@@ -777,26 +585,24 @@ class OutboundOrdersService:
         )
         cls._assert_order_editable(order)
         item_model = OutboundOrderItem.objects.get(order=order, index=item_index)
-        desired_package_type = cls._get_desired_package_or_none(
+        desired_package_type = get_desired_package_or_none(
             item.desired_package_type_name
         )
-        desired_batch = cls._get_desired_batch_or_none(item.desired_batch_code)
+        desired_batch = get_desired_batch_or_none(item.desired_batch_code)
 
         with transaction.atomic():
             amount = Decimal(str(item.amount))
             total_price = settings_service.apply_minimum_item_value(
                 order.customer, Decimal(str(item.total_price))
             )
-            cls._validate_desired_packaging(
+            validate_desired_packaging(
                 stock_product=item_model.stock_product,
                 amount=amount,
                 desired_package_type=desired_package_type,
             )
             item_model.amount = amount
             item_model.total_price = total_price
-            item_model.unit_price = OutboundOrdersService._compute_unit_price(
-                amount, total_price
-            )
+            item_model.unit_price = compute_unit_price(amount, total_price)
             item_model.desired_package_type = desired_package_type
             item_model.desired_batch = desired_batch
             item_model.note = item.note
@@ -808,7 +614,7 @@ class OutboundOrdersService:
                 order_item=item_model,
                 context=context,
             )
-        pricing_details = cls._build_item_pricing_details(
+        pricing_details = build_item_pricing_details(
             order=order,
             stock_product=item_model.stock_product,
             selected_unit_price=item_model.unit_price,
@@ -855,7 +661,7 @@ class OutboundOrdersService:
             reorder_order_items(order.items.select_for_update(), item_index, new_index)
 
         schema = outbound_order_orm_to_schema(order)
-        return cls._with_pricing_details(schema, order)
+        return with_pricing_details(schema, order)
 
     @classmethod
     def transition_order(
@@ -883,10 +689,7 @@ class OutboundOrdersService:
                             warehouse_order, context
                         )
             elif action == "next":
-                if old_state in (
-                    OutboundOrderState.DRAFT,
-                    OutboundOrderState.SUBMITTED,
-                ):
+                if old_state == OutboundOrderState.SUBMITTED:
                     if not order.items.exists():
                         raise WarehouseItemBadRequestError(
                             "Order must have at least one item before confirmation"
@@ -921,15 +724,6 @@ class OutboundOrdersService:
                         )
 
         with transaction.atomic():
-            if new_state == OutboundOrderState.PICKING and old_state in (
-                OutboundOrderState.DRAFT,
-                OutboundOrderState.SUBMITTED,
-            ):
-                if not order.calculation_code:
-                    order.calculation_code = order.code
-                order.code = cls.generate_next_outgoing_order_code()
-                order.is_calculation = False
-
             order.state = new_state
 
             if (
@@ -975,7 +769,7 @@ class OutboundOrdersService:
             )
 
         schema = outbound_order_orm_to_schema(order)
-        return OutboundOrdersService._with_pricing_details(schema, order)
+        return with_pricing_details(schema, order)
 
     @classmethod
     def duplicate_outbound_order(
@@ -986,12 +780,11 @@ class OutboundOrdersService:
             "items__desired_package_type",
             "items__desired_batch",
         ).get(code=source_code)
-        new_code = cls.generate_next_calculation_code()
+        new_code = cls.generate_next_outgoing_order_code()
 
         with transaction.atomic():
             new_order = OutboundOrder.objects.create(
                 code=new_code,
-                calculation_code=new_code,
                 external_code=source.external_code,
                 description=source.description,
                 note=source.note,
@@ -1000,7 +793,7 @@ class OutboundOrdersService:
                 contact=source.contact,
                 supplier=source.supplier,
                 requested_delivery_date=source.requested_delivery_date,
-                state=OutboundOrderState.DRAFT,
+                state=OutboundOrderState.SUBMITTED,
             )
             for item in source.items.order_by("index"):
                 OutboundOrderItem.objects.create(
@@ -1023,7 +816,7 @@ class OutboundOrdersService:
             )
 
         schema = outbound_order_orm_to_schema(new_order)
-        return cls._with_pricing_details(schema, new_order)
+        return with_pricing_details(schema, new_order)
 
     @classmethod
     def store_invoice(
@@ -1097,7 +890,7 @@ class OutboundOrdersService:
 
         order.refresh_from_db()
         schema = outbound_order_orm_to_schema(order)
-        return OutboundOrdersService._with_pricing_details(schema, order)
+        return with_pricing_details(schema, order)
 
 
 outbound_orders_service = OutboundOrdersService()

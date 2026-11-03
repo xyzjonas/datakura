@@ -63,8 +63,8 @@ import type {
   ContactPersonSchema,
   CustomerBaseSchema,
   OutboundOrderCreateOrUpdateSchema,
-  OutboundOrderSchema,
 } from '@/client'
+import type { OutboundDocument } from '@/composables/use-outbound-document-api'
 import { ref, watch } from 'vue'
 import ContactPersonSelect from '../selects/ContactPersonSelect.vue'
 import CustomerSearchSelect from '../selects/CustomerSearchSelect.vue'
@@ -73,7 +73,7 @@ import CurrencyDropdown from './CurrencyDropdown.vue'
 type Props = {
   title?: string
   submitLabel?: string
-  orderOut?: OutboundOrderSchema
+  orderOut?: OutboundDocument
 }
 
 const deliveryDate = ref<string>('')
@@ -91,7 +91,7 @@ export interface OutboundOrderDialogExpose {
 const customer = ref<CustomerBaseSchema>()
 const contact = ref<ContactPersonSchema | null>(null)
 
-const propToRef = (order?: OutboundOrderSchema) => {
+const propToRef = (order?: OutboundDocument) => {
   if (!order) {
     return
   }

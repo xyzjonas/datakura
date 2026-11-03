@@ -4,10 +4,10 @@
       <div class="min-w-0">
         <h1>Kalkulace přijatých objednávek</h1>
         <h5 class="mt-2 text-gray-5">
-          Rozpracované kalkulace pro zákazníky, které se po potvrzení změní na přijaté objednávky
+          Nabídky pro zákazníky. Po potvrzení kupujícím se z kalkulace vytvoří přijatá objednávka
         </h5>
       </div>
-      <OutboundCalculationCreateButton />
+      <OutboundDocumentCreateButton kind="calculation" />
     </div>
 
     <OutboundOrdersTable v-model:customer-filter="customerFilter" calculations />
@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import type { CustomerSchema } from '@/client'
-import OutboundCalculationCreateButton from '@/components/order/OutboundCalculationCreateButton.vue'
+import OutboundDocumentCreateButton from '@/components/order/OutboundDocumentCreateButton.vue'
 import OutboundOrdersTable from '@/components/order/OutboundOrdersTable.vue'
 import { ref } from 'vue'
 

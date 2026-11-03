@@ -470,3 +470,29 @@ def test_reimport_of_unchanged_customer_writes_no_audit_log():
     run(sample())
 
     assert AuditLog.objects.for_object(Customer.objects.get(code="ABO")).count() == 1
+
+
+@pytest.mark.django_db
+def test_duplicate_code_in_file_warns_about_overwritten_record():
+    first = {**SAMPLE, "Id": 10, "Code": "FAST", "Name": "First s.r.o."}
+    second = {**SAMPLE, "Id": 11, "Code": "FAST", "Name": "Second s.r.o."}
+    summary = CustomerImportService().import_from_json(json.dumps([first, second]))
+    assert Customer.objects.filter(code="FAST").count() == 1
+    assert (summary.created_count, summary.updated_count) == (1, 1)
+    assert any("First s.r.o." in w and "overwritten" in w for w in summary.warnings)
+
+
+@pytest.mark.django_db
+def test_same_code_with_different_name_in_db_warns():
+    CustomerFactory(code="FAST", name="Old name")
+    row = {**SAMPLE, "Code": "FAST", "Name": "FASTENERS CZ, s.r.o."}
+    summary = CustomerImportService().import_from_json(json.dumps([row]))
+    assert any("Old name" in w and "overwritten" in w for w in summary.warnings)
+
+
+@pytest.mark.django_db
+def test_reimport_with_same_name_has_no_overwrite_warning():
+    service = CustomerImportService()
+    service.import_from_json(json.dumps([SAMPLE]))
+    summary = service.import_from_json(json.dumps([SAMPLE]))
+    assert not any("overwritten" in w for w in summary.warnings)

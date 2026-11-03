@@ -161,11 +161,11 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder,
   warehouseApiRoutesProductUpsertProductCustomerPriceOverride,
   type OutboundOrderItemSchema,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
+import { useOutboundDocumentApi } from '@/composables/use-outbound-document-api'
 import { round } from '@/utils/round'
 import { useQuasar } from 'quasar'
 import { computed, ref } from 'vue'
@@ -190,6 +190,7 @@ type OutboundPricingDetails = {
 
 const $q = useQuasar()
 const { onResponse } = useApi()
+const outboundDocumentApi = useOutboundDocumentApi()
 
 const props = defineProps<{
   currency: string
@@ -251,19 +252,16 @@ const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements'
     totalPrice.value = round(item.value.amount * round(unitPrice.value))
   }
 
-  const res = await warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder({
-    path: { order_code: props.orderCode, item_index: item.value.index },
-    body: {
-      product_code: item.value.product.code,
-      product_name: item.value.product.name,
-      amount: item.value.amount,
-      total_price: totalPrice.value,
-      unit_price: unitPrice.value,
-      index: item.value.index,
-      desired_package_type_name: item.value.desired_package_type_name,
-      desired_batch_code: item.value.desired_batch_code,
-      note: item.value.note,
-    },
+  const res = await outboundDocumentApi.updateItem(props.orderCode, item.value.index, {
+    product_code: item.value.product.code,
+    product_name: item.value.product.name,
+    amount: item.value.amount,
+    total_price: totalPrice.value,
+    unit_price: unitPrice.value,
+    index: item.value.index,
+    desired_package_type_name: item.value.desired_package_type_name,
+    desired_batch_code: item.value.desired_batch_code,
+    note: item.value.note,
   })
 
   const data = onResponse(res)

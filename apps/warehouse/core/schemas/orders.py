@@ -121,7 +121,9 @@ class OutboundOrderItemSchema(BaseSchema):
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None
 
 
-class OutboundOrderCreateOrUpdateSchema(Schema):
+class OutboundDocumentCreateOrUpdateSchema(Schema):
+    """Header of an outbound order or calculation (both are written the same way)."""
+
     external_code: str | None = None
     description: str | None = None
     note: str | None = None
@@ -130,33 +132,53 @@ class OutboundOrderCreateOrUpdateSchema(Schema):
     customer_name: str
     # must be a (non-deleted) contact of `customer_code`; null = not specified
     contact_id: int | None = None
-    state: OutboundOrderState | None = None
     requested_delivery_date: datetime | None = None
+
+
+class OutboundOrderCreateOrUpdateSchema(OutboundDocumentCreateOrUpdateSchema):
+    state: OutboundOrderState | None = None
+
+
+class OutboundCalculationCreateOrUpdateSchema(OutboundDocumentCreateOrUpdateSchema): ...
 
 
 class OutboundOrderTransitionSchema(Schema):
     action: Literal["next", "cancel"] = "next"
 
 
-class OutboundOrderSchema(BaseOrder):
+class OutboundCalculationTransitionSchema(Schema):
+    action: Literal["close", "reopen"]
+
+
+class OutboundDocumentSchema(BaseOrder):
+    """Read model shared by outbound orders and calculations."""
+
     contact: ContactPersonSchema | None = None
-    calculation_code: str | None = None
-    is_calculation: bool = True
     external_code: str | None = None
     description: str | None = None
     note: str | None = None
     currency: str
-    warehouse_order_codes: list[str] = []
     requested_delivery_date: datetime | None = None
-    cancelled_date: datetime | None = None
-    fulfilled_date: datetime | None = None
     items: list[OutboundOrderItemSchema] = Field(default_factory=list)
     state: str
+
+
+class OutboundOrderSchema(OutboundDocumentSchema):
+    # code of the calculation this order was created from, if any
+    calculation_code: str | None = None
+    warehouse_order_codes: list[str] = []
+    cancelled_date: datetime | None = None
+    fulfilled_date: datetime | None = None
     warehouse_orders: list[OutboundWarehouseOrderBaseSchema] = Field(
         default_factory=list
     )
     credit_note: CreditNoteBaseSchema | None = None
     invoice: InvoiceSchema | None = None
+
+
+class OutboundCalculationSchema(OutboundDocumentSchema):
+    # code of the order this calculation was flipped over to, if any
+    order_code: str | None = None
 
 
 class GetOutboundOrderResponse(BaseResponse):
@@ -168,3 +190,10 @@ class GetOutboundOrdersResponse(PaginatedResponse[OutboundOrderSchema]): ...
 
 class CreateOutboundOrderItemResponse(BaseResponse):
     data: OutboundOrderItemSchema
+
+
+class GetOutboundCalculationResponse(BaseResponse):
+    data: OutboundCalculationSchema
+
+
+class GetOutboundCalculationsResponse(PaginatedResponse[OutboundCalculationSchema]): ...

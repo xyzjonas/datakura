@@ -16,12 +16,11 @@ Including another URLconf
 """
 
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import path, include, re_path
 
-from .views import VueAppView
+from .views import VueAppView, serve_media
 
 
 def assets_redirect(request, path):
@@ -35,8 +34,12 @@ urlpatterns = [
     path("assets/<path:path>", assets_redirect),
 ]
 
-# media files
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# media files (django's `static()` helper does nothing when DEBUG is off)
+urlpatterns.append(
+    re_path(
+        rf"^{settings.MEDIA_URL.lstrip('/')}(?P<path>.*)$", serve_media, name="media"
+    )
+)
 
 # Catch-all for Vue routing
 urlpatterns.append(re_path(r"^.*$", VueAppView.as_view(), name="vue-app"))

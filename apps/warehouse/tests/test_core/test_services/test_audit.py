@@ -116,10 +116,10 @@ def test_timeline_includes_related_movements_and_is_ordered(db):
         ),
         (
             OutboundOrderFactory.it,
-            OutboundOrderState.DRAFT,
+            OutboundOrderState.SUBMITTED,
             OutboundOrderState.PICKING,
             AuditMessages.OUTBOUND_ORDER_STATE_CHANGED.CS,
-            "Calculation",
+            "Submitted",
             "Picking",
         ),
         (

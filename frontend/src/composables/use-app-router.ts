@@ -22,6 +22,14 @@ export const useAppRouter = () => {
     router.push({ name: 'outboundOrderDetail', params: { code } })
   }
 
+  const goToCalculation = (code: string) => {
+    router.push({ name: 'outboundCalculationDetail', params: { code } })
+  }
+
+  const goToCalculations = () => {
+    router.push({ name: 'outboundCalculations' })
+  }
+
   const replaceOrderOut = (code: string) => {
     router.replace({ name: 'outboundOrderDetail', params: { code } })
   }
@@ -47,6 +55,8 @@ export const useAppRouter = () => {
     goToInvoice,
     goToOrderIn,
     goToOrderOut,
+    goToCalculation,
+    goToCalculations,
     replaceOrderOut,
     goToWarehouseOrderIn,
     goToWarehouseOrderOut,

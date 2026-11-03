@@ -12,6 +12,7 @@ from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.orders import (
+    OutboundCalculationState,
     OutboundOrder,
     OutboundOrderItem,
     OutboundOrderState,
@@ -26,6 +27,7 @@ from apps.warehouse.models.warehouse import (
 )
 from apps.warehouse.tests.factories.order import (
     InvoiceFactory,
+    OutboundCalculationFactory,
     OutboundOrderFactory,
     OutboundOrderItemFactory,
 )
@@ -81,18 +83,18 @@ def test_get_outbound_order_audits(db) -> None:
 
 def test_get_outbound_order_audits_formats_transition_state_labels(db) -> None:
     client = TestClient(routes)
-    order = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
 
     audit_service.add_entry(
         order,
         action=AuditAction.TRANSITION,
         reason=AuditMessages.OUTBOUND_ORDER_STATE_CHANGED.CS.format(
-            old_state=OutboundOrderState.DRAFT,
+            old_state=OutboundOrderState.SUBMITTED,
             new_state=OutboundOrderState.PICKING,
         ),
         changes={
             "state": {
-                "old": OutboundOrderState.DRAFT,
+                "old": OutboundOrderState.SUBMITTED,
                 "new": OutboundOrderState.PICKING,
             }
         },
@@ -104,12 +106,12 @@ def test_get_outbound_order_audits_formats_transition_state_labels(db) -> None:
     data = res.json()["data"]
     assert (
         data[0]["reason"]
-        == "Stav vydané objednávky se změnil z 'Calculation' na 'Picking'"
+        == "Stav vydané objednávky se změnil z 'Submitted' na 'Picking'"
     )
-    assert data[0]["changes"]["state"] == {"old": "Calculation", "new": "Picking"}
+    assert data[0]["changes"]["state"] == {"old": "Submitted", "new": "Picking"}
 
 
-def test_create_outbound_order_uses_calculation_code_and_state(db) -> None:
+def test_create_outbound_order_starts_submitted_with_order_code(db) -> None:
     client = TestClient(routes)
     customer = CustomerFactory()
 
@@ -117,8 +119,8 @@ def test_create_outbound_order_uses_calculation_code_and_state(db) -> None:
         "",
         json={
             "external_code": "OUT-CALC-001",
-            "description": "Calculation order",
-            "note": "Draft calculation",
+            "description": "Order without a calculation",
+            "note": "Direct order",
             "currency": "CZK",
             "customer_code": customer.code,
             "customer_name": customer.name,
@@ -128,12 +130,13 @@ def test_create_outbound_order_uses_calculation_code_and_state(db) -> None:
 
     assert response.status_code == 200
     data = response.json()["data"]
-    assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.DRAFT)
-    assert data["code"].startswith("K")
+    assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.SUBMITTED)
+    assert data["code"].startswith("OP")
+    assert data["calculation_code"] is None
 
     order = OutboundOrder.objects.get(code=data["code"])
-    assert order.code == data["code"]
-    assert order.calculation_code == data["code"]
+    assert order.state == OutboundOrderState.SUBMITTED
+    assert not hasattr(order, "calculation")
 
 
 @pytest.mark.parametrize(
@@ -588,7 +591,7 @@ def test_add_outbound_order_item_with_desired_package_and_batch(db) -> None:
 
 def test_transition_outbound_order_materializes_warehouse_order_items(db) -> None:
     client = TestClient(routes)
-    order = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
     product = StockProductFactory()
     package = PackageTypeFactory(unit_of_measure=product.unit_of_measure, amount=2)
     batch = Batch.objects.create()
@@ -640,7 +643,7 @@ def test_transition_outbound_order_materializes_items_from_pending_inbound_putaw
     db,
 ) -> None:
     client = TestClient(routes)
-    order = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
     product = StockProductFactory()
     OutboundOrderItemFactory(
         order=order,
@@ -696,7 +699,7 @@ def test_get_outbound_order_contains_item_pricing_details(db) -> None:
 
 def test_transition_outbound_order_next_creates_warehouse_order(db) -> None:
     client = TestClient(routes)
-    order = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
     original_code = order.code
     product = StockProductFactory()
     OutboundOrderItemFactory(order=order, stock_product=product, amount=2)
@@ -706,33 +709,13 @@ def test_transition_outbound_order_next_creates_warehouse_order(db) -> None:
     assert res.status_code == 200
     data = res.json()["data"]
     assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.PICKING)
-    assert data["code"].startswith("OV")
-    assert data["code"] != order.code
+    # confirming does not renumber the order anymore (it got its final code at creation)
+    assert data["code"] == original_code
     assert len(data["warehouse_orders"]) == 1
     assert data["warehouse_orders"][0]["order_code"] == data["code"]
 
     order.refresh_from_db()
-    assert order.code == data["code"]
-    assert order.calculation_code == original_code
     assert OutboundWarehouseOrder.objects.filter(order=order).count() == 1
-
-
-def test_transition_outbound_order_next_preserves_calculation_code(db) -> None:
-    client = TestClient(routes)
-    order = OutboundOrderFactory.it(
-        code="K2026050007",
-        calculation_code="K2026050007",
-        state=OutboundOrderState.DRAFT,
-    )
-    product = StockProductFactory()
-    OutboundOrderItemFactory(order=order, stock_product=product, amount=2)
-
-    response = client.post(f"/{order.code}/transition", json={"action": "next"})
-
-    assert response.status_code == 200
-    order.refresh_from_db()
-    assert order.code.startswith("OV")
-    assert order.calculation_code == "K2026050007"
 
 
 def test_transition_outbound_order_next_skips_packing_and_shipping(db) -> None:
@@ -748,7 +731,7 @@ def test_transition_outbound_order_next_skips_packing_and_shipping(db) -> None:
 
 def test_transition_outbound_order_cancel_action(db) -> None:
     client = TestClient(routes)
-    order = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
 
     res = client.post(f"/{order.code}/transition", json={"action": "cancel"})
 
@@ -769,117 +752,66 @@ def _codes(res) -> list[str]:
     return [o["code"] for o in res.json()["data"]]
 
 
-@pytest.mark.parametrize("query", ["", "include_all=true", "search_term=K2026"])
-def test_calculations_never_listed_among_outbound_orders(db, query) -> None:
+def test_get_outbound_orders_hides_finished_orders_unless_include_all(db) -> None:
     client = TestClient(routes)
+    submitted = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
+    picking = OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
     for state in (
-        OutboundOrderState.DRAFT,
-        OutboundOrderState.SUBMITTED,
+        OutboundOrderState.COMPLETED,
+        OutboundOrderState.COMPLETED_PAID,
         OutboundOrderState.CANCELLED,
     ):
-        OutboundOrderFactory.it(
-            code=f"K2026100{state}",
-            calculation_code=f"K2026100{state}",
-            state=state,
-            is_calculation=True,
-        )
-    confirmed = OutboundOrderFactory.it(
-        code="OV2026100001",
-        calculation_code="K2026100099",
-        state=OutboundOrderState.PICKING,
-    )
+        OutboundOrderFactory.it(state=state)
 
-    codes = _codes(client.get(f"/?{query}"))
-
-    # the search also matches the preserved calculation code of the confirmed order
-    assert codes == [confirmed.code]
+    assert set(_codes(client.get("/"))) == {submitted.code, picking.code}
+    assert len(_codes(client.get("/?include_all=true"))) == 5
 
 
-def test_search_finds_confirmed_order_by_calculation_code(db) -> None:
+def test_outbound_orders_never_list_calculations(db) -> None:
     client = TestClient(routes)
-    order = OutboundOrderFactory.it(
-        code="OV2026100001",
-        calculation_code="K2026100007",
-        state=OutboundOrderState.PICKING,
+    order = OutboundOrderFactory.it()
+    OutboundCalculationFactory.it()
+
+    assert _codes(client.get("/?include_all=true")) == [order.code]
+
+
+def test_search_finds_order_by_code_of_its_calculation(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
+    OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
+    OutboundCalculationFactory.it(
+        code="K2026100007", order=order, state=OutboundCalculationState.CLOSED
     )
 
     data = client.get("/?search_term=K2026100007").json()["data"]
 
     assert [o["code"] for o in data] == [order.code]
     assert data[0]["calculation_code"] == "K2026100007"
-    assert data[0]["is_calculation"] is False
 
 
-def test_get_outbound_orders_calculations_only(db) -> None:
+def test_order_schema_has_no_calculation_code_without_calculation(db) -> None:
     client = TestClient(routes)
-    draft = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
-    submitted = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
-    OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
-    OutboundOrderFactory.it(state=OutboundOrderState.COMPLETED)
+    order = OutboundOrderFactory.it()
 
-    res = client.get("/?calculations=true")
+    data = client.get(f"/{order.code}").json()["data"]
 
-    assert set(_codes(res)) == {draft.code, submitted.code}
-    assert all(o["is_calculation"] for o in res.json()["data"])
+    assert data["calculation_code"] is None
+    assert "is_calculation" not in data
 
 
-def test_cancelled_calculation_only_with_include_all_in_calculations(db) -> None:
-    client = TestClient(routes)
-    draft = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
-    cancelled = OutboundOrderFactory.it(
-        state=OutboundOrderState.CANCELLED, is_calculation=True
-    )
-
-    assert _codes(client.get("/?calculations=true")) == [draft.code]
-    assert set(_codes(client.get("/?calculations=true&include_all=true"))) == {
-        draft.code,
-        cancelled.code,
-    }
-    assert cancelled.code in _codes(
-        client.get(f"/?calculations=true&search_term={cancelled.code}")
-    )
-
-
-def test_cancelled_confirmed_order_stays_order_not_calculation(db) -> None:
-    client = TestClient(routes)
-    order = OutboundOrderFactory.it(
-        state=OutboundOrderState.CANCELLED, is_calculation=False
-    )
-
-    assert _codes(client.get("/?include_all=true")) == [order.code]
-    assert _codes(client.get("/?calculations=true&include_all=true")) == []
-
-
-@pytest.mark.parametrize("calculations", [False, True])
-def test_get_outbound_orders_customer_filter_all_states_paginated(
-    db, calculations
-) -> None:
+def test_get_outbound_orders_customer_filter_all_states_paginated(db) -> None:
     client = TestClient(routes)
     customer = CustomerFactory.it()
-    states = (
-        (
-            OutboundOrderState.DRAFT,
-            OutboundOrderState.SUBMITTED,
-            OutboundOrderState.CANCELLED,
-        )
-        if calculations
-        else (
-            OutboundOrderState.PICKING,
-            OutboundOrderState.COMPLETED,
-            OutboundOrderState.CANCELLED,
-        )
-    )
-    for state in states:
-        OutboundOrderFactory.it(
-            customer=customer, state=state, is_calculation=calculations
-        )
-    OutboundOrderFactory.it(
-        state=states[0], is_calculation=calculations
-    )  # other customer
+    for state in (
+        OutboundOrderState.PICKING,
+        OutboundOrderState.COMPLETED,
+        OutboundOrderState.CANCELLED,
+    ):
+        OutboundOrderFactory.it(customer=customer, state=state)
+    OutboundOrderFactory.it(state=OutboundOrderState.PICKING)  # other customer
 
     res = client.get(
-        f"/?customer_code={customer.code}&include_all=true"
-        f"&calculations={str(calculations).lower()}&page=1&page_size=2"
+        f"/?customer_code={customer.code}&include_all=true&page=1&page_size=2"
     )
 
     data = res.json()
@@ -888,47 +820,23 @@ def test_get_outbound_orders_customer_filter_all_states_paginated(
     assert data["next"] == 2
 
 
-def test_confirming_calculation_flips_is_calculation_and_keeps_number(db) -> None:
+def test_cancelling_submitted_order(db) -> None:
     client = TestClient(routes)
-    order = OutboundOrderFactory.it(
-        code="K2026100007",
-        calculation_code="K2026100007",
-        state=OutboundOrderState.DRAFT,
-    )
-    OutboundOrderItemFactory(order=order, stock_product=StockProductFactory(), amount=2)
-
-    res = client.post(f"/{order.code}/transition", json={"action": "next"})
-
-    assert res.status_code == 200
-    data = res.json()["data"]
-    assert data["is_calculation"] is False
-    assert data["calculation_code"] == "K2026100007"
-    assert client.get("/?calculations=true").json()["count"] == 0
-    assert _codes(client.get("/")) == [data["code"]]
-
-
-def test_cancelling_calculation_keeps_is_calculation(db) -> None:
-    client = TestClient(routes)
-    order = OutboundOrderFactory.it(state=OutboundOrderState.DRAFT)
+    order = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
 
     res = client.post(f"/{order.code}/transition", json={"action": "cancel"})
 
     assert res.status_code == 200
     order.refresh_from_db()
     assert order.state == OutboundOrderState.CANCELLED
-    assert order.is_calculation is True
-    assert _codes(client.get("/?include_all=true")) == []
+    assert _codes(client.get("/?include_all=true")) == [order.code]
 
 
-def test_updating_confirmed_order_keeps_calculation_code(db) -> None:
+def test_updating_order_created_from_calculation_keeps_link(db) -> None:
     client = TestClient(routes)
     customer = CustomerFactory.it()
-    order = OutboundOrderFactory.it(
-        code="OV2026100001",
-        calculation_code="K2026100007",
-        customer=customer,
-        state=OutboundOrderState.PICKING,
-    )
+    order = OutboundOrderFactory.it(customer=customer, state=OutboundOrderState.PICKING)
+    calculation = OutboundCalculationFactory.it(order=order, customer=customer)
 
     res = client.put(
         f"/{order.code}",
@@ -941,29 +849,24 @@ def test_updating_confirmed_order_keeps_calculation_code(db) -> None:
     )
 
     assert res.status_code == 200
+    assert res.json()["data"]["calculation_code"] == calculation.code
     order.refresh_from_db()
     assert order.note == "changed"
-    assert order.calculation_code == "K2026100007"
-    assert order.code == "OV2026100001"
-    assert order.is_calculation is False
 
 
-def test_duplicate_confirmed_order_creates_new_calculation(db) -> None:
+def test_duplicate_order_creates_new_submitted_order(db) -> None:
     client = TestClient(routes)
-    source = OutboundOrderFactory.it(
-        code="OV2026100001",
-        calculation_code="K2026100001",
-        state=OutboundOrderState.PICKING,
-    )
+    source = OutboundOrderFactory.it(state=OutboundOrderState.PICKING)
     OutboundOrderItemFactory(order=source, stock_product=StockProductFactory())
 
     res = client.post(f"/{source.code}/duplicate")
 
     data = res.json()["data"]
-    assert data["is_calculation"] is True
-    assert data["code"].startswith("K")
-    assert data["calculation_code"] == data["code"]
-    assert data["code"] != source.calculation_code
+    assert data["state"] == OutboundOrderState.get_label(OutboundOrderState.SUBMITTED)
+    assert data["code"].startswith("OP")
+    assert data["code"] != source.code
+    assert data["calculation_code"] is None
+    assert len(data["items"]) == 1
 
 
 def _order_payload(customer, **overrides) -> dict:

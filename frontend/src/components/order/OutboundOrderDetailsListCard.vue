@@ -35,25 +35,27 @@
         <q-item-section>Požadovaný termín dodání</q-item-section>
         <q-item-section avatar>{{ formatDateLong(order.requested_delivery_date) }}</q-item-section>
       </q-item>
-      <q-item clickable>
-        <q-item-section>Objednávka splněna</q-item-section>
-        <q-item-section avatar>{{ formatDateLong(order.fulfilled_date) }}</q-item-section>
-      </q-item>
-      <q-item clickable>
-        <q-item-section>Datum zrušení</q-item-section>
-        <q-item-section avatar>{{ formatDateLong(order.cancelled_date) }}</q-item-section>
-      </q-item>
+      <template v-if="'fulfilled_date' in order">
+        <q-item clickable>
+          <q-item-section>Objednávka splněna</q-item-section>
+          <q-item-section avatar>{{ formatDateLong(order.fulfilled_date) }}</q-item-section>
+        </q-item>
+        <q-item clickable>
+          <q-item-section>Datum zrušení</q-item-section>
+          <q-item-section avatar>{{ formatDateLong(order.cancelled_date) }}</q-item-section>
+        </q-item>
+      </template>
     </q-list>
   </ForegroundPanel>
 </template>
 
 <script setup lang="ts">
-import type { OutboundOrderSchema } from '@/client'
+import type { OutboundDocument } from '@/composables/use-outbound-document-api'
 import ForegroundPanel from '../ForegroundPanel.vue'
 import { formatDateLong } from '@/utils/date'
 import CopyToClipBoardButton from '../CopyToClipBoardButton.vue'
 
-defineProps<{ order: OutboundOrderSchema }>()
+defineProps<{ order: OutboundDocument }>()
 </script>
 
 <style lang="scss" scoped></style>

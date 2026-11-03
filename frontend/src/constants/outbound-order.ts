@@ -10,18 +10,6 @@ export interface StateConfig {
 export const CANCELLED = 99
 
 export const OUTBOUND_ORDER_STATES: Record<string, StateConfig> = {
-  calculation: {
-    label: 'Kalkulace',
-    icon: 'sym_o_ink_pen',
-    color: 'grey-7',
-    step: 1,
-  },
-  draft: {
-    label: 'Kalkulace',
-    icon: 'sym_o_ink_pen',
-    color: 'grey-7',
-    step: 1,
-  },
   submitted: {
     label: 'Potvrzeno',
     icon: 'sym_o_approval_delegation',
@@ -81,6 +69,20 @@ export const OUTBOUND_ORDER_STATES: Record<string, StateConfig> = {
     icon: 'sym_o_block',
     color: 'negative',
     step: CANCELLED,
+  },
+}
+
+/** calculations only have these two states and no timeline, hence no `step` */
+export const OUTBOUND_CALCULATION_STATES: Record<string, Omit<StateConfig, 'step'>> = {
+  open: {
+    label: 'Otevřená',
+    icon: 'sym_o_ink_pen',
+    color: 'primary',
+  },
+  closed: {
+    label: 'Uzavřená',
+    icon: 'sym_o_lock',
+    color: 'grey-7',
   },
 }
 
