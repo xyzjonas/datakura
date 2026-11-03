@@ -28,6 +28,21 @@ class BatchesService:
         return qs.order_by("-created")
 
     @staticmethod
+    def get_batch_ids_by_barcode(code: str) -> list[int]:
+        """
+        Ids of the batches carrying the barcode `code`.
+
+        Barcodes are attached through a generic relation, so they cannot be
+        joined from `Batch` directly (there is no reverse accessor).
+        """
+        ct = ContentType.objects.get_for_model(Batch)
+        return list(
+            Barcode.objects.filter(content_type=ct, code=code).values_list(
+                "object_id", flat=True
+            )
+        )
+
+    @staticmethod
     def batch_orm_to_schema(batch: Batch) -> BatchSchema:
         primary_barcode = batch.get_primary_barcode()
         return BatchSchema(

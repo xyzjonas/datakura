@@ -22,7 +22,9 @@ from apps.warehouse.tests.factories.product import (
     StockProductPriceFactory,
     StockProductPriceCustomerFactory,
 )
+from apps.warehouse.tests.factories.certification import CertificationFactory
 from apps.warehouse.tests.factories.customer import CustomerFactory
+from apps.warehouse.tests.factories.packaging import BatchFactory, PackageTypeFactory
 from apps.warehouse.tests.factories.warehouse import (
     InboundWarehouseOrderFactory,
     WarehouseItemFactory,
@@ -324,6 +326,126 @@ def test_get_product_warehouse_availability_includes_pending_inbound_putaway_sto
     assert response.status_code == 200
     assert response.json()["data"]["total_amount"] == "12"
     assert response.json()["data"]["available_amount"] == "12"
+
+
+def _stock_item_with_batch(product, batch_code, amount=1, **kwargs):
+    batch = BatchFactory.it()
+    if batch_code:
+        batch.attach_barcode(batch_code, is_primary=True)
+    return WarehouseItemFactory(
+        stock_product=product,
+        amount=amount,
+        batch=batch,
+        order_in=InboundWarehouseOrderFactory(
+            state=InboundWarehouseOrderState.COMPLETED
+        ),
+        location=WarehouseLocationFactory(is_putaway=False),
+        **kwargs,
+    )
+
+
+def _item_ids(response) -> set[int]:
+    return {
+        item["id"]
+        for warehouse in response.json()["data"]
+        for location in warehouse["locations"]
+        for item in location["items"]
+    }
+
+
+def test_get_product_warehouse_info_without_filters(db, client):
+    product = cast(StockProduct, StockProductFactory())
+    a = _stock_item_with_batch(product, "BAT-A")
+    b = _stock_item_with_batch(product, None)
+
+    response = client.get(f"/{product.code}/warehouse-info")
+
+    assert response.status_code == 200
+    assert _item_ids(response) == {a.pk, b.pk}
+
+
+def test_get_product_warehouse_info_filters_by_batch_code(db, client):
+    product = cast(StockProduct, StockProductFactory())
+    wanted = _stock_item_with_batch(product, "BAT-A")
+    _stock_item_with_batch(product, "BAT-B")
+    _stock_item_with_batch(product, None)
+
+    response = client.get(f"/{product.code}/warehouse-info?batch_code=BAT-A")
+
+    assert response.status_code == 200
+    assert _item_ids(response) == {wanted.pk}
+
+
+@pytest.mark.parametrize("code", ["UNKNOWN", "bat-a"])
+def test_get_product_warehouse_info_unknown_batch_code_is_empty(db, client, code):
+    product = cast(StockProduct, StockProductFactory())
+    _stock_item_with_batch(product, "BAT-A")
+
+    response = client.get(f"/{product.code}/warehouse-info?batch_code={code}")
+
+    assert response.status_code == 200
+    assert _item_ids(response) == set()
+
+
+def test_get_product_warehouse_info_batch_code_of_other_object_is_ignored(db, client):
+    """A barcode with the same code that belongs to a product is not a batch."""
+    product = cast(StockProduct, StockProductFactory())
+    _stock_item_with_batch(product, "BAT-A")
+    product.attach_barcode("SHARED-1", is_primary=True)
+
+    response = client.get(f"/{product.code}/warehouse-info?batch_code=SHARED-1")
+
+    assert response.status_code == 200
+    assert _item_ids(response) == set()
+
+
+def test_get_product_warehouse_info_filters_by_package_and_batch(db, client):
+    product = cast(StockProduct, StockProductFactory())
+    package = PackageTypeFactory(
+        name="BAG-10", amount=10, unit_of_measure=product.unit_of_measure
+    )
+    batch_a = BatchFactory.it()
+    batch_a.attach_barcode("BAT-A", is_primary=True)
+    order_in = InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.COMPLETED)
+    location = WarehouseLocationFactory(is_putaway=False)
+
+    def stock(batch, package_type):
+        return WarehouseItemFactory(
+            stock_product=product,
+            amount=1,
+            batch=batch,
+            package_type=package_type,
+            order_in=order_in,
+            location=location,
+        )
+
+    wanted = stock(batch_a, package)
+    stock(batch_a, None)  # right batch, no package
+    stock(BatchFactory.it(), package)  # right package, other batch
+
+    response = client.get(
+        f"/{product.code}/warehouse-info?batch_code=BAT-A&package_type_name=BAG-10"
+    )
+
+    assert _item_ids(response) == {wanted.pk}
+
+
+def test_get_product_warehouse_info_exposes_batch_certification(db, client):
+    product = cast(StockProduct, StockProductFactory())
+    item = _stock_item_with_batch(product, "BAT-A")
+    cert = CertificationFactory.it(code="ISO-9001")
+    item.batch.certification = cert
+    item.batch.save()
+
+    response = client.get(f"/{product.code}/warehouse-info")
+
+    (row,) = [
+        i
+        for w in response.json()["data"]
+        for loc in w["locations"]
+        for i in loc["items"]
+    ]
+    assert row["batch"]["certification"] == {"id": cert.pk, "code": "ISO-9001"}
 
 
 def test_add_product_barcode_switches_primary(db, client):
