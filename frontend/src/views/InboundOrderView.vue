@@ -39,8 +39,8 @@
           v-if="order.state !== 'cancelled'"
           unelevated
           color="negative"
-          label="Uzavřít"
-          icon="sym_o_scan_delete"
+          label="Zrušit"
+          icon="sym_o_close"
           @click="cancelDialog = true"
         />
         <!-- <PrintDropdownButton
@@ -63,8 +63,8 @@
           v-if="getInboundOrderStep(order) === 1"
           unelevated
           color="positive"
-          icon="sym_o_order_approve"
-          label="potvrdit"
+          icon="sym_o_mail"
+          label="poptat"
           @click="confirmDialog = true"
           class="ml-auto"
           :disable="order.items?.length === 0"

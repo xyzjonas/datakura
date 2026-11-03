@@ -1,14 +1,8 @@
 <template>
-  <q-btn
-    color="primary"
-    unelevated
-    :label="isCalculation ? 'nová kalkulace' : 'nová objednávka'"
-    icon="sym_o_add"
-    @click="dialog = true"
-  />
+  <q-btn color="primary" unelevated label="vytvořit" icon="sym_o_add" @click="dialog = true" />
   <NewOrderDialog
     v-model:show="dialog"
-    :title="isCalculation ? 'Nová kalkulace' : 'Nová objednávka'"
+    :title="isCalculation ? 'Nová nabídka' : 'Nová objednávka'"
     @create-order="create"
     ref="dialogComponent"
   />

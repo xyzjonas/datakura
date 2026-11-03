@@ -54,7 +54,7 @@
             label="Celková cena"
             hint="Celková cena položky"
             inputmode="numeric"
-            :rules="[rules.atLeastOne, rules.max99999]"
+            :rules="[rules.atLeastZero, rules.max99999]"
           >
             <template #append>
               <span class="text-sm">{{ currency }}</span>

@@ -5,7 +5,7 @@
         <q-breadcrumbs-el label="Home" :to="{ name: 'home' }" />
         <q-breadcrumbs-el
           v-if="isCalculation"
-          label="Kalkulace"
+          label="Nabídky"
           :to="{ name: 'outboundCalculations' }"
         />
         <q-breadcrumbs-el
@@ -24,7 +24,7 @@
       <div class="flex gap-2 items-center">
         <div>
           <span class="text-gray-5 flex items-center gap-1">{{
-            isCalculation ? 'KALKULACE' : 'PŘIJATÁ OBJEDNÁVKA'
+            isCalculation ? 'NABÍDKA' : 'PŘIJATÁ OBJEDNÁVKA'
           }}</span>
           <h1 class="h1 mb-1">{{ order.code }}</h1>
           <div class="flex items-center gap-1">
@@ -38,7 +38,7 @@
             data-test="calculation-code"
           >
             <q-icon name="sym_o_calculate" />
-            Kalkulace {{ linkedCalculationCode }}
+            Nabídka {{ linkedCalculationCode }}
           </router-link>
           <router-link
             v-if="linkedOrderCode"
@@ -115,7 +115,7 @@
     <OutboundOrderTimeline v-if="orderDocument" :order="orderDocument" />
 
     <OrderItemsHeader
-      :title="isCalculation ? 'Položky kalkulace' : 'Položky objednávky'"
+      :title="isCalculation ? 'Položky nabídky' : 'Položky objednávky'"
       :disabled="!isEditable"
       @add="addItemDialog = true"
     >
@@ -145,7 +145,7 @@
       v-model:show="editOrderDialog"
       :order-out="order"
       submit-label="uložit"
-      :title="isCalculation ? 'Upravit kalkulaci' : 'Upravit objednávku'"
+      :title="isCalculation ? 'Upravit nabídku' : 'Upravit objednávku'"
       @create-order="updateOrder"
     />
 
@@ -164,13 +164,13 @@
       v-model:show="auditDialog"
       :source="isCalculation ? 'outbound-calculation' : 'outbound-order'"
       :code="order.code"
-      :title="isCalculation ? 'Historie změn kalkulace' : 'Historie změn objednávky'"
+      :title="isCalculation ? 'Historie změn nabídky' : 'Historie změn objednávky'"
     />
   </div>
   <ForegroundPanel v-else class="grid justify-center w-full content-center text-center">
     <span class="text-5xl text-gray-5">404</span>
     <span class="text-lg text-gray-5">
-      {{ isCalculation ? 'KALKULACE NENALEZENA' : 'OBJEDNÁVKA NENALEZENA' }}
+      {{ isCalculation ? 'NABÍDKA NENALEZENA' : 'OBJEDNÁVKA NENALEZENA' }}
     </span>
   </ForegroundPanel>
 </template>

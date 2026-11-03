@@ -187,7 +187,7 @@ describe('Customer widgets', () => {
     })
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Kalkulace')
+    expect(wrapper.text()).toContain('Nabídky')
     expect(mocks.getOutboundOrders).not.toHaveBeenCalled()
     expect(mocks.getOutboundCalculations.mock.calls[0]![0].query).toMatchObject({
       customer_code: 'CUS-1',
@@ -213,8 +213,8 @@ describe('Customer widgets', () => {
 
 describe('OutboundDocumentCreateButton', () => {
   it.each([
-    ['calculation', 'nová kalkulace'],
-    ['order', 'nová objednávka'],
+    ['calculation', 'vytvořit'],
+    ['order', 'vytvořit'],
   ] as const)('%s is labelled "%s"', (kind, label) => {
     const wrapper = mount(OutboundDocumentCreateButton, {
       props: { kind },

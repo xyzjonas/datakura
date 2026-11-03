@@ -17,7 +17,7 @@
       <div class="flex gap-2 items-start flex-wrap">
         <SearchInput
           v-model="search"
-          placeholder="Vyhledat objednavku"
+          :placeholder="calculations ? 'Vyhledat nabídku' : 'Vyhledat objednavku'"
           clearable
           :debounce="300"
           class="min-w-[260px] flex-1"
@@ -34,7 +34,7 @@
         />
         <StockProductSearchSelect
           v-model="stockProductCode"
-          label="Produkt v objednavce"
+          :label="calculations ? 'Produkt v nabídce' : 'Produkt v objednavce'"
           hint=""
           class="min-w-[300px] flex-1"
         />

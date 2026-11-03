@@ -3,6 +3,7 @@
     :class="[
       'flex flex-col lg:flex-row lg:items-center lg:justify-between flex-1 py-1 border border-l-5 rounded-sm px-5 py-4 min-h-30',
       item.pending ? 'border-l-orange' : 'border-l-positive',
+      'relative',
     ]"
   >
     <div class="flex gap-4 items-start lg:items-center">
@@ -51,39 +52,55 @@
           </q-badge>
         </div>
 
-        <div v-if="item.warehouse_item_id" class="text-sm text-gray-6">
+        <div
+          v-if="item.warehouse_item_id"
+          class="text-sm text-gray-6 absolute right-[-6px] top-[-6px] light:bg-white dark:bg-dark"
+        >
           <WarehouseItemLink :item-id="item.warehouse_item_id!" />
         </div>
       </div>
     </div>
 
-    <div class="flex gap-3 items-center self-end lg:self-auto">
+    <div
+      :class="[
+        'grid gap-3 grid-cols-4 grid self-end sm:self-auto mt-5 lg:mt-0',
+        allowMove ? 'lg:grid-cols-1' : 'lg:grid-cols-2',
+      ]"
+    >
       <q-btn
         v-if="isRemovable"
         @click="removeItemDialog = true"
-        flat
+        unelevated
         dense
-        round
         icon="delete"
+        label="dobropis"
         color="negative"
       >
         <q-tooltip :offset="[0, 10]">Odstranit položku z příjemky do dobropisu</q-tooltip>
       </q-btn>
       <q-btn
-        v-if="isRemovable"
+        v-if="isTracked"
         @click="dissolveDialog = true"
-        flat
+        unelevated
         dense
-        round
+        label="zrušit"
         icon="close"
-        color="warning"
+        color="primary"
       >
         <q-tooltip :offset="[0, 10]">Zrušit evidenci položky ⤍ skladem volně</q-tooltip>
       </q-btn>
       <q-btn
+        v-if="isReadyToBeTracked"
+        unelevated
+        no-caps
+        color="primary"
+        icon="sym_o_qr_code_scanner"
+        label="Evidovat"
+        @click="setItemTrackingDialog = true"
+      />
+      <q-btn
         v-if="!props.readonly"
         flat
-        dense
         no-caps
         :color="missingWeight ? 'negative' : 'grey-7'"
         icon="sym_o_edit_note"
@@ -93,32 +110,21 @@
       >
         <q-tooltip :offset="[0, 10]">Doplnit hmotnost a celní kód produktu</q-tooltip>
       </q-btn>
-      <q-btn
-        v-if="isReadyToBeTracked"
-        flat
-        no-caps
-        dense
-        color="primary"
-        icon="sym_o_qr_code_scanner"
-        label="Evidovat"
-        @click="setItemTrackingDialog = true"
-      />
+
       <q-btn
         v-if="allowMove"
-        flat
+        unelevated
         no-caps
-        dense
         color="primary"
-        icon="sym_o_move_up"
-        label="Přesunout"
+        icon="sym_o_place_item"
+        label="Naskladnit"
         @click="moveDialog = true"
       />
       <q-btn
         v-if="!props.readonly"
-        flat
+        unelevated
         no-caps
-        dense
-        color="warning"
+        color="secondary"
         icon="sym_o_move_down"
         label="Do podřízené"
         @click="offloadDialog = true"
@@ -258,7 +264,10 @@ const missingWeight = computed(() => props.item.product.unit_weight <= 0)
 
 const trackingType = computed<TrackingType>(() => (props.item.package?.type ? 'package' : ''))
 
-const isRemovable = computed(() => props.item.tracking_level !== 'FUNGIBLE' && !props.readonly)
+const isTracked = computed(() => !props.readonly && props.item.tracking_level !== 'FUNGIBLE')
+
+// props.item.tracking_level !== 'FUNGIBLE' && // why ??
+const isRemovable = computed(() => !props.readonly)
 const isReadyToBeTracked = computed(
   () => props.item.tracking_level === 'FUNGIBLE' && !props.readonly,
 )

@@ -51,11 +51,18 @@
             <MenuList
               :items="[
                 {
-                  label: 'Kalkulace',
+                  label: 'Nabídky',
                   icon: 'sym_o_calculate',
                   routeName: 'outboundCalculations',
                   routeMatch: 'outboundCalculations',
                 },
+                // {
+                //   label: 'Poptávky',
+                //   icon: 'sym_o_shopping_cart',
+                //   routeName: '',
+                //   routeMatch: '',
+                //   disable: true,
+                // },
                 {
                   label: 'Objednávky',
                   icon: 'sym_o_receipt',

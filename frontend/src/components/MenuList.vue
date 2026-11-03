@@ -10,6 +10,7 @@
     :class="{ 'rounded-md': true }"
     dense
     dark
+    :disable="item.disable"
   >
     <q-item-section avatar>
       <q-icon :name="item.icon" />
@@ -26,6 +27,7 @@ type MenuItem = {
   icon: string
   routeName: string
   routeMatch?: string
+  disable?: boolean
 }
 
 const { currentRoute } = useRouter()
