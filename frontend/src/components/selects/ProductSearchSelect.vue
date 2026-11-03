@@ -76,6 +76,8 @@ function onSelectChange() {
     }
   })
 }
+
+defineExpose({ focus: () => itemSelect.value?.focus() })
 </script>
 
 <style lang="css" scoped></style>

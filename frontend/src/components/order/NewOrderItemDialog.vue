@@ -7,10 +7,10 @@
           <q-btn flat round icon="close" v-close-popup />
         </div>
         <ProductAvailability v-if="product" :product-code="product.code" class="w-fit mb-3" />
-        <q-form class="flex flex-col gap-2" @submit="addItem">
+        <q-form ref="form" class="flex flex-col gap-2" @submit="addItem">
           <!-- <ItemSelectByName v-model="newItem" :rules="[rules.notEmpty]" class="flex-1" />
           <PlaceSelect v-show="manualSearchItem" v-model="newPlace" :rules="[rules.notEmpty]" /> -->
-          <ProductSearchSelect v-model="product" />
+          <ProductSearchSelect ref="productSelect" v-model="product" />
           <q-input
             v-model.number="item.amount"
             outlined
@@ -60,7 +60,24 @@
               <span class="text-sm">{{ currency }}</span>
             </template>
           </q-input>
-          <q-btn type="submit" unelevated color="primary" label="přidat" class="h-[3rem] mt-3" />
+          <div class="flex gap-2 mt-3">
+            <q-btn
+              type="submit"
+              unelevated
+              color="primary"
+              label="přidat"
+              class="h-[3rem] flex-1"
+              @click="keepOpen = false"
+            />
+            <q-btn
+              type="submit"
+              outline
+              color="primary"
+              label="přidat a nový"
+              class="h-[3rem] flex-1"
+              @click="keepOpen = true"
+            />
+          </div>
         </q-form>
       </div>
     </q-card>
@@ -70,7 +87,8 @@
 <script setup lang="ts">
 import type { InboundOrderItemCreateSchema, ProductSchema } from '@/client'
 import { rules } from '@/utils/rules'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import type { QForm } from 'quasar'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 import { round } from '@/utils/round'
@@ -78,7 +96,7 @@ import { round } from '@/utils/round'
 const showDialog = defineModel('show', { default: false })
 
 export interface NewOrderItemDialogExpose {
-  reset: () => void
+  reset: (close?: boolean) => void
 }
 
 defineProps<{
@@ -147,14 +165,19 @@ watch(
 )
 
 const emit = defineEmits<{
-  (e: 'addItem', item: InboundOrderItemCreateSchema): void
+  (e: 'addItem', item: InboundOrderItemCreateSchema, keepOpen: boolean): void
 }>()
 
+const form = ref<QForm>()
+const productSelect = ref<InstanceType<typeof ProductSearchSelect>>()
+const keepOpen = ref(false)
+
 const addItem = () => {
-  emit('addItem', item.value)
+  emit('addItem', item.value, keepOpen.value)
+  keepOpen.value = false
 }
 
-const reset = () => {
+const reset = (close = true) => {
   item.value = {
     product_code: '',
     product_name: '',
@@ -163,7 +186,14 @@ const reset = () => {
     unit_price: 0,
   }
   product.value = undefined
-  showDialog.value = false
+  if (close) {
+    showDialog.value = false
+    return
+  }
+  nextTick(() => {
+    form.value?.resetValidation()
+    productSelect.value?.focus()
+  })
 }
 
 defineExpose<NewOrderItemDialogExpose>({
