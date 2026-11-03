@@ -274,7 +274,7 @@ await loadSelfCustomer()
 const addItemDialog = ref(false)
 const auditDialog = ref(false)
 const addItemDialogComponent = ref<InstanceType<typeof NewOrderItemDialog>>()
-const addItem = async (item: InboundOrderItemCreateSchema) => {
+const addItem = async (item: InboundOrderItemCreateSchema, keepOpen = false) => {
   if (!order.value) {
     return
   }
@@ -287,7 +287,7 @@ const addItem = async (item: InboundOrderItemCreateSchema) => {
   if (itemData) {
     order.value.items?.push(itemData.data)
     if (addItemDialogComponent.value) {
-      addItemDialogComponent.value.reset()
+      addItemDialogComponent.value.reset(!keepOpen)
     }
   }
 }
