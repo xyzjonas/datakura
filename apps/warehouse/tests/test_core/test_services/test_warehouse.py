@@ -900,23 +900,35 @@ def test_recalculate_average_purchase_price_existing_stock(
             state=InboundWarehouseOrderState.COMPLETED
         ),
     )
-    w_order = InboundWarehouseOrderFactory.create_complete(
-        product=product,
-        amount=amount_in,
-        unit_price=price_in,
-        is_putaway=True,
-        state=InboundWarehouseOrderState.PENDING,
-    )
 
-    assert WarehouseItem.objects.filter(order_in=w_order).count() == 1
-    item = WarehouseItem.objects.filter(order_in=w_order).first()
-
+    # the average is recalculated on confirmation, i.e. before the items of
+    # the incoming order are materialised
     warehouse_service.recalculate_average_purchase_price(
-        product.code, item.amount, price_in, context=context
+        product.code, Decimal(str(amount_in)), price_in, context=context
     )
 
     product.refresh_from_db()
     assert product.purchase_price == pytest.approx(Decimal(expected))
+
+
+def test_recalculate_average_purchase_price_counts_stock_in_receiving_location(
+    db, context
+):
+    """Confirmed goods count as stock even before they are put on a shelf."""
+    product = StockProductFactory.it(purchase_price=10)
+    WarehouseItemFactory(
+        stock_product=product,
+        amount=10,
+        location=WarehouseLocationFactory(is_putaway=True),
+        order_in=InboundWarehouseOrderFactory(state=InboundWarehouseOrderState.PENDING),
+    )
+
+    warehouse_service.recalculate_average_purchase_price(
+        product.code, Decimal("10"), Decimal("20"), context=context
+    )
+
+    product.refresh_from_db()
+    assert product.purchase_price == pytest.approx(Decimal("15"))
 
 
 def test_create_warehouse_movement_fungible_sets_item_and_batch_none(db):

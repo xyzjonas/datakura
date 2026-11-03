@@ -118,7 +118,12 @@ class _WarehouseItemManagerBase(
 
 
 class AvailableWarehouseItemManager(_WarehouseItemManagerBase):
-    """Items that are available for picking: confirmed inbound, at shelf location, not yet assigned."""
+    """
+    Items that are available for picking: confirmed inbound, not yet assigned.
+
+    Goods are available as soon as the inbound warehouse order is confirmed -
+    even while they still sit in the receiving (put-away) location.
+    """
 
     def get_queryset(self) -> AvailableWarehouseItemQuerySet:
         return cast(
@@ -131,7 +136,6 @@ class AvailableWarehouseItemManager(_WarehouseItemManagerBase):
                     InboundWarehouseOrderState.IN_TRANSIT,
                 )
             )
-            .exclude(location__is_putaway=True)
             .exclude(outbound_assignment__isnull=False),
         )
 

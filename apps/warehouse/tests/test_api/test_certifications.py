@@ -17,6 +17,7 @@ from apps.warehouse.models.warehouse import (
     Certification,
     InboundWarehouseOrderState,
     TrackingLevel,
+    WarehouseItem,
 )
 from apps.warehouse.tests.factories.certification import CertificationFactory
 from apps.warehouse.tests.factories.order import (
@@ -494,6 +495,56 @@ def test_available_certifications_ignores_other_products_uncertified_and_unavail
     res = TestClient(cert_routes).get(f"/available?product_code={product.code}")
 
     assert res.json()["data"] == []
+
+
+@pytest.mark.parametrize(
+    "state, expected",
+    [
+        (InboundWarehouseOrderState.PENDING, True),  # confirmed, still to be put away
+        (InboundWarehouseOrderState.STARTED, True),
+        (InboundWarehouseOrderState.COMPLETED, True),
+        (InboundWarehouseOrderState.DRAFT, False),  # not confirmed yet
+        (InboundWarehouseOrderState.IN_TRANSIT, False),
+    ],
+)
+def test_available_certifications_in_receiving_location(db, state, expected) -> None:
+    """Confirmed goods are available right away - even before they reach a shelf."""
+    product = StockProductFactory.it()
+    batch = _batch_with_barcode(CertificationFactory.it(), "BAT-1")
+    WarehouseItemFactory.it(
+        stock_product=product,
+        batch=batch,
+        amount=5,
+        tracking_level=TrackingLevel.BATCH,
+        order_in=InboundWarehouseOrderFactory.it(state=state),
+        location=WarehouseLocationFactory.it(is_putaway=True),
+    )
+
+    rows = (
+        TestClient(cert_routes)
+        .get(f"/available?product_code={product.code}")
+        .json()["data"]
+    )
+
+    assert [r["amount"] for r in rows] == ([5] if expected else [])
+
+
+def test_available_stock_matches_physical_stock_for_confirmed_goods(db) -> None:
+    """One rule everywhere: all physically held goods, minus those already assigned."""
+    product = StockProductFactory.it()
+    confirmed = InboundWarehouseOrderFactory.it(
+        state=InboundWarehouseOrderState.PENDING
+    )
+    for is_putaway in (True, False):
+        WarehouseItemFactory.it(
+            stock_product=product,
+            amount=2,
+            order_in=confirmed,
+            location=WarehouseLocationFactory.it(is_putaway=is_putaway),
+        )
+
+    assert WarehouseItem.available.total_amount(product.code) == 4
+    assert WarehouseItem.physical_stock.total_amount(product.code) == 4
 
 
 # ── reverse view ─────────────────────────────────────────────────────────────

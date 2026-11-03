@@ -101,7 +101,12 @@ def _buy_certified(
 
 
 def _receive_and_put_away(
-    warehouse_client: TestClient, order_code: str, receiving, storage, track=None
+    warehouse_client: TestClient,
+    order_code: str,
+    receiving,
+    storage,
+    track=None,
+    put_away: bool = True,
 ) -> str:
     res = warehouse_client.post(
         "/orders-incoming", json={"purchase_order_code": order_code}
@@ -121,6 +126,9 @@ def _receive_and_put_away(
 
     res = warehouse_client.post(f"/orders-incoming/{w_code}/transition", json={})
     assert res.status_code == 200
+
+    if not put_away:
+        return w_code
 
     for item in InboundWarehouseOrder.objects.get(code=w_code).items.all():
         res = warehouse_client.post(
@@ -355,3 +363,53 @@ def test_sell_the_goods_of_a_given_iso_certification(
     # 5. what is left of the certification
     (row,) = cert_client.get(f"/available?product_code={product.code}").json()["data"]
     assert row["amount"] == 70
+
+
+def test_confirmed_goods_are_sellable_before_put_away(
+    db, order_client, warehouse_client, cert_client
+):
+    """Goods are available as soon as the receipt is confirmed - no shelf needed."""
+    supplier = CustomerFactory()
+    customer = CustomerFactory()
+    product = StockProductFactory()
+    receiving = WarehouseLocationFactory(is_putaway=True)
+    storage = WarehouseLocationFactory(is_putaway=False)
+    order_code, batch_code = _buy_certified(order_client, supplier, product, "ISO-9001")
+    _receive_and_put_away(
+        warehouse_client, order_code, receiving, storage, put_away=False
+    )
+
+    item = WarehouseItem.objects.get(stock_product=product)
+    assert item.location == receiving  # still in the receiving location
+
+    (row,) = cert_client.get(f"/available?product_code={product.code}").json()["data"]
+    assert row["amount"] == 100
+    assert row["batch_code"] == batch_code
+
+    outbound_client = TestClient(outbound_routes)
+    op_code = outbound_client.post(
+        "/",
+        json={
+            "currency": "CZK",
+            "customer_code": customer.code,
+            "customer_name": customer.name,
+        },
+    ).json()["data"]["code"]
+    outbound_client.post(
+        f"/{op_code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 25,
+            "total_price": 500,
+            "desired_batch_code": row["batch_code"],
+        },
+    )
+    outbound_client.post(f"/{op_code}/transition", json={"action": "next"})
+
+    w_order = OutboundWarehouseOrder.objects.get(order__code=op_code)
+    requirement = w_order.order_items.get()
+    res = warehouse_client.get(
+        f"/orders-outgoing/{w_order.code}/order-items/{requirement.pk}/candidates"
+    )
+    assert [c["id"] for c in res.json()["data"]] == [item.pk]
