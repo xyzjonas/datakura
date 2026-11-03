@@ -25,7 +25,8 @@
             type="number"
             min="0.0001"
             step="0.0001"
-            label="Množství"
+            label="Množství v měrné jednotce"
+            hint="Jaké množství (měrné jednotky) balení obsahuje?"
             :rules="[rules.notEmpty, rules.isNumber, rules.atLeastOne]"
           />
 

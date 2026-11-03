@@ -12,8 +12,8 @@
     v-if="editable"
     unelevated
     color="negative"
-    label="Uzavřít"
-    icon="sym_o_scan_delete"
+    label="Zrušit"
+    icon="sym_o_close"
     @click="cancelDialog = true"
   />
 

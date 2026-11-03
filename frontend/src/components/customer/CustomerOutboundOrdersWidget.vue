@@ -1,11 +1,11 @@
 <template>
   <ForegroundPanel class="flex flex-col flex-1">
     <div class="mb-2">
-      <h2>{{ calculations ? 'Kalkulace' : 'Historie objednávek' }}</h2>
+      <h2>{{ calculations ? 'Nabídky' : 'Historie objednávek' }}</h2>
       <span class="text-gray-5">
         {{
           calculations
-            ? 'Všechny kalkulace pro tohoto zákazníka ve všech stavech'
+            ? 'Všechny nabídky pro tohoto zákazníka ve všech stavech'
             : 'Všechny přijaté objednávky od tohoto zákazníka ve všech stavech'
         }}
       </span>

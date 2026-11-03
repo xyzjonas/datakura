@@ -25,6 +25,7 @@
     />
     <NewOrderDialog
       v-model="newOrderDialog"
+      title="Objednávka - příjem"
       @create-order="createOrder"
       ref="newOrderDialogComponent"
     ></NewOrderDialog>

@@ -8,12 +8,12 @@
           <q-btn flat round icon="close" v-close-popup class="ml-auto" />
         </div>
         <q-form class="flex flex-col gap-2" @submit="addItem">
-          <CustomerSearchSelect v-model="customer" />
+          <CustomerSearchSelect v-model="customer" label="Vyhledat dodavatele" />
           <q-input
             v-model.trim="item.external_code"
             outlined
-            label="Číslo objednávky zákazníka"
-            hint="Číslo objednávky jak je evidováno u zákazníka (volitelné)"
+            label="Číslo faktury"
+            hint="Číslo faktury - tak je objednávka evidována u dodavatele (volitelné)"
           >
             <template #append>
               <span class="text-sm">{{ productUom }}</span>

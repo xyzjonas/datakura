@@ -27,8 +27,8 @@
   <q-btn
     unelevated
     color="negative"
-    label="Smazat"
-    icon="sym_o_delete"
+    label="Zrušit"
+    icon="sym_o_close"
     @click="deleteDialog = true"
   />
 

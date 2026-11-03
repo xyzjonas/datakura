@@ -190,37 +190,37 @@ class AuditMessages:
     CALCULATION_CREATED = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Calculation created",
-            AuditLanguage.CS: "Kalkulace byla vytvořena",
+            AuditLanguage.CS: "Nabídka byla vytvořena",
         }
     )
     CALCULATION_UPDATED = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Calculation updated",
-            AuditLanguage.CS: "Kalkulace byla aktualizována",
+            AuditLanguage.CS: "Nabídka byla aktualizována",
         }
     )
     CALCULATION_STATE_CHANGED = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Calculation state changed from '{old_state}' to '{new_state}'",
-            AuditLanguage.CS: "Stav kalkulace se změnil z '{old_state}' na '{new_state}'",
+            AuditLanguage.CS: "Stav nabídky se změnil z '{old_state}' na '{new_state}'",
         }
     )
     CALCULATION_DELETED = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Calculation deleted",
-            AuditLanguage.CS: "Kalkulace byla smazána",
+            AuditLanguage.CS: "Nabídka byla smazána",
         }
     )
     ORDER_CREATED_FROM_CALCULATION = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Order created from calculation '{calculation_code}'",
-            AuditLanguage.CS: "Objednávka byla vytvořena z kalkulace '{calculation_code}'",
+            AuditLanguage.CS: "Objednávka byla vytvořena z nabídky '{calculation_code}'",
         }
     )
     CALCULATION_CONVERTED_TO_ORDER = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Order '{order_code}' created from this calculation",
-            AuditLanguage.CS: "Z kalkulace byla vytvořena objednávka '{order_code}'",
+            AuditLanguage.CS: "Z nabídky byla vytvořena objednávka '{order_code}'",
         }
     )
     PRODUCT_CREATED = LocalizedAuditMessage(
