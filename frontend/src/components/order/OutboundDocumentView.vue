@@ -101,6 +101,16 @@
       />
     </div>
 
+    <ShippingCard
+      v-if="orderDocument"
+      :shipping="orderDocument.shipping ?? null"
+      :weight="orderDocument.total_weight ?? 0"
+      :currency="orderDocument.currency"
+      :editable="orderDocument.state !== 'cancelled'"
+      @edit="openShippingDialog"
+      @remove="removeShipping"
+    />
+
     <CommentCard v-if="order.note">{{ order.note }}</CommentCard>
 
     <OutboundOrderTimeline v-if="orderDocument" :order="orderDocument" />
@@ -140,6 +150,18 @@
       @create-order="updateOrder"
     />
 
+    <ShippingUpsertDialog
+      v-if="orderDocument"
+      v-model:show="shippingDialog"
+      v-model="shippingForm"
+      :title="orderDocument.shipping ? 'Upravit dopravu' : 'Zadat dopravu'"
+      :weight="orderDocument.total_weight ?? 0"
+      :currency="orderDocument.currency"
+      :contact="contact"
+      :loading="savingShipping"
+      @submit="saveShipping"
+    />
+
     <AuditLogDialog
       v-model:show="auditDialog"
       :source="isCalculation ? 'outbound-calculation' : 'outbound-order'"
@@ -156,11 +178,14 @@
 </template>
 
 <script setup lang="ts">
-import type {
-  OutboundCalculationCreateOrUpdateSchema,
-  OutboundCalculationSchema,
-  OutboundOrderItemCreateSchema,
-  OutboundOrderSchema,
+import {
+  warehouseApiRoutesOutboundOrdersDeleteOutboundOrderShipping,
+  warehouseApiRoutesOutboundOrdersUpsertOutboundOrderShipping,
+  type OutboundCalculationCreateOrUpdateSchema,
+  type OutboundCalculationSchema,
+  type OutboundOrderItemCreateSchema,
+  type OutboundOrderSchema,
+  type OutboundOrderShippingUpsertSchema,
 } from '@/client'
 import CommentCard from '@/components/CommentCard.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
@@ -175,6 +200,8 @@ import OutboundOrderActions from '@/components/order/OutboundOrderActions.vue'
 import OutboundOrderDetailsListCard from '@/components/order/OutboundOrderDetailsListCard.vue'
 import OutboundOrderProductsList from '@/components/order/OutboundOrderProductsList.vue'
 import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
+import ShippingCard from '@/components/order/ShippingCard.vue'
+import ShippingUpsertDialog from '@/components/order/ShippingUpsertDialog.vue'
 import OutboundOrderTimeline from '@/components/order/OutboundOrderTimeline.vue'
 import OutboundOrderUpdateOrCreateDialog from '@/components/order/OutboundOrderUpdateOrCreateDialog.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
@@ -187,6 +214,11 @@ import {
   type OutboundDocumentKind,
 } from '@/composables/use-outbound-document-api'
 import { contactFullName } from '@/utils/contact-name'
+import {
+  shippingFormFromContact,
+  shippingFormFromShipping,
+  type ShippingForm,
+} from '@/utils/shipping-form'
 import { useQuasar } from 'quasar'
 import { computed, ref } from 'vue'
 
@@ -313,6 +345,55 @@ const contact = computed({
     }
   },
 })
+
+// shipping exists for orders only; it always comes back as part of the (refreshed) order, so
+// a contact change - which rewrites the shipping address on the backend - shows up right away
+const shippingDialog = ref(false)
+const savingShipping = ref(false)
+const shippingForm = ref<ShippingForm>(shippingFormFromContact(null))
+
+const openShippingDialog = () => {
+  const shipping = orderDocument.value?.shipping
+  shippingForm.value = shipping
+    ? shippingFormFromShipping(shipping)
+    : shippingFormFromContact(contact.value)
+  shippingDialog.value = true
+}
+
+const saveShipping = async (body: OutboundOrderShippingUpsertSchema) => {
+  if (!orderDocument.value) {
+    return
+  }
+  savingShipping.value = true
+  try {
+    const data = onResponse(
+      await warehouseApiRoutesOutboundOrdersUpsertOutboundOrderShipping({
+        path: { order_code: orderDocument.value.code },
+        body,
+      }),
+    )
+    if (data) {
+      order.value = data.data
+      shippingDialog.value = false
+    }
+  } finally {
+    savingShipping.value = false
+  }
+}
+
+const removeShipping = async () => {
+  if (!orderDocument.value) {
+    return
+  }
+  const data = onResponse(
+    await warehouseApiRoutesOutboundOrdersDeleteOutboundOrderShipping({
+      path: { order_code: orderDocument.value.code },
+    }),
+  )
+  if (data) {
+    order.value = data.data
+  }
+}
 
 const auditDialog = ref(false)
 
