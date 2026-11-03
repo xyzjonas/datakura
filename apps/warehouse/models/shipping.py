@@ -7,8 +7,18 @@ from .customer import STATE_CHOICES
 from .orders import OutboundOrder
 
 
+UNKNOWN_SHIPPING_TYPE_NAME = "Neurčeno"
+# Highest possible 32-bit key keeps the low ids free for the user created types
+UNKNOWN_SHIPPING_TYPE_ID = 2**31 - 1
+
+
 class ShippingType(BaseModel):
-    """Way of transport, e.g. "Balík PPL"."""
+    """
+    Way of transport, e.g. "Balík PPL".
+
+    One sentinel row ("unknown", `UNKNOWN_SHIPPING_TYPE_ID`) is the default of every
+    shipping that has no type chosen yet. It is hidden from the API and read-only.
+    """
 
     name = models.CharField(max_length=100, unique=True)
 
@@ -17,6 +27,18 @@ class ShippingType(BaseModel):
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def is_unknown(self) -> bool:
+        return self.pk == UNKNOWN_SHIPPING_TYPE_ID
+
+    @staticmethod
+    def get_unknown() -> int:
+        """Id of the sentinel type (created on demand); usable as a field default."""
+        return ShippingType.objects.get_or_create(
+            id=UNKNOWN_SHIPPING_TYPE_ID,
+            defaults={"name": UNKNOWN_SHIPPING_TYPE_NAME},
+        )[0].id
 
     @classmethod
     def resolve(cls, name: str | None) -> "ShippingType | None":
@@ -30,8 +52,8 @@ class ShippingType(BaseModel):
 class OutboundOrderShipping(BaseModel):
     """
     Where and how an `OutboundOrder` is shipped. Exactly one per order: it is created
-    together with the order (see `signals.py`), possibly empty, and never deleted
-    on its own.
+    together with the order (see `signals.py`), possibly empty (type = the
+    "unknown" sentinel), and never deleted on its own.
 
     The address is a snapshot seeded from `OutboundOrder.contact` (overridable);
     it is rewritten whenever the order's contact changes. The weight is not stored,
@@ -43,10 +65,9 @@ class OutboundOrderShipping(BaseModel):
     )
     shipping_type = models.ForeignKey(
         ShippingType,
-        null=True,
-        blank=True,
         on_delete=models.PROTECT,
         related_name="shippings",
+        default=ShippingType.get_unknown,
     )
     package_number = models.CharField(max_length=100, blank=True, default="")
 
@@ -75,4 +96,4 @@ class OutboundOrderShipping(BaseModel):
         verbose_name_plural = "Outbound order shippings"
 
     def __str__(self) -> str:
-        return f"{self.order.code} | {self.shipping_type or '-'}"
+        return f"{self.order.code} | {self.shipping_type}"

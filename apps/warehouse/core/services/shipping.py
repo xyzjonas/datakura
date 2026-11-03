@@ -19,7 +19,12 @@ from apps.warehouse.core.transformation import outbound_order_orm_to_schema
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.customer import ContactPerson
 from apps.warehouse.models.orders import OutboundOrder
-from apps.warehouse.models.shipping import OutboundOrderShipping, ShippingType
+from apps.warehouse.models.shipping import (
+    UNKNOWN_SHIPPING_TYPE_ID,
+    UNKNOWN_SHIPPING_TYPE_NAME,
+    OutboundOrderShipping,
+    ShippingType,
+)
 
 _DEFAULT_STATE = "CZ"
 
@@ -33,28 +38,40 @@ class ShippingService:
 
     @staticmethod
     def get_shipping_types(search_term: str | None = None) -> QuerySet[ShippingType]:
-        qs = ShippingType.objects.all()
+        qs = ShippingType.objects.exclude(pk=UNKNOWN_SHIPPING_TYPE_ID)
         if search_term:
             qs = qs.filter(name__icontains=search_term.strip())
         return qs
 
     @staticmethod
+    def _get_editable_type(type_id: int) -> ShippingType:
+        shipping_type = ShippingType.objects.get(pk=type_id)
+        if shipping_type.is_unknown:
+            raise WarehouseItemBadRequestError(
+                "The built-in 'unknown' shipping type cannot be changed."
+            )
+        return shipping_type
+
+    @staticmethod
     def create_shipping_type(body: ShippingTypeCreateOrUpdateSchema) -> ShippingType:
+        name = body.name.strip()
+        if name == UNKNOWN_SHIPPING_TYPE_NAME:
+            raise WarehouseItemBadRequestError(f"'{name}' is a reserved name.")
         # idempotent: creating "on the fly" twice must not fail
-        return ShippingType.objects.get_or_create(name=body.name.strip())[0]
+        return ShippingType.objects.get_or_create(name=name)[0]
 
     @staticmethod
     def update_shipping_type(
         type_id: int, body: ShippingTypeCreateOrUpdateSchema
     ) -> ShippingType:
-        shipping_type = ShippingType.objects.get(pk=type_id)
+        shipping_type = ShippingService._get_editable_type(type_id)
         shipping_type.name = body.name.strip()
         shipping_type.save()
         return shipping_type
 
     @staticmethod
     def delete_shipping_type(type_id: int) -> None:
-        shipping_type = ShippingType.objects.get(pk=type_id)
+        shipping_type = ShippingService._get_editable_type(type_id)
         if shipping_type.shippings.exists():
             raise WarehouseItemBadRequestError(
                 f"Shipping type '{shipping_type.name}' is used by existing orders."
@@ -109,10 +126,11 @@ class ShippingService:
         context: RequestContext,
     ) -> OutboundOrderSchema:
         order = OutboundOrder.objects.get(code=order_code)
-        shipping_type = (
-            ShippingType.objects.get(pk=params.shipping_type_id)
+        # no type = the "unknown" sentinel
+        shipping_type = ShippingType.objects.get(
+            pk=params.shipping_type_id
             if params.shipping_type_id is not None
-            else None
+            else ShippingType.get_unknown()
         )
         values = dict(
             shipping_type=shipping_type,

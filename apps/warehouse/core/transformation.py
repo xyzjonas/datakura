@@ -179,9 +179,10 @@ def outbound_order_shipping_orm_to_schema(
 ) -> OutboundOrderShippingSchema:
     return OutboundOrderShippingSchema(
         id=shipping.pk,
-        shipping_type=shipping_type_orm_to_schema(shipping.shipping_type)
-        if shipping.shipping_type
-        else None,
+        # the "unknown" sentinel is exposed as no type
+        shipping_type=None
+        if shipping.shipping_type.is_unknown
+        else shipping_type_orm_to_schema(shipping.shipping_type),
         package_number=shipping.package_number,
         width=_opt_float(shipping.width),
         height=_opt_float(shipping.height),

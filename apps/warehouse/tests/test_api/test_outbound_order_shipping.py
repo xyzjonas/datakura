@@ -5,7 +5,11 @@ from ninja.testing import TestClient
 
 from apps.warehouse.api.routes.outbound_orders import routes
 from apps.warehouse.models.audit import AuditLog
-from apps.warehouse.models.shipping import OutboundOrderShipping, ShippingType
+from apps.warehouse.models.shipping import (
+    UNKNOWN_SHIPPING_TYPE_ID,
+    OutboundOrderShipping,
+    ShippingType,
+)
 from apps.warehouse.tests.factories.customer import (
     ContactPersonFactory,
     CustomerFactory,
@@ -298,3 +302,21 @@ def test_removing_contact_keeps_shipping_address(db) -> None:
     res = client.put(f"/{order.code}", json=_order_update_payload(order))
 
     assert res.json()["data"]["shipping"]["city"] == "LITOVEL"
+
+
+def test_empty_shipping_uses_the_unknown_sentinel_type(db) -> None:
+    order = OutboundOrderFactory.it()
+
+    shipping = OutboundOrderShipping.objects.get(order=order)
+
+    assert shipping.shipping_type_id == UNKNOWN_SHIPPING_TYPE_ID
+
+
+def test_clearing_the_type_falls_back_to_the_sentinel(db) -> None:
+    client = TestClient(routes)
+    shipping = OutboundOrderShippingFactory.it(shipping_type=ShippingTypeFactory.it())
+
+    client.put(f"/{shipping.order.code}/shipping", json={})
+
+    shipping.refresh_from_db()
+    assert shipping.shipping_type_id == UNKNOWN_SHIPPING_TYPE_ID
