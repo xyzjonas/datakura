@@ -7,10 +7,25 @@ export type ChangelogEntry = {
   rows: string[]
 }
 
-export const APP_VERSION = '0.0.1.dev11'
+export const APP_VERSION = '0.0.1.dev12'
 export const STORAGE_KEY = 'app-last-acknowledged-version'
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+  {
+    version: '0.0.1.dev12',
+    releaseDate: '2026-11-04',
+    rows: [
+      'Možnost nastavení automatických periodických snapshotů.',
+      'Navázaní kódů příjemek a výdejek na související objednávky.',
+      'Přidání možnosti sledovat certifikované zboží pomocí šarží.',
+      'Navázání dodacích údajů přijaté objednávky.',
+      'Rozlišení marže, přirážka and zisku v objednávkách.',
+      'Čistá separace nabídek a objednávek.',
+      'Oprava: vyhledávání produktů - správné řazení',
+      'Optimalizace: stavy skladů stránkují položky - oprava zobrazení velkých snapshotů.',
+      'Optimalizace: oodstranění N+1 u objednávek',
+    ],
+  },
   {
     version: '0.0.1.dev11',
     releaseDate: '2026-10-13',
