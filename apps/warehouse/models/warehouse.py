@@ -610,6 +610,9 @@ class InventorySnapshot(BaseModel):
     purchase_totals_by_currency = models.JSONField(default=dict, blank=True)
     receipt_totals_by_currency = models.JSONField(default=dict, blank=True)
     receipt_unpriced_line_count = models.PositiveIntegerField(default=0)
+    # Start of the captured interval = captured_at of the previous snapshot
+    # (null for the first one: everything up to captured_at).
+    period_start = models.DateTimeField(null=True, blank=True)
     # Orders closed since the previous snapshot (frozen at capture time).
     expenditure_totals_by_currency = models.JSONField(default=dict, blank=True)
     gain_totals_by_currency = models.JSONField(default=dict, blank=True)

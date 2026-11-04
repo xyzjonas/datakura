@@ -21,6 +21,12 @@
           <span>/</span>
           <span>{{ formatInventorySnapshotCadence(snapshot.cadence) }}</span>
         </div>
+        <div class="mt-1 text-sm text-gray-5">
+          <template v-if="snapshot.period_start">
+            Minulý stav: {{ formatCapturedAt(snapshot.period_start) }}
+          </template>
+          <template v-else>První stav skladu – zachycuje vše do tohoto data</template>
+        </div>
       </div>
     </div>
 

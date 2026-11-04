@@ -311,3 +311,28 @@ def test_frozen_order_skeleton_survives_later_changes(db, client):
     assert Decimal(row["total_value"]) == Decimal("10")
     assert row["counterparty_name"] == "Dodavatel s.r.o."
     assert row["description"] == "Nákup profilů"
+
+
+def test_period_start_is_previous_capture_and_none_for_first(db, client):
+    first = inventory_snapshot_service.create_snapshot(captured_at=T0)
+    second = inventory_snapshot_service.create_snapshot(
+        captured_at=T0 + timedelta(days=1)
+    )
+
+    first_payload = client.get(f"inventory-snapshots/{first.id}").json()["data"]
+    second_payload = client.get(f"inventory-snapshots/{second.id}").json()["data"]
+
+    assert first_payload["period_start"] is None
+    assert datetime.fromisoformat(second_payload["period_start"]) == T0
+
+
+def test_period_start_stays_frozen_when_earlier_snapshot_is_added_later(db, client):
+    first = inventory_snapshot_service.create_snapshot(captured_at=T0)
+    second = inventory_snapshot_service.create_snapshot(
+        captured_at=T0 + timedelta(days=2)
+    )
+    inventory_snapshot_service.create_snapshot(captured_at=T0 + timedelta(days=1))
+
+    payload = client.get(f"inventory-snapshots/{second.id}").json()["data"]
+
+    assert datetime.fromisoformat(payload["period_start"]) == T0

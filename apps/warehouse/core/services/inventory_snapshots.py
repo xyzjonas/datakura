@@ -85,6 +85,7 @@ class InventorySnapshotService:
             created=snapshot.created,
             changed=snapshot.changed,
             captured_at=snapshot.captured_at,
+            period_start=snapshot.period_start,
             trigger_source=snapshot.trigger_source,
             cadence=snapshot.cadence,
             bucket_key=snapshot.bucket_key,
@@ -332,6 +333,7 @@ class InventorySnapshotService:
         with transaction.atomic():
             snapshot = InventorySnapshot.objects.create(
                 captured_at=captured_at,
+                period_start=previous.captured_at if previous else None,
                 trigger_source=trigger_source,
                 cadence=cadence,
                 bucket_key=derived_bucket_key,

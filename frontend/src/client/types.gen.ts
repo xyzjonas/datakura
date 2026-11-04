@@ -4250,6 +4250,10 @@ export type InventorySnapshotSummarySchema = {
      */
     captured_at: string;
     /**
+     * Period Start
+     */
+    period_start?: string | null;
+    /**
      * Trigger Source
      */
     trigger_source: string;
@@ -4459,6 +4463,10 @@ export type InventorySnapshotDetailSchema = {
      * Captured At
      */
     captured_at: string;
+    /**
+     * Period Start
+     */
+    period_start?: string | null;
     /**
      * Trigger Source
      */

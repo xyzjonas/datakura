@@ -22,6 +22,8 @@ class InventorySnapshotSummarySchema(BaseModel):
     created: datetime
     changed: datetime
     captured_at: datetime
+    # captured_at of the previous snapshot; None for the very first one
+    period_start: datetime | None = None
     trigger_source: str
     cadence: str | None = None
     bucket_key: str | None = None
