@@ -327,7 +327,7 @@ def test_period_start_is_previous_capture_and_none_for_first(db, client):
 
 
 def test_period_start_stays_frozen_when_earlier_snapshot_is_added_later(db, client):
-    first = inventory_snapshot_service.create_snapshot(captured_at=T0)
+    inventory_snapshot_service.create_snapshot(captured_at=T0)
     second = inventory_snapshot_service.create_snapshot(
         captured_at=T0 + timedelta(days=2)
     )
