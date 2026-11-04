@@ -52,7 +52,7 @@
             outlined
             type="time"
             label="Čas"
-            hint="Čas spuštění"
+            hint="Čas spuštění (v časovém pásmu aplikace)"
             :rules="[rules.notEmpty]"
           />
 

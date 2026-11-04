@@ -168,3 +168,14 @@ def test_delete_unknown_and_foreign_task(db, client) -> None:
     with pytest.raises(NotFoundException):
         client.delete(f"/{other.pk}")
     assert PeriodicTask.objects.filter(pk=other.pk).exists()
+
+
+@pytest.mark.parametrize("tz", ["UTC", "Europe/Prague", "America/New_York"])
+def test_schedule_is_anchored_to_configured_timezone(db, client, settings, tz) -> None:
+    settings.TIME_ZONE = tz
+
+    res = client.post("/", json={"name": "Local", "day_of_month": 1, "hour": 6})
+
+    task = PeriodicTask.objects.get(pk=res.json()["data"]["id"])
+    assert str(task.crontab.timezone) == tz
+    assert res.json()["data"]["hour"] == 6
