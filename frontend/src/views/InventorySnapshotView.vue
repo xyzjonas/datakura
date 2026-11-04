@@ -22,46 +22,9 @@
           <span>{{ formatInventorySnapshotCadence(snapshot.cadence) }}</span>
         </div>
       </div>
-
-      <div class="grid gap-3 sm:grid-cols-3">
-        <ForegroundPanel>
-          <div class="text-xs uppercase tracking-wide text-muted">Skladových položek</div>
-          <div class="mt-2 text-3xl font-semibold">{{ snapshot.line_count }}</div>
-        </ForegroundPanel>
-        <InventorySnapshotTotalsPanel
-          title="Cena při uložení"
-          :totals="snapshot.purchase_totals"
-          caption="Aktuální nákupní cena produktu v okamžiku uložení stavu skladu"
-        />
-        <InventorySnapshotTotalsPanel
-          title="Cena při příjmu"
-          :totals="snapshot.receipt_totals"
-          caption="Historická cena z příjmové řádky"
-          empty-label="Žádné oceněné příjmové řádky"
-        />
-      </div>
     </div>
 
-    <div class="grid gap-3 lg:grid-cols-2">
-      <InventorySnapshotOrdersPanel
-        title="Uzavřené nákupy od minulého snapshotu"
-        total-label="Celkové výdaje"
-        :totals="snapshot.expenditure_totals"
-        :orders="snapshot.inbound_orders"
-        route-name="inboundOrderDetail"
-        empty-label="Žádné uzavřené objednávky"
-      />
-      <InventorySnapshotOrdersPanel
-        title="Uzavřené výdeje od minulého snapshotu"
-        total-label="Celkové příjmy (cena výdeje)"
-        :totals="snapshot.gain_totals"
-        :orders="snapshot.outbound_orders"
-        route-name="warehouseOutboundOrderDetail"
-        empty-label="Žádné uzavřené výdejky"
-      />
-    </div>
-
-    <InventorySnapshotValuationToggle v-model:mode="valuationMode" class="max-w-[36rem]" />
+    <InventorySnapshotHeader :snapshot="snapshot" :valuation-mode="valuationMode" />
 
     <ForegroundPanel>
       <div class="flex flex-col gap-4">
@@ -69,7 +32,8 @@
           <div>
             <h2>Seskupené řádky stavu skladu</h2>
             <div class="mt-1 text-sm text-gray-6">
-              Stav skladu je agregovaný podle skladové karty. Kliknutím se rozbalí jednotlivé položky.
+              Stav skladu je agregovaný podle skladové karty. Kliknutím se rozbalí jednotlivé
+              položky.
             </div>
           </div>
 
@@ -81,6 +45,8 @@
             class="w-full max-w-md"
           />
         </div>
+
+        <InventorySnapshotValuationSwitch v-model:mode="valuationMode" />
 
         <div v-if="groupedLines.length" class="flex flex-col gap-2">
           <InventorySnapshotGroupPanel
@@ -127,10 +93,9 @@ import {
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import InventorySnapshotGroupPanel from '@/components/warehouse/InventorySnapshotGroupPanel.vue'
-import InventorySnapshotOrdersPanel from '@/components/warehouse/InventorySnapshotOrdersPanel.vue'
+import InventorySnapshotHeader from '@/components/warehouse/InventorySnapshotHeader.vue'
 import InventorySnapshotReceiptCoverageBadge from '@/components/warehouse/InventorySnapshotReceiptCoverageBadge.vue'
-import InventorySnapshotTotalsPanel from '@/components/warehouse/InventorySnapshotTotalsPanel.vue'
-import InventorySnapshotValuationToggle from '@/components/warehouse/InventorySnapshotValuationToggle.vue'
+import InventorySnapshotValuationSwitch from '@/components/warehouse/InventorySnapshotValuationSwitch.vue'
 import { useApi } from '@/composables/use-api'
 import {
   formatInventorySnapshotCadence,
