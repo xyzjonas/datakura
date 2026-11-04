@@ -203,6 +203,13 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
   {
+    name: 'description',
+    field: (order: Order) => order.description ?? '',
+    label: 'Popis',
+    align: 'left',
+    style: 'max-width: 20rem; white-space: normal',
+  },
+  {
     name: 'warehouseOrder',
     field: (order: InboundOrderSchema) => order.warehouse_order_codes?.join(', '),
     label: warehouseLabel,
