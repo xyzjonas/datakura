@@ -29,6 +29,8 @@ export type InventorySnapshotProductGroup = {
   receiptComplete: boolean
 }
 
+const collator = new Intl.Collator()
+
 const cadenceLabels: Record<string, string> = {
   daily: 'Denní',
   monthly: 'Měsíční',
@@ -124,11 +126,10 @@ export const getSnapshotCoverageTone = (snapshot: InventorySnapshotCoverageLike)
 }
 
 export const sortSnapshotLines = (snapshot: InventorySnapshotDetailSchema) => {
-  return [...snapshot.lines].sort((left, right) => {
-    return `${left.product_code}:${left.location_code}:${left.id}`.localeCompare(
-      `${right.product_code}:${right.location_code}:${right.id}`,
-    )
-  })
+  return snapshot.lines
+    .map((line) => ({ line, key: `${line.product_code}:${line.location_code}:${line.id}` }))
+    .sort((left, right) => collator.compare(left.key, right.key))
+    .map(({ line }) => line)
 }
 
 const addCurrencyTotal = (
@@ -162,56 +163,58 @@ const toCurrencyTotals = (
 export const groupSnapshotLinesByProduct = (
   snapshot: InventorySnapshotDetailSchema,
 ): InventorySnapshotProductGroup[] => {
-  const groups = new Map<string, InventorySnapshotProductGroup>()
+  type Accumulator = {
+    group: InventorySnapshotProductGroup
+    purchase: Map<string, number>
+    receipt: Map<string, number>
+  }
+  const accumulators = new Map<string, Accumulator>()
 
+  // totals are accumulated per group and turned into the output shape once at the end
   for (const line of sortSnapshotLines(snapshot)) {
-    const existing = groups.get(line.product_code)
-    if (existing) {
-      existing.lines.push(line)
-      existing.itemCount += 1
-      existing.totalQuantity += parseAmount(line.quantity) ?? 0
-
-      const purchaseTotals = new Map(
-        existing.purchase_totals.map((row) => [row.currency, Number.parseFloat(String(row.value))]),
-      )
-      const receiptTotals = new Map(
-        existing.receipt_totals.map((row) => [row.currency, Number.parseFloat(String(row.value))]),
-      )
-
-      addCurrencyTotal(purchaseTotals, line.purchase_currency, line.purchase_line_value)
-      addCurrencyTotal(receiptTotals, line.receipt_currency, line.receipt_line_value)
-
-      existing.purchase_totals = toCurrencyTotals(purchaseTotals)
-      existing.receipt_totals = toCurrencyTotals(receiptTotals)
-      existing.receipt_unpriced_line_count += line.receipt_price_available ? 0 : 1
-      existing.receiptComplete = existing.receipt_unpriced_line_count === 0
-      continue
+    let accumulator = accumulators.get(line.product_code)
+    if (!accumulator) {
+      accumulator = {
+        group: {
+          productCode: line.product_code,
+          productName: line.product_name,
+          unitOfMeasure: line.unit_of_measure,
+          lines: [],
+          itemCount: 0,
+          totalQuantity: 0,
+          purchase_totals: [],
+          receipt_totals: [],
+          receipt_unpriced_line_count: 0,
+          receiptComplete: true,
+        },
+        purchase: new Map(),
+        receipt: new Map(),
+      }
+      accumulators.set(line.product_code, accumulator)
     }
 
-    const purchaseTotals = new Map<string, number>()
-    const receiptTotals = new Map<string, number>()
-    addCurrencyTotal(purchaseTotals, line.purchase_currency, line.purchase_line_value)
-    addCurrencyTotal(receiptTotals, line.receipt_currency, line.receipt_line_value)
-
-    groups.set(line.product_code, {
-      productCode: line.product_code,
-      productName: line.product_name,
-      unitOfMeasure: line.unit_of_measure,
-      lines: [line],
-      itemCount: 1,
-      totalQuantity: parseAmount(line.quantity) ?? 0,
-      purchase_totals: toCurrencyTotals(purchaseTotals),
-      receipt_totals: toCurrencyTotals(receiptTotals),
-      receipt_unpriced_line_count: line.receipt_price_available ? 0 : 1,
-      receiptComplete: line.receipt_price_available,
-    })
+    const { group } = accumulator
+    group.lines.push(line)
+    group.itemCount += 1
+    group.totalQuantity += parseAmount(line.quantity) ?? 0
+    group.receipt_unpriced_line_count += line.receipt_price_available ? 0 : 1
+    addCurrencyTotal(accumulator.purchase, line.purchase_currency, line.purchase_line_value)
+    addCurrencyTotal(accumulator.receipt, line.receipt_currency, line.receipt_line_value)
   }
 
-  return [...groups.values()].sort((left, right) => {
-    return `${left.productCode}:${left.productName}`.localeCompare(
-      `${right.productCode}:${right.productName}`,
-    )
-  })
+  return [...accumulators.values()]
+    .map(({ group, purchase, receipt }) => ({
+      ...group,
+      purchase_totals: toCurrencyTotals(purchase),
+      receipt_totals: toCurrencyTotals(receipt),
+      receiptComplete: group.receipt_unpriced_line_count === 0,
+    }))
+    .sort((left, right) => {
+      return collator.compare(
+        `${left.productCode}:${left.productName}`,
+        `${right.productCode}:${right.productName}`,
+      )
+    })
 }
 
 export const filterSnapshotProductGroups = (

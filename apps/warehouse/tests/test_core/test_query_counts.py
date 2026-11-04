@@ -10,12 +10,14 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from ninja.testing import TestClient
 
+from apps.warehouse.api.routes.analytics import routes as analytics_routes
 from apps.warehouse.api.routes.inbound_orders import routes as inbound_routes
 from apps.warehouse.api.routes.outbound_calculations import (
     routes as calculation_routes,
 )
 from apps.warehouse.api.routes.outbound_orders import routes as outbound_routes
 from apps.warehouse.api.routes.warehouse import routes as warehouse_routes
+from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
 from apps.warehouse.models.barcode import BarcodeType
 from apps.warehouse.models.orders import OutboundOrder
 from apps.warehouse.tests.factories.customer import CustomerFactory
@@ -309,5 +311,29 @@ def test_outbound_order_with_calculation_credit_note_and_warehouse_orders_is_con
             parent = WarehouseOrderOutFactory(order=order)
             WarehouseOrderOutFactory(order=order, primary_order=parent)
         return lambda: client.get("", query_params={"page_size": 50}).json()
+
+    _assert_constant_queries(build)
+
+
+@pytest.mark.django_db
+def test_inventory_snapshot_detail_query_count_is_constant() -> None:
+    client = TestClient(analytics_routes)
+
+    def build(n: int):
+        for _ in range(n):
+            WarehouseItemFactory(stock_product=_make_product(), amount=1, order_in=None)
+        snapshot = inventory_snapshot_service.create_snapshot(force=True)
+        assert snapshot.line_count == len(snapshot.lines) >= n
+        return lambda: client.get(f"/inventory-snapshots/{snapshot.id}").json()
+
+    _assert_constant_queries(build)
+
+
+@pytest.mark.django_db
+def test_inventory_snapshot_creation_query_count_is_constant() -> None:
+    def build(n: int):
+        for _ in range(n):
+            WarehouseItemFactory(stock_product=_make_product(), amount=1, order_in=None)
+        return lambda: inventory_snapshot_service.create_snapshot(force=True)
 
     _assert_constant_queries(build)

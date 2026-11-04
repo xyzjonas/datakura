@@ -121,4 +121,58 @@ describe('inventory snapshot helpers', () => {
     expect(filterSnapshotProductGroups(groups, 'produkt')).toHaveLength(1)
     expect(filterSnapshotProductGroups(groups, 'missing')).toHaveLength(0)
   })
+
+  it('groups many lines of several products and currencies in one pass', () => {
+    const lines: InventorySnapshotLineSchema[] = []
+    for (let i = 0; i < 300; i++) {
+      lines.push({
+        ...line,
+        id: i + 1,
+        product_code: `SKU-${i % 3}`,
+        product_name: `Produkt ${i % 3}`,
+        location_code: `L-${i}`,
+        quantity: '1.0000',
+        purchase_currency: i % 2 ? 'EUR' : 'CZK',
+        purchase_line_value: '2.0000',
+        // every 5th line has no receipt
+        ...(i % 5 === 0
+          ? {
+              receipt_currency: null,
+              receipt_line_value: null,
+              receipt_unit_price: null,
+              receipt_price_available: false,
+            }
+          : { receipt_currency: 'CZK', receipt_line_value: '3.0000' }),
+      })
+    }
+
+    const groups = groupSnapshotLinesByProduct({ ...detailSnapshot, lines })
+
+    expect(groups.map((g) => g.productCode)).toEqual(['SKU-0', 'SKU-1', 'SKU-2'])
+    for (const group of groups) {
+      expect(group.itemCount).toBe(100)
+      expect(group.lines).toHaveLength(100)
+      expect(group.totalQuantity).toBe(100)
+      expect(group.receipt_unpriced_line_count).toBe(
+        group.lines.filter((l) => !l.receipt_price_available).length,
+      )
+      expect(group.receiptComplete).toBe(false)
+    }
+    const total = (rows: { currency: string; value: string }[], currency: string) =>
+      Number(rows.find((row) => row.currency === currency)?.value ?? 0)
+    // purchase totals stay split by currency and add up to the whole snapshot
+    expect(groups.reduce((sum, g) => sum + total(g.purchase_totals, 'CZK'), 0)).toBe(300)
+    expect(groups.reduce((sum, g) => sum + total(g.purchase_totals, 'EUR'), 0)).toBe(300)
+    expect(groups.reduce((sum, g) => sum + total(g.receipt_totals, 'CZK'), 0)).toBe(240 * 3)
+  })
+
+  it('handles snapshots without lines', () => {
+    expect(groupSnapshotLinesByProduct({ ...detailSnapshot, lines: [] })).toEqual([])
+  })
+
+  it('marks a group complete when every line has a receipt price', () => {
+    const [group] = groupSnapshotLinesByProduct({ ...detailSnapshot, lines: [line] })
+    expect(group?.receiptComplete).toBe(true)
+    expect(group?.receipt_unpriced_line_count).toBe(0)
+  })
 })

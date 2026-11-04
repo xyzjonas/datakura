@@ -63,118 +63,12 @@
         </div>
 
         <div v-if="groupedLines.length" class="flex flex-col gap-2">
-          <ForegroundPanel v-for="group in groupedLines" :key="group.productCode" no-padding>
-            <q-expansion-item expand-separator header-class="px-4 py-3" class="rounded">
-              <template #header>
-                <div
-                  class="grid w-full lg:grid-cols-[1fr_2fr_1fr] items-start md:items-center gap-4"
-                >
-                  <div class="min-w-0 flex-1">
-                    <button class="text-left" @click.stop="goToProduct(group.productCode)">
-                      <div class="font-semibold text-primary">{{ group.productName }}</div>
-                      <div class="text-xs text-gray-5">{{ group.productCode }}</div>
-                    </button>
-                  </div>
-
-                  <div class="grid gap-2 sm:grid-cols-3">
-                    <div>
-                      <div class="text-[11px] uppercase tracking-wide text-muted">Položek</div>
-                      <div class="mt-1 text-sm font-semibold">{{ group.itemCount }}</div>
-                    </div>
-                    <div>
-                      <div class="text-[11px] uppercase tracking-wide text-muted">Množství</div>
-                      <div class="mt-1 text-sm font-semibold flex items-center gap-2">
-                        {{ group.totalQuantity }}
-                        <q-badge color="gray">{{ group.unitOfMeasure }}</q-badge>
-                      </div>
-                    </div>
-                    <div>
-                      <div class="text-[11px] uppercase tracking-wide text-muted">
-                        {{
-                          valuationMode === 'purchase' ? 'Cena při snapshotu' : 'Cena při příjmu'
-                        }}
-                      </div>
-                      <div class="mt-1 text-sm font-semibold text-primary">
-                        {{ formatSnapshotTotals(group, valuationMode) }}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="shrink-0">
-                    <InventorySnapshotReceiptCoverageBadge :snapshot="group" />
-                  </div>
-                </div>
-              </template>
-
-              <div class="px-4 pb-4 pt-1">
-                <q-markup-table flat class="bg-transparent">
-                  <thead>
-                    <tr>
-                      <th class="text-left">Skladová položka</th>
-                      <th class="text-left">Místo</th>
-                      <th class="text-left">Množství</th>
-                      <th class="text-left">
-                        {{
-                          valuationMode === 'purchase'
-                            ? 'Cena / MJ při snapshotu'
-                            : 'Cena / MJ při příjmu'
-                        }}
-                      </th>
-                      <th class="text-left">
-                        {{
-                          valuationMode === 'purchase'
-                            ? 'Hodnota při snapshotu'
-                            : 'Hodnota při příjmu'
-                        }}
-                      </th>
-                      <th class="text-left">Příjmová cena</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="line in group.lines" :key="line.id">
-                      <td>
-                        <div class="flex items-center gap-3">
-                          <TrackingLevelBadge :level="line.tracking_level" />
-                          <div class="text-muted text-xs">
-                            #{{ line.warehouse_item_id_at_snapshot }}
-                          </div>
-                          <WarehouseItemLink
-                            v-if="line.warehouse_item_id"
-                            :item-id="line.warehouse_item_id"
-                          />
-                        </div>
-                      </td>
-                      <td>{{ line.location_code }}</td>
-                      <td class="flex items-center gap-2">
-                        {{ line.quantity }}
-                        <q-badge color="gray">{{ group.unitOfMeasure }}</q-badge>
-                      </td>
-                      <td>
-                        <span v-if="getSnapshotLineUnitPrice(line, valuationMode)">
-                          {{ formatMoney(getSnapshotLineUnitPrice(line, valuationMode)) }}
-                        </span>
-                        <span v-else class="text-gray-5">—</span>
-                      </td>
-                      <td class="font-semibold text-primary">
-                        <span v-if="getSnapshotLineValue(line, valuationMode)">
-                          {{ formatMoney(getSnapshotLineValue(line, valuationMode)) }}
-                        </span>
-                        <span v-else class="text-gray-5">—</span>
-                      </td>
-                      <td>
-                        <q-badge
-                          :color="line.receipt_price_available ? 'positive' : 'warning'"
-                          class="uppercase"
-                        >
-                          {{ line.receipt_price_available ? 'Zdroj nalezen' : 'Bez příjmu' }}
-                        </q-badge>
-                      </td>
-                    </tr>
-                  </tbody>
-                </q-markup-table>
-              </div>
-            </q-expansion-item>
-          </ForegroundPanel>
+          <InventorySnapshotGroupPanel
+            v-for="group in groupedLines"
+            :key="group.productCode"
+            :group="group"
+            :valuation-mode="valuationMode"
+          />
         </div>
 
         <div v-else class="py-8 text-center text-gray-5">
@@ -196,23 +90,17 @@ import {
   warehouseApiRoutesAnalyticsGetInventorySnapshot,
 } from '@/client'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import WarehouseItemLink from '@/components/links/WarehouseItemLink.vue'
 import SearchInput from '@/components/SearchInput.vue'
+import InventorySnapshotGroupPanel from '@/components/warehouse/InventorySnapshotGroupPanel.vue'
 import InventorySnapshotReceiptCoverageBadge from '@/components/warehouse/InventorySnapshotReceiptCoverageBadge.vue'
 import InventorySnapshotTotalsPanel from '@/components/warehouse/InventorySnapshotTotalsPanel.vue'
 import InventorySnapshotValuationToggle from '@/components/warehouse/InventorySnapshotValuationToggle.vue'
-import TrackingLevelBadge from '@/components/warehouse/TrackingLevelBadge.vue'
 import { useApi } from '@/composables/use-api'
-import { useAppRouter } from '@/composables/use-app-router'
 import {
   filterSnapshotProductGroups,
   formatInventorySnapshotCadence,
   formatInventorySnapshotTriggerSource,
-  formatMoney,
-  formatSnapshotTotals,
   groupSnapshotLinesByProduct,
-  getSnapshotLineUnitPrice,
-  getSnapshotLineValue,
   type InventorySnapshotValuationMode,
 } from '@/views/inventory-snapshot'
 import { computed, ref } from 'vue'
@@ -220,7 +108,6 @@ import { computed, ref } from 'vue'
 const props = defineProps<{ snapshotId: string }>()
 
 const { onResponse } = useApi()
-const { goToProduct } = useAppRouter()
 const valuationMode = ref<InventorySnapshotValuationMode>('purchase')
 const productSearch = ref('')
 const snapshot = ref<InventorySnapshotDetailSchema>()
