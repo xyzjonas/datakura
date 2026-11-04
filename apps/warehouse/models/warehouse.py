@@ -11,7 +11,7 @@ from django.db.models import QuerySet, Sum
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from .barcode import BarcodeMixin
+from .barcode import BarcodeMixin, BarcodeQuerySet
 from .base import BaseModel
 from .currency import CURRENCY_CHOICES
 from .manufacturing import ManufacturingOrder, ManufacturingOrderItem
@@ -153,7 +153,9 @@ class PhysicalWarehouseItemManager(_WarehouseItemManagerBase):
 class WarehouseItem(BaseModel, BarcodeMixin):
     """Atomic unit of the inventory - uniquely identifiable and trackable item in a warehouse"""
 
-    objects = models.Manager()
+    # declared first: the default manager must stay the unfiltered one, and an own
+    # manager takes precedence over the mixin's (hence redeclared, with barcodes support)
+    objects = BarcodeQuerySet.as_manager()  # type: ignore[misc]
     available = AvailableWarehouseItemManager()
     physical_stock = PhysicalWarehouseItemManager()
 

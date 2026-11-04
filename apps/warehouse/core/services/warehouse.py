@@ -19,6 +19,10 @@ from apps.warehouse.core.exceptions import (
 )
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
 from apps.warehouse.core.schemas.barcode import BarcodeSchema
+from apps.warehouse.core.query_optimization import (
+    inbound_warehouse_orders_for_schema,
+    outbound_warehouse_orders_for_schema,
+)
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.schemas.warehouse import (
@@ -545,7 +549,7 @@ class WarehouseService:
 
     @staticmethod
     def get_inbound_warehouse_order(code: str):
-        order = WarehouseService.get_inbound_warehouse_order_model(code)
+        order = inbound_warehouse_orders_for_schema().get(code=code)
         return warehouse_inbound_order_orm_to_schema(order)
 
     @staticmethod
@@ -576,7 +580,7 @@ class WarehouseService:
 
     @staticmethod
     def get_outbound_warehouse_order(code: str) -> OutboundWarehouseOrderSchema:
-        order = WarehouseService.get_outbound_warehouse_order_model(code)
+        order = outbound_warehouse_orders_for_schema().get(code=code)
         return warehouse_outbound_order_orm_to_schema(order)
 
     @staticmethod
@@ -1349,8 +1353,9 @@ class WarehouseService:
                 target_state=InboundOrderState.RECEIVING,
             )
 
-        warehouse_order.refresh_from_db()
-        return warehouse_inbound_order_orm_to_schema(warehouse_order)
+        return warehouse_inbound_order_orm_to_schema(
+            inbound_warehouse_orders_for_schema().get(pk=warehouse_order.pk)
+        )
 
     @classmethod
     def confirm_arrival(
@@ -1711,7 +1716,7 @@ class WarehouseService:
             raise WarehouseItemBadRequestError(str(exc))
 
         return warehouse_inbound_order_orm_to_schema(
-            InboundWarehouseOrder.objects.get(code=order_code)
+            inbound_warehouse_orders_for_schema().get(code=order_code)
         )
 
     @staticmethod
@@ -1787,7 +1792,7 @@ class WarehouseService:
             raise WarehouseItemBadRequestError(str(exc))
 
         return warehouse_inbound_order_orm_to_schema(
-            InboundWarehouseOrder.objects.get(code=order_code)
+            inbound_warehouse_orders_for_schema().get(code=order_code)
         )
 
     @staticmethod
@@ -1833,7 +1838,7 @@ class WarehouseService:
             raise WarehouseItemBadRequestError(str(exc))
 
         return warehouse_inbound_order_orm_to_schema(
-            InboundWarehouseOrder.objects.get(code=order_code)
+            inbound_warehouse_orders_for_schema().get(code=order_code)
         )
 
     @staticmethod

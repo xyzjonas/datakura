@@ -23,6 +23,7 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.services.audit import audit_service
 from apps.warehouse.core.services.orders import inbound_orders_service
+from apps.warehouse.core.query_optimization import inbound_orders_for_schema
 from apps.warehouse.core.transformation import inbound_order_orm_to_schema
 from apps.warehouse.models.orders import InboundOrder
 
@@ -73,7 +74,9 @@ def get_inbound_order(request: HttpRequest, order_code: str):
     Retrieve a single incoming order by code.
     """
     return GetInboundOrderResponse(
-        data=inbound_order_orm_to_schema(InboundOrder.objects.get(code=order_code))
+        data=inbound_order_orm_to_schema(
+            inbound_orders_for_schema().get(code=order_code)
+        )
     )
 
 

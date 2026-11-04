@@ -10,6 +10,10 @@ from apps.warehouse.api.pagination import (
     OutgoingWarehouseOrdersPagination,
     WarehouseLocationsPagination,
 )
+from apps.warehouse.core.query_optimization import (
+    inbound_warehouse_orders_for_schema,
+    outbound_warehouse_orders_for_schema,
+)
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
 from apps.warehouse.core.schemas.base import EmptyResponse
 from apps.warehouse.core.schemas.context import RequestContext
@@ -164,19 +168,7 @@ def get_inbound_warehouse_orders(
 ):
     qs = cast(
         QuerySet[InboundWarehouseOrder],
-        InboundWarehouseOrder.objects.select_related("order").prefetch_related(
-            "order_items",
-            "order_items__stock_product",
-            "order_items__stock_product__unit_of_measure",
-            "order_items__package_type",
-            "items",
-            "order__items",
-            "warehouse_movements",
-            "warehouse_movements__location_from",
-            "warehouse_movements__location_to",
-            "warehouse_movements__stock_product",
-            "warehouse_movements__item",
-        ),
+        inbound_warehouse_orders_for_schema(),
     )
     if not include_all and not search_term:
         qs = qs.exclude(order__state=InboundOrderState.CANCELLED).exclude(
@@ -204,16 +196,7 @@ def get_outbound_warehouse_orders(
 ):
     qs = cast(
         QuerySet[OutboundWarehouseOrder],
-        OutboundWarehouseOrder.objects.select_related(
-            "order", "order__customer"
-        ).prefetch_related(
-            "order__items",
-            "warehouse_movements",
-            "warehouse_movements__location_from",
-            "warehouse_movements__location_to",
-            "warehouse_movements__stock_product",
-            "warehouse_movements__item",
-        ),
+        outbound_warehouse_orders_for_schema(),
     )
     if not include_all and not search_term:
         qs = qs.exclude(order__state=OutboundOrderState.CANCELLED).exclude(

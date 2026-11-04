@@ -8,23 +8,26 @@ Everything here is duck-typed on "a document with `customer` and `items`".
 from calendar import monthrange
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 from pydantic import BaseModel
 
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
+from apps.warehouse.core.query_optimization import outbound_orders_for_schema
 from apps.warehouse.core.schemas.orders import (
+    OutboundOrderSchema,
     OutboundDocumentSchema,
     OutboundOrderItemPricingDetailsSchema,
 )
 from apps.warehouse.core.services.products import stock_product_service
-from apps.warehouse.core.services.settings import settings_service
+from apps.warehouse.core.services.settings import MinimumItemValue, settings_service
+from apps.warehouse.core.transformation import outbound_order_orm_to_schema
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.customer import ContactPerson, Customer
 from apps.warehouse.models.orders import OutboundCalculation, OutboundOrder
 from apps.warehouse.models.packaging import PackageType
-from apps.warehouse.models.product import StockProduct
+from apps.warehouse.models.product import StockProduct, StockProductPrice
 from apps.warehouse.models.warehouse import Batch
 
 OutboundDocument = OutboundOrder | OutboundCalculation
@@ -125,14 +128,20 @@ def build_item_pricing_details(
     stock_product: StockProduct,
     selected_unit_price: Decimal,
     total_price: Decimal,
+    customer_overrides: dict[int, StockProductPrice] | None = None,
+    minimum: MinimumItemValue | None | Literal["resolve"] = "resolve",
 ) -> OutboundOrderItemPricingDetailsSchema:
-    suggested = stock_product_service.get_selling_price_lookup(
-        product_code=stock_product.code,
-        customer_code=order.customer.code if order.customer else None,
+    """
+    `customer_overrides` / `minimum` are per-order constants: pass them in when
+    building details for many items, otherwise they are looked up for each call.
+    """
+    suggested = stock_product_service.build_selling_price_lookup(
+        stock_product, order.customer, customer_overrides
     )
 
     reason = suggested.reason
-    minimum = settings_service.resolve_minimum_item_value(order.customer)
+    if minimum == "resolve":
+        minimum = settings_service.resolve_minimum_item_value(order.customer)
     if minimum is not None and total_price == minimum.value:
         reason = f"{reason}; {minimum.explanation}"
 
@@ -162,12 +171,20 @@ def build_item_pricing_details(
 def with_pricing_details(
     schema: DocumentSchemaT, order_model: OutboundDocument
 ) -> DocumentSchemaT:
-    product_by_code = {
-        item.stock_product.code: item.stock_product
-        for item in order_model.items.select_related("stock_product")
+    # `.all()` serves from the prefetch cache when the order was loaded with items
+    products = {
+        item.stock_product.code: item.stock_product for item in order_model.items.all()
     }
+    customer = order_model.customer
+    # per-order constants, resolved once instead of once per item
+    customer_overrides = (
+        stock_product_service.get_customer_overrides(customer, products.values())
+        if customer
+        else None
+    )
+    minimum = settings_service.resolve_minimum_item_value(customer)
     for schema_item in schema.items:
-        product = product_by_code.get(schema_item.product.code)
+        product = products.get(schema_item.product.code)
         if product is None:
             continue
         schema_item.pricing_details = build_item_pricing_details(
@@ -175,5 +192,21 @@ def with_pricing_details(
             stock_product=product,
             selected_unit_price=Decimal(str(schema_item.unit_price)),
             total_price=Decimal(str(schema_item.total_price)),
+            customer_overrides=customer_overrides,
+            minimum=minimum,
         )
     return schema
+
+
+def outbound_order_schema(order: OutboundOrder) -> OutboundOrderSchema:
+    """
+    Read schema of the sales order (without pricing details). Re-loads the order with
+    everything the serialization needs, so the cost doesn't grow with its items.
+    """
+    return outbound_order_orm_to_schema(outbound_orders_for_schema().get(pk=order.pk))
+
+
+def outbound_order_schema_with_pricing(order: OutboundOrder) -> OutboundOrderSchema:
+    """Like `outbound_order_schema`, including per-item pricing details."""
+    loaded = outbound_orders_for_schema().get(pk=order.pk)
+    return with_pricing_details(outbound_order_orm_to_schema(loaded), loaded)

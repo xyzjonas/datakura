@@ -9,6 +9,7 @@ from loguru import logger
 
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
+from apps.warehouse.core.query_optimization import outbound_orders_for_schema
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
@@ -33,6 +34,8 @@ from apps.warehouse.core.services.outbound_common import (
     get_desired_batch_or_none,
     get_desired_package_or_none,
     validate_desired_packaging,
+    outbound_order_schema,
+    outbound_order_schema_with_pricing,
     with_pricing_details,
 )
 from apps.warehouse.core.services.settings import settings_service
@@ -198,14 +201,8 @@ class OutboundOrdersService:
 
     @staticmethod
     def get_outbound_order(code: str) -> OutboundOrderSchema:
-        order = OutboundOrder.objects.select_related(
-            "customer",
-            "invoice__customer",
-            "invoice__supplier",
-            "invoice__payment_method",
-        ).get(code=code)
-        schema = outbound_order_orm_to_schema(order)
-        return with_pricing_details(schema, order)
+        order = outbound_orders_for_schema().get(code=code)
+        return with_pricing_details(outbound_order_orm_to_schema(order), order)
 
     @staticmethod
     def get_outbound_orders(
@@ -214,12 +211,7 @@ class OutboundOrdersService:
         customer_code: str | None = None,
         include_all: bool = False,
     ) -> QuerySet[OutboundOrder]:
-        qs = OutboundOrder.objects.select_related(
-            "customer",
-            "invoice__customer",
-            "invoice__supplier",
-            "invoice__payment_method",
-        )
+        qs = outbound_orders_for_schema()
         if not include_all and not search_term:
             qs = qs.exclude(
                 state__in=[
@@ -469,7 +461,7 @@ class OutboundOrdersService:
         existing_order = OutboundOrder.objects.filter(code=code).first()
         if existing_order:
             OutboundOrdersService._assert_order_editable(existing_order)
-            previous_order_schema = outbound_order_orm_to_schema(existing_order)
+            previous_order_schema = outbound_order_schema(existing_order)
 
         customer = Customer.objects.get(code=params.customer_code)
         contact = get_customer_contact_or_none(customer, params.contact_id)
@@ -517,12 +509,11 @@ class OutboundOrdersService:
                         action=AuditAction.UPDATE,
                         reason=AuditMessages.ORDER_UPDATED.CS,
                         changes=diff_schemas(
-                            previous_order_schema, outbound_order_orm_to_schema(order)
+                            previous_order_schema, outbound_order_schema(order)
                         ),
                     )
 
-        schema = outbound_order_orm_to_schema(order)
-        return with_pricing_details(schema, order)
+        return outbound_order_schema_with_pricing(order)
 
     @classmethod
     def add_item(
@@ -669,8 +660,7 @@ class OutboundOrdersService:
         with transaction.atomic():
             reorder_order_items(order.items.select_for_update(), item_index, new_index)
 
-        schema = outbound_order_orm_to_schema(order)
-        return with_pricing_details(schema, order)
+        return outbound_order_schema_with_pricing(order)
 
     @classmethod
     def transition_order(
@@ -777,8 +767,7 @@ class OutboundOrdersService:
                 changes={"state": {"old": old_state, "new": new_state}},
             )
 
-        schema = outbound_order_orm_to_schema(order)
-        return with_pricing_details(schema, order)
+        return outbound_order_schema_with_pricing(order)
 
     @classmethod
     def duplicate_outbound_order(
@@ -824,8 +813,7 @@ class OutboundOrdersService:
                 changes={"duplicated_from": source_code},
             )
 
-        schema = outbound_order_orm_to_schema(new_order)
-        return with_pricing_details(schema, new_order)
+        return outbound_order_schema_with_pricing(new_order)
 
     @classmethod
     def store_invoice(
@@ -898,8 +886,7 @@ class OutboundOrdersService:
             cls.sync_state_from_invoice(order, context)
 
         order.refresh_from_db()
-        schema = outbound_order_orm_to_schema(order)
-        return with_pricing_details(schema, order)
+        return outbound_order_schema_with_pricing(order)
 
 
 outbound_orders_service = OutboundOrdersService()

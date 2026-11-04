@@ -7,6 +7,7 @@ from loguru import logger
 
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
+from apps.warehouse.core.query_optimization import outbound_calculations_for_schema
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.orders import (
     OutboundCalculationCreateOrUpdateSchema,
@@ -31,6 +32,7 @@ from apps.warehouse.core.services.outbound_common import (
     get_desired_batch_or_none,
     get_desired_package_or_none,
     validate_desired_packaging,
+    outbound_order_schema_with_pricing,
     with_pricing_details,
 )
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
@@ -38,7 +40,6 @@ from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.transformation import (
     outbound_calculation_orm_to_schema,
     outbound_order_item_orm_to_schema,
-    outbound_order_orm_to_schema,
 )
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.customer import Customer
@@ -70,14 +71,16 @@ class OutboundCalculationsService:
 
     @staticmethod
     def _to_schema(calculation: OutboundCalculation) -> OutboundCalculationSchema:
-        schema = outbound_calculation_orm_to_schema(calculation)
-        return with_pricing_details(schema, calculation)
+        # re-loaded with all relations prefetched: constant number of queries
+        loaded = outbound_calculations_for_schema().get(pk=calculation.pk)
+        return with_pricing_details(outbound_calculation_orm_to_schema(loaded), loaded)
 
     @staticmethod
     def get_calculation(code: str) -> OutboundCalculationSchema:
-        return OutboundCalculationsService._to_schema(
-            OutboundCalculationsService._get_active(code)
-        )
+        loaded = outbound_calculations_for_schema(
+            OutboundCalculation.objects.active()
+        ).get(code=code)
+        return with_pricing_details(outbound_calculation_orm_to_schema(loaded), loaded)
 
     @staticmethod
     def get_calculations(
@@ -87,9 +90,7 @@ class OutboundCalculationsService:
         include_all: bool = False,
     ):
         """Non-deleted calculations; closed ones only with `include_all` or a search."""
-        qs = OutboundCalculation.objects.active().select_related(
-            "customer", "supplier", "contact", "order"
-        )
+        qs = outbound_calculations_for_schema(OutboundCalculation.objects.active())
         if not include_all and not search_term:
             qs = qs.filter(state=OutboundCalculationState.OPEN)
 
@@ -134,7 +135,9 @@ class OutboundCalculationsService:
         if code is not None:
             calculation = cls._get_active(code)
             cls._assert_editable(calculation)
-            previous_schema = outbound_calculation_orm_to_schema(calculation)
+            previous_schema = outbound_calculation_orm_to_schema(
+                outbound_calculations_for_schema().get(pk=calculation.pk)
+            )
 
         customer = Customer.objects.get(code=params.customer_code)
         contact = get_customer_contact_or_none(customer, params.contact_id)
@@ -170,7 +173,10 @@ class OutboundCalculationsService:
                     user=context.user_id,
                     reason=AuditMessages.CALCULATION_UPDATED.CS,
                     changes=diff_schemas(
-                        previous_schema, outbound_calculation_orm_to_schema(calculation)
+                        previous_schema,
+                        outbound_calculation_orm_to_schema(
+                            outbound_calculations_for_schema().get(pk=calculation.pk)
+                        ),
                     ),
                 )
 
@@ -472,10 +478,7 @@ class OutboundCalculationsService:
                 changes={"order": {"old": None, "new": order.code}},
             )
 
-        order = OutboundOrder.objects.select_related("customer", "calculation").get(
-            pk=order.pk
-        )
-        return with_pricing_details(outbound_order_orm_to_schema(order), order)
+        return outbound_order_schema_with_pricing(order)
 
 
 outbound_calculations_service = OutboundCalculationsService()

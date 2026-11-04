@@ -13,6 +13,7 @@ from apps.warehouse.core.exceptions import (
     WarehouseItemBadRequestError,
     WarehouseOrderNotEditableError,
 )
+from apps.warehouse.core.query_optimization import inbound_orders_for_schema
 from apps.warehouse.core.schemas.certification import CertificationAttachSchema
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.credit_notes import CreditNoteSupplierSchema
@@ -79,12 +80,7 @@ class OrdersService:
         include_all: bool = False,
         supplier_code: str | None = None,
     ) -> QuerySet[InboundOrder]:
-        qs = InboundOrder.objects.select_related(
-            "supplier",
-            "invoice__customer",
-            "invoice__supplier",
-            "invoice__payment_method",
-        )
+        qs = inbound_orders_for_schema()
         if not include_all and not search_term:
             qs = qs.exclude(
                 state__in=[InboundOrderState.CANCELLED, InboundOrderState.COMPLETED]
