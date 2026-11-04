@@ -14,6 +14,7 @@ services:
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
       SQLITE_PATH: /app/data/db.sqlite3
       CELERY_BROKER_URL: redis://redis:6379/0
+      TIME_ZONE: ${TIME_ZONE:-Europe/Prague}
     depends_on:
       - redis
     command: >
@@ -49,10 +50,28 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env}
       SQLITE_PATH: /app/data/db.sqlite3
       CELERY_BROKER_URL: redis://redis:6379/0
+      TIME_ZONE: ${TIME_ZONE:-Europe/Prague}
     command: uv run python -m celery -A conf worker --loglevel=info --concurrency=2
     volumes:
       - datakura_db:/app/data
       - datakura_upload:/app/media
+    depends_on:
+      - redis
+
+  beat:
+    image: scotch3840/datakura:latest
+    container_name: datakura-beat
+    restart: unless-stopped
+    environment:
+      DJANGO_SETTINGS_MODULE: conf.settings
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env}
+      SQLITE_PATH: /app/data/db.sqlite3
+      CELERY_BROKER_URL: redis://redis:6379/0
+      TIME_ZONE: ${TIME_ZONE:-Europe/Prague}
+    command: uv run python -m celery -A conf beat --loglevel=info
+    volumes:
+      - datakura_db:/app/data
     depends_on:
       - redis
 

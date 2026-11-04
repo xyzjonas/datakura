@@ -5,7 +5,7 @@
       {
         key: 'purchase',
         icon: 'sym_o_sell',
-        title: 'Cena při snapshotu',
+        title: 'Cena při uložení',
       },
       {
         key: 'receipt',

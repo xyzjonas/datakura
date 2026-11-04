@@ -2,11 +2,21 @@
   <div class="flex w-full flex-1 flex-col gap-3">
     <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
       <div>
-        <div class="text-xs uppercase tracking-wide text-muted">Skladové snapshoty</div>
+        <div class="text-xs uppercase tracking-wide text-muted">Stavy skladu</div>
         <h1 class="mt-1">Historie ocenění skladu</h1>
         <div class="mt-2 max-w-3xl text-sm text-gray-6">
-          Snapshot ukládá kompletní stav skladu včetně ceny při snapshotu i ceny při příjmu.
+          Uložený stav skladu obsahuje kompletní stav skladu včetně ceny při uložení i ceny při
+          příjmu.
         </div>
+        <p class="mt-1 max-w-3xl text-xs text-muted">
+          Stav skladu lze ukládat i automaticky podle plánu, např. každý měsíc.
+          <router-link
+            :to="{ name: 'settings', query: { tab: 'snapshots' } }"
+            class="text-primary underline"
+          >
+            Nastavit plán
+          </router-link>
+        </p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -14,7 +24,7 @@
           unelevated
           color="primary"
           icon="sym_o_add"
-          label="Vytvořit snapshot"
+          label="Uložit stav skladu"
           :loading="createLoading"
           @click="createSnapshot"
         />
@@ -26,7 +36,7 @@
     <div v-if="latestSnapshot" class="grid gap-3 xl:grid-cols-[1.2fr_1fr_1fr]">
       <ForegroundPanel class="flex flex-col justify-between gap-3">
         <div>
-          <div class="text-xs uppercase tracking-wide text-muted">Poslední snapshot</div>
+          <div class="text-xs uppercase tracking-wide text-muted">Poslední stav skladu</div>
           <div class="mt-2 text-3xl font-semibold text-primary">#{{ latestSnapshot.id }}</div>
           <div class="mt-2 text-sm text-gray-6">
             {{ formatCapturedAt(latestSnapshot.captured_at) }}
@@ -45,7 +55,7 @@
       </ForegroundPanel>
 
       <InventorySnapshotTotalsPanel
-        title="Cena při snapshotu"
+        title="Cena při uložení"
         :totals="latestSnapshot.purchase_totals"
         caption="Zmražená aktuální nákupní cena produktu"
       />
@@ -71,7 +81,7 @@
       >
         <template #top-left>
           <div>
-            <h2>Seznam snapshotů</h2>
+            <h2>Seznam stavů skladu</h2>
             <div class="mt-1 text-sm text-gray-6">
               Tabulka zobrazuje hodnotu podle zvoleného režimu ocenění.
             </div>
@@ -115,7 +125,7 @@
 
         <template #no-data>
           <EmptyPanel
-            text="Žádné snapshoty nebyly vytvořeny"
+            text="Žádné stavy skladu nebyly uloženy"
             icon="sym_o_inventory_2"
             class="h-lg w-full"
           />
@@ -261,7 +271,7 @@ const columns = computed<QTableColumn[]>(() => [
   },
   {
     name: 'valuationTotal',
-    label: valuationMode.value === 'purchase' ? 'Cena při snapshotu' : 'Cena při příjmu',
+    label: valuationMode.value === 'purchase' ? 'Cena při uložení' : 'Cena při příjmu',
     field: (row: InventorySnapshotSummarySchema) => formatSnapshotTotals(row, valuationMode.value),
     align: 'left',
   },

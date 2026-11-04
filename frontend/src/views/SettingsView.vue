@@ -50,6 +50,7 @@ import PackagingSettingsTab from '@/components/settings/PackagingSettingsTab.vue
 import PaymentSettingsTab from '@/components/settings/PaymentSettingsTab.vue'
 import ShippingSettingsTab from '@/components/settings/ShippingSettingsTab.vue'
 import PrintersSettingsTab from '@/components/settings/PrintersSettingsTab.vue'
+import SnapshotSchedulesSettingsTab from '@/components/settings/SnapshotSchedulesSettingsTab.vue'
 import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
 import { computed, ref, shallowRef, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -73,6 +74,7 @@ const validTabs = new Set([
   'payments',
   'shipping',
   'printers',
+  'snapshots',
   'import',
   'users',
   'account',
@@ -121,6 +123,8 @@ watch(
       selectedTabComponent.value = ShippingSettingsTab
     } else if (value === 'printers') {
       selectedTabComponent.value = PrintersSettingsTab
+    } else if (value === 'snapshots') {
+      selectedTabComponent.value = SnapshotSchedulesSettingsTab
     } else if (value === 'import') {
       selectedTabComponent.value = DataImportSettingsTab
     } else if (value === 'users') {
@@ -177,6 +181,11 @@ const allItems = [
     key: 'printers',
     label: 'Tiskárny',
     icon: 'sym_o_print',
+  },
+  {
+    key: 'snapshots',
+    label: 'Stav skladu',
+    icon: 'sym_o_inventory_2',
   },
   {
     key: 'users',

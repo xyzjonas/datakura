@@ -9,7 +9,8 @@ const stubs = {
   QBtn: {
     props: ['label'],
     emits: ['click'],
-    template: '<button :data-test="$attrs[\'data-test\']" @click="$emit(\'click\')">{{ label }}</button>',
+    template:
+      '<button :data-test="$attrs[\'data-test\']" @click="$emit(\'click\')">{{ label }}</button>',
   },
   QSpace: true,
   QLinearProgress: {

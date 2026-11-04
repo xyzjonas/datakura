@@ -21,7 +21,9 @@
               flat
               dense
               :color="form.auto_generate_barcode ? 'primary' : 'grey'"
-              :icon="form.auto_generate_barcode ? 'sym_o_check_box' : 'sym_o_check_box_outline_blank'"
+              :icon="
+                form.auto_generate_barcode ? 'sym_o_check_box' : 'sym_o_check_box_outline_blank'
+              "
               @click="form.auto_generate_barcode = !form.auto_generate_barcode"
               class="mt-1"
             >
