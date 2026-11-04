@@ -19,6 +19,9 @@ manage *ARGS:
 worker:
     uv run celery -A conf worker --loglevel=info
 
+beat:
+    uv run celery -A conf beat --loglevel=info
+
 redis:
     docker run -it --rm -p 6379:6379 redis:7-alpine
 

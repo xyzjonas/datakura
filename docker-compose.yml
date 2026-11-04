@@ -56,6 +56,22 @@ services:
     depends_on:
       - redis
 
+  beat:
+    image: scotch3840/datakura:latest
+    container_name: datakura-beat
+    restart: unless-stopped
+    environment:
+      DJANGO_SETTINGS_MODULE: conf.settings
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env}
+      SQLITE_PATH: /app/data/db.sqlite3
+      CELERY_BROKER_URL: redis://redis:6379/0
+    command: uv run python -m celery -A conf beat --loglevel=info
+    volumes:
+      - datakura_db:/app/data
+    depends_on:
+      - redis
+
   redis:
     image: redis:7-alpine
     container_name: datakura-redis
