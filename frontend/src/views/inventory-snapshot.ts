@@ -1,6 +1,5 @@
 import type {
   InventorySnapshotCurrencyTotal,
-  InventorySnapshotDetailSchema,
   InventorySnapshotLineSchema,
 } from '@/client'
 import { formatCurrency, parseAmount } from '@/utils/format-number'
@@ -125,8 +124,8 @@ export const getSnapshotCoverageTone = (snapshot: InventorySnapshotCoverageLike)
   return isReceiptValuationPartial(snapshot) ? 'warning' : 'positive'
 }
 
-export const sortSnapshotLines = (snapshot: InventorySnapshotDetailSchema) => {
-  return snapshot.lines
+export const sortSnapshotLines = (lines: InventorySnapshotLineSchema[]) => {
+  return lines
     .map((line) => ({ line, key: `${line.product_code}:${line.location_code}:${line.id}` }))
     .sort((left, right) => collator.compare(left.key, right.key))
     .map(({ line }) => line)
@@ -161,7 +160,7 @@ const toCurrencyTotals = (
 }
 
 export const groupSnapshotLinesByProduct = (
-  snapshot: InventorySnapshotDetailSchema,
+  lines: InventorySnapshotLineSchema[],
 ): InventorySnapshotProductGroup[] => {
   type Accumulator = {
     group: InventorySnapshotProductGroup
@@ -171,7 +170,7 @@ export const groupSnapshotLinesByProduct = (
   const accumulators = new Map<string, Accumulator>()
 
   // totals are accumulated per group and turned into the output shape once at the end
-  for (const line of sortSnapshotLines(snapshot)) {
+  for (const line of sortSnapshotLines(lines)) {
     let accumulator = accumulators.get(line.product_code)
     if (!accumulator) {
       accumulator = {
@@ -215,21 +214,4 @@ export const groupSnapshotLinesByProduct = (
         `${right.productCode}:${right.productName}`,
       )
     })
-}
-
-export const filterSnapshotProductGroups = (
-  groups: InventorySnapshotProductGroup[],
-  searchTerm: string,
-) => {
-  const normalizedSearch = searchTerm.trim().toLowerCase()
-  if (!normalizedSearch) {
-    return groups
-  }
-
-  return groups.filter((group) => {
-    return (
-      group.productCode.toLowerCase().includes(normalizedSearch) ||
-      group.productName.toLowerCase().includes(normalizedSearch)
-    )
-  })
 }

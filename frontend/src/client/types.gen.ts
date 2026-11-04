@@ -4281,6 +4281,14 @@ export type InventorySnapshotSummarySchema = {
      * Receipt Complete
      */
     receipt_complete: boolean;
+    /**
+     * Expenditure Totals
+     */
+    expenditure_totals: Array<InventorySnapshotCurrencyTotal>;
+    /**
+     * Gain Totals
+     */
+    gain_totals: Array<InventorySnapshotCurrencyTotal>;
 };
 
 /**
@@ -4432,6 +4440,7 @@ export type GetInventorySnapshotResponse = {
 
 /**
  * InventorySnapshotDetailSchema
+ * Snapshot metadata + closed orders. Items are served by a paginated endpoint.
  */
 export type InventorySnapshotDetailSchema = {
     /**
@@ -4483,9 +4492,82 @@ export type InventorySnapshotDetailSchema = {
      */
     receipt_complete: boolean;
     /**
-     * Lines
+     * Expenditure Totals
      */
-    lines: Array<InventorySnapshotLineSchema>;
+    expenditure_totals: Array<InventorySnapshotCurrencyTotal>;
+    /**
+     * Gain Totals
+     */
+    gain_totals: Array<InventorySnapshotCurrencyTotal>;
+    /**
+     * Inbound Orders
+     */
+    inbound_orders: Array<InventorySnapshotOrderSchema>;
+    /**
+     * Outbound Orders
+     */
+    outbound_orders: Array<InventorySnapshotOrderSchema>;
+};
+
+/**
+ * InventorySnapshotOrderSchema
+ * Frozen skeleton of an order closed since the previous snapshot.
+ */
+export type InventorySnapshotOrderSchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Kind
+     */
+    kind: 'inbound' | 'outbound';
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Base Order Code
+     */
+    base_order_code?: string | null;
+    /**
+     * External Code
+     */
+    external_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Counterparty Name
+     */
+    counterparty_name: string;
+    /**
+     * Closed At
+     */
+    closed_at: string;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Total Value
+     */
+    total_value: string;
+};
+
+/**
+ * InventorySnapshotCreateSchema
+ */
+export type InventorySnapshotCreateSchema = {
+    /**
+     * Cadence
+     */
+    cadence?: string | null;
+    /**
+     * Force
+     */
+    force?: boolean;
 };
 
 /**
@@ -4563,17 +4645,30 @@ export type InventorySnapshotLineSchema = {
 };
 
 /**
- * InventorySnapshotCreateSchema
+ * PagedInventorySnapshotLineSchema
  */
-export type InventorySnapshotCreateSchema = {
+export type PagedInventorySnapshotLineSchema = {
     /**
-     * Cadence
+     * Success
      */
-    cadence?: string | null;
+    success?: boolean;
+    error?: ErrorInformation | null;
     /**
-     * Force
+     * Data
      */
-    force?: boolean;
+    data: Array<InventorySnapshotLineSchema>;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Next
+     */
+    next: number | null;
+    /**
+     * Previous
+     */
+    previous: number | null;
 };
 
 /**
@@ -9204,6 +9299,40 @@ export type WarehouseApiRoutesAnalyticsGetInventorySnapshotResponses = {
 };
 
 export type WarehouseApiRoutesAnalyticsGetInventorySnapshotResponse = WarehouseApiRoutesAnalyticsGetInventorySnapshotResponses[keyof WarehouseApiRoutesAnalyticsGetInventorySnapshotResponses];
+
+export type WarehouseApiRoutesAnalyticsGetInventorySnapshotItemsData = {
+    body?: never;
+    path: {
+        /**
+         * Snapshot Id
+         */
+        snapshot_id: number;
+    };
+    query?: {
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/analytics/inventory-snapshots/{snapshot_id}/items';
+};
+
+export type WarehouseApiRoutesAnalyticsGetInventorySnapshotItemsResponses = {
+    /**
+     * OK
+     */
+    200: PagedInventorySnapshotLineSchema;
+};
+
+export type WarehouseApiRoutesAnalyticsGetInventorySnapshotItemsResponse = WarehouseApiRoutesAnalyticsGetInventorySnapshotItemsResponses[keyof WarehouseApiRoutesAnalyticsGetInventorySnapshotItemsResponses];
 
 export type WarehouseApiRoutesAnalyticsGetWarehouseMovementsData = {
     body?: never;

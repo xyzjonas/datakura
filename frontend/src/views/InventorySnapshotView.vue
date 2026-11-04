@@ -42,6 +42,25 @@
       </div>
     </div>
 
+    <div class="grid gap-3 lg:grid-cols-2">
+      <InventorySnapshotOrdersPanel
+        title="Uzavřené nákupy od minulého snapshotu"
+        total-label="Celkové výdaje"
+        :totals="snapshot.expenditure_totals"
+        :orders="snapshot.inbound_orders"
+        route-name="inboundOrderDetail"
+        empty-label="Žádné uzavřené objednávky"
+      />
+      <InventorySnapshotOrdersPanel
+        title="Uzavřené výdeje od minulého snapshotu"
+        total-label="Celkové příjmy (cena výdeje)"
+        :totals="snapshot.gain_totals"
+        :orders="snapshot.outbound_orders"
+        route-name="warehouseOutboundOrderDetail"
+        empty-label="Žádné uzavřené výdejky"
+      />
+    </div>
+
     <InventorySnapshotValuationToggle v-model:mode="valuationMode" class="max-w-[36rem]" />
 
     <ForegroundPanel>
@@ -56,8 +75,9 @@
 
           <SearchInput
             v-model="productSearch"
-            placeholder="Vyhledat skladovou kartu podle kódu nebo názvu"
+            placeholder="Vyhledat podle kódu, názvu nebo lokace"
             clearable
+            :debounce="300"
             class="w-full max-w-md"
           />
         </div>
@@ -71,8 +91,21 @@
           />
         </div>
 
-        <div v-else class="py-8 text-center text-gray-5">
+        <div v-else-if="!loading" class="py-8 text-center text-gray-5">
           Žádná skladová karta neodpovídá hledání.
+        </div>
+
+        <div class="flex items-center justify-between gap-3 text-sm text-gray-6">
+          <span>Načteno {{ lines.length }} / {{ totalCount }} položek</span>
+          <q-btn
+            v-if="hasMore"
+            outline
+            color="primary"
+            label="Načíst další"
+            no-caps
+            :loading="loading"
+            @click="loadPage(page + 1)"
+          />
         </div>
       </div>
     </ForegroundPanel>
@@ -87,23 +120,27 @@
 <script setup lang="ts">
 import {
   type InventorySnapshotDetailSchema,
+  type InventorySnapshotLineSchema,
   warehouseApiRoutesAnalyticsGetInventorySnapshot,
+  warehouseApiRoutesAnalyticsGetInventorySnapshotItems,
 } from '@/client'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import InventorySnapshotGroupPanel from '@/components/warehouse/InventorySnapshotGroupPanel.vue'
+import InventorySnapshotOrdersPanel from '@/components/warehouse/InventorySnapshotOrdersPanel.vue'
 import InventorySnapshotReceiptCoverageBadge from '@/components/warehouse/InventorySnapshotReceiptCoverageBadge.vue'
 import InventorySnapshotTotalsPanel from '@/components/warehouse/InventorySnapshotTotalsPanel.vue'
 import InventorySnapshotValuationToggle from '@/components/warehouse/InventorySnapshotValuationToggle.vue'
 import { useApi } from '@/composables/use-api'
 import {
-  filterSnapshotProductGroups,
   formatInventorySnapshotCadence,
   formatInventorySnapshotTriggerSource,
   groupSnapshotLinesByProduct,
   type InventorySnapshotValuationMode,
 } from '@/views/inventory-snapshot'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+
+const PAGE_SIZE = 100
 
 const props = defineProps<{ snapshotId: string }>()
 
@@ -112,23 +149,55 @@ const valuationMode = ref<InventorySnapshotValuationMode>('purchase')
 const productSearch = ref('')
 const snapshot = ref<InventorySnapshotDetailSchema>()
 
+const lines = ref<InventorySnapshotLineSchema[]>([])
+const page = ref(1)
+const totalCount = ref(0)
+const hasMore = ref(false)
+const loading = ref(false)
+// guards against out-of-order responses when the search changes while a page is loading
+let requestId = 0
+
+const loadPage = async (pageNumber: number) => {
+  const currentRequest = ++requestId
+  loading.value = true
+  try {
+    const response = await warehouseApiRoutesAnalyticsGetInventorySnapshotItems({
+      path: { snapshot_id: Number(props.snapshotId) },
+      query: {
+        page: pageNumber,
+        page_size: PAGE_SIZE,
+        search: productSearch.value || undefined,
+      },
+    })
+    const data = onResponse(response)
+    if (!data || currentRequest !== requestId) {
+      return
+    }
+    lines.value = pageNumber === 1 ? data.data : [...lines.value, ...data.data]
+    page.value = pageNumber
+    totalCount.value = data.count
+    hasMore.value = data.next !== null
+  } finally {
+    if (currentRequest === requestId) {
+      loading.value = false
+    }
+  }
+}
+
 const response = await warehouseApiRoutesAnalyticsGetInventorySnapshot({
   path: { snapshot_id: Number(props.snapshotId) },
 })
 const data = onResponse(response)
 if (data) {
   snapshot.value = data.data
+  await loadPage(1)
 }
+
+watch(productSearch, () => loadPage(1))
 
 const formatCapturedAt = (value: string) => {
   return new Date(value).toLocaleString('cs-CZ')
 }
 
-const allGroupedLines = computed(() =>
-  snapshot.value ? groupSnapshotLinesByProduct(snapshot.value) : [],
-)
-
-const groupedLines = computed(() =>
-  filterSnapshotProductGroups(allGroupedLines.value, productSearch.value),
-)
+const groupedLines = computed(() => groupSnapshotLinesByProduct(lines.value))
 </script>
