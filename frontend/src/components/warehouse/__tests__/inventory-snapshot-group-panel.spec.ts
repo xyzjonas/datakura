@@ -32,21 +32,7 @@ const lines: InventorySnapshotLineSchema[] = Array.from({ length: 50 }, (_, i) =
 }))
 
 const mountIt = () => {
-  const [group] = groupSnapshotLinesByProduct({
-    id: 1,
-    created: '',
-    changed: '',
-    captured_at: '',
-    trigger_source: 'manual',
-    cadence: null,
-    bucket_key: null,
-    line_count: lines.length,
-    purchase_totals: [],
-    receipt_totals: [],
-    receipt_unpriced_line_count: 0,
-    receipt_complete: true,
-    lines,
-  })
+  const [group] = groupSnapshotLinesByProduct(lines)
   return mount(InventorySnapshotGroupPanel, {
     props: { group: group!, valuationMode: 'purchase' },
     global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },

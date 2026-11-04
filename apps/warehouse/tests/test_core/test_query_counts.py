@@ -323,8 +323,21 @@ def test_inventory_snapshot_detail_query_count_is_constant() -> None:
         for _ in range(n):
             WarehouseItemFactory(stock_product=_make_product(), amount=1, order_in=None)
         snapshot = inventory_snapshot_service.create_snapshot(force=True)
-        assert snapshot.line_count == len(snapshot.lines) >= n
+        assert snapshot.line_count >= n
         return lambda: client.get(f"/inventory-snapshots/{snapshot.id}").json()
+
+    _assert_constant_queries(build)
+
+
+@pytest.mark.django_db
+def test_inventory_snapshot_items_query_count_is_constant() -> None:
+    client = TestClient(analytics_routes)
+
+    def build(n: int):
+        for _ in range(n):
+            WarehouseItemFactory(stock_product=_make_product(), amount=1, order_in=None)
+        snapshot = inventory_snapshot_service.create_snapshot(force=True)
+        return lambda: client.get(f"/inventory-snapshots/{snapshot.id}/items").json()
 
     _assert_constant_queries(build)
 

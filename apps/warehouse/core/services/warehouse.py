@@ -936,7 +936,11 @@ class WarehouseService:
 
         old_state = warehouse_order.state
         warehouse_order.state = new_state
-        warehouse_order.save(update_fields=["state", "changed"])
+        if new_state == OutboundWarehouseOrderState.COMPLETED:
+            warehouse_order.completed_date = timezone.now()
+        elif old_state == OutboundWarehouseOrderState.COMPLETED:
+            warehouse_order.completed_date = None
+        warehouse_order.save(update_fields=["state", "completed_date", "changed"])
         audit_service.add_entry(
             warehouse_order,
             user=context.user_id,
@@ -1050,7 +1054,8 @@ class WarehouseService:
             # Transition warehouse order to CANCELLED
             old_state = warehouse_order.state
             warehouse_order.state = OutboundWarehouseOrderState.CANCELLED
-            warehouse_order.save(update_fields=["state", "changed"])
+            warehouse_order.completed_date = None
+            warehouse_order.save(update_fields=["state", "completed_date", "changed"])
 
             audit_service.add_entry(
                 warehouse_order,

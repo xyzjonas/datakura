@@ -372,6 +372,11 @@ class OrdersService:
             if new_state == InboundOrderState.RECEIVING:
                 order.received_date = timezone.now()
 
+            if new_state == InboundOrderState.COMPLETED:
+                order.completed_date = timezone.now()
+            elif old_state == InboundOrderState.COMPLETED:
+                order.completed_date = None
+
             if new_state == InboundOrderState.CANCELLED:
                 order.cancelled_date = timezone.now()
 

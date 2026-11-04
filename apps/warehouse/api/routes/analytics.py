@@ -5,6 +5,7 @@ from ninja import Router, Query
 from ninja.pagination import paginate
 
 from apps.warehouse.api.pagination import (
+    InventorySnapshotItemsPagination,
     InventorySnapshotsPagination,
     WarehouseMovementsPagination,
 )
@@ -16,6 +17,7 @@ from apps.warehouse.core.schemas.analytics import (
     GetRecentOrdersResponse,
     GetRecentWarehouseMovementsResponse,
     InventorySnapshotCreateSchema,
+    InventorySnapshotLineSchema,
     InventorySnapshotSummarySchema,
     WarehouseMovementSchema,
 )
@@ -81,6 +83,19 @@ def get_inventory_snapshot(request: HttpRequest, snapshot_id: int):
     return GetInventorySnapshotResponse(
         data=inventory_snapshot_service.get_snapshot(snapshot_id)
     )
+
+
+@routes.get(
+    "/inventory-snapshots/{snapshot_id}/items",
+    response={200: list[InventorySnapshotLineSchema]},
+)
+@paginate(InventorySnapshotItemsPagination)
+def get_inventory_snapshot_items(
+    request: HttpRequest,
+    snapshot_id: int,
+    search: str | None = Query(None),
+):
+    return inventory_snapshot_service.get_items_queryset(snapshot_id, search=search)
 
 
 @routes.get("/warehouse-movements", response={200: list[WarehouseMovementSchema]})

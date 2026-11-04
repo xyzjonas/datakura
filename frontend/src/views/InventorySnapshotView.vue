@@ -21,28 +21,16 @@
           <span>/</span>
           <span>{{ formatInventorySnapshotCadence(snapshot.cadence) }}</span>
         </div>
-      </div>
-
-      <div class="grid gap-3 sm:grid-cols-3">
-        <ForegroundPanel>
-          <div class="text-xs uppercase tracking-wide text-muted">Skladových položek</div>
-          <div class="mt-2 text-3xl font-semibold">{{ snapshot.line_count }}</div>
-        </ForegroundPanel>
-        <InventorySnapshotTotalsPanel
-          title="Cena při uložení"
-          :totals="snapshot.purchase_totals"
-          caption="Aktuální nákupní cena produktu v okamžiku uložení stavu skladu"
-        />
-        <InventorySnapshotTotalsPanel
-          title="Cena při příjmu"
-          :totals="snapshot.receipt_totals"
-          caption="Historická cena z příjmové řádky"
-          empty-label="Žádné oceněné příjmové řádky"
-        />
+        <div class="mt-1 text-sm text-gray-5">
+          <template v-if="snapshot.period_start">
+            Minulý stav: {{ formatCapturedAt(snapshot.period_start) }}
+          </template>
+          <template v-else>První stav skladu – zachycuje vše do tohoto data</template>
+        </div>
       </div>
     </div>
 
-    <InventorySnapshotValuationToggle v-model:mode="valuationMode" class="max-w-[36rem]" />
+    <InventorySnapshotHeader :snapshot="snapshot" :valuation-mode="valuationMode" />
 
     <ForegroundPanel>
       <div class="flex flex-col gap-4">
@@ -50,17 +38,21 @@
           <div>
             <h2>Seskupené řádky stavu skladu</h2>
             <div class="mt-1 text-sm text-gray-6">
-              Stav skladu je agregovaný podle skladové karty. Kliknutím se rozbalí jednotlivé položky.
+              Stav skladu je agregovaný podle skladové karty. Kliknutím se rozbalí jednotlivé
+              položky.
             </div>
           </div>
 
           <SearchInput
             v-model="productSearch"
-            placeholder="Vyhledat skladovou kartu podle kódu nebo názvu"
+            placeholder="Vyhledat podle kódu, názvu nebo lokace"
             clearable
+            :debounce="300"
             class="w-full max-w-md"
           />
         </div>
+
+        <InventorySnapshotValuationSwitch v-model:mode="valuationMode" />
 
         <div v-if="groupedLines.length" class="flex flex-col gap-2">
           <InventorySnapshotGroupPanel
@@ -71,8 +63,21 @@
           />
         </div>
 
-        <div v-else class="py-8 text-center text-gray-5">
+        <div v-else-if="!loading" class="py-8 text-center text-gray-5">
           Žádná skladová karta neodpovídá hledání.
+        </div>
+
+        <div class="flex items-center justify-between gap-3 text-sm text-gray-6">
+          <span>Načteno {{ lines.length }} / {{ totalCount }} položek</span>
+          <q-btn
+            v-if="hasMore"
+            outline
+            color="primary"
+            label="Načíst další"
+            no-caps
+            :loading="loading"
+            @click="loadPage(page + 1)"
+          />
         </div>
       </div>
     </ForegroundPanel>
@@ -87,23 +92,26 @@
 <script setup lang="ts">
 import {
   type InventorySnapshotDetailSchema,
+  type InventorySnapshotLineSchema,
   warehouseApiRoutesAnalyticsGetInventorySnapshot,
+  warehouseApiRoutesAnalyticsGetInventorySnapshotItems,
 } from '@/client'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import InventorySnapshotGroupPanel from '@/components/warehouse/InventorySnapshotGroupPanel.vue'
+import InventorySnapshotHeader from '@/components/warehouse/InventorySnapshotHeader.vue'
 import InventorySnapshotReceiptCoverageBadge from '@/components/warehouse/InventorySnapshotReceiptCoverageBadge.vue'
-import InventorySnapshotTotalsPanel from '@/components/warehouse/InventorySnapshotTotalsPanel.vue'
-import InventorySnapshotValuationToggle from '@/components/warehouse/InventorySnapshotValuationToggle.vue'
+import InventorySnapshotValuationSwitch from '@/components/warehouse/InventorySnapshotValuationSwitch.vue'
 import { useApi } from '@/composables/use-api'
 import {
-  filterSnapshotProductGroups,
   formatInventorySnapshotCadence,
   formatInventorySnapshotTriggerSource,
   groupSnapshotLinesByProduct,
   type InventorySnapshotValuationMode,
 } from '@/views/inventory-snapshot'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+
+const PAGE_SIZE = 100
 
 const props = defineProps<{ snapshotId: string }>()
 
@@ -112,23 +120,55 @@ const valuationMode = ref<InventorySnapshotValuationMode>('purchase')
 const productSearch = ref('')
 const snapshot = ref<InventorySnapshotDetailSchema>()
 
+const lines = ref<InventorySnapshotLineSchema[]>([])
+const page = ref(1)
+const totalCount = ref(0)
+const hasMore = ref(false)
+const loading = ref(false)
+// guards against out-of-order responses when the search changes while a page is loading
+let requestId = 0
+
+const loadPage = async (pageNumber: number) => {
+  const currentRequest = ++requestId
+  loading.value = true
+  try {
+    const response = await warehouseApiRoutesAnalyticsGetInventorySnapshotItems({
+      path: { snapshot_id: Number(props.snapshotId) },
+      query: {
+        page: pageNumber,
+        page_size: PAGE_SIZE,
+        search: productSearch.value || undefined,
+      },
+    })
+    const data = onResponse(response)
+    if (!data || currentRequest !== requestId) {
+      return
+    }
+    lines.value = pageNumber === 1 ? data.data : [...lines.value, ...data.data]
+    page.value = pageNumber
+    totalCount.value = data.count
+    hasMore.value = data.next !== null
+  } finally {
+    if (currentRequest === requestId) {
+      loading.value = false
+    }
+  }
+}
+
 const response = await warehouseApiRoutesAnalyticsGetInventorySnapshot({
   path: { snapshot_id: Number(props.snapshotId) },
 })
 const data = onResponse(response)
 if (data) {
   snapshot.value = data.data
+  await loadPage(1)
 }
+
+watch(productSearch, () => loadPage(1))
 
 const formatCapturedAt = (value: string) => {
   return new Date(value).toLocaleString('cs-CZ')
 }
 
-const allGroupedLines = computed(() =>
-  snapshot.value ? groupSnapshotLinesByProduct(snapshot.value) : [],
-)
-
-const groupedLines = computed(() =>
-  filterSnapshotProductGroups(allGroupedLines.value, productSearch.value),
-)
+const groupedLines = computed(() => groupSnapshotLinesByProduct(lines.value))
 </script>

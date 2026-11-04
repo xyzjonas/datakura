@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import type { InventorySnapshotLineSchema } from '@/client'
 
 import {
-  filterSnapshotProductGroups,
   formatInventorySnapshotCadence,
   formatInventorySnapshotTriggerSource,
   formatSnapshotTotals,
@@ -55,21 +54,7 @@ const missingReceiptLine: InventorySnapshotLineSchema = {
   receipt_price_available: false,
 }
 
-const detailSnapshot = {
-  id: 1,
-  created: '2026-04-28T10:00:00Z',
-  changed: '2026-04-28T10:00:00Z',
-  captured_at: '2026-04-28T10:00:00Z',
-  trigger_source: 'manual',
-  cadence: null,
-  bucket_key: null,
-  line_count: 2,
-  purchase_totals: snapshot.purchase_totals,
-  receipt_totals: snapshot.receipt_totals,
-  receipt_unpriced_line_count: 1,
-  receipt_complete: false,
-  lines: [line, missingReceiptLine],
-}
+const lines = [line, missingReceiptLine]
 
 describe('inventory snapshot helpers', () => {
   it('formats totals by valuation mode', () => {
@@ -104,7 +89,7 @@ describe('inventory snapshot helpers', () => {
   })
 
   it('groups snapshot lines by stock product', () => {
-    const groups = groupSnapshotLinesByProduct(detailSnapshot)
+    const groups = groupSnapshotLinesByProduct(lines)
 
     expect(groups).toHaveLength(1)
     expect(groups[0].productCode).toBe('SKU-1')
@@ -114,18 +99,10 @@ describe('inventory snapshot helpers', () => {
     expect(groups[0].receipt_unpriced_line_count).toBe(1)
   })
 
-  it('filters grouped products by code or name', () => {
-    const groups = groupSnapshotLinesByProduct(detailSnapshot)
-
-    expect(filterSnapshotProductGroups(groups, 'sku-1')).toHaveLength(1)
-    expect(filterSnapshotProductGroups(groups, 'produkt')).toHaveLength(1)
-    expect(filterSnapshotProductGroups(groups, 'missing')).toHaveLength(0)
-  })
-
   it('groups many lines of several products and currencies in one pass', () => {
-    const lines: InventorySnapshotLineSchema[] = []
+    const many: InventorySnapshotLineSchema[] = []
     for (let i = 0; i < 300; i++) {
-      lines.push({
+      many.push({
         ...line,
         id: i + 1,
         product_code: `SKU-${i % 3}`,
@@ -146,7 +123,7 @@ describe('inventory snapshot helpers', () => {
       })
     }
 
-    const groups = groupSnapshotLinesByProduct({ ...detailSnapshot, lines })
+    const groups = groupSnapshotLinesByProduct(many)
 
     expect(groups.map((g) => g.productCode)).toEqual(['SKU-0', 'SKU-1', 'SKU-2'])
     for (const group of groups) {
@@ -167,11 +144,11 @@ describe('inventory snapshot helpers', () => {
   })
 
   it('handles snapshots without lines', () => {
-    expect(groupSnapshotLinesByProduct({ ...detailSnapshot, lines: [] })).toEqual([])
+    expect(groupSnapshotLinesByProduct([])).toEqual([])
   })
 
   it('marks a group complete when every line has a receipt price', () => {
-    const [group] = groupSnapshotLinesByProduct({ ...detailSnapshot, lines: [line] })
+    const [group] = groupSnapshotLinesByProduct([line])
     expect(group?.receiptComplete).toBe(true)
     expect(group?.receipt_unpriced_line_count).toBe(0)
   })

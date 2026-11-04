@@ -1,8 +1,4 @@
-import type {
-  InventorySnapshotCurrencyTotal,
-  InventorySnapshotDetailSchema,
-  InventorySnapshotLineSchema,
-} from '@/client'
+import type { InventorySnapshotCurrencyTotal, InventorySnapshotLineSchema } from '@/client'
 import { formatCurrency, parseAmount } from '@/utils/format-number'
 
 export type InventorySnapshotValuationMode = 'purchase' | 'receipt'
@@ -125,8 +121,8 @@ export const getSnapshotCoverageTone = (snapshot: InventorySnapshotCoverageLike)
   return isReceiptValuationPartial(snapshot) ? 'warning' : 'positive'
 }
 
-export const sortSnapshotLines = (snapshot: InventorySnapshotDetailSchema) => {
-  return snapshot.lines
+export const sortSnapshotLines = (lines: InventorySnapshotLineSchema[]) => {
+  return lines
     .map((line) => ({ line, key: `${line.product_code}:${line.location_code}:${line.id}` }))
     .sort((left, right) => collator.compare(left.key, right.key))
     .map(({ line }) => line)
@@ -161,7 +157,7 @@ const toCurrencyTotals = (
 }
 
 export const groupSnapshotLinesByProduct = (
-  snapshot: InventorySnapshotDetailSchema,
+  lines: InventorySnapshotLineSchema[],
 ): InventorySnapshotProductGroup[] => {
   type Accumulator = {
     group: InventorySnapshotProductGroup
@@ -171,7 +167,7 @@ export const groupSnapshotLinesByProduct = (
   const accumulators = new Map<string, Accumulator>()
 
   // totals are accumulated per group and turned into the output shape once at the end
-  for (const line of sortSnapshotLines(snapshot)) {
+  for (const line of sortSnapshotLines(lines)) {
     let accumulator = accumulators.get(line.product_code)
     if (!accumulator) {
       accumulator = {
@@ -217,19 +213,23 @@ export const groupSnapshotLinesByProduct = (
     })
 }
 
-export const filterSnapshotProductGroups = (
-  groups: InventorySnapshotProductGroup[],
-  searchTerm: string,
-) => {
-  const normalizedSearch = searchTerm.trim().toLowerCase()
-  if (!normalizedSearch) {
-    return groups
-  }
-
-  return groups.filter((group) => {
-    return (
-      group.productCode.toLowerCase().includes(normalizedSearch) ||
-      group.productName.toLowerCase().includes(normalizedSearch)
+/** Gains minus expenditures, per currency (a currency present on one side only counts as 0 on the other). */
+export const getSnapshotGrossGain = (snapshot: {
+  gain_totals: InventorySnapshotCurrencyTotal[]
+  expenditure_totals: InventorySnapshotCurrencyTotal[]
+}): InventorySnapshotCurrencyTotal[] => {
+  const byCurrency = new Map<string, number>()
+  for (const row of snapshot.gain_totals) {
+    byCurrency.set(
+      row.currency,
+      (byCurrency.get(row.currency) ?? 0) + (parseAmount(row.value) ?? 0),
     )
-  })
+  }
+  for (const row of snapshot.expenditure_totals) {
+    byCurrency.set(
+      row.currency,
+      (byCurrency.get(row.currency) ?? 0) - (parseAmount(row.value) ?? 0),
+    )
+  }
+  return toCurrencyTotals(byCurrency)
 }
