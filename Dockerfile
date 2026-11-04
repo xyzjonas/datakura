@@ -23,13 +23,6 @@ RUN dnf install -y weasyprint python-pip
 FROM production
 
 ENV UV_NO_DEV=1
-ENV SECRET_KEY=123
-ENV JWT_SECRET_KEY=12345
-
-ENV DJANGO_SUPERUSER_USERNAME=admin
-ENV DJANGO_SUPERUSER_EMAIL=admin@gmail.com
-ENV DJANGO_SUPERUSER_PASSWORD=admin
-
 
 WORKDIR /app
 
@@ -46,9 +39,7 @@ COPY . .
 # Copy the built frontend from the builder stage
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
-RUN uv run manage.py migrate
-RUN uv run manage.py collectstatic
-RUN uv run manage.py createsuperuser --noinput
+RUN uv run manage.py collectstatic --noinput
 
 # Expose the port the app runs on
 EXPOSE 8000
