@@ -16,6 +16,7 @@ import 'virtual:uno.css'
 import '@quasar/extras/material-icons/material-icons.css'
 import '@quasar/extras/material-symbols-outlined/material-symbols-outlined.css'
 
+import { registerSW } from 'virtual:pwa-register'
 import * as Sentry from '@sentry/vue'
 import { getSentryDsn, getSentryEnvironment } from './utils/sentry-dsn'
 
@@ -59,3 +60,6 @@ app.directive('decimal', {
 })
 
 app.mount('#app')
+
+// Plain PWA: installable + auto-updating service worker (see vite.config.ts)
+registerSW({ immediate: true })

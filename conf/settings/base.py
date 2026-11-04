@@ -219,6 +219,9 @@ STATICFILES_DIRS = [
     BASE_DIR / "frontend/dist",
 ]
 
+# Built frontend (also home of the PWA service worker / manifest, served from the root)
+PWA_ROOT = BASE_DIR / "frontend" / "dist"
+
 # Load Vite manifest
 VITE_MANIFEST_PATH = BASE_DIR / "frontend" / "dist" / ".vite" / "manifest.json"
 
