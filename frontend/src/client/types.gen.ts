@@ -5383,6 +5383,116 @@ export type DeletePrinterResponse = {
 };
 
 /**
+ * GetSnapshotSchedulesResponse
+ */
+export type GetSnapshotSchedulesResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<SnapshotScheduleSchema>;
+};
+
+/**
+ * SnapshotScheduleMode
+ */
+export type SnapshotScheduleMode = 'day_of_month' | 'last_day_of_month';
+
+/**
+ * SnapshotScheduleSchema
+ */
+export type SnapshotScheduleSchema = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    mode: SnapshotScheduleMode;
+    /**
+     * Day Of Month
+     */
+    day_of_month?: number | null;
+    /**
+     * Hour
+     */
+    hour: number;
+    /**
+     * Minute
+     */
+    minute: number;
+    /**
+     * Last Run At
+     */
+    last_run_at?: string | null;
+    /**
+     * Total Run Count
+     */
+    total_run_count?: number;
+};
+
+/**
+ * GetSnapshotScheduleResponse
+ */
+export type GetSnapshotScheduleResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: SnapshotScheduleSchema;
+};
+
+/**
+ * SnapshotScheduleCreateOrUpdateSchema
+ */
+export type SnapshotScheduleCreateOrUpdateSchema = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    mode?: SnapshotScheduleMode;
+    /**
+     * Day Of Month
+     */
+    day_of_month?: number | null;
+    /**
+     * Hour
+     */
+    hour?: number;
+    /**
+     * Minute
+     */
+    minute?: number;
+};
+
+/**
+ * DeleteSnapshotScheduleResponse
+ */
+export type DeleteSnapshotScheduleResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: SnapshotScheduleSchema;
+};
+
+/**
  * DataImportJobStartedResponse
  */
 export type DataImportJobStartedResponse = {
@@ -9861,6 +9971,80 @@ export type WarehouseApiRoutesPrintersUpdatePrinterResponses = {
 };
 
 export type WarehouseApiRoutesPrintersUpdatePrinterResponse = WarehouseApiRoutesPrintersUpdatePrinterResponses[keyof WarehouseApiRoutesPrintersUpdatePrinterResponses];
+
+export type WarehouseApiRoutesSnapshotSchedulesGetSnapshotSchedulesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/analytics/inventory-snapshot-schedules';
+};
+
+export type WarehouseApiRoutesSnapshotSchedulesGetSnapshotSchedulesResponses = {
+    /**
+     * OK
+     */
+    200: GetSnapshotSchedulesResponse;
+};
+
+export type WarehouseApiRoutesSnapshotSchedulesGetSnapshotSchedulesResponse = WarehouseApiRoutesSnapshotSchedulesGetSnapshotSchedulesResponses[keyof WarehouseApiRoutesSnapshotSchedulesGetSnapshotSchedulesResponses];
+
+export type WarehouseApiRoutesSnapshotSchedulesCreateSnapshotScheduleData = {
+    body: SnapshotScheduleCreateOrUpdateSchema;
+    path?: never;
+    query?: never;
+    url: '/api/v1/analytics/inventory-snapshot-schedules';
+};
+
+export type WarehouseApiRoutesSnapshotSchedulesCreateSnapshotScheduleResponses = {
+    /**
+     * OK
+     */
+    200: GetSnapshotScheduleResponse;
+};
+
+export type WarehouseApiRoutesSnapshotSchedulesCreateSnapshotScheduleResponse = WarehouseApiRoutesSnapshotSchedulesCreateSnapshotScheduleResponses[keyof WarehouseApiRoutesSnapshotSchedulesCreateSnapshotScheduleResponses];
+
+export type WarehouseApiRoutesSnapshotSchedulesDeleteSnapshotScheduleData = {
+    body?: never;
+    path: {
+        /**
+         * Schedule Id
+         */
+        schedule_id: number;
+    };
+    query?: never;
+    url: '/api/v1/analytics/inventory-snapshot-schedules/{schedule_id}';
+};
+
+export type WarehouseApiRoutesSnapshotSchedulesDeleteSnapshotScheduleResponses = {
+    /**
+     * OK
+     */
+    200: DeleteSnapshotScheduleResponse;
+};
+
+export type WarehouseApiRoutesSnapshotSchedulesDeleteSnapshotScheduleResponse = WarehouseApiRoutesSnapshotSchedulesDeleteSnapshotScheduleResponses[keyof WarehouseApiRoutesSnapshotSchedulesDeleteSnapshotScheduleResponses];
+
+export type WarehouseApiRoutesSnapshotSchedulesUpdateSnapshotScheduleData = {
+    body: SnapshotScheduleCreateOrUpdateSchema;
+    path: {
+        /**
+         * Schedule Id
+         */
+        schedule_id: number;
+    };
+    query?: never;
+    url: '/api/v1/analytics/inventory-snapshot-schedules/{schedule_id}';
+};
+
+export type WarehouseApiRoutesSnapshotSchedulesUpdateSnapshotScheduleResponses = {
+    /**
+     * OK
+     */
+    200: GetSnapshotScheduleResponse;
+};
+
+export type WarehouseApiRoutesSnapshotSchedulesUpdateSnapshotScheduleResponse = WarehouseApiRoutesSnapshotSchedulesUpdateSnapshotScheduleResponses[keyof WarehouseApiRoutesSnapshotSchedulesUpdateSnapshotScheduleResponses];
 
 export type WarehouseApiRoutesDataImportStartDataImportData = {
     /**
