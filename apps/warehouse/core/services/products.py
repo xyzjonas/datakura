@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import IntegrityError, transaction
@@ -68,16 +69,24 @@ class StockProductsService:
     def _resolve_selling_price(
         product: StockProduct,
         customer: Customer | None = None,
+        customer_overrides: dict[int, StockProductPrice] | None = None,
     ) -> tuple[Decimal, Decimal, str, str]:
+        """
+        `customer_overrides` (product id -> price, see `get_customer_overrides`) saves
+        the per-product query when resolving many products for one customer.
+        """
         base_price = Decimal(str(product.base_price or 0))
 
         if customer:
-            # Quantity limited prices need an amount, which the lookup doesn't have
-            customer_discount = StockProductPrice.objects.filter(
-                product=product,
-                customer=customer,
-                min_amount__isnull=True,
-            ).first()
+            if customer_overrides is not None:
+                customer_discount = customer_overrides.get(product.pk)
+            else:
+                # Quantity limited prices need an amount, which the lookup doesn't have
+                customer_discount = StockProductPrice.objects.filter(
+                    product=product,
+                    customer=customer,
+                    min_amount__isnull=True,
+                ).first()
             if customer_discount:
                 final_price = Decimal(str(customer_discount.fixed_price))
                 discount_percent = StockProductsService._derive_discount_percent(
@@ -119,11 +128,42 @@ class StockProductsService:
         customer_code: str | None = None,
     ) -> SellingPriceLookupSchema:
         product = StockProduct.objects.get(code=product_code)
-        customer = Customer.objects.get(code=customer_code) if customer_code else None
+        customer = (
+            Customer.objects.select_related("discount_group").get(code=customer_code)
+            if customer_code
+            else None
+        )
+        return StockProductsService.build_selling_price_lookup(product, customer)
+
+    @staticmethod
+    def get_customer_overrides(
+        customer: Customer, products: Iterable[StockProduct]
+    ) -> dict[int, StockProductPrice]:
+        """
+        The customer's price overrides without a minimum amount, for all the products
+        in one query (the same row `.first()` would pick for each of them).
+        """
+        overrides: dict[int, StockProductPrice] = {}
+        for price in StockProductPrice.objects.filter(
+            customer=customer,
+            product__in=list(products),
+            min_amount__isnull=True,
+        ):
+            overrides.setdefault(price.product_id, price)
+        return overrides
+
+    @staticmethod
+    def build_selling_price_lookup(
+        product: StockProduct,
+        customer: Customer | None = None,
+        customer_overrides: dict[int, StockProductPrice] | None = None,
+    ) -> SellingPriceLookupSchema:
         base_price = Decimal(str(product.base_price or 0))
 
         final_price, discount_percent, reason, source = (
-            StockProductsService._resolve_selling_price(product, customer)
+            StockProductsService._resolve_selling_price(
+                product, customer, customer_overrides
+            )
         )
         return SellingPriceLookupSchema(
             product_code=product.code,

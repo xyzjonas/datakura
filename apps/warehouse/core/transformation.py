@@ -3,7 +3,6 @@ from __future__ import annotations
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
-from django.db.models import F
 
 from apps.warehouse.core.schemas.barcode import BarcodeSchema
 from apps.warehouse.core.schemas.base import MediaFileSchema
@@ -491,7 +490,9 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         for dynamic_price in product.dynamic_prices.all()
     ]
 
-    barcodes = [barcode_orm_to_schema(barcode) for barcode in product.get_barcodes()]
+    barcode_models = product.barcode_list()
+    barcodes = [barcode_orm_to_schema(barcode) for barcode in barcode_models]
+    primary_barcode = next((b for b in barcode_models if b.is_primary), None)
 
     return ProductSchema(
         name=product.name,
@@ -510,7 +511,7 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         customs_declaration_group=product.customs_declaration_group,
         attributes=product.attributes,
         barcodes=[b for b in barcodes if b is not None],
-        primary_barcode=barcode_orm_to_schema(product.get_primary_barcode()),
+        primary_barcode=barcode_orm_to_schema(primary_barcode),
         dynamic_prices=dynamic_prices,
     )
 
@@ -752,6 +753,15 @@ def inbound_warehouse_order_to_base_schema(
     )
 
 
+def _newest_movements_first(movements):
+    return sorted(movements, key=lambda movement: movement.moved_at, reverse=True)
+
+
+def _newest_first(rows):
+    """Sort in Python: `.order_by()` on a related manager would bypass the prefetch."""
+    return sorted(rows, key=lambda row: row.created, reverse=True)
+
+
 def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
     warehouse_orders = [
         InboundWarehouseOrderBaseSchema(
@@ -786,7 +796,7 @@ def inbound_order_orm_to_schema(order: InboundOrder) -> InboundOrderSchema:
                 for child in wo.derived_orders.all()
             ],
         )
-        for wo in order.warehouse_orders.order_by("-created").all()
+        for wo in _newest_first(order.warehouse_orders.all())
     ]
     return InboundOrderSchema(
         created=order.created,
@@ -848,7 +858,7 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
                 for child in wo.derived_orders.all()
             ],
         )
-        for wo in order.warehouse_orders.order_by("-created").all()
+        for wo in _newest_first(order.warehouse_orders.all())
     ]
     # reverse one-to-one: missing when the order was not created from a calculation
     calculation = getattr(order, "calculation", None)
@@ -1014,13 +1024,7 @@ def base_order_orm_to_schema(
 def warehouse_inbound_order_orm_to_schema(
     w_order: InboundWarehouseOrder,
 ) -> InboundWarehouseOrderSchema:
-    order_items = list(
-        w_order.order_items.select_related(
-            "stock_product",
-            "stock_product__unit_of_measure",
-            "package_type",
-        ).all()
-    )
+    order_items = list(w_order.order_items.all())
     order_item_schemas = [
         inbound_warehouse_order_item_to_schema(item) for item in order_items
     ]
@@ -1038,11 +1042,13 @@ def warehouse_inbound_order_orm_to_schema(
     else:
         total_amount = 0.0
 
+    warehouse_items = list(w_order.items.all())
     remaining_amount = sum(
         float(item.amount) for item in order_item_schemas if item.pending
     ) or sum(
         float(item.amount)
-        for item in w_order.items.filter(location__is_putaway=True).all()
+        for item in warehouse_items
+        if item.location is not None and item.location.is_putaway
     )
 
     parent_order = w_order.primary_order
@@ -1071,17 +1077,15 @@ def warehouse_inbound_order_orm_to_schema(
         created=w_order.created,
         changed=w_order.changed,
         order_items=order_item_schemas,
-        items=[warehouse_item_orm_to_schema(item) for item in w_order.items.all()],
+        items=[warehouse_item_orm_to_schema(item) for item in warehouse_items],
         movements=[
             warehouse_movement_orm_to_schema(movement)
-            for movement in w_order.warehouse_movements.order_by("-moved_at")
+            for movement in _newest_movements_first(w_order.warehouse_movements.all())
         ],
         completed_items_count=len(
             [
                 item
-                for item in w_order.items.order_by(
-                    F("package_type").asc(nulls_first=True)
-                )
+                for item in warehouse_items
                 if item.location is None or not item.location.is_putaway
             ]
         ),
@@ -1167,22 +1171,7 @@ def warehouse_outbound_order_orm_to_schema(
             "outbound order and manufacturing order"
         )
 
-    order_items = list(
-        w_order.order_items.select_related(
-            "stock_product",
-            "stock_product__unit_of_measure",
-            "desired_package_type",
-            "desired_batch",
-            "warehouse_item",
-            "warehouse_item__stock_product",
-            "warehouse_item__stock_product__unit_of_measure",
-            "warehouse_item__location",
-            "warehouse_item__location__warehouse",
-            "warehouse_item__package_type",
-            "warehouse_item__package_type__unit_of_measure",
-            "warehouse_item__batch",
-        ).all()
-    )
+    order_items = list(w_order.order_items.all())
 
     order_item_schemas = []
     assigned_items = []
@@ -1243,7 +1232,7 @@ def warehouse_outbound_order_orm_to_schema(
         items=assigned_items,
         movements=[
             warehouse_movement_orm_to_schema(movement)
-            for movement in w_order.warehouse_movements.order_by("-moved_at")
+            for movement in _newest_movements_first(w_order.warehouse_movements.all())
         ],
         completed_items_count=len(
             [item for item in order_item_schemas if item.warehouse_item_id is not None]

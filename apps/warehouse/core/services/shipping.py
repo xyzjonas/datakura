@@ -14,8 +14,9 @@ from apps.warehouse.core.schemas.shipping import (
     ShippingTypeCreateOrUpdateSchema,
 )
 from apps.warehouse.core.services.audit import audit_service
-from apps.warehouse.core.services.outbound_common import with_pricing_details
-from apps.warehouse.core.transformation import outbound_order_orm_to_schema
+from apps.warehouse.core.services.outbound_common import (
+    outbound_order_schema_with_pricing,
+)
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.customer import ContactPerson
 from apps.warehouse.models.orders import OutboundOrder
@@ -114,9 +115,8 @@ class ShippingService:
 
     @staticmethod
     def _schema(order: OutboundOrder) -> OutboundOrderSchema:
-        # re-fetch: drop the cached (stale) reverse one-to-one relation
-        order = OutboundOrder.objects.get(pk=order.pk)
-        return with_pricing_details(outbound_order_orm_to_schema(order), order)
+        # re-fetches: drops the cached (stale) reverse one-to-one relation
+        return outbound_order_schema_with_pricing(order)
 
     @classmethod
     def upsert_order_shipping(
