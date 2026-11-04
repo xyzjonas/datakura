@@ -2,8 +2,9 @@
   <div>
     <h1 class="mb-2">IMPORT DAT</h1>
     <p class="mb-5 text-muted max-w-3xl">
-      Jednorázový import dat ze starého systému. Import probíhá na pozadí v pořadí produkty, zákazníci,
-      sklady a je atomický - při chybě se neuloží nic. Průběh můžete sledovat i po obnovení stránky.
+      Jednorázový import dat ze starého systému. Import probíhá na pozadí v pořadí produkty,
+      zákazníci, sklady a je atomický - při chybě se neuloží nic. Průběh můžete sledovat i po
+      obnovení stránky.
     </p>
 
     <div class="flex flex-col gap-8 max-w-5xl">
@@ -74,8 +75,15 @@
         </span>
       </div>
 
-      <DataImportProgress v-if="status && status.state !== 'succeeded'" :status="status" @stop="stopWatching" />
-      <DataImportResult v-if="status?.state === 'succeeded' && status.result" :result="status.result" />
+      <DataImportProgress
+        v-if="status && status.state !== 'succeeded'"
+        :status="status"
+        @stop="stopWatching"
+      />
+      <DataImportResult
+        v-if="status?.state === 'succeeded' && status.result"
+        :result="status.result"
+      />
     </div>
   </div>
 </template>

@@ -127,10 +127,9 @@ describe('DataImportSettingsTab', () => {
   it('locks the form while the import runs', async () => {
     mocks.running.value = true
     const wrapper = mountTab()
-    await wrapper.findAllComponents(stubs.JsonFileInput)[0]!.vm.$emit(
-      'update:modelValue',
-      file('products.json'),
-    )
+    await wrapper
+      .findAllComponents(stubs.JsonFileInput)[0]!
+      .vm.$emit('update:modelValue', file('products.json'))
 
     expect(submitButton(wrapper).attributes('disabled')).toBeDefined()
     expect(submitButton(wrapper).attributes('data-loading')).toBe('true')
