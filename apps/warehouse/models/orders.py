@@ -229,6 +229,7 @@ class InboundOrder(BaseModel):
     requested_delivery_date = models.DateTimeField(null=True, blank=True)
     cancelled_date = models.DateTimeField(null=True, blank=True)
     received_date = models.DateTimeField(null=True, blank=True)
+    completed_date = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta(BaseModel.Meta):
         ordering = ["-created"]

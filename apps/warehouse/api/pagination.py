@@ -11,6 +11,7 @@ from apps.warehouse.core.schemas.customer import (
     GetCustomerGroupsResponse,
 )
 from apps.warehouse.core.schemas.analytics import (
+    GetInventorySnapshotItemsResponse,
     GetInventorySnapshotsResponse,
     GetWarehouseMovementsResponse,
 )
@@ -81,6 +82,7 @@ from apps.warehouse.models.shipping import ShippingType
 from apps.warehouse.models.warehouse import (
     Batch,
     InventorySnapshot,
+    InventorySnapshotLine,
     InboundWarehouseOrder,
     OutboundWarehouseOrder,
     WarehouseLocation,
@@ -118,6 +120,37 @@ class InventorySnapshotsPagination(PaginationBase):
             if offset + pagination.page_size < count
             else None,
             "previous": pagination.page - 1 if pagination.page > 1 else None,
+        }
+
+
+class InventorySnapshotItemsPagination(PaginationBase):
+    items_attribute: str = "data"
+    MAX_PAGE_SIZE = 500
+
+    class Input(Schema):
+        page: int = 1
+        page_size: int = 100
+
+    class Output(GetInventorySnapshotItemsResponse): ...
+
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[InventorySnapshotLine],
+        pagination: Input,
+        request: HttpRequest,
+        **params,
+    ):
+        page = max(pagination.page, 1)
+        page_size = min(max(pagination.page_size, 1), self.MAX_PAGE_SIZE)
+        offset = (page - 1) * page_size
+        items = queryset[offset : offset + page_size]
+        count = queryset.count()
+
+        return {
+            "data": [inventory_snapshot_service.line_to_schema(line) for line in items],
+            "count": count,
+            "next": page + 1 if offset + page_size < count else None,
+            "previous": page - 1 if page > 1 else None,
         }
 
 

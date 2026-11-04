@@ -30,6 +30,10 @@ class InventorySnapshotSummarySchema(BaseModel):
     receipt_totals: list[InventorySnapshotCurrencyTotal]
     receipt_unpriced_line_count: int
     receipt_complete: bool
+    # Purchase orders closed since the previous snapshot (total expenditures)
+    expenditure_totals: list[InventorySnapshotCurrencyTotal]
+    # Outbound warehouse orders closed since the previous snapshot (total gains)
+    gain_totals: list[InventorySnapshotCurrencyTotal]
 
 
 class InventorySnapshotLineSchema(BaseModel):
@@ -52,8 +56,26 @@ class InventorySnapshotLineSchema(BaseModel):
     receipt_price_fallback_reason: str | None = None
 
 
+class InventorySnapshotOrderSchema(BaseModel):
+    """Frozen skeleton of an order closed since the previous snapshot."""
+
+    id: int
+    kind: Literal["inbound", "outbound"]
+    code: str
+    base_order_code: str | None = None
+    external_code: str | None = None
+    description: str | None = None
+    counterparty_name: str
+    closed_at: datetime
+    currency: str
+    total_value: Decimal
+
+
 class InventorySnapshotDetailSchema(InventorySnapshotSummarySchema):
-    lines: list[InventorySnapshotLineSchema]
+    """Snapshot metadata + closed orders. Items are served by a paginated endpoint."""
+
+    inbound_orders: list[InventorySnapshotOrderSchema]
+    outbound_orders: list[InventorySnapshotOrderSchema]
 
 
 class InventorySnapshotCreateSchema(BaseModel):
@@ -80,6 +102,10 @@ class GetInventorySnapshotResponse(Response[InventorySnapshotDetailSchema]):
 
 class GetInventorySnapshotsResponse(PaginatedResponse[InventorySnapshotSummarySchema]):
     data: list[InventorySnapshotSummarySchema]
+
+
+class GetInventorySnapshotItemsResponse(PaginatedResponse[InventorySnapshotLineSchema]):
+    data: list[InventorySnapshotLineSchema]
 
 
 class GetLatestInventoryValueResponse(BaseResponse):

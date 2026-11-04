@@ -393,6 +393,7 @@ class OutboundWarehouseOrder(BaseModel):
         null=True,
         blank=True,
     )
+    completed_date = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-created"]
@@ -609,6 +610,9 @@ class InventorySnapshot(BaseModel):
     purchase_totals_by_currency = models.JSONField(default=dict, blank=True)
     receipt_totals_by_currency = models.JSONField(default=dict, blank=True)
     receipt_unpriced_line_count = models.PositiveIntegerField(default=0)
+    # Orders closed since the previous snapshot (frozen at capture time).
+    expenditure_totals_by_currency = models.JSONField(default=dict, blank=True)
+    gain_totals_by_currency = models.JSONField(default=dict, blank=True)
 
     class Meta(BaseModel.Meta):
         ordering = ["-captured_at", "-created"]
@@ -702,3 +706,52 @@ class InventorySnapshotLine(BaseModel):
 
     def __str__(self) -> str:
         return f"Snapshot line #{self.pk} - {self.product_code} @ {self.location_code}"
+
+
+class InventorySnapshotOrderKind(models.TextChoices):
+    INBOUND = "inbound", "Inbound"
+    OUTBOUND = "outbound", "Outbound"
+
+
+class InventorySnapshotOrder(BaseModel):
+    """
+    Frozen skeleton of an order closed between the previous and this snapshot.
+
+    INBOUND rows come from purchase orders (value = purchase total), OUTBOUND
+    rows from outbound *warehouse* orders (value = total price at shipment).
+    """
+
+    snapshot = models.ForeignKey(
+        InventorySnapshot,
+        on_delete=models.CASCADE,
+        related_name="orders",
+    )
+    kind = models.CharField(max_length=16, choices=InventorySnapshotOrderKind.choices)
+    inbound_order = models.ForeignKey(
+        "warehouse.InboundOrder",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inventory_snapshot_orders",
+    )
+    outbound_warehouse_order = models.ForeignKey(
+        OutboundWarehouseOrder,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inventory_snapshot_orders",
+    )
+    code = models.CharField(max_length=50)
+    base_order_code = models.CharField(max_length=50, null=True, blank=True)
+    external_code = models.CharField(max_length=50, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    counterparty_name = models.CharField(max_length=255, blank=True, default="")
+    closed_at = models.DateTimeField()
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
+    total_value = models.DecimalField(max_digits=16, decimal_places=4)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["kind", "-closed_at", "code"]
+
+    def __str__(self) -> str:
+        return f"Snapshot #{self.snapshot_id} {self.kind} order {self.code}"

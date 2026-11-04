@@ -97,12 +97,16 @@ def test_create_inventory_snapshot_api_returns_dual_valuation_rows(db, client):
     assert payload["receipt_complete"] is False
     assert payload["purchase_totals"] == [{"currency": "CZK", "value": "39.0000"}]
     assert payload["receipt_totals"] == [{"currency": "CZK", "value": "19.0000"}]
-    assert payload["lines"][0]["product_code"] == "API-001"
-    assert payload["lines"][1]["receipt_price_available"] is False
-    assert (
-        payload["lines"][1]["receipt_price_fallback_reason"]
-        == "missing_source_order_item"
-    )
+    assert "lines" not in payload
+    assert payload["inbound_orders"] == []
+    assert payload["outbound_orders"] == []
+    assert payload["expenditure_totals"] == []
+    assert payload["gain_totals"] == []
+
+    items = client.get(f"inventory-snapshots/{payload['id']}/items").json()["data"]
+    assert items[0]["product_code"] == "API-001"
+    assert items[1]["receipt_price_available"] is False
+    assert items[1]["receipt_price_fallback_reason"] == "missing_source_order_item"
 
 
 def test_get_inventory_snapshots_api_lists_latest_first(db, client):
@@ -125,7 +129,7 @@ def test_get_inventory_snapshots_api_lists_latest_first(db, client):
     assert [row["id"] for row in payload["data"]] == [second.id, first.id]
 
 
-def test_get_inventory_snapshot_detail_api_returns_lines(db, client):
+def test_get_inventory_snapshot_detail_api_returns_metadata_only(db, client):
     create_snapshot_item(
         product_code="DETAIL-001",
         location_code="C-11",
@@ -141,8 +145,12 @@ def test_get_inventory_snapshot_detail_api_returns_lines(db, client):
     assert response.status_code == 200
     payload = response.json()["data"]
     assert payload["id"] == snapshot.id
-    assert len(payload["lines"]) == 1
-    assert payload["lines"][0]["receipt_currency"] == "EUR"
+    assert payload["line_count"] == 1
+    assert "lines" not in payload
+
+    items = client.get(f"inventory-snapshots/{snapshot.id}/items").json()["data"]
+    assert len(items) == 1
+    assert items[0]["receipt_currency"] == "EUR"
 
 
 def test_get_inventory_value_api_returns_latest_snapshot_summary(db, client):

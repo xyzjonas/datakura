@@ -5,6 +5,7 @@ from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from apps.warehouse.core.exceptions import WarehouseGenericError
@@ -12,15 +13,27 @@ from apps.warehouse.core.schemas.analytics import (
     InventorySnapshotCurrencyTotal,
     InventorySnapshotDetailSchema,
     InventorySnapshotLineSchema,
+    InventorySnapshotOrderSchema,
     InventorySnapshotSummarySchema,
     LatestInventoryValueSchema,
 )
+from apps.warehouse.models.orders import InboundOrder, InboundOrderState
 from apps.warehouse.models.warehouse import (
     InventorySnapshot,
     InventorySnapshotLine,
+    InventorySnapshotOrder,
+    InventorySnapshotOrderKind,
     InventorySnapshotTriggerSource,
+    OutboundWarehouseOrder,
+    OutboundWarehouseOrderState,
     WarehouseItem,
 )
+
+
+def cast_datetime(value: datetime | None) -> datetime:
+    assert value is not None  # guaranteed by the completed_date window filter
+    return value
+
 
 PRICE_SCALE = Decimal("0.0001")
 
@@ -82,6 +95,47 @@ class InventorySnapshotService:
             receipt_totals=cls._deserialize_totals(snapshot.receipt_totals_by_currency),
             receipt_unpriced_line_count=snapshot.receipt_unpriced_line_count,
             receipt_complete=snapshot.receipt_unpriced_line_count == 0,
+            expenditure_totals=cls._deserialize_totals(
+                snapshot.expenditure_totals_by_currency
+            ),
+            gain_totals=cls._deserialize_totals(snapshot.gain_totals_by_currency),
+        )
+
+    @staticmethod
+    def line_to_schema(line: InventorySnapshotLine) -> InventorySnapshotLineSchema:
+        return InventorySnapshotLineSchema(
+            id=line.pk,
+            warehouse_item_id=line.warehouse_item_id,
+            warehouse_item_id_at_snapshot=line.warehouse_item_id_at_snapshot,
+            product_code=line.product_code,
+            product_name=line.product_name,
+            location_code=line.location_code,
+            quantity=line.quantity,
+            unit_of_measure=line.unit_of_measure,
+            tracking_level=line.tracking_level,
+            purchase_currency=line.purchase_currency,
+            purchase_unit_price=line.purchase_unit_price,
+            purchase_line_value=line.purchase_line_value,
+            receipt_currency=line.receipt_currency,
+            receipt_unit_price=line.receipt_unit_price,
+            receipt_line_value=line.receipt_line_value,
+            receipt_price_available=line.receipt_price_available,
+            receipt_price_fallback_reason=line.receipt_price_fallback_reason,
+        )
+
+    @staticmethod
+    def _order_to_schema(order: InventorySnapshotOrder) -> InventorySnapshotOrderSchema:
+        return InventorySnapshotOrderSchema(
+            id=order.pk,
+            kind=order.kind,  # type: ignore[arg-type]
+            code=order.code,
+            base_order_code=order.base_order_code,
+            external_code=order.external_code,
+            description=order.description,
+            counterparty_name=order.counterparty_name,
+            closed_at=order.closed_at,
+            currency=order.currency,
+            total_value=order.total_value,
         )
 
     @classmethod
@@ -89,31 +143,118 @@ class InventorySnapshotService:
         cls,
         snapshot: InventorySnapshot,
     ) -> InventorySnapshotDetailSchema:
-        lines = [
-            InventorySnapshotLineSchema(
-                id=line.pk,
-                warehouse_item_id=line.warehouse_item_id,
-                warehouse_item_id_at_snapshot=line.warehouse_item_id_at_snapshot,
-                product_code=line.product_code,
-                product_name=line.product_name,
-                location_code=line.location_code,
-                quantity=line.quantity,
-                unit_of_measure=line.unit_of_measure,
-                tracking_level=line.tracking_level,
-                purchase_currency=line.purchase_currency,
-                purchase_unit_price=line.purchase_unit_price,
-                purchase_line_value=line.purchase_line_value,
-                receipt_currency=line.receipt_currency,
-                receipt_unit_price=line.receipt_unit_price,
-                receipt_line_value=line.receipt_line_value,
-                receipt_price_available=line.receipt_price_available,
-                receipt_price_fallback_reason=line.receipt_price_fallback_reason,
-            )
-            for line in snapshot.lines.all()
-        ]
-
+        orders = list(snapshot.orders.all())
         summary = cls._to_summary_schema(snapshot)
-        return InventorySnapshotDetailSchema(**summary.model_dump(), lines=lines)
+        return InventorySnapshotDetailSchema(
+            **summary.model_dump(),
+            inbound_orders=[
+                cls._order_to_schema(o)
+                for o in orders
+                if o.kind == InventorySnapshotOrderKind.INBOUND
+            ],
+            outbound_orders=[
+                cls._order_to_schema(o)
+                for o in orders
+                if o.kind == InventorySnapshotOrderKind.OUTBOUND
+            ],
+        )
+
+    @staticmethod
+    def get_items_queryset(snapshot_id: int, search: str | None = None):
+        """Lines of a snapshot (optionally searched by product code/name or location)."""
+        snapshot = InventorySnapshot.objects.get(pk=snapshot_id)
+        queryset = InventorySnapshotLine.objects.filter(snapshot=snapshot)
+        term = (search or "").strip()
+        if term:
+            queryset = queryset.filter(
+                Q(product_code__icontains=term)
+                | Q(product_name__icontains=term)
+                | Q(location_code__icontains=term)
+            )
+        return queryset
+
+    @classmethod
+    def _collect_closed_orders(
+        cls,
+        snapshot: InventorySnapshot,
+        *,
+        since: datetime | None,
+        until: datetime,
+    ) -> tuple[list[InventorySnapshotOrder], dict[str, Decimal], dict[str, Decimal]]:
+        """
+        Freeze skeletons of orders closed in (since, until].
+
+        Inbound: purchase orders (COMPLETED), valued by their purchase total.
+        Outbound: *warehouse* orders (COMPLETED) valued by the total price at
+        shipment ("Celková cena výdeje") - deliberately not the base order total.
+        """
+        closed_window = Q(completed_date__lte=until)
+        if since is not None:
+            closed_window &= Q(completed_date__gt=since)
+
+        expenditures: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+        gains: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+        rows: list[InventorySnapshotOrder] = []
+
+        inbound_orders = (
+            InboundOrder.objects.filter(
+                closed_window, state=InboundOrderState.COMPLETED
+            )
+            .select_related("supplier")
+            .annotate(purchase_total=Sum("items__total_price"))
+            .order_by("completed_date", "pk")
+        )
+        for inbound in inbound_orders:
+            total = cls._quantize(inbound.purchase_total or Decimal("0"))
+            expenditures[inbound.currency] += total
+            rows.append(
+                InventorySnapshotOrder(
+                    snapshot=snapshot,
+                    kind=InventorySnapshotOrderKind.INBOUND,
+                    inbound_order=inbound,
+                    code=inbound.code,
+                    base_order_code=inbound.code,
+                    external_code=inbound.external_code,
+                    description=inbound.description,
+                    counterparty_name=inbound.supplier.name,
+                    closed_at=cast_datetime(inbound.completed_date),
+                    currency=inbound.currency,
+                    total_value=total,
+                )
+            )
+
+        outbound_orders = (
+            OutboundWarehouseOrder.objects.filter(
+                closed_window,
+                state=OutboundWarehouseOrderState.COMPLETED,
+                order__isnull=False,
+            )
+            .select_related("order", "order__customer")
+            .annotate(shipment_total=Sum("order_items__price_at_shipment"))
+            .order_by("completed_date", "pk")
+        )
+        for outbound in outbound_orders:
+            base_order = outbound.order
+            assert base_order is not None
+            total = cls._quantize(outbound.shipment_total or Decimal("0"))
+            gains[base_order.currency] += total
+            rows.append(
+                InventorySnapshotOrder(
+                    snapshot=snapshot,
+                    kind=InventorySnapshotOrderKind.OUTBOUND,
+                    outbound_warehouse_order=outbound,
+                    code=outbound.code,
+                    base_order_code=base_order.code,
+                    external_code=base_order.external_code,
+                    description=base_order.description,
+                    counterparty_name=base_order.customer.name,
+                    closed_at=cast_datetime(outbound.completed_date),
+                    currency=base_order.currency,
+                    total_value=total,
+                )
+            )
+
+        return rows, expenditures, gains
 
     @staticmethod
     def list_snapshots_queryset():
@@ -121,7 +262,7 @@ class InventorySnapshotService:
 
     @classmethod
     def get_snapshot(cls, snapshot_id: int) -> InventorySnapshotDetailSchema:
-        snapshot = InventorySnapshot.objects.prefetch_related("lines").get(
+        snapshot = InventorySnapshot.objects.prefetch_related("orders").get(
             pk=snapshot_id
         )
         return cls._to_detail_schema(snapshot)
@@ -181,6 +322,12 @@ class InventorySnapshotService:
         purchase_totals: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
         receipt_totals: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
         receipt_unpriced_line_count = 0
+
+        previous = (
+            InventorySnapshot.objects.filter(captured_at__lt=captured_at)
+            .order_by("-captured_at", "-created")
+            .first()
+        )
 
         with transaction.atomic():
             snapshot = InventorySnapshot.objects.create(
@@ -242,7 +389,14 @@ class InventorySnapshotService:
                     )
                 )
 
-            InventorySnapshotLine.objects.bulk_create(lines)
+            InventorySnapshotLine.objects.bulk_create(lines, batch_size=1000)
+
+            order_rows, expenditures, gains = cls._collect_closed_orders(
+                snapshot,
+                since=previous.captured_at if previous else None,
+                until=captured_at,
+            )
+            InventorySnapshotOrder.objects.bulk_create(order_rows)
 
             snapshot.line_count = len(lines)
             snapshot.purchase_totals_by_currency = cls._serialize_totals(
@@ -250,12 +404,18 @@ class InventorySnapshotService:
             )
             snapshot.receipt_totals_by_currency = cls._serialize_totals(receipt_totals)
             snapshot.receipt_unpriced_line_count = receipt_unpriced_line_count
+            snapshot.expenditure_totals_by_currency = cls._serialize_totals(
+                expenditures
+            )
+            snapshot.gain_totals_by_currency = cls._serialize_totals(gains)
             snapshot.save(
                 update_fields=[
                     "line_count",
                     "purchase_totals_by_currency",
                     "receipt_totals_by_currency",
                     "receipt_unpriced_line_count",
+                    "expenditure_totals_by_currency",
+                    "gain_totals_by_currency",
                     "changed",
                 ]
             )

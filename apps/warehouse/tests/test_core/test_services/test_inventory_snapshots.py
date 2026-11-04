@@ -8,6 +8,7 @@ from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_
 from apps.warehouse.models.orders import InboundOrder
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrderState,
+    InventorySnapshotLine,
     InventorySnapshotTriggerSource,
 )
 from apps.warehouse.tests.factories.warehouse import (
@@ -77,8 +78,7 @@ def test_create_snapshot_freezes_purchase_and_receipt_values(db):
     item.source_order_item.unit_price_at_receipt = Decimal("7.00")
     item.source_order_item.save(update_fields=["unit_price_at_receipt"])
 
-    persisted = inventory_snapshot_service.get_snapshot(snapshot.id)
-    line = persisted.lines[0]
+    line = InventorySnapshotLine.objects.get(snapshot_id=snapshot.id)
 
     assert line.purchase_unit_price == Decimal("10.0000")
     assert line.purchase_line_value == Decimal("50.0000")
