@@ -34,3 +34,20 @@ def serve_media(request: HttpRequest, path: str) -> HttpResponse:
     if not path.startswith(PUBLIC_MEDIA_PREFIXES) and not request.user.is_authenticated:
         raise Http404
     return serve(request, path, document_root=settings.MEDIA_ROOT)
+
+
+# Files emitted by vite-plugin-pwa (+ icons) that must live at the site root: a service worker
+# can only control the scope it is served from, and the catch-all would answer with the HTML shell.
+# Used as the URL pattern, so anything else falls through to the Vue catch-all.
+PWA_ROOT_FILES = (
+    r"(?:sw\.js|workbox-[\w-]+\.js|manifest\.webmanifest|favicon\.ico|logo\.svg"
+    r"|apple-touch-icon-\d+x\d+\.png|pwa-\d+x\d+\.png|maskable-icon-\d+x\d+\.png)"
+)
+
+
+def serve_pwa_file(request: HttpRequest, filename: str) -> HttpResponse:
+    response = serve(request, filename, document_root=settings.PWA_ROOT)
+    if filename == "sw.js" or filename.endswith(".webmanifest"):
+        # browsers must always revalidate these, or updates never roll out
+        response["Cache-Control"] = "no-cache"
+    return response

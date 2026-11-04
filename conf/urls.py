@@ -20,7 +20,7 @@ from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import path, include, re_path
 
-from .views import VueAppView, serve_media
+from .views import PWA_ROOT_FILES, VueAppView, serve_media, serve_pwa_file
 
 
 def assets_redirect(request, path):
@@ -33,6 +33,11 @@ urlpatterns = [
     # Quasar/Vite looks for .woff2 in `/assets/...` and not `/static/...` (a bit hackish but works)
     path("assets/<path:path>", assets_redirect),
 ]
+
+# PWA: service worker, manifest and icons are served from the root
+urlpatterns.append(
+    re_path(rf"^(?P<filename>{PWA_ROOT_FILES})$", serve_pwa_file, name="pwa-file")
+)
 
 # media files (django's `static()` helper does nothing when DEBUG is off)
 urlpatterns.append(
