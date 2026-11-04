@@ -83,7 +83,7 @@ const widgetSubtitle = computed(() => {
   }
 
   if (!latestSnapshot.value) {
-    return 'Zatím nejsou k dispozici žádné snapshoty skladu'
+    return 'Zatím nejsou k dispozici žádné uložené stavy skladu'
   }
 
   if (latestSnapshot.value.purchase_totals.length > 1 && chartCurrency.value) {

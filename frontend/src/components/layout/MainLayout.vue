@@ -103,7 +103,7 @@
                   routeMatch: 'warehouseOutboundOrders,warehouseOutboundOrderDetail',
                 },
                 {
-                  label: 'Snapshoty',
+                  label: 'Stavy skladu',
                   icon: 'sym_o_history',
                   routeName: 'inventorySnapshots',
                   routeMatch: 'inventorySnapshots,inventorySnapshotDetail',

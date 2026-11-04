@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
       <q-breadcrumbs>
         <q-breadcrumbs-el label="Home" :to="{ name: 'home' }" />
-        <q-breadcrumbs-el label="Snapshoty skladu" :to="{ name: 'inventorySnapshots' }" />
+        <q-breadcrumbs-el label="Stavy skladu" :to="{ name: 'inventorySnapshots' }" />
         <q-breadcrumbs-el :label="`#${snapshot.id}`" />
       </q-breadcrumbs>
 
@@ -12,7 +12,7 @@
 
     <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
       <div>
-        <div class="text-xs uppercase text-muted">Snapshot skladu</div>
+        <div class="text-xs uppercase text-muted">Stav skladu</div>
         <h1 class="mt-1 text-5xl text-primary">#{{ snapshot.id }}</h1>
         <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-6">
           <span>{{ formatCapturedAt(snapshot.captured_at) }}</span>
@@ -29,9 +29,9 @@
           <div class="mt-2 text-3xl font-semibold">{{ snapshot.line_count }}</div>
         </ForegroundPanel>
         <InventorySnapshotTotalsPanel
-          title="Cena při snapshotu"
+          title="Cena při uložení"
           :totals="snapshot.purchase_totals"
-          caption="Aktuální nákupní cena produktu v okamžiku snapshotu"
+          caption="Aktuální nákupní cena produktu v okamžiku uložení stavu skladu"
         />
         <InventorySnapshotTotalsPanel
           title="Cena při příjmu"
@@ -48,9 +48,9 @@
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2>Seskupené řádky snapshotu</h2>
+            <h2>Seskupené řádky stavu skladu</h2>
             <div class="mt-1 text-sm text-gray-6">
-              Snapshot je agregovaný podle skladové karty. Kliknutím se rozbalí jednotlivé položky.
+              Stav skladu je agregovaný podle skladové karty. Kliknutím se rozbalí jednotlivé položky.
             </div>
           </div>
 
@@ -80,7 +80,7 @@
 
   <ForegroundPanel v-else class="grid w-full content-center justify-center text-center">
     <span class="text-5xl text-gray-5">404</span>
-    <span class="text-lg text-gray-5">SNAPSHOT NENALEZEN</span>
+    <span class="text-lg text-gray-5">STAV SKLADU NENALEZEN</span>
   </ForegroundPanel>
 </template>
 

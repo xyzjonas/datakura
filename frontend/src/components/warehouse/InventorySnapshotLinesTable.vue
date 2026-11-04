@@ -6,10 +6,10 @@
         <th class="text-left">Místo</th>
         <th class="text-left">Množství</th>
         <th class="text-left">
-          {{ valuationMode === 'purchase' ? 'Cena / MJ při snapshotu' : 'Cena / MJ při příjmu' }}
+          {{ valuationMode === 'purchase' ? 'Cena / MJ při uložení' : 'Cena / MJ při příjmu' }}
         </th>
         <th class="text-left">
-          {{ valuationMode === 'purchase' ? 'Hodnota při snapshotu' : 'Hodnota při příjmu' }}
+          {{ valuationMode === 'purchase' ? 'Hodnota při uložení' : 'Hodnota při příjmu' }}
         </th>
         <th class="text-left">Příjmová cena</th>
       </tr>

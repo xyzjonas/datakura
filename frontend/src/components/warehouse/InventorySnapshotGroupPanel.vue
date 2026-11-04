@@ -24,7 +24,7 @@
             </div>
             <div>
               <div class="text-[11px] uppercase tracking-wide text-muted">
-                {{ valuationMode === 'purchase' ? 'Cena při snapshotu' : 'Cena při příjmu' }}
+                {{ valuationMode === 'purchase' ? 'Cena při uložení' : 'Cena při příjmu' }}
               </div>
               <div class="mt-1 text-sm font-semibold text-primary">
                 {{ formatSnapshotTotals(group, valuationMode) }}
