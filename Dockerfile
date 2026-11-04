@@ -23,6 +23,8 @@ RUN dnf install -y weasyprint python-pip
 FROM production
 
 ENV UV_NO_DEV=1
+ARG SECRET_KEY=build-only
+ARG JWT_SECRET_KEY=build-only
 
 WORKDIR /app
 
