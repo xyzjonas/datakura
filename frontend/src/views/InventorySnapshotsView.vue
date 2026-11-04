@@ -8,6 +8,15 @@
           Uložený stav skladu obsahuje kompletní stav skladu včetně ceny při uložení i ceny při
           příjmu.
         </div>
+        <p class="mt-1 max-w-3xl text-xs text-muted">
+          Stav skladu lze ukládat i automaticky podle plánu, např. každý měsíc.
+          <router-link
+            :to="{ name: 'settings', query: { tab: 'snapshots' } }"
+            class="text-primary underline"
+          >
+            Nastavit plán
+          </router-link>
+        </p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
