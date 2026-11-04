@@ -388,6 +388,13 @@ const columns = computed<QTableColumn[]>(() => {
       label: 'Stav',
       align: 'left',
     },
+    {
+      name: 'description',
+      field: (order: OutboundOrderSchema) => order.description ?? '',
+      label: 'Popis',
+      align: 'left',
+      style: 'max-width: 20rem; white-space: normal',
+    },
     ...(props.calculations
       ? []
       : [
