@@ -157,6 +157,7 @@ def _create_child_inbound(
         child = InboundWarehouseOrder.objects.create(
             code=code,
             order=primary_order.order,
+            manufacturing_order=primary_order.manufacturing_order,
             primary_order=primary_order,
             state=initial_state,
             pickup_location=primary_order.pickup_location,
@@ -248,6 +249,7 @@ def _create_child_outbound(
         child = OutboundWarehouseOrder.objects.create(
             code=code,
             order=primary_order.order,
+            manufacturing_order=primary_order.manufacturing_order,
             primary_order=primary_order,
             state=initial_state,
         )

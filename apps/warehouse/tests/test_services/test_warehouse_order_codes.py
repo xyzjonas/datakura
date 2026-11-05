@@ -1,11 +1,17 @@
 import pytest
 
+from apps.warehouse.models.warehouse import (
+    InboundWarehouseOrder,
+    OutboundWarehouseOrder,
+)
+from apps.warehouse.models.manufacturing import ManufacturingOrder
 from apps.warehouse.models.orders import InboundOrder, OutboundOrder
 
 from apps.warehouse.core.services.warehouse_order_factory import (
     WarehouseOrderKind,
     create_warehouse_order,
 )
+from apps.warehouse.tests.factories.manufacturing import ManufacturingOrderFactory
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
     OutboundOrderFactory,
@@ -95,3 +101,25 @@ def test_legacy_codes_do_not_break_sequence(context) -> None:
         WarehouseOrderKind.INBOUND, context, purchase_order=order
     )
     assert wo.code == "P2026110003001"
+
+
+@pytest.mark.parametrize("kind", ["inbound", "outbound"])
+def test_child_of_manufacturing_order_keeps_manufacturing_parent(
+    context, kind: str
+) -> None:
+    mfg: ManufacturingOrder = ManufacturingOrderFactory()  # type: ignore[assignment]
+    primary: InboundWarehouseOrder | OutboundWarehouseOrder
+    if kind == "outbound":
+        primary = create_warehouse_order(
+            WarehouseOrderKind.MFG_OUTBOUND, context, manufacturing_order=mfg
+        )
+        child_kind = WarehouseOrderKind.CHILD_OUTBOUND
+    else:
+        primary = InboundWarehouseOrderFactory.it(order=None, manufacturing_order=mfg)
+        child_kind = WarehouseOrderKind.CHILD_INBOUND
+
+    child = create_warehouse_order(child_kind, context, primary_order=primary)
+
+    assert child.primary_order_id == primary.pk
+    assert child.order_id is None
+    assert child.manufacturing_order_id == mfg.pk

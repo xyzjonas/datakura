@@ -1126,16 +1126,17 @@ def warehouse_inbound_order_orm_to_schema(
 def warehouse_outbound_order_to_base_schema(
     w_order: OutboundWarehouseOrder,
 ) -> OutboundWarehouseOrderBaseSchema:
-    linked_order = w_order.order
+    linked_order = w_order.order or w_order.manufacturing_order
     if linked_order is None:
         raise ValueError(
-            f"Outbound warehouse order {w_order.code} is missing linked outbound order"
+            f"Outbound warehouse order {w_order.code} is missing both "
+            "outbound order and manufacturing order"
         )
 
     def to_shallow_base(
         order: OutboundWarehouseOrder,
     ) -> OutboundWarehouseOrderBaseSchema:
-        order_parent = order.order
+        order_parent = order.order or order.manufacturing_order
         return OutboundWarehouseOrderBaseSchema(
             code=order.code,
             order_code=order_parent.code if order_parent else linked_order.code,
