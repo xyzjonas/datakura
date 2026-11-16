@@ -35,12 +35,29 @@
 
           <div class="text-sm text-gray-5 uppercase tracking-wide">Dostupné lokace</div>
           <q-list bordered separator class="rounded-sm overflow-hidden">
-            <q-item v-for="loc in locationGroupsWithAmounts" :key="loc.code">
+            <q-item
+              v-for="loc in locationGroupsWithAmounts"
+              :key="loc.code"
+              :class="{ 'bg-red-1': loc.certifiedCodes.length && !certifiedRequested }"
+              :data-test="
+                loc.certifiedCodes.length && !certifiedRequested ? 'certified-location' : undefined
+              "
+            >
               <q-item-section avatar>
                 <q-icon name="sym_o_shelves" color="primary" />
               </q-item-section>
               <q-item-section>
-                <q-item-label>{{ loc.warehouseName }} / {{ loc.code }}</q-item-label>
+                <q-item-label>
+                  {{ loc.warehouseName }} / {{ loc.code }}
+                  <q-badge
+                    v-if="loc.certifiedCodes.length && !certifiedRequested"
+                    color="negative"
+                    class="ml-2 py-0.5"
+                  >
+                    <q-icon name="sym_o_verified" class="mr-1" size="14px" />
+                    certifikované: {{ loc.certifiedCodes.join(', ') }}
+                  </q-badge>
+                </q-item-label>
                 <q-item-label caption>
                   <span
                     :class="{
@@ -200,13 +217,19 @@
             </div>
           </div>
 
+          <UnrequestedCertificationWarning
+            v-if="unrequestedCertification"
+            v-model="certificationAck"
+            :code="unrequestedCertification"
+          />
+
           <div class="flex justify-end gap-2">
             <q-btn flat label="zpět" @click="currentStep = 'scan'" />
             <q-btn
               unelevated
               color="primary"
               label="potvrdit výběr"
-              :disable="partialPick && !isSerializedPickAmountValid"
+              :disable="(partialPick && !isSerializedPickAmountValid) || certificationBlocked"
               :loading="assigning"
               @click="confirmSerializedPick"
             />
@@ -440,6 +463,12 @@
             </div>
           </div>
 
+          <UnrequestedCertificationWarning
+            v-if="unrequestedCertification"
+            v-model="certificationAck"
+            :code="unrequestedCertification"
+          />
+
           <div class="flex justify-end gap-2">
             <q-btn
               flat
@@ -453,7 +482,7 @@
               unelevated
               color="primary"
               label="potvrdit výběr"
-              :disable="!selectedLocation || !isPickAmountValid"
+              :disable="!selectedLocation || !isPickAmountValid || certificationBlocked"
               :loading="assigning"
               @click="confirmFungiblePick"
             />
@@ -609,13 +638,22 @@
             </div>
           </div>
 
+          <UnrequestedCertificationWarning
+            v-if="unrequestedCertification"
+            v-model="certificationAck"
+            :code="unrequestedCertification"
+          />
+
           <div class="flex justify-end gap-2">
             <q-btn flat label="zpět" @click="currentStep = 'scan'" />
             <q-btn
               unelevated
               color="primary"
               label="potvrdit výběr"
-              :disable="hasSerializedItems ? !selectedWarehouseItemId : !isPickAmountValid"
+              :disable="
+                (hasSerializedItems ? !selectedWarehouseItemId : !isPickAmountValid) ||
+                certificationBlocked
+              "
               :loading="assigning"
               @click="confirmLocationPick"
             />
@@ -645,6 +683,7 @@ import BatchBadge from '../warehouse/BatchBadge.vue'
 import CountryBadge from '../CountryBadge.vue'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGroup.vue'
+import UnrequestedCertificationWarning from '../certification/UnrequestedCertificationWarning.vue'
 
 type Step =
   | 'suggest'
@@ -681,25 +720,40 @@ const allCandidates = ref<WarehouseItemSchema[]>([])
 const assigning = ref(false)
 
 // Computed - Location suggestions
-type LocationGroupWithAmount = { code: string; warehouseName: string; count: number; totalAmount: number }
+type LocationGroupWithAmount = {
+  code: string
+  warehouseName: string
+  count: number
+  totalAmount: number
+  /** codes of the certifications of the certified goods stored at the location */
+  certifiedCodes: string[]
+}
+
+/**
+ * An order requiring a specific batch (which is how a certification is requested)
+ * is picked from that batch only - certified goods are then intended.
+ */
+const certifiedRequested = computed(() => !!props.item.desired_batch_code)
 
 const locationGroupsWithAmounts = computed<LocationGroupWithAmount[]>(() => {
   const map = new Map<string, LocationGroupWithAmount>()
   for (const c of allCandidates.value) {
     if (!c.location) continue
     const key = c.location.code
-    if (map.has(key)) {
-      const group = map.get(key)!
-      group.count++
-      group.totalAmount += c.amount
-    } else {
-      map.set(key, {
-        code: key,
-        warehouseName: c.location.warehouse_name,
-        count: 1,
-        totalAmount: c.amount,
-      })
+    const group = map.get(key) ?? {
+      code: key,
+      warehouseName: c.location.warehouse_name,
+      count: 0,
+      totalAmount: 0,
+      certifiedCodes: [],
     }
+    group.count++
+    group.totalAmount += c.amount
+    const certCode = c.batch?.certification?.code
+    if (certCode && !group.certifiedCodes.includes(certCode)) {
+      group.certifiedCodes.push(certCode)
+    }
+    map.set(key, group)
   }
   return Array.from(map.values()).sort((a, b) => b.totalAmount - a.totalAmount)
 })
@@ -780,6 +834,43 @@ const isSerializedPickAmountValid = computed(() => {
   return pickAmount.value > 0 && pickAmount.value <= maxAvailable
 })
 
+// Certified goods picked for an order that does not request them
+const certificationAck = ref(false)
+
+/** The warehouse item the current step would assign (mirrors the confirm* actions). */
+const itemToPick = computed<WarehouseItemSchema | undefined>(() => {
+  const result = lookupResult.value
+  if (!result) return undefined
+  if (currentStep.value === 'confirm-serialized') return result.warehouse_item ?? undefined
+  if (currentStep.value === 'confirm-location') {
+    return hasSerializedItems.value
+      ? result.matching_items?.find((i) => i.id === selectedWarehouseItemId.value)
+      : result.matching_items?.[0]
+  }
+  if (currentStep.value === 'pick-fungible') {
+    if (result.entity_type === 'warehouse_item') return result.warehouse_item ?? undefined
+    const atLocation = (result.matching_items ?? []).filter(
+      (i) => i.location?.code === selectedLocation.value,
+    )
+    return (
+      atLocation.find((i) => i.amount >= pickAmount.value) ??
+      atLocation.reduce(
+        (best, i) => (!best || i.amount > best.amount ? i : best),
+        undefined as WarehouseItemSchema | undefined,
+      )
+    )
+  }
+  return undefined
+})
+
+/** Code of the certification of the picked goods, if they were not asked for. */
+const unrequestedCertification = computed(() =>
+  certifiedRequested.value ? null : (itemToPick.value?.batch?.certification?.code ?? null),
+)
+const certificationBlocked = computed(
+  () => !!unrequestedCertification.value && !certificationAck.value,
+)
+
 // Actions
 const loadSuggestions = async () => {
   loadingSuggestions.value = true
@@ -803,6 +894,7 @@ const resetToSuggestions = () => {
   selectedLocation.value = null
   pickAmount.value = 0
   partialPick.value = false
+  certificationAck.value = false
 }
 
 const onBarcodeInput = async (barcode: string | number | null) => {
@@ -895,7 +987,7 @@ const onLocationScanForProduct = async (locationCode: string | number | null) =>
 
 const confirmSerializedPick = async () => {
   const warehouseItemId = lookupResult.value?.warehouse_item?.id
-  if (!warehouseItemId) return
+  if (!warehouseItemId || certificationBlocked.value) return
 
   // Validate amount if partial picking
   if (partialPick.value && !isSerializedPickAmountValid.value) {
@@ -931,7 +1023,7 @@ const confirmSerializedPick = async () => {
 }
 
 const confirmFungiblePick = async () => {
-  if (!selectedLocation.value) return
+  if (!selectedLocation.value || certificationBlocked.value) return
 
   // Validate amount before proceeding
   if (!isPickAmountValid.value) {
@@ -981,6 +1073,7 @@ const confirmFungiblePick = async () => {
 }
 
 const confirmLocationPick = async () => {
+  if (certificationBlocked.value) return
   let warehouseItemId: number
 
   if (hasSerializedItems.value) {
@@ -1039,6 +1132,10 @@ watch(
 )
 
 // Removed auto-select logic - always require manual location selection/scan
+
+watch([currentStep, () => itemToPick.value?.id], () => {
+  certificationAck.value = false
+})
 
 // Clear lookup error when user types
 watch(scannedBarcode, () => {
