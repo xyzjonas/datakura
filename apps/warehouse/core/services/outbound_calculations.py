@@ -277,6 +277,20 @@ class OutboundCalculationsService:
         return cls.get_calculation(code)
 
     @classmethod
+    def set_items_required_origin_country(
+        cls, code: str, country: str | None
+    ) -> OutboundCalculationSchema:
+        """Bulk: require the same origin country on every item of the calculation."""
+        calculation = cls._get_active(code)
+        cls._assert_editable(calculation)
+        with transaction.atomic():
+            OutboundCalculation.objects.select_for_update().get(pk=calculation.pk)
+            calculation.items.update(
+                required_origin_country=country, changed=timezone.now()
+            )
+        return cls.get_calculation(code)
+
+    @classmethod
     def reorder_item(
         cls, code: str, item_index: int, new_index: int
     ) -> OutboundCalculationSchema:

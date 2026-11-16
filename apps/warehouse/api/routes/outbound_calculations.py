@@ -6,6 +6,7 @@ from apps.warehouse.api.pagination import OutboundCalculationsPagination
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
 from apps.warehouse.core.schemas.base import EmptyResponse
 from apps.warehouse.core.schemas.context import RequestContext
+from apps.warehouse.core.schemas.country import OriginCountryBulkSchema
 from apps.warehouse.core.schemas.orders import (
     CreateOutboundOrderItemResponse,
     GetOutboundCalculationResponse,
@@ -117,6 +118,21 @@ def update_item_in_outbound_calculation(
     return CreateOutboundOrderItemResponse(
         data=outbound_calculations_service.update_item(
             calculation_code, item_index, item
+        )
+    )
+
+
+@routes.post(
+    "/{calculation_code}/origin-country",
+    response={200: GetOutboundCalculationResponse},
+)
+def set_outbound_calculation_origin_country(
+    request: HttpRequest, calculation_code: str, body: OriginCountryBulkSchema
+):
+    """Bulk: require the same origin country on all items of the calculation."""
+    return GetOutboundCalculationResponse(
+        data=outbound_calculations_service.set_items_required_origin_country(
+            calculation_code, body.country
         )
     )
 

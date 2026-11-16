@@ -386,6 +386,8 @@ def customer_orm_to_base_schema(customer: Customer) -> CustomerBaseSchema:
         changed=customer.changed,
         created=customer.created,
         customer_type=customer.customer_type,
+        state=customer.state,
+        requires_origin_country=customer.requires_origin_country,
         group=customer_group_orm_to_schema(customer.customer_group),
         discount_group=(
             discount_group_orm_to_schema(customer.discount_group)

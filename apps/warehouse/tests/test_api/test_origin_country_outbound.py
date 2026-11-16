@@ -129,9 +129,10 @@ def test_transition_passes_when_every_item_has_a_country(db, client) -> None:
 
     assert res.status_code == 200
     w_order = OutboundWarehouseOrder.objects.get(order=order)
-    assert sorted(
-        w_order.order_items.values_list("required_origin_country", flat=True)
-    ) == ["CZ", "DE"]
+    assert {r.required_origin_country for r in w_order.order_items.all()} == {
+        "CZ",
+        "DE",
+    }
 
 
 def test_transition_not_validated_for_customer_without_the_flag(db, client) -> None:
@@ -305,3 +306,61 @@ def test_calculation_flip_keeps_required_origin_country(db) -> None:
     assert res.status_code == 200
     order_item = OutboundOrderItem.objects.get(order__code=res.json()["data"]["code"])
     assert order_item.required_origin_country == "KR"
+
+
+# --- calculations (nabídky) ----------------------------------------------------------
+
+
+def test_calculation_bulk_set_and_clear_required_origin_country(db) -> None:
+    calc_client = TestClient(calc_routes)
+    calculation = OutboundCalculationFactory.it()
+    for c in (None, "CZ"):
+        OutboundCalculationItem.objects.create(
+            calculation=calculation,
+            stock_product=StockProductFactory.it(),
+            amount=1,
+            index=OutboundCalculationItem.objects.filter(
+                calculation=calculation
+            ).count(),
+            required_origin_country=c,
+        )
+
+    res = calc_client.post(
+        f"/{calculation.code}/origin-country", json={"country": "us"}
+    )
+    assert res.status_code == 200
+    assert [i["required_origin_country"] for i in res.json()["data"]["items"]] == [
+        "US",
+        "US",
+    ]
+
+    res = calc_client.post(
+        f"/{calculation.code}/origin-country", json={"country": None}
+    )
+    assert res.status_code == 200
+    assert [i["required_origin_country"] for i in res.json()["data"]["items"]] == [
+        None,
+        None,
+    ]
+
+
+def test_calculation_bulk_set_rejects_invalid_country(db) -> None:
+    calc_client = TestClient(calc_routes)
+    calculation = OutboundCalculationFactory.it()
+
+    res = calc_client.post(
+        f"/{calculation.code}/origin-country", json={"country": "ZZ"}
+    )
+
+    assert res.status_code == 422
+
+
+def test_order_embeds_customer_flag_and_country(db, client) -> None:
+    customer = CustomerFactory.it(requires_origin_country=True, state="DE")
+    order = OutboundOrderFactory.it(customer=customer)
+
+    res = client.get(f"/{order.code}")
+
+    assert res.status_code == 200
+    assert res.json()["data"]["customer"]["requires_origin_country"] is True
+    assert res.json()["data"]["customer"]["state"] == "DE"
