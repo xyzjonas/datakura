@@ -1,6 +1,9 @@
 <template>
   <div
-    class="w-full flex flex-col gap-2.5 p-3.5 rounded-xl border border-solid light:border-slate-200 dark:border-gray-7 light:bg-white shadow-sm"
+    :class="[
+      'w-full flex flex-col gap-2.5 p-3.5 rounded-xl border border-solid light:bg-white shadow-sm',
+      ownCodeMissing ? 'border-red border-2' : 'light:border-slate-200 dark:border-gray-7',
+    ]"
     data-test="order-item-card"
   >
     <div class="flex items-start justify-between gap-2">
@@ -16,7 +19,14 @@
             class="link text-sm font-semibold leading-snug break-words"
             >{{ item.product.name }}</router-link
           >
-          <span class="text-xs text-slate-500 font-mono mt-1">{{ item.product.code }}</span>
+          <span
+            v-if="ownCode"
+            class="text-xs font-mono font-semibold mt-1"
+            data-test="item-own-code"
+            >{{ ownCode }}</span
+          >
+          <span v-else class="text-xs text-slate-500 font-mono mt-1">{{ item.product.code }}</span>
+          <MissingOwnCodeBadge v-if="ownCodeMissing" class="mt-1 self-start" />
           <CertificationBadge
             class="mt-1 self-start"
             :requires-certification="requiresCertification"
@@ -82,6 +92,7 @@ import type { Margin } from '@/utils/margin'
 import CertificationBadge from '../certification/CertificationBadge.vue'
 import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'
+import MissingOwnCodeBadge from './MissingOwnCodeBadge.vue'
 
 const props = defineProps<{
   item: {
@@ -102,6 +113,10 @@ const props = defineProps<{
   sellingPrice?: number
   /** Outbound only. */
   margin?: Margin
+  /** Outbound only: the customer's own code of the product (shown instead of ours). */
+  ownCode?: string | null
+  /** Outbound only: the customer requires own codes, but this item has none. */
+  ownCodeMissing?: boolean
 }>()
 
 defineEmits<{ (e: 'edit'): void; (e: 'remove'): void }>()

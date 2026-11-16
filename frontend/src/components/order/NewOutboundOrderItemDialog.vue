@@ -54,6 +54,11 @@
             :purchase-price="pricingContext.avgPurchasePrice"
             :total-price="item.total_price"
           />
+          <CustomerProductCodeInput
+            v-if="requiresOwnCodes"
+            v-model="item.customer_product_code"
+            required
+          />
           <OutboundItemRequirements
             v-model:package-type-name="item.desired_package_type_name"
             v-model:batch-code="item.desired_batch_code"
@@ -106,6 +111,7 @@
 
 <script setup lang="ts">
 import {
+  warehouseApiRoutesProductGetProductCustomerCodes,
   warehouseApiRoutesProductGetProductSellingPrice,
   type OutboundOrderItemCreateSchema,
   type ProductSchema,
@@ -117,6 +123,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import type { QForm } from 'quasar'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
+import CustomerProductCodeInput from './CustomerProductCodeInput.vue'
 import ItemMarginSummary from './ItemMarginSummary.vue'
 import OutboundItemRequirements from './OutboundItemRequirements.vue'
 import SellingPriceEditor from './SellingPriceEditor.vue'
@@ -131,6 +138,8 @@ export interface NewOutboundOrderItemDialogExpose {
 const props = defineProps<{
   currency: string
   customerCode: string
+  /** Customer orders by own codes - the code field is shown (and highlighted when empty). */
+  requiresOwnCodes?: boolean
 }>()
 
 const productUom = ref('')
@@ -147,6 +156,7 @@ const item = ref<OutboundOrderItemCreateSchema>({
   desired_batch_code: null,
   required_origin_country: null,
   note: null,
+  customer_product_code: null,
 })
 
 const product = ref<ProductSchema>()
@@ -179,7 +189,24 @@ watch(product, (newValue: ProductSchema | undefined) => {
     item.value.total_price = (item.value.unit_price ?? 0) * item.value.amount
   }
 
+  // prefill the code the customer already uses for this product
+  const resolveOwnCode = async () => {
+    item.value.customer_product_code = null
+    if (!newValue || !props.requiresOwnCodes) {
+      return
+    }
+    const response = await warehouseApiRoutesProductGetProductCustomerCodes({
+      path: { product_code: newValue.code },
+    })
+    const entries = onResponse(response)?.data ?? []
+    const own = entries.find((entry) => entry.customer.code === props.customerCode)
+    if (own && product.value?.code === newValue.code) {
+      item.value.customer_product_code = own.code
+    }
+  }
+
   void resolvePricing()
+  void resolveOwnCode()
 })
 
 const pricingContext = computed(() => ({
@@ -234,6 +261,7 @@ const reset = (close = true) => {
     desired_batch_code: null,
     required_origin_country: null,
     note: null,
+    customer_product_code: null,
   }
   showNote.value = false
   product.value = undefined

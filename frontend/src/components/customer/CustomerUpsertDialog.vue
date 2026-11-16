@@ -121,6 +121,12 @@
               description="Každá položka objednávky tohoto zákazníka musí mít požadovanou zemi původu, jinak nelze objednávku předat do skladu. Země se pak uvádí na faktuře."
             />
             <ToggleRow
+              v-model="form.requires_own_codes"
+              data-test="requires-own-codes"
+              label="Objednává podle vlastních kódů"
+              description="Každá položka objednávky tohoto zákazníka musí mít jeho vlastní kód produktu, jinak nelze objednávku potvrdit. Na dokladech se pak uvádí pouze tyto kódy."
+            />
+            <ToggleRow
               v-model="form.minimum_item_value_enabled"
               label="Zaokrouhlovat na minimální hodnotu položky"
               description="Položky s nižší celkovou cenou se zaokrouhlí nahoru na minimální hodnotu (vlastní, nebo globální). Po vypnutí se minimum pro tohoto zákazníka vůbec neuplatní."

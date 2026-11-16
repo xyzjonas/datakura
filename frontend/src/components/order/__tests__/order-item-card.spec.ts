@@ -94,4 +94,23 @@ describe('OrderItemCard', () => {
     ).toBeDefined()
     expect(wrapper.text()).toContain('Pozor')
   })
+
+  it('shows the customer code instead of ours when the item has one', () => {
+    const wrapper = mountCard({ ownCode: 'CUST-77' })
+    expect(wrapper.get('[data-test="item-own-code"]').text()).toBe('CUST-77')
+    expect(wrapper.text()).not.toContain('0981-0400-00')
+    expect(wrapper.find('[data-test="missing-own-code"]').exists()).toBe(false)
+  })
+
+  it('flags an item missing the required customer code', () => {
+    const wrapper = mountCard({ ownCode: null, ownCodeMissing: true })
+    expect(wrapper.get('[data-test="missing-own-code"]').text()).toContain('chybí kód zákazníka')
+    expect(wrapper.get('[data-test="order-item-card"]').classes()).toContain('border-red')
+  })
+
+  it('does not flag anything by default', () => {
+    const wrapper = mountCard()
+    expect(wrapper.find('[data-test="missing-own-code"]').exists()).toBe(false)
+    expect(wrapper.get('[data-test="order-item-card"]').classes()).not.toContain('border-red')
+  })
 })

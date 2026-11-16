@@ -69,6 +69,17 @@
           </div>
         </div>
 
+        <template v-if="requiresOwnCodes">
+          <q-separator />
+          <CustomerProductCodeInput
+            v-model="item.customer_product_code"
+            required
+            dense
+            :debounce="600"
+            @update:model-value="update('code')"
+          />
+        </template>
+
         <q-separator />
         <!-- Requirements -->
         <OutboundItemRequirements
@@ -106,6 +117,7 @@ import { round } from '@/utils/round'
 import { useQuasar } from 'quasar'
 import { computed, ref, watch } from 'vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
+import CustomerProductCodeInput from './CustomerProductCodeInput.vue'
 import OutboundItemRequirements from './OutboundItemRequirements.vue'
 import SellingPriceEditor from './SellingPriceEditor.vue'
 
@@ -126,6 +138,7 @@ const props = defineProps<{
   currency: string
   orderCode: string
   customerCode?: string
+  requiresOwnCodes?: boolean
 }>()
 
 const show = defineModel<boolean>('show', { default: false })
@@ -166,10 +179,16 @@ const computeUnitFromTotal = () => {
   return round(totalPrice.value / item.value.amount)
 }
 
-const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements' | 'note') => {
+const update = async (
+  changedField: 'amount' | 'unit' | 'total' | 'requirements' | 'note' | 'code',
+) => {
   if (changedField === 'total') {
     unitPrice.value = computeUnitFromTotal()
-  } else if (changedField !== 'requirements' && changedField !== 'note') {
+  } else if (
+    changedField !== 'requirements' &&
+    changedField !== 'note' &&
+    changedField !== 'code'
+  ) {
     totalPrice.value = round(item.value.amount * round(unitPrice.value))
   }
 
@@ -184,6 +203,7 @@ const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements'
     desired_batch_code: item.value.desired_batch_code,
     required_origin_country: item.value.required_origin_country,
     note: item.value.note,
+    customer_product_code: item.value.customer_product_code,
   })
 
   const data = onResponse(res)

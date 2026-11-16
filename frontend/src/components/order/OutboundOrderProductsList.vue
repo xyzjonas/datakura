@@ -21,6 +21,7 @@
         :currency="currency"
         :order-code="orderCode"
         :customer-code="customerCode"
+        :requires-own-codes="requiresOwnCodes"
         @remove="emit('removeItem', item.index)"
       />
     </template>
@@ -43,6 +44,7 @@ defineProps<{
   readonly?: boolean
   orderCode: string
   customerCode?: string
+  requiresOwnCodes?: boolean
 }>()
 
 const items = defineModel<OutboundOrderItemSchema[]>('items', { default: [] })
