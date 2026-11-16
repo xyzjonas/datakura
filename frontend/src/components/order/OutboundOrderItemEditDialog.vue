@@ -85,6 +85,7 @@
         <OutboundItemRequirements
           v-model:package-type-name="item.desired_package_type_name"
           v-model:batch-code="item.desired_batch_code"
+          v-model:batch-certification="item.desired_batch_certification"
           v-model:origin-country="item.required_origin_country"
           :product-name="item.product.name"
           :product-code="item.product.code"

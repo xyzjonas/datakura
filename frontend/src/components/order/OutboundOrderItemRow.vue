@@ -20,7 +20,11 @@
               v-if="item.desired_package_type_name"
               :package-type="item.desired_package_type_name"
             />
-            <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
+            <BatchCertificationBadges
+              v-if="item.desired_batch_code"
+              :batch-code="item.desired_batch_code"
+              :certification="item.desired_batch_certification"
+            />
             <CountryBadge
               v-if="item.required_origin_country"
               :code="item.required_origin_country"
@@ -167,6 +171,7 @@
     :initial-mode="requirementsMode"
     :desired-package-type-name="item.desired_package_type_name"
     :desired-batch-code="item.desired_batch_code"
+    :desired-batch-certification="item.desired_batch_certification"
     :required-origin-country="item.required_origin_country"
     @save="saveRequirements"
   />
@@ -182,7 +187,7 @@ import { useOutboundDocumentApi } from '@/composables/use-outbound-document-api'
 import { round } from '@/utils/round'
 import { useQuasar } from 'quasar'
 import { computed, ref } from 'vue'
-import BatchBadge from '../warehouse/BatchBadge.vue'
+import BatchCertificationBadges from '../warehouse/BatchCertificationBadges.vue'
 import CountryBadge from '../CountryBadge.vue'
 import IndexRectangle from '../IndexRectangle.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'

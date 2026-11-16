@@ -48,6 +48,7 @@ describe('OutboundOrderItemRequirementsDialog', () => {
     expect(await save(wrapper)).toEqual({
       desired_package_type_name: null,
       desired_batch_code: null,
+      desired_batch_certification: null,
       required_origin_country: 'DE',
     })
   })
@@ -60,6 +61,7 @@ describe('OutboundOrderItemRequirementsDialog', () => {
     expect(await save(wrapper)).toEqual({
       desired_package_type_name: null,
       desired_batch_code: 'BAT-1',
+      desired_batch_certification: null,
       required_origin_country: 'CZ',
     })
   })
@@ -85,6 +87,7 @@ describe('OutboundOrderItemRequirementsDialog', () => {
     expect(await save(wrapper)).toEqual({
       desired_package_type_name: null,
       desired_batch_code: 'BAT-1',
+      desired_batch_certification: null,
       required_origin_country: null,
     })
   })
@@ -118,6 +121,7 @@ describe('OutboundOrderItemRequirementsDialog', () => {
     expect(wrapper.emitted('save')?.at(-1)?.[0]).toEqual({
       desired_package_type_name: null,
       desired_batch_code: null,
+      desired_batch_certification: null,
       required_origin_country: null,
     })
   })
@@ -127,5 +131,29 @@ describe('OutboundOrderItemRequirementsDialog', () => {
 
     expect(wrapper.find('[data-test="requirement-batch"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="no-requirements"]').exists()).toBe(false)
+  })
+
+  it('shows the certification of the saved batch and keeps it on save', async () => {
+    const cert = { id: 4, code: 'ISO-9001' }
+    const wrapper = await mountIt({
+      desiredBatchCode: 'BAT-1',
+      desiredBatchCertification: cert,
+    })
+
+    expect(wrapper.get('[data-test="batch-certification"]').text()).toContain('ISO-9001')
+    expect(((await save(wrapper)) as Record<string, unknown>).desired_batch_certification).toEqual({
+      code: 'ISO-9001',
+    })
+  })
+
+  it('hides the certification once the batch code is changed', async () => {
+    const wrapper = await mountIt({
+      desiredBatchCode: 'BAT-1',
+      desiredBatchCertification: { id: 4, code: 'ISO-9001' },
+    })
+
+    await wrapper.get('[data-test="requirement-batch"] input').setValue('BAT-2')
+
+    expect(wrapper.find('[data-test="batch-certification"]').exists()).toBe(false)
   })
 })

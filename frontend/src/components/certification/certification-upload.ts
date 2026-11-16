@@ -1,4 +1,4 @@
-import type { CertificationAttachSchema } from '@/client'
+import type { CertificationAttachSchema, CertificationSchema } from '@/client'
 import { formDataBodySerializer } from '@/client/client'
 
 /**
@@ -30,4 +30,39 @@ export const toCertificationMultipartBody = (
 export const multipartRequestOptions = {
   ...formDataBodySerializer,
   headers: { 'Content-Type': null },
+}
+
+/** State of the "new / existing certificate" input shared by the certificate forms. */
+export type CertificationDraft = {
+  mode: 'new' | 'existing'
+  code: string
+  description: string
+  file: File | null
+  existing: CertificationSchema | null
+}
+
+export const emptyCertificationDraft = (): CertificationDraft => ({
+  mode: 'new',
+  code: '',
+  description: '',
+  file: null,
+  existing: null,
+})
+
+/** Multipart body of the draft, `null` while it is not complete enough to be submitted. */
+export const certificationDraftToBody = (
+  draft: CertificationDraft,
+): CertificationMultipartBody | null => {
+  if (draft.mode === 'existing') {
+    return draft.existing
+      ? toCertificationMultipartBody({ certification_id: draft.existing.id }, null)
+      : null
+  }
+  if (!draft.code.trim() || !draft.file) {
+    return null
+  }
+  return toCertificationMultipartBody(
+    { code: draft.code, description: draft.description },
+    draft.file,
+  )
 }

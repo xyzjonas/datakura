@@ -22,7 +22,7 @@
           class="cursor-pointer"
           :class="{ 'bg-blue-1': row.batch_code === modelValue }"
           data-test="certified-stock-row"
-          @click="modelValue = row.batch_code"
+          @click="select(row)"
         >
           <td class="text-left whitespace-normal break-words max-w-48">
             <div class="font-semibold">{{ row.code }}</div>
@@ -58,6 +58,13 @@ const props = defineProps<{ productCode: string }>()
 
 /** Barcode of the batch backing the selected certification. */
 const modelValue = defineModel<string | null>({ default: null })
+
+const emit = defineEmits<{ (e: 'select', row: AvailableCertificationSchema): void }>()
+
+const select = (row: AvailableCertificationSchema) => {
+  modelValue.value = row.batch_code
+  emit('select', row)
+}
 
 const rows = ref<AvailableCertificationSchema[]>([])
 const loading = ref(false)

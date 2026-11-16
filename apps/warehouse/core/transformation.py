@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
+from django.contrib.contenttypes.models import ContentType
 
 from apps.warehouse.core.schemas.barcode import BarcodeSchema
 from apps.warehouse.core.schemas.base import MediaFileSchema
@@ -334,6 +335,14 @@ def invoice_orm_to_detail_schema(invoice: Invoice) -> InvoiceDetailSchema:
     )
 
 
+def batch_certification_ref(batch: Batch | None) -> CertificationRefSchema | None:
+    if batch is None or batch.certification is None:
+        return None
+    return CertificationRefSchema(
+        id=batch.certification.pk, code=batch.certification.code
+    )
+
+
 def batch_orm_to_schema(batch: Batch) -> BatchSchema:
     barcode = batch.get_primary_barcode()
     return BatchSchema(
@@ -342,11 +351,7 @@ def batch_orm_to_schema(batch: Batch) -> BatchSchema:
         created=batch.created,
         changed=batch.changed,
         description=batch.description,
-        certification=CertificationRefSchema(
-            id=batch.certification.pk, code=batch.certification.code
-        )
-        if batch.certification
-        else None,
+        certification=batch_certification_ref(batch),
     )
 
 
@@ -727,6 +732,7 @@ def outbound_order_item_orm_to_schema(
         if item.desired_package_type
         else None,
         desired_batch_code=desired_batch_barcode,
+        desired_batch_certification=batch_certification_ref(item.desired_batch),
         note=item.note,
         required_origin_country=item.required_origin_country,
         customer_product_code=(customer_codes or {}).get(item.stock_product_id),
@@ -977,6 +983,25 @@ def credit_note_supplier_orm_to_schema(
     )
 
 
+def _certification_for_batch_barcode(code: str | None) -> CertificationRefSchema | None:
+    """Certification of the batch carrying the barcode `code` (if any)."""
+    if not code:
+        return None
+    batch_ids = Barcode.objects.filter(
+        content_type=ContentType.objects.get_for_model(Batch), code=code
+    ).values_list("object_id", flat=True)
+    batch = (
+        Batch.objects.filter(pk__in=batch_ids, certification__isnull=False)
+        .select_related("certification")
+        .first()
+    )
+    if batch is None or batch.certification is None:
+        return None
+    return CertificationRefSchema(
+        id=batch.certification.pk, code=batch.certification.code
+    )
+
+
 def inbound_warehouse_order_item_to_schema(
     item: InboundWarehouseOrderItem,
 ) -> InboundWarehouseOrderItemSchema:
@@ -1016,6 +1041,7 @@ def inbound_warehouse_order_item_to_schema(
         unit_price_at_receipt=item.unit_price_at_receipt,
         index=item.index,
         batch_barcode=item.batch_barcode,
+        certification=_certification_for_batch_barcode(item.batch_barcode),
         origin_country=item.origin_country,
         pending=is_pending,
         warehouse_item_id=linked_items[0].pk if linked_items else None,
@@ -1238,6 +1264,7 @@ def warehouse_outbound_order_orm_to_schema(
                 if item.desired_package_type
                 else None,
                 desired_batch_code=desired_batch_barcode,
+                desired_batch_certification=batch_certification_ref(item.desired_batch),
                 required_origin_country=item.required_origin_country,
                 warehouse_item_id=item.warehouse_item.pk
                 if item.warehouse_item

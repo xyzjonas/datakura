@@ -413,3 +413,40 @@ def test_confirmed_goods_are_sellable_before_put_away(
         f"/orders-outgoing/{w_order.code}/order-items/{requirement.pk}/candidates"
     )
     assert [c["id"] for c in res.json()["data"]] == [item.pk]
+
+
+def test_inbound_warehouse_order_items_expose_the_batch_certification(
+    db, order_client, warehouse_client
+):
+    supplier = CustomerFactory()
+    product = StockProductFactory()
+    receiving = WarehouseLocationFactory(is_putaway=True)
+
+    order_code, batch_code = _buy_certified(order_client, supplier, product, "ISO-ROW")
+    res = warehouse_client.post(
+        "/orders-incoming", json={"purchase_order_code": order_code}
+    )
+    w_code = res.json()["data"]["code"]
+    res = warehouse_client.post(
+        f"/orders-incoming/{w_code}/transition",
+        json={"location_code": receiving.code},
+    )
+    assert res.status_code == 200
+
+    res = warehouse_client.get(f"/orders-incoming/{w_code}")
+
+    assert res.status_code == 200
+    (row,) = res.json()["data"]["order_items"]
+    assert row["batch_barcode"] == batch_code
+    assert row["certification"]["code"] == "ISO-ROW"
+
+
+def test_inbound_warehouse_order_items_without_certification_have_none(
+    db, warehouse_client
+):
+    w_order = InboundWarehouseOrderFactory()
+    res = warehouse_client.get(f"/orders-incoming/{w_order.code}")
+
+    assert res.status_code == 200
+    for row in res.json()["data"]["order_items"]:
+        assert row["certification"] is None

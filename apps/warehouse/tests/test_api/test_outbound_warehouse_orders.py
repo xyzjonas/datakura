@@ -17,6 +17,7 @@ from apps.warehouse.models.warehouse import (
     WarehouseItem,
     WarehouseMovement,
 )
+from apps.warehouse.tests.factories.certification import CertificationFactory
 from apps.warehouse.tests.factories.order import (
     OutboundOrderFactory,
     OutboundOrderItemFactory,
@@ -452,3 +453,39 @@ def test_cancel_outbound_warehouse_order_restores_item_location(db) -> None:
     assert matching_item.location == original_location, (
         "Cancelled pick must restore item location to original"
     )
+
+
+@pytest.mark.parametrize("certified", [True, False])
+def test_outbound_warehouse_order_item_exposes_certification_of_the_desired_batch(
+    db, certified
+) -> None:
+    client = TestClient(routes)
+    product = StockProductFactory()
+    outbound_order = OutboundOrderFactory.it()
+    batch = Batch.objects.create(
+        certification=CertificationFactory.it(code="ISO-W") if certified else None
+    )
+    batch.attach_barcode("BATCH-W-1", is_primary=True)
+    source_item = OutboundOrderItemFactory.it(
+        order=outbound_order, stock_product=product, amount=1, desired_batch=batch
+    )
+    warehouse_order = WarehouseOrderOutFactory.it(
+        order=outbound_order, state=OutboundWarehouseOrderState.PENDING
+    )
+    OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=source_item,
+        stock_product=product,
+        amount=1,
+        desired_batch=batch,
+    )
+
+    res = client.get(f"/orders-outgoing/{warehouse_order.code}")
+
+    assert res.status_code == 200
+    (item,) = res.json()["data"]["order_items"]
+    assert item["desired_batch_code"] == "BATCH-W-1"
+    if certified:
+        assert item["desired_batch_certification"]["code"] == "ISO-W"
+    else:
+        assert item["desired_batch_certification"] is None

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { toCertificationMultipartBody } from '../certification-upload'
+import {
+  certificationDraftToBody,
+  emptyCertificationDraft,
+  toCertificationMultipartBody,
+  type CertificationDraft,
+} from '../certification-upload'
 
 describe('toCertificationMultipartBody', () => {
   const pdf = new File(['%PDF-1.4'], 'cert.pdf', { type: 'application/pdf' })
@@ -31,6 +36,40 @@ describe('toCertificationMultipartBody', () => {
 
   it('keeps certification_id 0-safe numeric values', () => {
     expect(toCertificationMultipartBody({ certification_id: 7 }, null)).toEqual({
+      certification_id: 7,
+    })
+  })
+})
+
+describe('certificationDraftToBody', () => {
+  const pdf = new File(['%PDF-1.4'], 'cert.pdf', { type: 'application/pdf' })
+  const draft = (patch: Partial<CertificationDraft>): CertificationDraft => ({
+    ...emptyCertificationDraft(),
+    ...patch,
+  })
+
+  it.each([
+    ['empty draft', {}],
+    ['new without file', { code: 'C-1' }],
+    ['new without code', { file: pdf }],
+    ['new with blank code', { code: '  ', file: pdf }],
+    ['existing without selection', { mode: 'existing' as const }],
+  ])('is not submittable: %s', (_label, patch) => {
+    expect(certificationDraftToBody(draft(patch))).toBeNull()
+  })
+
+  it('builds the body of a new certificate', () => {
+    expect(certificationDraftToBody(draft({ code: 'C-1', description: 'd', file: pdf }))).toEqual({
+      code: 'C-1',
+      description: 'd',
+      attachment: pdf,
+    })
+  })
+
+  it('builds the body of an existing certificate', () => {
+    const existing = { id: 7, code: 'C-7' } as CertificationDraft['existing']
+
+    expect(certificationDraftToBody(draft({ mode: 'existing', existing }))).toEqual({
       certification_id: 7,
     })
   })

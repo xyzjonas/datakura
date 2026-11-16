@@ -39,55 +39,7 @@
         Před potvrzením objednávky je nutné doplnit certifikát.
       </div>
 
-      <q-btn-toggle
-        v-model="mode"
-        unelevated
-        no-caps
-        toggle-color="primary"
-        :options="[
-          { label: 'Nový certifikát', value: 'new' },
-          { label: 'Existující', value: 'existing' },
-        ]"
-      />
-
-      <template v-if="mode === 'new'">
-        <q-input
-          v-model="code"
-          outlined
-          dense
-          label="Kód certifikátu"
-          :rules="[rules.notEmpty]"
-          hide-bottom-space
-        />
-        <q-input v-model="description" outlined dense label="Popis" type="textarea" autogrow />
-        <q-file
-          v-model="file"
-          outlined
-          dense
-          label="Příloha (PDF)"
-          accept=".pdf,image/*"
-          :rules="[rules.notEmpty]"
-          hide-bottom-space
-        >
-          <template #prepend><q-icon name="sym_o_attach_file" /></template>
-        </q-file>
-      </template>
-
-      <q-select
-        v-else
-        v-model="existing"
-        outlined
-        dense
-        label="Certifikát"
-        :options="existingOptions"
-        option-value="id"
-        :option-label="(opt: CertificationSchema) => opt.code"
-        use-input
-        input-debounce="300"
-        :rules="[rules.notEmpty]"
-        hide-bottom-space
-        @filter="filterExisting"
-      />
+      <CertificationFields v-model:draft="draft" />
 
       <div class="flex justify-end gap-2">
         <q-btn v-if="item.certification" flat no-caps label="Zrušit" @click="editing = false" />
@@ -99,18 +51,21 @@
 
 <script setup lang="ts">
 import {
-  warehouseApiRoutesCertificationsGetCertifications,
   warehouseApiRoutesInboundOrdersRemoveInboundOrderItemCertification,
   warehouseApiRoutesInboundOrdersSetInboundOrderItemCertification,
-  type CertificationSchema,
   type InboundOrderItemSchema,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
-import { rules } from '@/utils/rules'
 import { ref } from 'vue'
 import BatchBadge from '../warehouse/BatchBadge.vue'
 import CertificationFileLink from './CertificationFileLink.vue'
-import { multipartRequestOptions, toCertificationMultipartBody } from './certification-upload'
+import CertificationFields from './CertificationFields.vue'
+import {
+  certificationDraftToBody,
+  emptyCertificationDraft,
+  multipartRequestOptions,
+  type CertificationDraft,
+} from './certification-upload'
 
 const { onResponse } = useApi()
 
@@ -119,43 +74,23 @@ const props = defineProps<{ orderCode: string; readonly?: boolean }>()
 const item = defineModel<InboundOrderItemSchema>('item', { required: true })
 
 const editing = ref(false)
-const mode = ref<'new' | 'existing'>('new')
-const code = ref('')
-const description = ref('')
-const file = ref<File | null>(null)
-const existing = ref<CertificationSchema | null>(null)
-const existingOptions = ref<CertificationSchema[]>([])
-
-const filterExisting = async (term: string, update: (cb: () => void) => void) => {
-  const res = await warehouseApiRoutesCertificationsGetCertifications({
-    query: { search_term: term || undefined },
-  })
-  const data = onResponse(res)
-  update(() => {
-    existingOptions.value = data?.data ?? []
-  })
-}
+const draft = ref<CertificationDraft>(emptyCertificationDraft())
 
 const path = () => ({ order_code: props.orderCode, item_index: item.value.index })
 
 const submit = async () => {
-  const fields =
-    mode.value === 'new'
-      ? { code: code.value, description: description.value }
-      : { certification_id: existing.value?.id }
+  const body = certificationDraftToBody(draft.value)
+  if (!body) return
   const res = await warehouseApiRoutesInboundOrdersSetInboundOrderItemCertification({
     path: path(),
-    body: toCertificationMultipartBody(fields, mode.value === 'new' ? file.value : null),
+    body,
     ...multipartRequestOptions,
   })
   const data = onResponse(res)
   if (data?.data) {
     item.value = data.data
     editing.value = false
-    code.value = ''
-    description.value = ''
-    file.value = null
-    existing.value = null
+    draft.value = emptyCertificationDraft()
   }
 }
 

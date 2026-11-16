@@ -48,10 +48,18 @@
               label="Kód šarže"
               :rules="[rules.notEmpty]"
             />
+            <CertificationBadge
+              v-if="type === 'batch' && savedBatchCertification"
+              link
+              requires-certification
+              :certification="savedBatchCertification"
+              data-test="batch-certification"
+            />
 
             <CertifiedStockPicker
               v-else-if="type === 'certification'"
               v-model="certifiedBatchCode"
+              @select="(row) => (certifiedCode = row.code)"
               :product-code="productCode"
             />
 
@@ -109,6 +117,7 @@
 import type { PackageTypeSchema } from '@/client'
 import { rules } from '@/utils/rules'
 import { computed, ref, watch } from 'vue'
+import CertificationBadge from '../certification/CertificationBadge.vue'
 import CertifiedStockPicker from '../certification/CertifiedStockPicker.vue'
 import CountrySelect from '../selects/CountrySelect.vue'
 import PackageTypeSearchSelect from '../selects/PackageTypeSearchSelect.vue'
@@ -122,6 +131,8 @@ const props = defineProps<{
   initialMode?: Exclude<RequirementType, 'country'>
   desiredPackageTypeName?: string | null
   desiredBatchCode?: string | null
+  /** certification of the saved batch requirement */
+  desiredBatchCertification?: { id?: number; code: string } | null
   requiredOriginCountry?: string | null
 }>()
 
@@ -131,6 +142,7 @@ const emit = defineEmits<{
     payload: {
       desired_package_type_name: string | null
       desired_batch_code: string | null
+      desired_batch_certification: { code: string } | null
       required_origin_country: string | null
     },
   ): void
@@ -156,6 +168,12 @@ const active = ref<RequirementType[]>([])
 const selectedPackage = ref<PackageTypeSchema>()
 const batchCode = ref('')
 const certifiedBatchCode = ref<string | null>(null)
+const certifiedCode = ref<string | null>(null)
+
+// the saved batch's certificate is only valid while the batch code is unchanged
+const savedBatchCertification = computed(() =>
+  batchCode.value === props.desiredBatchCode ? props.desiredBatchCertification : null,
+)
 const country = ref<string | null>(null)
 
 const available = computed(() =>
@@ -186,6 +204,7 @@ watch(
     }
     batchCode.value = props.desiredBatchCode ?? ''
     certifiedBatchCode.value = null
+    certifiedCode.value = null
     country.value = props.requiredOriginCountry ?? null
     selectedPackage.value = props.desiredPackageTypeName
       ? ({ name: props.desiredPackageTypeName } as PackageTypeSchema)
@@ -210,6 +229,13 @@ const submit = () => {
       ? batchCode.value || null
       : has('certification')
         ? certifiedBatchCode.value
+        : null,
+    desired_batch_certification: has('batch')
+      ? savedBatchCertification.value
+        ? { code: savedBatchCertification.value.code }
+        : null
+      : has('certification') && certifiedCode.value
+        ? { code: certifiedCode.value }
         : null,
     required_origin_country: has('country') ? country.value || null : null,
   })
