@@ -1,4 +1,5 @@
 from decimal import Decimal
+from collections.abc import Iterable
 from typing import cast
 
 from django.core.files.uploadedfile import UploadedFile
@@ -179,6 +180,7 @@ class OutboundOrdersService:
                     amount=chunk_amount,
                     desired_package_type=order_item.desired_package_type,
                     desired_batch=order_item.desired_batch,
+                    required_origin_country=order_item.required_origin_country,
                     index=next_index,
                 )
                 created_any = True
@@ -195,6 +197,7 @@ class OutboundOrdersService:
                     else order_item.amount,
                     desired_package_type=order_item.desired_package_type,
                     desired_batch=order_item.desired_batch,
+                    required_origin_country=order_item.required_origin_country,
                     index=next_index,
                 )
                 next_index += 1
@@ -422,6 +425,7 @@ class OutboundOrdersService:
                 amount=remaining_amount,
                 desired_package_type=order_item.desired_package_type,
                 desired_batch=order_item.desired_batch,
+                required_origin_country=order_item.required_origin_country,
                 index=order_item.index,
             )
         else:
@@ -430,6 +434,9 @@ class OutboundOrdersService:
             primary_requirement.amount = remaining_amount
             primary_requirement.desired_package_type = order_item.desired_package_type
             primary_requirement.desired_batch = order_item.desired_batch
+            primary_requirement.required_origin_country = (
+                order_item.required_origin_country
+            )
             primary_requirement.index = order_item.index
             primary_requirement.save(
                 update_fields=[
@@ -438,6 +445,7 @@ class OutboundOrdersService:
                     "amount",
                     "desired_package_type",
                     "desired_batch",
+                    "required_origin_country",
                     "index",
                     "changed",
                 ]
@@ -555,7 +563,10 @@ class OutboundOrdersService:
                 desired_package_type=desired_package_type,
                 desired_batch=desired_batch,
                 note=item.note,
+                required_origin_country=item.required_origin_country,
             )
+            if order.state != OutboundOrderState.SUBMITTED:
+                cls._assert_origin_country_present(order, [item_model])
             cls._sync_order_item_to_warehouse_orders(
                 order=order,
                 order_item=item_model,
@@ -606,8 +617,11 @@ class OutboundOrdersService:
             item_model.desired_package_type = desired_package_type
             item_model.desired_batch = desired_batch
             item_model.note = item.note
+            item_model.required_origin_country = item.required_origin_country
             if item.index is not None:
                 item_model.index = item.index
+            if order.state != OutboundOrderState.SUBMITTED:
+                cls._assert_origin_country_present(order, [item_model])
             item_model.save()
             cls._sync_order_item_to_warehouse_orders(
                 order=order,
@@ -649,6 +663,57 @@ class OutboundOrdersService:
             item_model.delete()
             compact_order_items(order.items.select_for_update())
 
+        return cls.get_outbound_order(code)
+
+    @staticmethod
+    def _assert_origin_country_present(
+        order: OutboundOrder, items: Iterable[OutboundOrderItem]
+    ) -> None:
+        """
+        Customers flagged `requires_origin_country` need the origin country on every
+        item of an order that is (about to be) handed over to the warehouse.
+        """
+        if not order.customer.requires_origin_country:
+            return
+        missing = sorted(i.index + 1 for i in items if not i.required_origin_country)
+        if missing:
+            rows = ", ".join(str(i) for i in missing)
+            raise WarehouseItemBadRequestError(
+                f"Origin country is required for item row(s): {rows}"
+            )
+
+    @classmethod
+    def set_items_required_origin_country(
+        cls, code: str, country: str | None, context: RequestContext
+    ) -> OutboundOrderSchema:
+        """Bulk: require the same origin country on every item of the order."""
+        order = OutboundOrder.objects.prefetch_related("warehouse_orders").get(
+            code=code
+        )
+        cls._assert_order_editable(order)
+        with transaction.atomic():
+            OutboundOrder.objects.select_for_update().get(pk=order.pk)
+            items = list(order.items.all())
+            now = timezone.now()
+            for item in items:
+                item.required_origin_country = country
+                item.changed = now
+            if order.state != OutboundOrderState.SUBMITTED:
+                cls._assert_origin_country_present(order, items)
+            OutboundOrderItem.objects.bulk_update(
+                items, ["required_origin_country", "changed"]
+            )
+            for item in items:
+                cls._sync_order_item_to_warehouse_orders(
+                    order=order, order_item=item, context=context
+                )
+            audit_service.add_entry(
+                order,
+                action=AuditAction.UPDATE,
+                user=context.user_id,
+                reason=AuditMessages.ORDER_UPDATED.CS,
+                changes={"required_origin_country": {"all_items": country}},
+            )
         return cls.get_outbound_order(code)
 
     @classmethod
@@ -721,6 +786,9 @@ class OutboundOrdersService:
                         warehouse_service.cancel_outbound_warehouse_order(
                             warehouse_order, context
                         )
+
+        if new_state == OutboundOrderState.PICKING:
+            cls._assert_origin_country_present(order, order.items.all())
 
         with transaction.atomic():
             order.state = new_state
@@ -804,6 +872,7 @@ class OutboundOrdersService:
                     desired_package_type=item.desired_package_type,
                     desired_batch=item.desired_batch,
                     note=item.note,
+                    required_origin_country=item.required_origin_country,
                 )
             audit_service.add_entry(
                 new_order,

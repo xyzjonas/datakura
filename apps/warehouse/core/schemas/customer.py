@@ -70,6 +70,10 @@ class CustomerBaseSchema(BaseSchema):
     discount_group: DiscountGroupSchema | None = None
     default_payment_method: CustomerDefaultPaymentMethodSchema | None = None
     invoice_due_days: int
+    # country of residence, ISO 3166-1 alpha-2 (default origin country of supplied goods)
+    state: str = "CZ"
+    # sales orders of this customer need the origin country on every item
+    requires_origin_country: bool = False
 
 
 class CustomerSchema(CustomerBaseSchema):
@@ -197,6 +201,7 @@ class CustomerCreateOrUpdateSchema(Schema):
     block_after_due_days: int = 30
     is_self: bool = False
     is_supplier: bool = False
+    requires_origin_country: bool = False
     minimum_item_value_enabled: bool = True
     minimum_item_value: float | None = Field(default=None, ge=0)
     default_payment_method_name: Optional[str] = None

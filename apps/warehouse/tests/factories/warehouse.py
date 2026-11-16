@@ -79,6 +79,7 @@ class OutboundWarehouseOrderItemFactory(DjangoModelFactory):
     desired_package_type = None
     desired_batch = None
     warehouse_item = None
+    required_origin_country = None
     index = factory.Sequence(lambda n: n)
 
 
@@ -167,6 +168,7 @@ class InboundWarehouseOrderItemFactory(DjangoModelFactory):
     amount = factory.Sequence(lambda n: n + 1)
     tracking_level = TrackingLevel.FUNGIBLE
     unit_price_at_receipt = 0
+    origin_country = None
     index = factory.Sequence(lambda n: n)
 
 

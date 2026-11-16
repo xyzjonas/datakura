@@ -55,6 +55,36 @@ describe('OutboundItemRequirements', () => {
     expect(wrapper.emitted('save')).toHaveLength(1)
   })
 
+  it('stores the required origin country from the dialog', () => {
+    const wrapper = mountIt({ originCountry: null })
+
+    wrapper.findComponent(OutboundOrderItemRequirementsDialog).vm.$emit('save', {
+      desired_package_type_name: null,
+      desired_batch_code: null,
+      required_origin_country: 'VN',
+    })
+
+    expect(wrapper.emitted('update:originCountry')?.[0]).toEqual(['VN'])
+    expect(wrapper.emitted('save')).toHaveLength(1)
+  })
+
+  it('a country alone is a requirement (no "no requirement" hint)', () => {
+    const wrapper = mountIt({ originCountry: 'DE' })
+    expect(wrapper.text()).not.toContain('Bez požadavku')
+    expect(wrapper.find('[data-test="country-badge"]').exists()).toBe(true)
+  })
+
+  it('missing country in the payload clears the model', () => {
+    const wrapper = mountIt({ originCountry: 'DE' })
+
+    wrapper.findComponent(OutboundOrderItemRequirementsDialog).vm.$emit('save', {
+      desired_package_type_name: null,
+      desired_batch_code: null,
+    })
+
+    expect(wrapper.emitted('update:originCountry')?.[0]).toEqual([null])
+  })
+
   it('clearing (both null) is propagated as well', () => {
     const wrapper = mountIt({ batchCode: 'BAT-1' })
 

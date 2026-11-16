@@ -36,6 +36,7 @@ class InboundOrderItemFactory(DjangoModelFactory):
     index = factory.LazyAttribute(lambda o: o.order.items.count() if o.order else 0)
     unit_price = factory.Faker("random_int", min=1, max=200, step=1)
     total_price = factory.LazyAttribute(lambda o: o.amount * o.unit_price)
+    origin_country = None
 
 
 class InboundOrderFactory(DjangoModelFactory):
@@ -77,6 +78,7 @@ class OutboundOrderItemFactory(DjangoModelFactory):
     total_price = factory.LazyAttribute(lambda o: o.amount * o.unit_price)
     desired_package_type = None
     desired_batch = None
+    required_origin_country = None
 
 
 class OutboundOrderFactory(DjangoModelFactory):

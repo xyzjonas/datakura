@@ -282,6 +282,7 @@ const editingCustomer = ref<CustomerCreateOrUpdateSchema>({
   customer_group_code: '',
   is_self: false,
   is_supplier: false,
+  requires_origin_country: false,
 })
 
 const editingContact = ref<ContactPersonCreateOrUpdateSchema>({
@@ -313,6 +314,7 @@ const onEditCustomer = () => {
     block_after_due_days: customer.value.block_after_due_days,
     is_self: customer.value.is_self,
     is_supplier: customer.value.is_supplier,
+    requires_origin_country: customer.value.requires_origin_country,
     minimum_item_value_enabled: customer.value.minimum_item_value_enabled,
     minimum_item_value: customer.value.minimum_item_value,
     default_payment_method_name: customer.value.default_payment_method?.name,

@@ -9,7 +9,11 @@
     :certification="item.certification"
     @edit="editDialog = true"
     @remove="removeDialog = true"
-  />
+  >
+    <template #requirements>
+      <OriginCountryMarker class="mt-1 self-start" :country="item.origin_country" />
+    </template>
+  </OrderItemCard>
   <div v-else class="flex flex-col flex-1 gap-2">
     <div class="flex items-center w-full flex-nowrap">
       <div class="w-12">
@@ -28,6 +32,7 @@
           :requires-certification="item.requires_certification"
           :certification="item.certification"
         />
+        <OriginCountryMarker class="mt-1" :country="item.origin_country" />
       </div>
 
       <div class="grid items-center grid-cols-4 flex-1 text-right">
@@ -83,6 +88,7 @@ import type { InboundOrderItemSchema } from '@/client'
 import { useOrderItemCardLayout } from '@/composables/use-order-item-card-layout'
 import { computed, ref } from 'vue'
 import OrderItemCard from './OrderItemCard.vue'
+import OriginCountryMarker from '../OriginCountryMarker.vue'
 import CertificationBadge from '../certification/CertificationBadge.vue'
 import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'

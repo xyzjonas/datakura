@@ -9,7 +9,16 @@
     :margin="margin"
     @edit="editDialog = true"
     @remove="removeDialog = true"
-  />
+  >
+    <template #requirements>
+      <OutboundItemRequirementBadges
+        class="mt-1"
+        :package-type="item.desired_package_type_name"
+        :batch-code="item.desired_batch_code"
+        :origin-country="item.required_origin_country"
+      />
+    </template>
+  </OrderItemCard>
   <div v-else class="flex flex-col flex-1 gap-2">
     <div class="flex items-center w-full flex-nowrap">
       <div class="w-12">
@@ -23,6 +32,12 @@
           >{{ item.product.name }}</router-link
         >
         <div class="text-xs text-gray-5">{{ item.product.code }}</div>
+        <OutboundItemRequirementBadges
+          class="mt-1"
+          :package-type="item.desired_package_type_name"
+          :batch-code="item.desired_batch_code"
+          :origin-country="item.required_origin_country"
+        />
       </div>
 
       <div class="grid items-center grid-cols-6 flex-1 text-right">
@@ -115,6 +130,7 @@ import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
 import IndexRectangle from '../IndexRectangle.vue'
+import OutboundItemRequirementBadges from './OutboundItemRequirementBadges.vue'
 import MarginPercent from './MarginPercent.vue'
 import MarginText from './MarginText.vue'
 import OutboundOrderItemEditDialog from './OutboundOrderItemEditDialog.vue'

@@ -66,6 +66,8 @@ class WarehouseItemSchema(BaseSchema):
     package: PackageSchema | None = None
     batch: BatchSchema | None = None
     primary_barcode: str | None = None
+    # ISO alpha-2, deduced from the inbound order line the item came in with
+    origin_country: str | None = None
 
 
 class WarehouseItemDetailSchema(WarehouseItemSchema):
@@ -125,6 +127,7 @@ class InboundWarehouseOrderItemSchema(BaseSchema):
     unit_price_at_receipt: Decimal
     index: int
     batch_barcode: str | None
+    origin_country: str | None = None
     pending: bool
     warehouse_item_id: int | None = None
     outbound_order_code: str | None = None
@@ -166,6 +169,7 @@ class OutboundWarehouseOrderItemSchema(BaseSchema):
     amount: Decimal
     desired_package_type_name: str | None
     desired_batch_code: str | None
+    required_origin_country: str | None = None
     warehouse_item_id: int | None = None
     warehouse_item: WarehouseItemSchema | None = None
     pending: bool

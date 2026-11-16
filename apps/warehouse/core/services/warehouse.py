@@ -189,6 +189,7 @@ class MovementService:
                             amount=amount,
                             location=new_location,
                             order_in=item.order_in,
+                            source_order_item=item.source_order_item,
                             batch=item.batch,
                         )
                         audit_service.add_entry(
@@ -305,6 +306,7 @@ class WarehouseService:
     def get_warehouse_item(item_id: int) -> WarehouseItemSchema:
         try:
             item = WarehouseItem.objects.select_related(
+                "source_order_item",
                 "stock_product",
                 "stock_product__unit_of_measure",
                 "stock_product__type",
@@ -327,6 +329,7 @@ class WarehouseService:
     def get_warehouse_item_detail(item_id: int) -> WarehouseItemDetailSchema:
         try:
             item = WarehouseItem.objects.select_related(
+                "source_order_item",
                 "stock_product",
                 "stock_product__unit_of_measure",
                 "stock_product__type",
@@ -423,6 +426,7 @@ class WarehouseService:
             # Check if item is already assigned to an outbound order
             item = (
                 WarehouseItem.physical_stock.select_related(
+                    "source_order_item",
                     "stock_product",
                     "stock_product__unit_of_measure",
                     "location",
@@ -455,6 +459,7 @@ class WarehouseService:
 
             # Find matching warehouse items with this batch (use physical_stock to include putaway)
             items_qs = WarehouseItem.physical_stock.select_related(
+                "source_order_item",
                 "stock_product",
                 "stock_product__unit_of_measure",
                 "location",
@@ -477,6 +482,7 @@ class WarehouseService:
 
             # Find available warehouse items at this location (use physical_stock to include putaway)
             items_qs = WarehouseItem.physical_stock.select_related(
+                "source_order_item",
                 "stock_product",
                 "stock_product__unit_of_measure",
                 "location",
@@ -499,6 +505,7 @@ class WarehouseService:
 
             # Find available warehouse items of this product (use physical_stock to include putaway)
             items_qs = WarehouseItem.physical_stock.select_related(
+                "source_order_item",
                 "stock_product",
                 "stock_product__unit_of_measure",
                 "location",
@@ -819,6 +826,7 @@ class WarehouseService:
             amount=available_amount,
             desired_package_type=order_item.desired_package_type,
             desired_batch=order_item.desired_batch,
+            required_origin_country=order_item.required_origin_country,
             index=order_item.index,
         )
 
@@ -1301,6 +1309,7 @@ class WarehouseService:
                         amount=amount,
                         desired_package_type=order_item.desired_package_type,
                         desired_batch=order_item.desired_batch,
+                        required_origin_country=order_item.required_origin_country,
                         warehouse_item=order_item.warehouse_item,
                         index=order_item.index,
                     )
@@ -1397,6 +1406,7 @@ class WarehouseService:
                         pi.amount,
                         pi.unit_price,
                         batch_primary_barcode(pi.batch) if pi.batch else None,
+                        pi.origin_country,
                     )
                     for pi in w_order.order.items.select_related(
                         "stock_product", "batch"
@@ -1418,14 +1428,18 @@ class WarehouseService:
                         else Decimal("0")
                     )
                     source_items.append(
-                        (mi.out_product, mi.out_amount, unit_price, None)
+                        (mi.out_product, mi.out_amount, unit_price, None, None)
                     )
             else:
                 source_items = []
 
-            for index, (stock_product, amount, unit_price, batch_barcode) in enumerate(
-                source_items
-            ):
+            for index, (
+                stock_product,
+                amount,
+                unit_price,
+                batch_barcode,
+                origin_country,
+            ) in enumerate(source_items):
                 # Certified rows arrive pre-assigned to their batch (the
                 # tracking dialog pre-fills and locks it), so the worker cannot
                 # mix them up. Stays FUNGIBLE so packaging can still be added.
@@ -1436,6 +1450,7 @@ class WarehouseService:
                     unit_price_at_receipt=unit_price,
                     tracking_level=TrackingLevel.FUNGIBLE,
                     batch_barcode=batch_barcode,
+                    origin_country=origin_country,
                     index=index,
                 )
                 audit_service.add_entry(
@@ -1778,6 +1793,7 @@ class WarehouseService:
                         unit_price_at_receipt=source_item.unit_price_at_receipt,
                         index=source_item.index,
                         batch_barcode=batch_barcode,
+                        origin_country=source_item.origin_country,
                     )
                     audit_service.add_entry(
                         order,
@@ -1818,6 +1834,7 @@ class WarehouseService:
                 stock_product=item.stock_product,
                 package_type__isnull=True,
                 tracking_level=TrackingLevel.FUNGIBLE,
+                origin_country=item.origin_country,
             )
             .exclude(pk=item.pk)
             .first()
@@ -1832,6 +1849,7 @@ class WarehouseService:
                         amount=item.amount,
                         tracking_level=TrackingLevel.FUNGIBLE,
                         unit_price_at_receipt=item.unit_price_at_receipt,
+                        origin_country=item.origin_country,
                         index=item.index,
                     )
                 else:
@@ -2320,6 +2338,7 @@ class WarehouseService:
         """Move a warehouse item to a new location, optionally unpacking a partial amount."""
         try:
             item = WarehouseItem.physical_stock.select_related(
+                "source_order_item",
                 "stock_product",
                 "location",
                 "batch",
@@ -2447,6 +2466,7 @@ class WarehouseService:
                             unit_price_at_receipt=order_item.unit_price_at_receipt,
                             index=order_item.index,
                             batch_barcode=order_item.batch_barcode,
+                            origin_country=order_item.origin_country,
                         )
 
                     audit_service.add_entry(

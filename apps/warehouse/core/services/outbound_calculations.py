@@ -220,6 +220,7 @@ class OutboundCalculationsService:
                 desired_package_type=desired_package_type,
                 desired_batch=desired_batch,
                 note=item.note,
+                required_origin_country=item.required_origin_country,
             )
         return cls._item_to_schema(calculation, item_model)
 
@@ -256,6 +257,7 @@ class OutboundCalculationsService:
             item_model.desired_package_type = desired_package_type
             item_model.desired_batch = desired_batch
             item_model.note = item.note
+            item_model.required_origin_country = item.required_origin_country
             if item.index is not None:
                 item_model.index = item.index
             item_model.save()
@@ -272,6 +274,20 @@ class OutboundCalculationsService:
             OutboundCalculation.objects.select_for_update().get(pk=calculation.pk)
             item_model.delete()
             compact_order_items(calculation.items.select_for_update())
+        return cls.get_calculation(code)
+
+    @classmethod
+    def set_items_required_origin_country(
+        cls, code: str, country: str | None
+    ) -> OutboundCalculationSchema:
+        """Bulk: require the same origin country on every item of the calculation."""
+        calculation = cls._get_active(code)
+        cls._assert_editable(calculation)
+        with transaction.atomic():
+            OutboundCalculation.objects.select_for_update().get(pk=calculation.pk)
+            calculation.items.update(
+                required_origin_country=country, changed=timezone.now()
+            )
         return cls.get_calculation(code)
 
     @classmethod
@@ -386,6 +402,7 @@ class OutboundCalculationsService:
                     desired_package_type=item.desired_package_type,
                     desired_batch=item.desired_batch,
                     note=item.note,
+                    required_origin_country=item.required_origin_country,
                 )
                 for item in source.items.order_by("index")
             )
@@ -452,6 +469,7 @@ class OutboundCalculationsService:
                     desired_package_type=item.desired_package_type,
                     desired_batch=item.desired_batch,
                     note=item.note,
+                    required_origin_country=item.required_origin_country,
                 )
                 for item in items
             )

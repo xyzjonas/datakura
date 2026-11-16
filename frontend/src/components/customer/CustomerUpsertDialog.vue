@@ -47,6 +47,12 @@
             <q-input v-model.trim="form.street" outlined label="Ulice" class="col-span-2" />
             <q-input v-model.trim="form.city" outlined label="Město" />
             <q-input v-model.trim="form.postal_code" outlined label="PSČ" />
+            <CountrySelect
+              v-model="form.state"
+              label="Země sídla"
+              hint="U dodavatele výchozí země původu zboží"
+              :rules="[rules.notEmpty]"
+            />
           </div>
 
           <!-- Contact Information -->
@@ -74,18 +80,6 @@
               label="Výchozí platební metoda"
               hint="Použije se jako předvyplněná metoda při tvorbě faktury."
             />
-            <q-checkbox v-model="form.is_self" label="Naše firma (dodavatel na faktuře)" />
-            <q-checkbox v-model="form.is_supplier" label="Dodavatel (výchozí je odběratel)" />
-          </div>
-
-          <!-- Minimum item value -->
-          <CustomerMinimumValueFields
-            v-model:enabled="form.minimum_item_value_enabled"
-            v-model:minimum-item-value="form.minimum_item_value"
-          />
-
-          <!-- Relationships -->
-          <div class="grid grid-cols-2 gap-2">
             <q-select
               v-model="form.customer_group_code"
               :options="customerGroups"
@@ -99,23 +93,59 @@
             />
           </div>
 
-          <!-- Agreements -->
-          <div class="flex gap-4">
-            <q-checkbox v-model="form.data_collection_agreement" label="GDPR - Sběr dat" />
-            <q-checkbox
-              v-model="form.marketing_data_use_agreement"
-              label="Marketing - Použití dat"
-            />
-          </div>
-
-          <!-- Status -->
-          <div class="flex gap-4">
-            <q-checkbox v-model="form.is_valid" label="Platný" />
-            <q-checkbox v-model="form.is_deleted" label="Smazaný" />
-          </div>
+          <!-- Minimum item value -->
+          <CustomerMinimumValueFields
+            v-model:minimum-item-value="form.minimum_item_value"
+            :disable="!form.minimum_item_value_enabled"
+          />
 
           <!-- Note -->
           <q-input v-model.trim="form.note" outlined type="textarea" rows="3" label="Poznámka" />
+
+          <!-- Switches -->
+          <div class="flex flex-col gap-4">
+            <ToggleRow
+              v-model="form.is_self"
+              label="Naše firma"
+              description="Zákazník představuje naši vlastní firmu. Použije se jako dodavatel na vystavených fakturách. Může existovat pouze jedna."
+            />
+            <ToggleRow
+              v-model="form.is_supplier"
+              label="Dodavatel"
+              description="Hlavní role zákazníka je dodavatel (vydané objednávky). Pokud je vypnuto, jde o odběratele s přijatými objednávkami. Určuje pouze, co se zobrazuje v detailu zákazníka."
+            />
+            <ToggleRow
+              v-model="form.requires_origin_country"
+              data-test="requires-origin-country"
+              label="Vyžaduje zemi původu zboží"
+              description="Každá položka objednávky tohoto zákazníka musí mít požadovanou zemi původu, jinak nelze objednávku předat do skladu. Země se pak uvádí na faktuře."
+            />
+            <ToggleRow
+              v-model="form.minimum_item_value_enabled"
+              label="Zaokrouhlovat na minimální hodnotu položky"
+              description="Položky s nižší celkovou cenou se zaokrouhlí nahoru na minimální hodnotu (vlastní, nebo globální). Po vypnutí se minimum pro tohoto zákazníka vůbec neuplatní."
+            />
+            <ToggleRow
+              v-model="form.data_collection_agreement"
+              label="GDPR - souhlas se sběrem dat"
+              description="Zákazník udělil souhlas se shromažďováním a zpracováním svých osobních údajů."
+            />
+            <ToggleRow
+              v-model="form.marketing_data_use_agreement"
+              label="Marketing - souhlas s použitím dat"
+              description="Zákazník souhlasí s použitím svých údajů pro marketingové účely a nabídky."
+            />
+            <ToggleRow
+              v-model="form.is_valid"
+              label="Platný"
+              description="Zákazník je aktivní a lze jej vybírat v nových objednávkách. Vypněte u zákazníků, se kterými již nespolupracujeme."
+            />
+            <ToggleRow
+              v-model="form.is_deleted"
+              label="Smazaný"
+              description="Zákazník je označen jako smazaný a skrytý ze seznamů. Historie objednávek a faktur zůstává zachována."
+            />
+          </div>
 
           <div class="mt-2 flex justify-end">
             <q-btn
@@ -136,6 +166,8 @@
 <script setup lang="ts">
 import type { CustomerCreateOrUpdateSchema, CustomerGroupSchema } from '@/client'
 import CustomerMinimumValueFields from '@/components/customer/CustomerMinimumValueFields.vue'
+import ToggleRow from '@/components/customer/ToggleRow.vue'
+import CountrySelect from '@/components/selects/CountrySelect.vue'
 import InvoicePaymentMethodSelect from '@/components/selects/InvoicePaymentMethodSelect.vue'
 import { rules } from '@/utils/rules'
 

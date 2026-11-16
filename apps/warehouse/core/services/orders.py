@@ -237,6 +237,7 @@ class OrdersService:
                 unit_price=OrdersService._compute_unit_price(amount, total_price),
                 index=item.index if item.index is not None else next_index,
                 requires_certification=item.requires_certification,
+                origin_country=item.origin_country,
             )
 
         return inbound_order_item_orm_to_schema(item_model)
@@ -260,12 +261,34 @@ class OrdersService:
             if item.index is not None:
                 item_model.index = item.index
             item_model.requires_certification = item.requires_certification
+            item_model.origin_country = item.origin_country
             item_model.save()
             if not item.requires_certification:
                 # Unflagged row: drop the certificate link and its batch
                 certifications_service.detach_from_inbound_item(item_model)
 
         return inbound_order_item_orm_to_schema(item_model)
+
+    @staticmethod
+    def set_items_origin_country(
+        code: str, country: str | None, context: RequestContext
+    ) -> InboundOrderSchema:
+        """Bulk: stamp the same origin country on every item of the order."""
+        order = InboundOrder.objects.get(code=code)
+        OrdersService._ensure_inbound_order_editable(order)
+        with transaction.atomic():
+            InboundOrder.objects.select_for_update().get(pk=order.pk)
+            order.items.update(origin_country=country, changed=timezone.now())
+            audit_service.add_entry(
+                order,
+                action=AuditAction.UPDATE,
+                user=context.user_id,
+                reason=AuditMessages.ORDER_UPDATED.CS,
+                changes={"origin_country": {"all_items": country}},
+            )
+
+        order.refresh_from_db()
+        return inbound_order_orm_to_schema(order)
 
     @staticmethod
     def remove_item(code: str, item_index: int) -> InboundOrderSchema:
@@ -505,6 +528,7 @@ class OrdersService:
                     index=item.index,
                     # certificate + batch are per delivery - to be supplied again
                     requires_certification=item.requires_certification,
+                    origin_country=item.origin_country,
                 )
             audit_service.add_entry(
                 new_order,

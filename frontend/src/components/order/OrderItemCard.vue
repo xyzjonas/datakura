@@ -22,6 +22,7 @@
             :requires-certification="requiresCertification"
             :certification="certification"
           />
+          <slot name="requirements" />
         </div>
       </div>
       <div class="flex items-center gap-1 shrink-0">

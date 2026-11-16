@@ -28,6 +28,15 @@ describe('OrderItemCard', () => {
     expect(mountCard().find('[data-test="certification-badge"]').exists()).toBe(false)
   })
 
+  it('renders the requirements slot below the product', () => {
+    const wrapper = mount(OrderItemCard, {
+      props: { item: item(), currency: 'CZK', purchasePrice: 1 },
+      slots: { requirements: '<span data-test="req-slot">B0100</span>' },
+      global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+    })
+    expect(wrapper.get('[data-test="req-slot"]').text()).toBe('B0100')
+  })
+
   it('flags a certified item that still misses its certificate', () => {
     const wrapper = mountCard({ requiresCertification: true, certification: null })
     expect(wrapper.get('[data-test="certification-badge"]').text()).toContain('chybí certifikát')

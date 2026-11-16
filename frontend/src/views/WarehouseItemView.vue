@@ -112,6 +112,12 @@
               <span v-else class="text-gray-5">-</span>
             </q-item-section>
           </q-item>
+          <q-item v-if="item.origin_country" data-test="origin-country">
+            <q-item-section>Země původu</q-item-section>
+            <q-item-section avatar>
+              <CountryBadge :code="item.origin_country" />
+            </q-item-section>
+          </q-item>
           <q-item v-if="item.batch">
             <q-item-section>Šarže</q-item-section>
             <q-item-section avatar>
@@ -147,6 +153,7 @@
 <script setup lang="ts">
 import { warehouseApiRoutesWarehouseGetWarehouseItem } from '@/client'
 import BarcodeElement from '@/components/BarcodeElement.vue'
+import CountryBadge from '@/components/CountryBadge.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import RightSideDialog from '@/components/layout/RightSideDialog.vue'
 import MovementDialog from '@/components/movement/MovementDialog.vue'

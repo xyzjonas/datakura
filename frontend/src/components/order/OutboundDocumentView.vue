@@ -119,6 +119,13 @@
       :disabled="!isEditable"
       @add="addItemDialog = true"
     >
+      <template #before-add>
+        <BulkOriginCountryButton
+          :disabled="!isEditable || !order.items?.length"
+          description="Požadovaná země původu zboží na všech položkách najednou."
+          @apply="setOriginCountry"
+        />
+      </template>
       <OrderTotalsHeader :order="order" />
     </OrderItemsHeader>
 
@@ -190,6 +197,7 @@ import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import NewOutboundOrderItemDialog from '@/components/order/NewOutboundOrderItemDialog.vue'
+import BulkOriginCountryButton from '@/components/order/BulkOriginCountryButton.vue'
 import OrderItemsHeader from '@/components/order/OrderItemsHeader.vue'
 import OrderTotalsHeader from '@/components/order/OrderTotalsHeader.vue'
 import OutboundCalculationActions from '@/components/order/OutboundCalculationActions.vue'
@@ -206,6 +214,7 @@ import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
 import {
   provideOutboundDocumentKind,
+  provideRequiresOriginCountry,
   useOutboundDocumentApi,
   type OutboundDocument,
   type OutboundDocumentKind,
@@ -230,6 +239,7 @@ const $q = useQuasar()
 const { onResponse } = useApi()
 const api = useOutboundDocumentApi(() => props.kind)
 provideOutboundDocumentKind(props.kind)
+provideRequiresOriginCountry(() => order.value?.customer.requires_origin_country ?? false)
 const isCalculation = computed(() => props.kind === 'calculation')
 
 // kind specific views of the very same ref
@@ -290,6 +300,20 @@ const removeItem = async (item_index: number) => {
   const data = onResponse(await api.removeItem(order.value.code, item_index))
   if (data) {
     order.value = data.data
+  }
+}
+
+const setOriginCountry = async (country: string | null) => {
+  if (!order.value) {
+    return
+  }
+  const data = onResponse(await api.setOriginCountry(order.value.code, country))
+  if (data) {
+    order.value = data.data
+    $q.notify({
+      type: 'positive',
+      message: country ? 'Země původu nastavena na všech položkách' : 'Země původu odstraněna',
+    })
   }
 }
 

@@ -74,6 +74,7 @@
         <OutboundItemRequirements
           v-model:package-type-name="item.desired_package_type_name"
           v-model:batch-code="item.desired_batch_code"
+          v-model:origin-country="item.required_origin_country"
           :product-name="item.product.name"
           :product-code="item.product.code"
           @save="update('requirements')"
@@ -181,6 +182,7 @@ const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements'
     index: item.value.index,
     desired_package_type_name: item.value.desired_package_type_name,
     desired_batch_code: item.value.desired_batch_code,
+    required_origin_country: item.value.required_origin_country,
     note: item.value.note,
   })
 

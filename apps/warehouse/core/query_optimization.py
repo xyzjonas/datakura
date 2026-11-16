@@ -81,6 +81,7 @@ def warehouse_item_prefetch(lookup: str) -> list[Prefetch]:
         Prefetch(
             lookup,
             queryset=WarehouseItem.objects.select_related(
+                "source_order_item",
                 "location__warehouse",
                 "package_type__unit_of_measure__base_uom",
                 "order_in",
@@ -249,7 +250,7 @@ def inbound_warehouse_orders_for_schema(
         Prefetch(
             "order_items__warehouse_items",
             queryset=WarehouseItem.objects.select_related(
-                "location", "outbound_assignment__warehouse_order"
+                "source_order_item", "location", "outbound_assignment__warehouse_order"
             ),
         ),
         *warehouse_item_prefetch("items"),

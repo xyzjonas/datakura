@@ -68,6 +68,9 @@ class Customer(BaseModel):
     # appears on sales orders (`OutboundOrder`). True = supplier: mostly appears on
     # purchase orders (`InboundOrder`). Only drives what the customer detail shows.
     is_supplier = models.BooleanField(default=False)
+    # Sales orders of this customer need the origin country of every item
+    # (`OutboundOrderItem.required_origin_country`) before they go to the warehouse.
+    requires_origin_country = models.BooleanField(default=False)
     # Rounding of order item value up to a minimum. When enabled, `minimum_item_value`
     # overrides the global one (null = use the global one), when disabled no minimum
     # applies to this customer at all.

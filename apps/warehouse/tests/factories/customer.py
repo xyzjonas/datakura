@@ -43,6 +43,7 @@ class CustomerFactory(DjangoModelFactory):
     city = factory.Faker("city")
     postal_code = factory.Faker("postcode")
     state = "CZ"
+    requires_origin_country = False
 
     # Tax Information
     tax_identification = factory.Sequence(lambda n: f"CZ{n:08d}")
