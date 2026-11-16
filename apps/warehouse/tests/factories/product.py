@@ -11,6 +11,7 @@ from apps.warehouse.models.product import (
     ProductGroup,
     PriceGroup,
     StockProduct,
+    CustomerProductCode,
     StockProductPrice,
 )
 from .customer import CustomerFactory
@@ -88,3 +89,16 @@ class StockProductPriceFactory(DjangoModelFactory):
 
 class StockProductPriceCustomerFactory(StockProductPriceFactory):
     customer = factory.SubFactory(CustomerFactory)  # type: ignore
+
+
+class CustomerProductCodeFactory(DjangoModelFactory):
+    class Meta:
+        model = CustomerProductCode
+
+    @classmethod
+    def it(cls, **kwargs) -> CustomerProductCode:
+        return cls(**kwargs)  # type: ignore
+
+    product = factory.SubFactory(StockProductFactory)
+    customer = factory.SubFactory(CustomerFactory)
+    code = factory.Sequence(lambda n: f"CC-{n:05d}")

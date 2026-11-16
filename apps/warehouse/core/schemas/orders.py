@@ -105,6 +105,8 @@ class OutboundOrderItemCreateSchema(Schema):
     desired_batch_code: str | None = None
     note: str | None = None
     required_origin_country: CountryCode | None = None
+    # the customer's own code of the product; (re)sets it for the customer when given
+    customer_product_code: Annotated[str, Field(max_length=100)] | None = None
 
 
 class OutboundOrderItemPricingDetailsSchema(Schema):
@@ -129,6 +131,8 @@ class OutboundOrderItemSchema(BaseSchema):
     desired_batch_code: str | None = None
     note: str | None = None
     required_origin_country: str | None = None
+    # the customer's own code of the product, if the customer has one set
+    customer_product_code: str | None = None
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None
 
 

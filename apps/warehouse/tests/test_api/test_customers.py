@@ -493,3 +493,18 @@ def test_update_customer_rejects_negative_minimum_item_value(db, client) -> None
     )
 
     assert res.status_code == 422
+
+
+@pytest.mark.parametrize("flag", [True, False])
+def test_update_customer_requires_own_codes(db, client, flag) -> None:
+    customer = cast(Customer, CustomerFactoryWithContacts(requires_own_codes=not flag))
+
+    res = client.put(
+        f"/{customer.code}",
+        json=_customer_payload(customer, requires_own_codes=flag),
+    )
+
+    assert res.status_code == 200
+    assert res.json()["data"]["requires_own_codes"] is flag
+    customer.refresh_from_db()
+    assert customer.requires_own_codes is flag

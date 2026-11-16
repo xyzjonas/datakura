@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from ninja import Schema
-from pydantic import Field, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
 from .base import BaseSchema, PaginatedResponse, Response
 from .barcode import BarcodeSchema
@@ -31,6 +33,25 @@ class DynamicProductPriceSchema(BaseSchema):
     discount_percent: float
     min_amount: float | None = None
     customer: DynamicProductPriceCustomerSchema
+
+
+class CustomerProductCodeSchema(BaseSchema):
+    id: int
+    code: str
+    customer: DynamicProductPriceCustomerSchema
+
+
+class CustomerProductCodeUpsertSchema(Schema):
+    customer_code: str
+    code: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ]
+
+
+class CustomerProductCodeUpdateSchema(Schema):
+    code: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ]
 
 
 class SellingPriceLookupSchema(Schema):
@@ -120,6 +141,12 @@ class ProductDuplicateSchema(ProductCreateOrUpdateSchema): ...
 
 
 class GetProductResponse(Response[ProductSchema]): ...
+
+
+class GetCustomerProductCodeResponse(Response[CustomerProductCodeSchema]): ...
+
+
+class GetCustomerProductCodesResponse(Response[list[CustomerProductCodeSchema]]): ...
 
 
 class GetSellingPriceLookupResponse(Response[SellingPriceLookupSchema]): ...

@@ -39,6 +39,7 @@ from apps.warehouse.core.services.outbound_common import (
     outbound_order_schema_with_pricing,
     with_pricing_details,
 )
+from apps.warehouse.core.services.customer_codes import customer_product_codes_service
 from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.services.shipping import shipping_service
 from apps.warehouse.core.services.warehouse_order_factory import (
@@ -46,6 +47,7 @@ from apps.warehouse.core.services.warehouse_order_factory import (
     create_warehouse_order,
 )
 from apps.warehouse.core.transformation import (
+    customer_codes_of_items,
     outbound_order_item_orm_to_schema,
     outbound_order_orm_to_schema,
 )
@@ -523,6 +525,17 @@ class OutboundOrdersService:
 
         return outbound_order_schema_with_pricing(order)
 
+    @staticmethod
+    def _store_customer_product_code(
+        order: OutboundOrder,
+        stock_product: StockProduct,
+        item: OutboundOrderItemCreateSchema,
+    ) -> None:
+        """A code given with the item becomes the customer's code of the product."""
+        code = (item.customer_product_code or "").strip()
+        if code:
+            customer_product_codes_service.upsert(stock_product, order.customer, code)
+
     @classmethod
     def add_item(
         cls,
@@ -567,6 +580,7 @@ class OutboundOrdersService:
             )
             if order.state != OutboundOrderState.SUBMITTED:
                 cls._assert_origin_country_present(order, [item_model])
+            cls._store_customer_product_code(order, stock_product, item)
             cls._sync_order_item_to_warehouse_orders(
                 order=order,
                 order_item=item_model,
@@ -580,7 +594,9 @@ class OutboundOrdersService:
             total_price=total_price,
         )
         return outbound_order_item_orm_to_schema(
-            item_model, pricing_details=pricing_details
+            item_model,
+            pricing_details=pricing_details,
+            customer_codes=customer_codes_of_items(order.customer, [item_model]),
         )
 
     @classmethod
@@ -623,6 +639,7 @@ class OutboundOrdersService:
             if order.state != OutboundOrderState.SUBMITTED:
                 cls._assert_origin_country_present(order, [item_model])
             item_model.save()
+            cls._store_customer_product_code(order, item_model.stock_product, item)
             cls._sync_order_item_to_warehouse_orders(
                 order=order,
                 order_item=item_model,
@@ -635,7 +652,9 @@ class OutboundOrdersService:
             total_price=item_model.total_price,
         )
         return outbound_order_item_orm_to_schema(
-            item_model, pricing_details=pricing_details
+            item_model,
+            pricing_details=pricing_details,
+            customer_codes=customer_codes_of_items(order.customer, [item_model]),
         )
 
     @classmethod
@@ -789,6 +808,8 @@ class OutboundOrdersService:
 
         if new_state == OutboundOrderState.PICKING:
             cls._assert_origin_country_present(order, order.items.all())
+        if new_state == OutboundOrderState.PICKING and old_state != new_state:
+            customer_product_codes_service.assert_order_items_have_codes(order)
 
         with transaction.atomic():
             order.state = new_state

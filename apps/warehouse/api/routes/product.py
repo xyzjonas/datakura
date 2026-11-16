@@ -16,6 +16,10 @@ from apps.warehouse.core.schemas.type import (
 )
 from apps.warehouse.core.schemas.product import (
     CustomerPriceOverrideUpsertSchema,
+    CustomerProductCodeUpdateSchema,
+    CustomerProductCodeUpsertSchema,
+    GetCustomerProductCodeResponse,
+    GetCustomerProductCodesResponse,
     GetProductResponse,
     GetDiscountGroupResponse,
     GetDiscountGroupsResponse,
@@ -43,8 +47,10 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.services.products import stock_product_service
+from apps.warehouse.core.services.customer_codes import customer_product_codes_service
 from apps.warehouse.core.services.barcode_generator import barcode_generator_service
 from apps.warehouse.core.transformation import (
+    customer_product_code_orm_to_schema,
     discount_group_orm_to_schema,
     get_product_by_code,
     product_type_orm_to_schema,
@@ -272,6 +278,62 @@ def add_product_dynamic_price(
 ):
     return GetProductResponse(
         data=stock_product_service.add_dynamic_price(product_code, body)
+    )
+
+
+@routes.get(
+    "/{product_code}/customer-codes", response={200: GetCustomerProductCodesResponse}
+)
+def get_product_customer_codes(request: HttpRequest, product_code: str):
+    entries = customer_product_codes_service.list_for_product(product_code)
+    return GetCustomerProductCodesResponse(
+        data=[customer_product_code_orm_to_schema(entry) for entry in entries]
+    )
+
+
+@routes.post(
+    "/{product_code}/customer-codes", response={200: GetCustomerProductCodeResponse}
+)
+def upsert_product_customer_code(
+    request: HttpRequest,
+    product_code: str,
+    body: CustomerProductCodeUpsertSchema,
+):
+    entry = customer_product_codes_service.upsert_by_codes(
+        product_code, body.customer_code, body.code
+    )
+    return GetCustomerProductCodeResponse(
+        data=customer_product_code_orm_to_schema(entry)
+    )
+
+
+@routes.patch(
+    "/{product_code}/customer-codes/{entry_id}",
+    response={200: GetCustomerProductCodeResponse},
+)
+def update_product_customer_code(
+    request: HttpRequest,
+    product_code: str,
+    entry_id: int,
+    body: CustomerProductCodeUpdateSchema,
+):
+    entry = customer_product_codes_service.update(product_code, entry_id, body.code)
+    return GetCustomerProductCodeResponse(
+        data=customer_product_code_orm_to_schema(entry)
+    )
+
+
+@routes.delete(
+    "/{product_code}/customer-codes/{entry_id}",
+    response={200: GetCustomerProductCodesResponse},
+)
+def delete_product_customer_code(
+    request: HttpRequest, product_code: str, entry_id: int
+):
+    customer_product_codes_service.delete(product_code, entry_id)
+    entries = customer_product_codes_service.list_for_product(product_code)
+    return GetCustomerProductCodesResponse(
+        data=[customer_product_code_orm_to_schema(entry) for entry in entries]
     )
 
 

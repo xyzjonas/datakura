@@ -1,5 +1,7 @@
 """Models related to the stock itself (items, packaging, etc...)"""
 
+from collections.abc import Iterable
+
 from django.db import models
 from django.db.models import Q
 
@@ -138,3 +140,46 @@ class StockProductPrice(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.product.code} - {self.customer.code} ({self.fixed_price})"
+
+
+class CustomerProductCode(BaseModel):
+    """The code a customer uses for one of our stock products (instead of our own)."""
+
+    product = models.ForeignKey(
+        StockProduct,
+        null=False,
+        on_delete=models.CASCADE,
+        related_name="customer_codes",
+    )
+    customer = models.ForeignKey(
+        "warehouse.Customer",
+        null=False,
+        on_delete=models.CASCADE,
+        related_name="product_codes",
+    )
+    code = models.CharField(max_length=100)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["product", "customer"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "customer"],
+                name="warehouse_unique_customer_code_per_product",
+            ),
+            models.CheckConstraint(
+                condition=~Q(code=""),
+                name="warehouse_customer_product_code_not_empty",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.customer_id}: {self.product_id} -> {self.code}"
+
+    @classmethod
+    def codes_for(cls, customer, product_ids: Iterable[int]) -> dict[int, str]:
+        """`{product id: customer's code}` of the given products (one query)."""
+        return dict(
+            cls.objects.filter(
+                customer=customer, product_id__in=set(product_ids)
+            ).values_list("product_id", "code")
+        )
