@@ -22,12 +22,7 @@
             :requires-certification="requiresCertification"
             :certification="certification"
           />
-          <OriginCountryMarker
-            class="mt-1 self-start"
-            :country="originCountry"
-            :missing="originCountryMissing"
-            :tooltip="originCountryTooltip"
-          />
+          <slot name="requirements" />
         </div>
       </div>
       <div class="flex items-center gap-1 shrink-0">
@@ -85,7 +80,6 @@
 import { formatDecimal } from '@/utils/format-number'
 import type { Margin } from '@/utils/margin'
 import CertificationBadge from '../certification/CertificationBadge.vue'
-import OriginCountryMarker from '../OriginCountryMarker.vue'
 import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'
 
@@ -104,11 +98,6 @@ const props = defineProps<{
   /** Inbound only. */
   certification?: { code: string } | null
   purchasePrice: number
-  /** Inbound: where the goods come from, outbound: where they are required to come from. */
-  originCountry?: string | null
-  /** Outbound only: the customer requires a country but the row has none. */
-  originCountryMissing?: boolean
-  originCountryTooltip?: string
   /** Outbound only. */
   sellingPrice?: number
   /** Outbound only. */

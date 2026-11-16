@@ -28,17 +28,13 @@ describe('OrderItemCard', () => {
     expect(mountCard().find('[data-test="certification-badge"]').exists()).toBe(false)
   })
 
-  it.each([
-    [{ originCountry: 'DE' }, 'country-badge'],
-    [{ originCountry: null, originCountryMissing: true }, 'missing-origin-country'],
-  ])('shows the origin country marker for %o', (props, marker) => {
-    expect(mountCard(props).find(`[data-test="${marker}"]`).exists()).toBe(true)
-  })
-
-  it('shows no origin country marker by default', () => {
-    const wrapper = mountCard()
-    expect(wrapper.find('[data-test="country-badge"]').exists()).toBe(false)
-    expect(wrapper.find('[data-test="missing-origin-country"]').exists()).toBe(false)
+  it('renders the requirements slot below the product', () => {
+    const wrapper = mount(OrderItemCard, {
+      props: { item: item(), currency: 'CZK', purchasePrice: 1 },
+      slots: { requirements: '<span data-test="req-slot">B0100</span>' },
+      global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+    })
+    expect(wrapper.get('[data-test="req-slot"]').text()).toBe('B0100')
   })
 
   it('flags a certified item that still misses its certificate', () => {

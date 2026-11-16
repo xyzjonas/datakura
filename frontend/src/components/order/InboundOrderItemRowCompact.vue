@@ -7,11 +7,13 @@
     :purchase-price="Number(item.unit_price)"
     :requires-certification="item.requires_certification"
     :certification="item.certification"
-    :origin-country="item.origin_country"
-    origin-country-tooltip="Země původu"
     @edit="editDialog = true"
     @remove="removeDialog = true"
-  />
+  >
+    <template #requirements>
+      <OriginCountryMarker class="mt-1 self-start" :country="item.origin_country" />
+    </template>
+  </OrderItemCard>
   <div v-else class="flex flex-col flex-1 gap-2">
     <div class="flex items-center w-full flex-nowrap">
       <div class="w-12">

@@ -7,12 +7,18 @@
     :purchase-price="Number(pricing.avgPurchasePrice)"
     :selling-price="Number(item.unit_price)"
     :margin="margin"
-    :origin-country="item.required_origin_country"
-    :origin-country-missing="originCountryMissing"
-    origin-country-tooltip="Požadovaná země původu"
     @edit="editDialog = true"
     @remove="removeDialog = true"
-  />
+  >
+    <template #requirements>
+      <OutboundItemRequirementBadges
+        class="mt-1"
+        :package-type="item.desired_package_type_name"
+        :batch-code="item.desired_batch_code"
+        :origin-country="item.required_origin_country"
+      />
+    </template>
+  </OrderItemCard>
   <div v-else class="flex flex-col flex-1 gap-2">
     <div class="flex items-center w-full flex-nowrap">
       <div class="w-12">
@@ -26,11 +32,11 @@
           >{{ item.product.name }}</router-link
         >
         <div class="text-xs text-gray-5">{{ item.product.code }}</div>
-        <OriginCountryMarker
+        <OutboundItemRequirementBadges
           class="mt-1"
-          :country="item.required_origin_country"
-          :missing="originCountryMissing"
-          tooltip="Požadovaná země původu"
+          :package-type="item.desired_package_type_name"
+          :batch-code="item.desired_batch_code"
+          :origin-country="item.required_origin_country"
         />
       </div>
 
@@ -116,7 +122,6 @@
 <script setup lang="ts">
 import type { OutboundOrderItemSchema } from '@/client'
 import { useOrderItemCardLayout } from '@/composables/use-order-item-card-layout'
-import { useRequiresOriginCountry } from '@/composables/use-outbound-document-api'
 import { calculateMargin } from '@/utils/margin'
 import { computed, defineEmits, defineModel, defineProps, ref } from 'vue'
 import CommentCard from '../CommentCard.vue'
@@ -125,7 +130,7 @@ import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
 import IndexRectangle from '../IndexRectangle.vue'
-import OriginCountryMarker from '../OriginCountryMarker.vue'
+import OutboundItemRequirementBadges from './OutboundItemRequirementBadges.vue'
 import MarginPercent from './MarginPercent.vue'
 import MarginText from './MarginText.vue'
 import OutboundOrderItemEditDialog from './OutboundOrderItemEditDialog.vue'
@@ -143,10 +148,6 @@ defineEmits<{ (e: 'remove'): void }>()
 const item = defineModel<OutboundOrderItemSchema>('item', { required: true })
 
 const cardLayout = useOrderItemCardLayout()
-const customerRequiresOriginCountry = useRequiresOriginCountry()
-const originCountryMissing = computed(
-  () => customerRequiresOriginCountry.value && !item.value.required_origin_country,
-)
 const editDialog = ref(false)
 const removeDialog = ref(false)
 
