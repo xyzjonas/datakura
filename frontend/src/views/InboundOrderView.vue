@@ -196,6 +196,7 @@ import {
   warehouseApiRoutesInboundOrdersGetInboundOrder,
   warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder,
   warehouseApiRoutesInboundOrdersReorderItemInInboundOrder,
+  warehouseApiRoutesInboundOrdersSetInboundOrderItemCertification,
   warehouseApiRoutesInboundOrdersSetInboundOrderOriginCountry,
   warehouseApiRoutesInboundOrdersTransitionInboundOrder,
   warehouseApiRoutesInboundOrdersUpdateInboundOrder,
@@ -210,6 +211,11 @@ import {
 } from '@/client'
 import { formDataBodySerializer } from '@/client/client'
 import { client } from '@/client/client.gen'
+import {
+  certificationDraftToBody,
+  multipartRequestOptions,
+  type CertificationDraft,
+} from '@/components/certification/certification-upload'
 import CommentCard from '@/components/CommentCard.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
@@ -273,7 +279,11 @@ await loadSelfCustomer()
 const addItemDialog = ref(false)
 const auditDialog = ref(false)
 const addItemDialogComponent = ref<InstanceType<typeof NewOrderItemDialog>>()
-const addItem = async (item: InboundOrderItemCreateSchema, keepOpen = false) => {
+const addItem = async (
+  item: InboundOrderItemCreateSchema,
+  keepOpen = false,
+  certification: CertificationDraft | null = null,
+) => {
   if (!order.value) {
     return
   }
@@ -284,7 +294,18 @@ const addItem = async (item: InboundOrderItemCreateSchema, keepOpen = false) => 
   const itemData = onResponse(addResponse)
 
   if (itemData) {
-    order.value.items?.push(itemData.data)
+    let created = itemData.data
+    const body = certification ? certificationDraftToBody(certification) : null
+    if (body) {
+      // the certificate can only be attached to an existing row
+      const certResponse = await warehouseApiRoutesInboundOrdersSetInboundOrderItemCertification({
+        path: { order_code: order.value.code, item_index: created.index },
+        body,
+        ...multipartRequestOptions,
+      })
+      created = onResponse(certResponse)?.data ?? created
+    }
+    order.value.items?.push(created)
     if (addItemDialogComponent.value) {
       addItemDialogComponent.value.reset(!keepOpen)
     }

@@ -65,6 +65,16 @@
             label="Země původu"
             hint="Výchozí je země dodavatele"
           />
+          <q-toggle
+            v-model="item.requires_certification"
+            label="Certifikované zboží"
+            data-test="requires-certification"
+          />
+          <CertificationFields
+            v-if="item.requires_certification"
+            v-model:draft="certificationDraft"
+            optional
+          />
           <div class="flex gap-2 mt-3">
             <q-btn
               type="submit"
@@ -94,6 +104,11 @@ import type { InboundOrderItemCreateSchema, ProductSchema } from '@/client'
 import { rules } from '@/utils/rules'
 import { computed, nextTick, ref, watch } from 'vue'
 import type { QForm } from 'quasar'
+import CertificationFields from '../certification/CertificationFields.vue'
+import {
+  emptyCertificationDraft,
+  type CertificationDraft,
+} from '../certification/certification-upload'
 import CountrySelect from '../selects/CountrySelect.vue'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
@@ -121,9 +136,12 @@ const emptyItem = (): InboundOrderItemCreateSchema => ({
   total_price: 0,
   unit_price: 0,
   origin_country: props.supplierCountry ?? null,
+  requires_certification: false,
 })
 
 const item = ref<InboundOrderItemCreateSchema>(emptyItem())
+/** Certificate supplied along with a certified row (attached once the row exists). */
+const certificationDraft = ref<CertificationDraft>(emptyCertificationDraft())
 
 watch(
   () => props.supplierCountry,
@@ -183,7 +201,12 @@ watch(
 )
 
 const emit = defineEmits<{
-  (e: 'addItem', item: InboundOrderItemCreateSchema, keepOpen: boolean): void
+  (
+    e: 'addItem',
+    item: InboundOrderItemCreateSchema,
+    keepOpen: boolean,
+    certification: CertificationDraft | null,
+  ): void
 }>()
 
 const form = ref<QForm>()
@@ -191,12 +214,18 @@ const productSelect = ref<InstanceType<typeof ProductSearchSelect>>()
 const keepOpen = ref(false)
 
 const addItem = () => {
-  emit('addItem', item.value, keepOpen.value)
+  emit(
+    'addItem',
+    item.value,
+    keepOpen.value,
+    item.value.requires_certification ? certificationDraft.value : null,
+  )
   keepOpen.value = false
 }
 
 const reset = (close = true) => {
   item.value = emptyItem()
+  certificationDraft.value = emptyCertificationDraft()
   product.value = undefined
   if (close) {
     showDialog.value = false
