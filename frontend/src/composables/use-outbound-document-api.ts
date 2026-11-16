@@ -6,6 +6,7 @@ import {
   warehouseApiRoutesOutboundCalculationsGetOutboundCalculations,
   warehouseApiRoutesOutboundCalculationsRemoveItemFromOutboundCalculation,
   warehouseApiRoutesOutboundCalculationsReorderItemInOutboundCalculation,
+  warehouseApiRoutesOutboundCalculationsSetOutboundCalculationOriginCountry,
   warehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculation,
   warehouseApiRoutesOutboundCalculationsUpdateOutboundCalculation,
   warehouseApiRoutesOutboundOrdersAddItemToOutboundOrder,
@@ -15,6 +16,7 @@ import {
   warehouseApiRoutesOutboundOrdersGetOutboundOrders,
   warehouseApiRoutesOutboundOrdersRemoveItemsFromOutboundOrder,
   warehouseApiRoutesOutboundOrdersReorderItemInOutboundOrder,
+  warehouseApiRoutesOutboundOrdersSetOutboundOrderOriginCountry,
   warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder,
   warehouseApiRoutesOutboundOrdersUpdateOutboundOrder,
   type OutboundCalculationCreateOrUpdateSchema,
@@ -22,7 +24,7 @@ import {
   type OutboundOrderItemCreateSchema,
   type OutboundOrderSchema,
 } from '@/client'
-import { inject, provide, toValue, type InjectionKey, type MaybeRefOrGetter } from 'vue'
+import { computed, inject, provide, toValue, type InjectionKey, type MaybeRefOrGetter } from 'vue'
 
 /**
  * Outbound orders and calculations are two separate tables with the very same shape
@@ -45,6 +47,19 @@ const KIND_KEY: InjectionKey<OutboundDocumentKind> = Symbol('outbound-document-k
 
 /** Lets all descendants (item rows, dialogs...) talk to the right API without prop drilling. */
 export const provideOutboundDocumentKind = (kind: OutboundDocumentKind) => provide(KIND_KEY, kind)
+
+const REQUIRES_ORIGIN_COUNTRY_KEY: InjectionKey<MaybeRefOrGetter<boolean>> = Symbol(
+  'outbound-requires-origin-country',
+)
+
+/** The customer of the document needs the origin country on every item. */
+export const provideRequiresOriginCountry = (requires: MaybeRefOrGetter<boolean>) =>
+  provide(REQUIRES_ORIGIN_COUNTRY_KEY, requires)
+
+export const useRequiresOriginCountry = () => {
+  const injected = inject(REQUIRES_ORIGIN_COUNTRY_KEY, false)
+  return computed(() => toValue(injected))
+}
 
 export const useOutboundDocumentApi = (kind?: MaybeRefOrGetter<OutboundDocumentKind>) => {
   const injectedKind = inject(KIND_KEY, 'order')
@@ -135,6 +150,18 @@ export const useOutboundDocumentApi = (kind?: MaybeRefOrGetter<OutboundDocumentK
           body: { new_index: newIndex },
         })
 
+  /** Bulk: require (or, with null, drop) the same origin country on all items. */
+  const setOriginCountry = (code: string, country: string | null) =>
+    isCalculation()
+      ? warehouseApiRoutesOutboundCalculationsSetOutboundCalculationOriginCountry({
+          path: { calculation_code: code },
+          body: { country },
+        })
+      : warehouseApiRoutesOutboundOrdersSetOutboundOrderOriginCountry({
+          path: { order_code: code },
+          body: { country },
+        })
+
   return {
     isCalculation,
     detailRouteName: () => (isCalculation() ? 'outboundCalculationDetail' : 'outboundOrderDetail'),
@@ -147,5 +174,6 @@ export const useOutboundDocumentApi = (kind?: MaybeRefOrGetter<OutboundDocumentK
     updateItem,
     removeItem,
     reorderItem,
+    setOriginCountry,
   }
 }

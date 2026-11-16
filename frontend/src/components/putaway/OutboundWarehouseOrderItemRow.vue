@@ -23,6 +23,7 @@
           :package-type="item.desired_package_type_name"
         />
         <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
+        <CountryBadge :code="item.required_origin_country" tooltip="Požadovaná země původu" />
         <q-badge
           v-if="item.warehouse_item?.inbound_order_code"
           color="accent"
@@ -98,6 +99,7 @@ import { useApi } from '@/composables/use-api'
 import { computed, ref } from 'vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import BatchBadge from '../warehouse/BatchBadge.vue'
+import CountryBadge from '../CountryBadge.vue'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGroup.vue'
 import OffloadItemToChildOrderDialog from './OffloadItemToChildOrderDialog.vue'

@@ -47,6 +47,12 @@
             <q-input v-model.trim="form.street" outlined label="Ulice" class="col-span-2" />
             <q-input v-model.trim="form.city" outlined label="Město" />
             <q-input v-model.trim="form.postal_code" outlined label="PSČ" />
+            <CountrySelect
+              v-model="form.state"
+              label="Země sídla"
+              hint="U dodavatele výchozí země původu zboží"
+              :rules="[rules.notEmpty]"
+            />
           </div>
 
           <!-- Contact Information -->
@@ -76,6 +82,11 @@
             />
             <q-checkbox v-model="form.is_self" label="Naše firma (dodavatel na faktuře)" />
             <q-checkbox v-model="form.is_supplier" label="Dodavatel (výchozí je odběratel)" />
+            <q-checkbox
+              v-model="form.requires_origin_country"
+              label="Vyžaduje zemi původu zboží (každá položka objednávky)"
+              data-test="requires-origin-country"
+            />
           </div>
 
           <!-- Minimum item value -->
@@ -136,6 +147,7 @@
 <script setup lang="ts">
 import type { CustomerCreateOrUpdateSchema, CustomerGroupSchema } from '@/client'
 import CustomerMinimumValueFields from '@/components/customer/CustomerMinimumValueFields.vue'
+import CountrySelect from '@/components/selects/CountrySelect.vue'
 import InvoicePaymentMethodSelect from '@/components/selects/InvoicePaymentMethodSelect.vue'
 import { rules } from '@/utils/rules'
 

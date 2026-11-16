@@ -4,6 +4,7 @@
     <BatchBadge v-if="item.batch" :batch-code="item.batch.primary_barcode?.code" />
     <div v-else-if="item.tracking_level === 'SERIALIZED_PIECE'"></div>
     <PackageTypeBadge v-else :package-type="item.package?.type" />
+    <CountryBadge :code="item.origin_country" />
   </div>
 </template>
 
@@ -12,6 +13,7 @@ import type { WarehouseItemSchema } from '@/client'
 import TrackingLevelBadge from './TrackingLevelBadge.vue'
 import BatchBadge from './BatchBadge.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
+import CountryBadge from '../CountryBadge.vue'
 
 defineProps<{
   item: WarehouseItemSchema

@@ -112,6 +112,13 @@
       :disabled="!isInboundOrderEditable(order)"
       @add="addItemDialog = true"
     >
+      <template #before-add>
+        <BulkOriginCountryButton
+          :disabled="!isInboundOrderEditable(order) || !order.items?.length"
+          description="Země původu zboží na všech položkách objednávky najednou."
+          @apply="setOriginCountry"
+        />
+      </template>
       <OrderTotalsHeader :order="order" :show-margin="false" />
     </OrderItemsHeader>
 
@@ -129,6 +136,7 @@
       v-model:show="addItemDialog"
       @add-item="addItem"
       :currency="order.currency"
+      :supplier-country="order.supplier.state"
     />
     <InboundOrderUpdateOrCreateDialog
       v-model:show="editOrderDialog"
@@ -188,6 +196,7 @@ import {
   warehouseApiRoutesInboundOrdersGetInboundOrder,
   warehouseApiRoutesInboundOrdersRemoveItemsFromInboundOrder,
   warehouseApiRoutesInboundOrdersReorderItemInInboundOrder,
+  warehouseApiRoutesInboundOrdersSetInboundOrderOriginCountry,
   warehouseApiRoutesInboundOrdersTransitionInboundOrder,
   warehouseApiRoutesInboundOrdersUpdateInboundOrder,
   warehouseApiRoutesWarehouseCreateInboundWarehouseOrder,
@@ -217,6 +226,7 @@ import { toInvoiceMultipartBody } from '@/components/order/invoice-upload'
 import InvoiceUpsertDialog from '@/components/order/InvoiceUpsertDialog.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import NewOrderItemDialog from '@/components/order/NewOrderItemDialog.vue'
+import BulkOriginCountryButton from '@/components/order/BulkOriginCountryButton.vue'
 import OrderItemsHeader from '@/components/order/OrderItemsHeader.vue'
 import OrderTotalsHeader from '@/components/order/OrderTotalsHeader.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
@@ -291,6 +301,24 @@ const removeItem = async (item_index: number) => {
   const data = onResponse(result)
   if (data) {
     order.value = data.data
+  }
+}
+
+const setOriginCountry = async (country: string | null) => {
+  if (!order.value) {
+    return
+  }
+  const res = await warehouseApiRoutesInboundOrdersSetInboundOrderOriginCountry({
+    path: { order_code: order.value.code },
+    body: { country },
+  })
+  const data = onResponse(res)
+  if (data) {
+    order.value = data.data
+    $q.notify({
+      type: 'positive',
+      message: country ? 'Země původu nastavena na všech položkách' : 'Země původu odstraněna',
+    })
   }
 }
 

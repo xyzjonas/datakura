@@ -57,6 +57,7 @@
           <OutboundItemRequirements
             v-model:package-type-name="item.desired_package_type_name"
             v-model:batch-code="item.desired_batch_code"
+            v-model:origin-country="item.required_origin_country"
             :product-name="item.product_name"
             :product-code="item.product_code"
           />
@@ -144,6 +145,7 @@ const item = ref<OutboundOrderItemCreateSchema>({
   unit_price: 0,
   desired_package_type_name: null,
   desired_batch_code: null,
+  required_origin_country: null,
   note: null,
 })
 
@@ -230,6 +232,7 @@ const reset = (close = true) => {
     unit_price: 0,
     desired_package_type_name: null,
     desired_batch_code: null,
+    required_origin_country: null,
     note: null,
   }
   showNote.value = false

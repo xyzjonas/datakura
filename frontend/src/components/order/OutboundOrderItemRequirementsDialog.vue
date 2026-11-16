@@ -36,6 +36,12 @@
             hint="Nechte prázdné pro smazání požadavku na šarži"
           />
 
+          <CountrySelect
+            v-model="country"
+            label="Země původu"
+            hint="Zboží musí pocházet z vybrané země (nechte prázdné pro libovolnou)"
+          />
+
           <div class="flex gap-2 justify-end pt-2">
             <q-btn flat color="negative" label="vymazat" @click="clearRequirements" />
             <q-btn unelevated color="primary" label="uložit" type="submit" />
@@ -50,6 +56,7 @@
 import type { PackageTypeSchema } from '@/client'
 import { ref, watch } from 'vue'
 import CertifiedStockPicker from '../certification/CertifiedStockPicker.vue'
+import CountrySelect from '../selects/CountrySelect.vue'
 import PackageTypeSearchSelect from '../selects/PackageTypeSearchSelect.vue'
 
 type RequirementMode = 'package' | 'batch' | 'certification'
@@ -60,12 +67,17 @@ const props = defineProps<{
   initialMode?: RequirementMode
   desiredPackageTypeName?: string | null
   desiredBatchCode?: string | null
+  requiredOriginCountry?: string | null
 }>()
 
 const emit = defineEmits<{
   (
     e: 'save',
-    payload: { desired_package_type_name: string | null; desired_batch_code: string | null },
+    payload: {
+      desired_package_type_name: string | null
+      desired_batch_code: string | null
+      required_origin_country: string | null
+    },
   ): void
 }>()
 
@@ -81,6 +93,7 @@ const mode = ref<RequirementMode>(props.initialMode ?? 'package')
 const selectedPackage = ref<PackageTypeSchema>()
 const batchCode = ref('')
 const certifiedBatchCode = ref<string | null>(null)
+const country = ref<string | null>(null)
 
 watch(
   () => showDialog.value,
@@ -91,6 +104,7 @@ watch(
     mode.value = props.initialMode ?? (props.desiredBatchCode ? 'batch' : 'package')
     batchCode.value = props.desiredBatchCode ?? ''
     certifiedBatchCode.value = null
+    country.value = props.requiredOriginCountry ?? null
     selectedPackage.value = props.desiredPackageTypeName
       ? ({ name: props.desiredPackageTypeName } as PackageTypeSchema)
       : undefined
@@ -108,14 +122,18 @@ const submit = () => {
         : mode.value === 'certification'
           ? certifiedBatchCode.value
           : null,
+    required_origin_country: country.value || null,
   })
   showDialog.value = false
 }
 
+// only the package / batch requirement - the country has its own clear button,
+// customers requiring country codes must not lose it by accident
 const clearRequirements = () => {
   emit('save', {
     desired_package_type_name: null,
     desired_batch_code: null,
+    required_origin_country: country.value || null,
   })
   showDialog.value = false
 }

@@ -7,6 +7,8 @@
     :purchase-price="Number(item.unit_price)"
     :requires-certification="item.requires_certification"
     :certification="item.certification"
+    :origin-country="item.origin_country"
+    origin-country-tooltip="Země původu"
     @edit="editDialog = true"
     @remove="removeDialog = true"
   />
@@ -28,6 +30,7 @@
           :requires-certification="item.requires_certification"
           :certification="item.certification"
         />
+        <OriginCountryMarker class="mt-1" :country="item.origin_country" />
       </div>
 
       <div class="grid items-center grid-cols-4 flex-1 text-right">
@@ -83,6 +86,7 @@ import type { InboundOrderItemSchema } from '@/client'
 import { useOrderItemCardLayout } from '@/composables/use-order-item-card-layout'
 import { computed, ref } from 'vue'
 import OrderItemCard from './OrderItemCard.vue'
+import OriginCountryMarker from '../OriginCountryMarker.vue'
 import CertificationBadge from '../certification/CertificationBadge.vue'
 import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'

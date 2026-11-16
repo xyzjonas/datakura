@@ -62,6 +62,15 @@
 
         <q-separator />
 
+        <CountrySelect
+          v-model="item.origin_country"
+          label="Země původu"
+          hint="Výchozí je země dodavatele"
+          @update:model-value="update('country')"
+        />
+
+        <q-separator />
+
         <q-toggle
           v-model="item.requires_certification"
           label="Certifikované zboží"
@@ -89,6 +98,7 @@ import { rules } from '@/utils/rules'
 import { useQuasar } from 'quasar'
 import { ref, watch } from 'vue'
 import InboundItemCertification from '../certification/InboundItemCertification.vue'
+import CountrySelect from '../selects/CountrySelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 
 const $q = useQuasar()
@@ -112,7 +122,7 @@ watch(show, (visible) => {
   }
 })
 
-const update = async (changedField: 'amount' | 'unit' | 'total' | 'certification') => {
+const update = async (changedField: 'amount' | 'unit' | 'total' | 'certification' | 'country') => {
   if (changedField === 'total') {
     unitPrice.value = item.value.amount ? round(totalPrice.value / item.value.amount) : 0
   } else {
@@ -129,6 +139,8 @@ const update = async (changedField: 'amount' | 'unit' | 'total' | 'certification
       unit_price: unitPrice.value,
       // always sent - omitting it would unflag the row and drop its certificate
       requires_certification: item.value.requires_certification,
+      // always sent too - omitting it would clear the country of the row
+      origin_country: item.value.origin_country,
     },
   })
 

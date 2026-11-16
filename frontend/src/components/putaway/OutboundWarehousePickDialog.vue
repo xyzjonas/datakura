@@ -18,6 +18,7 @@
             :package-type="item.desired_package_type_name"
           />
           <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
+          <CountryBadge :code="item.required_origin_country" tooltip="Požadovaná země původu" />
         </div>
 
         <!-- STEP 1: Location Suggestions -->
@@ -641,6 +642,7 @@ import { useBarcodeLookup } from '@/composables/use-barcode-lookup'
 import { computed, ref, watch } from 'vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import BatchBadge from '../warehouse/BatchBadge.vue'
+import CountryBadge from '../CountryBadge.vue'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGroup.vue'
 

@@ -28,6 +28,19 @@ describe('OrderItemCard', () => {
     expect(mountCard().find('[data-test="certification-badge"]').exists()).toBe(false)
   })
 
+  it.each([
+    [{ originCountry: 'DE' }, 'country-badge'],
+    [{ originCountry: null, originCountryMissing: true }, 'missing-origin-country'],
+  ])('shows the origin country marker for %o', (props, marker) => {
+    expect(mountCard(props).find(`[data-test="${marker}"]`).exists()).toBe(true)
+  })
+
+  it('shows no origin country marker by default', () => {
+    const wrapper = mountCard()
+    expect(wrapper.find('[data-test="country-badge"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="missing-origin-country"]').exists()).toBe(false)
+  })
+
   it('flags a certified item that still misses its certificate', () => {
     const wrapper = mountCard({ requiresCertification: true, certification: null })
     expect(wrapper.get('[data-test="certification-badge"]').text()).toContain('chybí certifikát')

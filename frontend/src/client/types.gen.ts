@@ -633,6 +633,10 @@ export type WarehouseItemSchema = {
      * Primary Barcode
      */
     primary_barcode?: string | null;
+    /**
+     * Origin Country
+     */
+    origin_country?: string | null;
 };
 
 /**
@@ -758,6 +762,10 @@ export type WarehouseItemDetailSchema = {
      * Primary Barcode
      */
     primary_barcode?: string | null;
+    /**
+     * Origin Country
+     */
+    origin_country?: string | null;
     /**
      * Audits
      */
@@ -930,6 +938,14 @@ export type CustomerBaseSchema = {
      * Invoice Due Days
      */
     invoice_due_days: number;
+    /**
+     * State
+     */
+    state?: string;
+    /**
+     * Requires Origin Country
+     */
+    requires_origin_country?: boolean;
 };
 
 /**
@@ -1090,6 +1106,10 @@ export type InboundWarehouseOrderItemSchema = {
      * Batch Barcode
      */
     batch_barcode: string | null;
+    /**
+     * Origin Country
+     */
+    origin_country?: string | null;
     /**
      * Pending
      */
@@ -1327,6 +1347,10 @@ export type OutboundWarehouseOrderItemSchema = {
      * Desired Batch Code
      */
     desired_batch_code: string | null;
+    /**
+     * Required Origin Country
+     */
+    required_origin_country?: string | null;
     /**
      * Warehouse Item Id
      */
@@ -2356,6 +2380,14 @@ export type CustomerSchema = {
      */
     invoice_due_days: number;
     /**
+     * State
+     */
+    state: string;
+    /**
+     * Requires Origin Country
+     */
+    requires_origin_country?: boolean;
+    /**
      * Email
      */
     email?: string | null;
@@ -2375,10 +2407,6 @@ export type CustomerSchema = {
      * Postal Code
      */
     postal_code?: string | null;
-    /**
-     * State
-     */
-    state: string;
     /**
      * Tax Identification
      */
@@ -2572,6 +2600,10 @@ export type CustomerCreateOrUpdateSchema = {
      * Is Supplier
      */
     is_supplier?: boolean;
+    /**
+     * Requires Origin Country
+     */
+    requires_origin_country?: boolean;
     /**
      * Minimum Item Value Enabled
      */
@@ -2854,6 +2886,10 @@ export type InboundOrderItemSchema = {
      * Requires Certification
      */
     requires_certification?: boolean;
+    /**
+     * Origin Country
+     */
+    origin_country?: string | null;
     certification?: CertificationSchema | null;
     /**
      * Batch Code
@@ -3187,6 +3223,21 @@ export type InboundOrderItemCreateSchema = {
      * Requires Certification
      */
     requires_certification?: boolean;
+    /**
+     * Origin Country
+     */
+    origin_country?: string | null;
+};
+
+/**
+ * OriginCountryBulkSchema
+ * Set (or, with null, clear) the country on every item of an order.
+ */
+export type OriginCountryBulkSchema = {
+    /**
+     * Country
+     */
+    country?: string | null;
 };
 
 /**
@@ -3314,6 +3365,10 @@ export type OutboundOrderItemSchema = {
      * Note
      */
     note?: string | null;
+    /**
+     * Required Origin Country
+     */
+    required_origin_country?: string | null;
     pricing_details?: OutboundOrderItemPricingDetailsSchema | null;
 };
 
@@ -3685,6 +3740,10 @@ export type OutboundOrderItemCreateSchema = {
      * Note
      */
     note?: string | null;
+    /**
+     * Required Origin Country
+     */
+    required_origin_country?: string | null;
 };
 
 /**
@@ -8051,6 +8110,27 @@ export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses = {
 
 export type WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponse = WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses[keyof WarehouseApiRoutesInboundOrdersUpdateItemInInboundOrderResponses];
 
+export type WarehouseApiRoutesInboundOrdersSetInboundOrderOriginCountryData = {
+    body: OriginCountryBulkSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_code}/origin-country';
+};
+
+export type WarehouseApiRoutesInboundOrdersSetInboundOrderOriginCountryResponses = {
+    /**
+     * OK
+     */
+    200: GetInboundOrderResponse;
+};
+
+export type WarehouseApiRoutesInboundOrdersSetInboundOrderOriginCountryResponse = WarehouseApiRoutesInboundOrdersSetInboundOrderOriginCountryResponses[keyof WarehouseApiRoutesInboundOrdersSetInboundOrderOriginCountryResponses];
+
 export type WarehouseApiRoutesInboundOrdersRemoveInboundOrderItemCertificationData = {
     body?: never;
     path: {
@@ -8475,6 +8555,27 @@ export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses =
 
 export type WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponse = WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses[keyof WarehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrderResponses];
 
+export type WarehouseApiRoutesOutboundOrdersSetOutboundOrderOriginCountryData = {
+    body: OriginCountryBulkSchema;
+    path: {
+        /**
+         * Order Code
+         */
+        order_code: string;
+    };
+    query?: never;
+    url: '/api/v1/orders-outgoing/{order_code}/origin-country';
+};
+
+export type WarehouseApiRoutesOutboundOrdersSetOutboundOrderOriginCountryResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundOrderResponse;
+};
+
+export type WarehouseApiRoutesOutboundOrdersSetOutboundOrderOriginCountryResponse = WarehouseApiRoutesOutboundOrdersSetOutboundOrderOriginCountryResponses[keyof WarehouseApiRoutesOutboundOrdersSetOutboundOrderOriginCountryResponses];
+
 export type WarehouseApiRoutesOutboundOrdersDuplicateOutboundOrderData = {
     body?: never;
     path: {
@@ -8753,6 +8854,27 @@ export type WarehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculatio
 };
 
 export type WarehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculationResponse = WarehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculationResponses[keyof WarehouseApiRoutesOutboundCalculationsUpdateItemInOutboundCalculationResponses];
+
+export type WarehouseApiRoutesOutboundCalculationsSetOutboundCalculationOriginCountryData = {
+    body: OriginCountryBulkSchema;
+    path: {
+        /**
+         * Calculation Code
+         */
+        calculation_code: string;
+    };
+    query?: never;
+    url: '/api/v1/calculations-outgoing/{calculation_code}/origin-country';
+};
+
+export type WarehouseApiRoutesOutboundCalculationsSetOutboundCalculationOriginCountryResponses = {
+    /**
+     * OK
+     */
+    200: GetOutboundCalculationResponse;
+};
+
+export type WarehouseApiRoutesOutboundCalculationsSetOutboundCalculationOriginCountryResponse = WarehouseApiRoutesOutboundCalculationsSetOutboundCalculationOriginCountryResponses[keyof WarehouseApiRoutesOutboundCalculationsSetOutboundCalculationOriginCountryResponses];
 
 export type WarehouseApiRoutesOutboundCalculationsReorderItemInOutboundCalculationData = {
     body: ReorderItemSchema;

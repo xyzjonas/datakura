@@ -21,6 +21,11 @@
               :package-type="item.desired_package_type_name"
             />
             <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
+            <CountryBadge
+              v-if="item.required_origin_country"
+              :code="item.required_origin_country"
+              tooltip="Požadovaná země původu"
+            />
             <q-btn-dropdown
               v-if="!readonly"
               flat
@@ -42,6 +47,12 @@
                     <q-icon name="sym_o_barcode" />
                   </q-item-section>
                   <q-item-section>Šarže</q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="openRequirements()">
+                  <q-item-section avatar>
+                    <q-icon name="sym_o_public" />
+                  </q-item-section>
+                  <q-item-section>Země původu</q-item-section>
                 </q-item>
                 <q-item clickable v-close-popup @click="clearRequirements">
                   <q-item-section avatar>
@@ -156,6 +167,7 @@
     :initial-mode="requirementsMode"
     :desired-package-type-name="item.desired_package_type_name"
     :desired-batch-code="item.desired_batch_code"
+    :required-origin-country="item.required_origin_country"
     @save="saveRequirements"
   />
 </template>
@@ -171,6 +183,7 @@ import { round } from '@/utils/round'
 import { useQuasar } from 'quasar'
 import { computed, ref } from 'vue'
 import BatchBadge from '../warehouse/BatchBadge.vue'
+import CountryBadge from '../CountryBadge.vue'
 import IndexRectangle from '../IndexRectangle.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
@@ -262,6 +275,7 @@ const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements'
     index: item.value.index,
     desired_package_type_name: item.value.desired_package_type_name,
     desired_batch_code: item.value.desired_batch_code,
+    required_origin_country: item.value.required_origin_country,
     note: item.value.note,
   })
 
@@ -274,8 +288,8 @@ const update = async (changedField: 'amount' | 'unit' | 'total' | 'requirements'
   }
 }
 
-const openRequirements = (mode: RequirementMode) => {
-  requirementsMode.value = mode
+const openRequirements = (mode?: RequirementMode) => {
+  requirementsMode.value = mode ?? (item.value.desired_batch_code ? 'batch' : 'package')
   requirementsDialog.value = true
 }
 
@@ -288,9 +302,11 @@ const clearRequirements = async () => {
 const saveRequirements = async (payload: {
   desired_package_type_name: string | null
   desired_batch_code: string | null
+  required_origin_country: string | null
 }) => {
   item.value.desired_package_type_name = payload.desired_package_type_name
   item.value.desired_batch_code = payload.desired_batch_code
+  item.value.required_origin_country = payload.required_origin_country
   await update('requirements')
 }
 

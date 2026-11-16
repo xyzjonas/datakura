@@ -60,6 +60,11 @@
               <span class="text-sm">{{ currency }}</span>
             </template>
           </q-input>
+          <CountrySelect
+            v-model="item.origin_country"
+            label="Země původu"
+            hint="Výchozí je země dodavatele"
+          />
           <div class="flex gap-2 mt-3">
             <q-btn
               type="submit"
@@ -89,6 +94,7 @@ import type { InboundOrderItemCreateSchema, ProductSchema } from '@/client'
 import { rules } from '@/utils/rules'
 import { computed, nextTick, ref, watch } from 'vue'
 import type { QForm } from 'quasar'
+import CountrySelect from '../selects/CountrySelect.vue'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 import { round } from '@/utils/round'
@@ -99,20 +105,32 @@ export interface NewOrderItemDialogExpose {
   reset: (close?: boolean) => void
 }
 
-defineProps<{
+const props = defineProps<{
   currency: string
+  /** country of the supplier - the default origin country of new items */
+  supplierCountry?: string | null
 }>()
 
 // just for display purposes
 const productUom = ref('')
 
-const item = ref<InboundOrderItemCreateSchema>({
+const emptyItem = (): InboundOrderItemCreateSchema => ({
   product_code: '',
   product_name: '',
   amount: 0,
   total_price: 0,
   unit_price: 0,
+  origin_country: props.supplierCountry ?? null,
 })
+
+const item = ref<InboundOrderItemCreateSchema>(emptyItem())
+
+watch(
+  () => props.supplierCountry,
+  (country) => {
+    item.value.origin_country = country ?? null
+  },
+)
 
 const allowedPercent = 20
 const serverPurchasePrice = ref(0)
@@ -178,13 +196,7 @@ const addItem = () => {
 }
 
 const reset = (close = true) => {
-  item.value = {
-    product_code: '',
-    product_name: '',
-    amount: 0,
-    total_price: 0,
-    unit_price: 0,
-  }
+  item.value = emptyItem()
   product.value = undefined
   if (close) {
     showDialog.value = false
