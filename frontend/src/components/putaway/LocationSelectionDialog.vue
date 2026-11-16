@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" position="bottom">
-    <q-card class="w-xl">
+    <q-card class="w-full">
       <div class="p-4 flex flex-col">
         <div class="w-full flex justify-start items-center gap-2">
           <span class="text-2xl uppercase">Vybrat skladové místo</span>

@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" position="bottom">
-    <q-card class="w-full max-w-2xl">
+    <q-card class="w-full">
       <div class="p-4">
         <div class="w-full flex items-center mb-1 gap-2">
           <span class="text-2xl uppercase">Korekce hmotnosti a celního kódu</span>

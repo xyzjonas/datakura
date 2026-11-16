@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" position="bottom">
-    <q-card class="w-lg">
+    <q-card class="w-full">
       <div class="p-4 flex flex-col gap-4">
         <div class="flex items-start gap-2">
           <div class="flex flex-col">

@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="show" position="bottom">
-    <q-card class="w-full max-w-md">
+    <q-card class="w-full">
       <q-card-section class="flex items-center justify-between pb-0">
         <div class="text-base font-semibold">Přesun zásob</div>
         <q-btn icon="sym_o_close" flat round dense v-close-popup />

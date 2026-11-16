@@ -1,10 +1,7 @@
 <template>
-  <div class="flex items-start justify-between gap-4" data-test="toggle-row">
-    <div class="flex flex-col">
-      <span class="text-sm font-medium">{{ label }}</span>
-      <span class="text-xs text-muted">{{ description }}</span>
-    </div>
-    <q-toggle v-model="modelValue" :aria-label="label" class="shrink-0" />
+  <div class="flex flex-col" data-test="toggle-row">
+    <q-toggle v-model="modelValue" :label="label" class="font-medium translate-x-[-4px]" />
+    <span class="text-xs text-muted">{{ description }}</span>
   </div>
 </template>
 

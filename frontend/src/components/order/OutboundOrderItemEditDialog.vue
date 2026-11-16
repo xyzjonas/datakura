@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="show">
-    <q-card class="flex flex-col" style="width: 600px; max-width: 95vw">
+    <q-card class="flex flex-col" style="width: 720px; max-width: 95vw">
       <q-card-section class="flex items-start gap-3 pb-3">
         <div class="flex-1 min-w-0">
           <router-link

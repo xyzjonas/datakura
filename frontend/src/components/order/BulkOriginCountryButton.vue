@@ -11,7 +11,7 @@
   />
 
   <q-dialog v-model="open">
-    <q-card class="w-md max-w-[95vw]">
+    <q-card class="w-full">
       <q-card-section class="flex items-start gap-2 pb-0">
         <div class="flex flex-col">
           <span class="text-xl uppercase">Země původu</span>
