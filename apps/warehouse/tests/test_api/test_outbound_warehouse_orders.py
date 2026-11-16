@@ -1,3 +1,5 @@
+from apps.warehouse.models.manufacturing import ManufacturingOrder
+from apps.warehouse.tests.factories.manufacturing import ManufacturingOrderFactory
 import pytest
 from decimal import Decimal
 from ninja.testing import TestClient
@@ -205,6 +207,33 @@ def test_offload_outbound_items_to_child_order_moves_requirement(db) -> None:
     requirement.refresh_from_db()
     assert requirement.warehouse_order.primary_order_id == warehouse_order.pk
     assert requirement.warehouse_order_id != warehouse_order.pk
+
+
+def test_offload_outbound_items_from_manufacturing_order_to_child_order(db) -> None:
+    client = TestClient(routes)
+    product = StockProductFactory()
+    mfg: ManufacturingOrder = ManufacturingOrderFactory()  # type: ignore[assignment]
+    warehouse_order: OutboundWarehouseOrder = WarehouseOrderOutFactory.it(
+        order=None, manufacturing_order=mfg, state=OutboundWarehouseOrderState.PENDING
+    )
+    requirement: OutboundWarehouseOrderItem = OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=warehouse_order,
+        source_order_item=None,
+        stock_product=product,
+        amount=4,
+    )
+
+    res = client.post(
+        f"/orders-outgoing/{warehouse_order.code}/offload",
+        json={"items": [{"item_id": requirement.pk, "amount": 4}]},
+    )
+
+    assert res.status_code == 200
+    requirement.refresh_from_db()
+    child = requirement.warehouse_order
+    assert child.primary_order_id == warehouse_order.pk
+    assert child.order_id is None
+    assert child.manufacturing_order_id == mfg.pk
 
 
 def test_assign_outbound_warehouse_order_item_freezes_price_at_shipment(db) -> None:
