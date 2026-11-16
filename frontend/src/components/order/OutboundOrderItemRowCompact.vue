@@ -7,6 +7,8 @@
     :purchase-price="Number(pricing.avgPurchasePrice)"
     :selling-price="Number(item.unit_price)"
     :margin="margin"
+    :own-code="item.customer_product_code"
+    :own-code-missing="ownCodeMissing"
     @edit="editDialog = true"
     @remove="removeDialog = true"
   >
@@ -19,7 +21,13 @@
       />
     </template>
   </OrderItemCard>
-  <div v-else class="flex flex-col flex-1 gap-2">
+  <div
+    v-else
+    :class="[
+      'flex flex-col flex-1 gap-2',
+      ownCodeMissing ? 'border-l-4 border-solid border-0 border-red pl-2' : '',
+    ]"
+  >
     <div class="flex items-center w-full flex-nowrap">
       <div class="w-12">
         <IndexRectangle :index="item.index + 1" />
@@ -31,7 +39,15 @@
           class="link font-medium leading-tight"
           >{{ item.product.name }}</router-link
         >
-        <div class="text-xs text-gray-5">{{ item.product.code }}</div>
+        <div
+          v-if="item.customer_product_code"
+          class="text-xs font-mono font-semibold"
+          data-test="item-own-code"
+        >
+          {{ item.customer_product_code }}
+        </div>
+        <div v-else class="text-xs text-gray-5">{{ item.product.code }}</div>
+        <MissingOwnCodeBadge v-if="ownCodeMissing" class="mt-1" />
         <OutboundItemRequirementBadges
           class="mt-1"
           :package-type="item.desired_package_type_name"
@@ -116,6 +132,7 @@
     :currency="currency"
     :order-code="orderCode"
     :customer-code="customerCode"
+    :requires-own-codes="requiresOwnCodes"
   />
 </template>
 
@@ -131,21 +148,26 @@ import EditIconButton from '../common/buttons/EditIconButton.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
 import IndexRectangle from '../IndexRectangle.vue'
 import OutboundItemRequirementBadges from './OutboundItemRequirementBadges.vue'
+import MissingOwnCodeBadge from './MissingOwnCodeBadge.vue'
 import MarginPercent from './MarginPercent.vue'
 import MarginText from './MarginText.vue'
 import OutboundOrderItemEditDialog from './OutboundOrderItemEditDialog.vue'
 import PriceExplanationButton from './PriceExplanationButton.vue'
 
-defineProps<{
+const props = defineProps<{
   currency: string
   readonly?: boolean
   orderCode: string
   customerCode?: string
+  /** Customer orders by own codes - every item has to have one. */
+  requiresOwnCodes?: boolean
 }>()
 
 defineEmits<{ (e: 'remove'): void }>()
 
 const item = defineModel<OutboundOrderItemSchema>('item', { required: true })
+
+const ownCodeMissing = computed(() => !!props.requiresOwnCodes && !item.value.customer_product_code)
 
 const cardLayout = useOrderItemCardLayout()
 const editDialog = ref(false)

@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" position="bottom">
-    <q-card class="w-full max-w-4xl">
+    <q-card class="w-full">
       <div class="p-4">
         <div class="w-full flex items-center mb-4 gap-2">
           <span class="text-2xl uppercase">{{ title }}</span>
@@ -119,6 +119,12 @@
               data-test="requires-origin-country"
               label="Vyžaduje zemi původu zboží"
               description="Každá položka objednávky tohoto zákazníka musí mít požadovanou zemi původu, jinak nelze objednávku předat do skladu. Země se pak uvádí na faktuře."
+            />
+            <ToggleRow
+              v-model="form.requires_own_codes"
+              data-test="requires-own-codes"
+              label="Objednává podle vlastních kódů"
+              description="Každá položka objednávky tohoto zákazníka musí mít jeho vlastní kód produktu, jinak nelze objednávku potvrdit. Na dokladech se pak uvádí pouze tyto kódy."
             />
             <ToggleRow
               v-model="form.minimum_item_value_enabled"

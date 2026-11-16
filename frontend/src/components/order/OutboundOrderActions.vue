@@ -6,8 +6,12 @@
     icon="sym_o_order_approve"
     label="potvrdit"
     @click="confirmDialog = true"
-    :disable="!order.items?.length"
-  />
+    :disable="!order.items?.length || !!missingOwnCodes.length"
+  >
+    <q-tooltip v-if="missingOwnCodes.length">
+      Zákazník vyžaduje vlastní kódy - chybí u {{ missingOwnCodes.length }} položek
+    </q-tooltip>
+  </q-btn>
   <q-btn
     v-if="editable"
     unelevated
@@ -44,6 +48,7 @@ import {
 } from '@/client'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useApi } from '@/composables/use-api'
+import { itemsMissingOwnCode } from '@/utils/own-codes'
 import { computed, ref } from 'vue'
 import OutboundOrderStateBadge from './OutboundOrderStateBadge.vue'
 
@@ -55,6 +60,8 @@ const { onResponse } = useApi()
 // a freshly created order has to be checked and confirmed by hand, only then
 // the warehouse order is created
 const canConfirm = computed(() => order.value.state === 'submitted')
+
+const missingOwnCodes = computed(() => itemsMissingOwnCode(order.value))
 
 const confirmDialog = ref(false)
 const cancelDialog = ref(false)

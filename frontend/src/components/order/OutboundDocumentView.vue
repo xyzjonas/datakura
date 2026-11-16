@@ -129,12 +129,24 @@
       <OrderTotalsHeader :order="order" />
     </OrderItemsHeader>
 
+    <q-banner
+      v-if="missingOwnCodeCount"
+      rounded
+      class="bg-light-red text-red"
+      data-test="missing-own-codes-banner"
+    >
+      <template #avatar><q-icon name="sym_o_error" color="negative" /></template>
+      Zákazník objednává podle vlastních kódů. Chybí kód u {{ missingOwnCodeCount }} položek -
+      objednávku nelze potvrdit.
+    </q-banner>
+
     <OutboundOrderProductsList
       v-model:items="order.items"
       :currency="order.currency"
       :readonly="!isEditable"
       :order-code="order.code"
       :customer-code="order.customer.code"
+      :requires-own-codes="requiresOwnCodes"
       @remove-item="removeItem"
       @reorder-item="reorderItem"
       @add-item="addItemDialog = true"
@@ -146,6 +158,7 @@
       @add-item="addItem"
       :currency="order.currency"
       :customer-code="order.customer.code"
+      :requires-own-codes="requiresOwnCodes"
     />
 
     <OutboundOrderUpdateOrCreateDialog
@@ -193,6 +206,7 @@ import {
 } from '@/client'
 import CommentCard from '@/components/CommentCard.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
+import { itemsMissingOwnCode } from '@/utils/own-codes'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
@@ -275,6 +289,14 @@ const isEditable = computed(() => {
     ? order.value.state === 'open'
     : !FINISHED_ORDER_STATES.includes(order.value.state)
 })
+
+// customer ordering by own codes: all items need them (calculations don't store them)
+const requiresOwnCodes = computed(
+  () => !isCalculation.value && !!order.value?.customer.requires_own_codes,
+)
+const missingOwnCodeCount = computed(() =>
+  order.value && requiresOwnCodes.value ? itemsMissingOwnCode(order.value).length : 0,
+)
 
 const addItemDialog = ref(false)
 const addItemDialogComponent = ref<InstanceType<typeof NewOutboundOrderItemDialog>>()

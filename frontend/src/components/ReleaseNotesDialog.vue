@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="show">
-    <q-card class="flex flex-col min-w-lg" style="max-width: 640px">
+    <q-card class="flex flex-col min-w-lg" style="max-width: 720px">
       <q-card-section class="border-b border-gray-200">
         <h2 v-if="showAll">CHANGELOG</h2>
         <h2 v-else>Nový release! 🚀</h2>

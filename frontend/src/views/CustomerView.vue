@@ -317,6 +317,7 @@ const onEditCustomer = () => {
     requires_origin_country: customer.value.requires_origin_country,
     minimum_item_value_enabled: customer.value.minimum_item_value_enabled,
     minimum_item_value: customer.value.minimum_item_value,
+    requires_own_codes: customer.value.requires_own_codes,
     default_payment_method_name: customer.value.default_payment_method?.name,
     data_collection_agreement: customer.value.data_collection_agreement,
     marketing_data_use_agreement: customer.value.marketing_data_use_agreement,

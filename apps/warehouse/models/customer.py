@@ -79,6 +79,11 @@ class Customer(BaseModel):
         max_digits=12, decimal_places=4, null=True, blank=True
     )
 
+    # The customer orders by its own product codes: every item of its outbound orders
+    # needs a `CustomerProductCode` (order can't be confirmed otherwise) and only
+    # these codes are shown/printed to the customer.
+    requires_own_codes = models.BooleanField(default=False)
+
     # Agreements
     data_collection_agreement = models.BooleanField(default=False)
     marketing_data_use_agreement = models.BooleanField(default=False)

@@ -946,6 +946,10 @@ export type CustomerBaseSchema = {
      * Requires Origin Country
      */
     requires_origin_country?: boolean;
+    /**
+     * Requires Own Codes
+     */
+    requires_own_codes?: boolean;
 };
 
 /**
@@ -2071,6 +2075,80 @@ export type DynamicProductPriceCreateSchema = {
 };
 
 /**
+ * CustomerProductCodeSchema
+ */
+export type CustomerProductCodeSchema = {
+    /**
+     * Created
+     */
+    created: string;
+    /**
+     * Changed
+     */
+    changed: string;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Code
+     */
+    code: string;
+    customer: DynamicProductPriceCustomerSchema;
+};
+
+/**
+ * GetCustomerProductCodesResponse
+ */
+export type GetCustomerProductCodesResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    /**
+     * Data
+     */
+    data: Array<CustomerProductCodeSchema>;
+};
+
+/**
+ * GetCustomerProductCodeResponse
+ */
+export type GetCustomerProductCodeResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    error?: ErrorInformation | null;
+    data: CustomerProductCodeSchema;
+};
+
+/**
+ * CustomerProductCodeUpsertSchema
+ */
+export type CustomerProductCodeUpsertSchema = {
+    /**
+     * Customer Code
+     */
+    customer_code: string;
+    /**
+     * Code
+     */
+    code: string;
+};
+
+/**
+ * CustomerProductCodeUpdateSchema
+ */
+export type CustomerProductCodeUpdateSchema = {
+    /**
+     * Code
+     */
+    code: string;
+};
+
+/**
  * GetDiscountGroupsResponse
  */
 export type GetDiscountGroupsResponse = {
@@ -2388,6 +2466,10 @@ export type CustomerSchema = {
      */
     requires_origin_country?: boolean;
     /**
+     * Requires Own Codes
+     */
+    requires_own_codes?: boolean;
+    /**
      * Email
      */
     email?: string | null;
@@ -2612,6 +2694,10 @@ export type CustomerCreateOrUpdateSchema = {
      * Minimum Item Value
      */
     minimum_item_value?: number | null;
+    /**
+     * Requires Own Codes
+     */
+    requires_own_codes?: boolean;
     /**
      * Default Payment Method Name
      */
@@ -3369,6 +3455,10 @@ export type OutboundOrderItemSchema = {
      * Required Origin Country
      */
     required_origin_country?: string | null;
+    /**
+     * Customer Product Code
+     */
+    customer_product_code?: string | null;
     pricing_details?: OutboundOrderItemPricingDetailsSchema | null;
 };
 
@@ -3744,6 +3834,10 @@ export type OutboundOrderItemCreateSchema = {
      * Required Origin Country
      */
     required_origin_country?: string | null;
+    /**
+     * Customer Product Code
+     */
+    customer_product_code?: string | null;
 };
 
 /**
@@ -7214,6 +7308,98 @@ export type WarehouseApiRoutesProductAddProductDynamicPriceResponses = {
 };
 
 export type WarehouseApiRoutesProductAddProductDynamicPriceResponse = WarehouseApiRoutesProductAddProductDynamicPriceResponses[keyof WarehouseApiRoutesProductAddProductDynamicPriceResponses];
+
+export type WarehouseApiRoutesProductGetProductCustomerCodesData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/customer-codes';
+};
+
+export type WarehouseApiRoutesProductGetProductCustomerCodesResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerProductCodesResponse;
+};
+
+export type WarehouseApiRoutesProductGetProductCustomerCodesResponse = WarehouseApiRoutesProductGetProductCustomerCodesResponses[keyof WarehouseApiRoutesProductGetProductCustomerCodesResponses];
+
+export type WarehouseApiRoutesProductUpsertProductCustomerCodeData = {
+    body: CustomerProductCodeUpsertSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/customer-codes';
+};
+
+export type WarehouseApiRoutesProductUpsertProductCustomerCodeResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerProductCodeResponse;
+};
+
+export type WarehouseApiRoutesProductUpsertProductCustomerCodeResponse = WarehouseApiRoutesProductUpsertProductCustomerCodeResponses[keyof WarehouseApiRoutesProductUpsertProductCustomerCodeResponses];
+
+export type WarehouseApiRoutesProductDeleteProductCustomerCodeData = {
+    body?: never;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+        /**
+         * Entry Id
+         */
+        entry_id: number;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/customer-codes/{entry_id}';
+};
+
+export type WarehouseApiRoutesProductDeleteProductCustomerCodeResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerProductCodesResponse;
+};
+
+export type WarehouseApiRoutesProductDeleteProductCustomerCodeResponse = WarehouseApiRoutesProductDeleteProductCustomerCodeResponses[keyof WarehouseApiRoutesProductDeleteProductCustomerCodeResponses];
+
+export type WarehouseApiRoutesProductUpdateProductCustomerCodeData = {
+    body: CustomerProductCodeUpdateSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+        /**
+         * Entry Id
+         */
+        entry_id: number;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/customer-codes/{entry_id}';
+};
+
+export type WarehouseApiRoutesProductUpdateProductCustomerCodeResponses = {
+    /**
+     * OK
+     */
+    200: GetCustomerProductCodeResponse;
+};
+
+export type WarehouseApiRoutesProductUpdateProductCustomerCodeResponse = WarehouseApiRoutesProductUpdateProductCustomerCodeResponses[keyof WarehouseApiRoutesProductUpdateProductCustomerCodeResponses];
 
 export type WarehouseApiRoutesProductGetDiscountGroupsData = {
     body?: never;

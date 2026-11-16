@@ -74,6 +74,7 @@ class CustomerBaseSchema(BaseSchema):
     state: str = "CZ"
     # sales orders of this customer need the origin country on every item
     requires_origin_country: bool = False
+    requires_own_codes: bool = False
 
 
 class CustomerSchema(CustomerBaseSchema):
@@ -101,6 +102,7 @@ class CustomerSchema(CustomerBaseSchema):
     # off = no minimum item value for this customer, null = use the global one
     minimum_item_value_enabled: bool = True
     minimum_item_value: float | None = None
+    requires_own_codes: bool = False
 
     # Agreements
     data_collection_agreement: bool
@@ -204,6 +206,7 @@ class CustomerCreateOrUpdateSchema(Schema):
     requires_origin_country: bool = False
     minimum_item_value_enabled: bool = True
     minimum_item_value: float | None = Field(default=None, ge=0)
+    requires_own_codes: bool = False
     default_payment_method_name: Optional[str] = None
 
     # Agreements

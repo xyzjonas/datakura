@@ -225,6 +225,7 @@
     <div class="flex gap-5 flex-1">
       <WarehouseCard :product-code="product.code" :product-unit="product.unit" />
     </div>
+    <ProductCustomerCodesCard :product-code="product.code" />
 
     <AuditLogDialog
       v-model:show="auditDialog"
@@ -295,6 +296,7 @@ import BarcodeElement from '@/components/BarcodeElement.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
+import ProductCustomerCodesCard from '@/components/product/ProductCustomerCodesCard.vue'
 import ProductOrdersSection from '@/components/product/ProductOrdersSection.vue'
 import ProductPricingCard from '@/components/product/ProductPricingCard.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'

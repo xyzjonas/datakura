@@ -57,6 +57,7 @@ from apps.warehouse.core.schemas.settings import GlobalSettingsSchema
 from apps.warehouse.core.schemas.product import (
     ProductSchema,
     DynamicProductPriceSchema,
+    CustomerProductCodeSchema,
     DynamicProductPriceCustomerSchema,
     DiscountGroupSchema,
 )
@@ -102,6 +103,7 @@ from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.printer import Printer
 from apps.warehouse.models.shipping import OutboundOrderShipping, ShippingType
 from apps.warehouse.models.product import (
+    CustomerProductCode,
     StockProduct,
     StockProductPrice,
     PriceGroup,
@@ -403,6 +405,7 @@ def customer_orm_to_base_schema(customer: Customer) -> CustomerBaseSchema:
         if customer.default_payment_method
         else None,
         invoice_due_days=customer.invoice_due_days,
+        requires_own_codes=customer.requires_own_codes,
     )
 
 
@@ -437,6 +440,7 @@ def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
         is_supplier=customer.is_supplier,
         requires_origin_country=customer.requires_origin_country,
         minimum_item_value_enabled=customer.minimum_item_value_enabled,
+        requires_own_codes=customer.requires_own_codes,
         minimum_item_value=float(customer.minimum_item_value)
         if customer.minimum_item_value is not None
         else None,
@@ -679,9 +683,33 @@ def inbound_order_item_orm_to_schema(
     )
 
 
+def customer_product_code_orm_to_schema(
+    entry: CustomerProductCode,
+) -> CustomerProductCodeSchema:
+    return CustomerProductCodeSchema(
+        id=entry.pk,
+        code=entry.code,
+        customer=DynamicProductPriceCustomerSchema(
+            code=entry.customer.code, name=entry.customer.name
+        ),
+        created=entry.created,
+        changed=entry.changed,
+    )
+
+
+def customer_codes_of_items(
+    customer: Customer, items: list[OutboundOrderItem] | list[OutboundCalculationItem]
+) -> dict[int, str]:
+    """Customer's own product codes of the items - only for customers ordering by them."""
+    if not customer.requires_own_codes or not items:
+        return {}
+    return CustomerProductCode.codes_for(customer, (i.stock_product_id for i in items))
+
+
 def outbound_order_item_orm_to_schema(
     item: OutboundOrderItem | OutboundCalculationItem,
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None,
+    customer_codes: dict[int, str] | None = None,
 ) -> OutboundOrderItemSchema:
     desired_batch_barcode = None
     if item.desired_batch:
@@ -701,6 +729,7 @@ def outbound_order_item_orm_to_schema(
         desired_batch_code=desired_batch_barcode,
         note=item.note,
         required_origin_country=item.required_origin_country,
+        customer_product_code=(customer_codes or {}).get(item.stock_product_id),
         pricing_details=pricing_details,
         changed=item.changed,
         created=item.created,
@@ -875,6 +904,7 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
 
         shipping = shipping_service.ensure_order_shipping(order)
     order_items = list(order.items.all())
+    customer_codes = customer_codes_of_items(order.customer, order_items)
     return OutboundOrderSchema(
         created=order.created,
         changed=order.changed,
@@ -891,7 +921,10 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
         warehouse_order_codes=[wo.code for wo in order.warehouse_orders.all()],
         warehouse_orders=warehouse_orders,
         state=OutboundOrderState.get_label(order.state),
-        items=[outbound_order_item_orm_to_schema(item) for item in order_items],
+        items=[
+            outbound_order_item_orm_to_schema(item, customer_codes=customer_codes)
+            for item in order_items
+        ],
         credit_note=credit_note_supplier_orm_to_base_schema(order.credit_note)
         if getattr(order, "credit_note", None)
         else None,

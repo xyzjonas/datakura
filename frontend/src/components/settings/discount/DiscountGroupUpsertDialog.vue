@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" position="bottom">
-    <q-card class="w-lg">
+    <q-card class="w-full">
       <div class="p-4 flex flex-col">
         <div class="w-full flex justify-between items-center mb-3">
           <span class="text-2xl uppercase">{{ title }}</span>
