@@ -94,6 +94,7 @@ class CustomerSchema(CustomerBaseSchema):
     block_after_due_days: int
     is_self: bool
     is_supplier: bool = False
+    requires_origin_country: bool = False
     # off = no minimum item value for this customer, null = use the global one
     minimum_item_value_enabled: bool = True
     minimum_item_value: float | None = None
@@ -197,6 +198,7 @@ class CustomerCreateOrUpdateSchema(Schema):
     block_after_due_days: int = 30
     is_self: bool = False
     is_supplier: bool = False
+    requires_origin_country: bool = False
     minimum_item_value_enabled: bool = True
     minimum_item_value: float | None = Field(default=None, ge=0)
     default_payment_method_name: Optional[str] = None

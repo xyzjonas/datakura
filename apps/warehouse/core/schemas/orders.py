@@ -13,6 +13,7 @@ from .base_orders import (
     BaseOrder,
 )
 from .certification import CertificationSchema
+from .country import CountryCode
 from .customer import ContactPersonSchema
 from .invoice import InvoiceSchema
 from .product import ProductSchema
@@ -30,6 +31,7 @@ class InboundOrderItemCreateSchema(Schema):
     unit_price: float | None = None
     index: int | None = None
     requires_certification: bool = False
+    origin_country: CountryCode | None = None
 
 
 class InboundOrderItemSchema(BaseSchema):
@@ -39,6 +41,7 @@ class InboundOrderItemSchema(BaseSchema):
     total_price: float
     index: int
     requires_certification: bool = False
+    origin_country: str | None = None
     certification: CertificationSchema | None = None
     batch_code: str | None = None
 
@@ -101,6 +104,7 @@ class OutboundOrderItemCreateSchema(Schema):
     desired_package_type_name: str | None = None
     desired_batch_code: str | None = None
     note: str | None = None
+    required_origin_country: CountryCode | None = None
 
 
 class OutboundOrderItemPricingDetailsSchema(Schema):
@@ -124,6 +128,7 @@ class OutboundOrderItemSchema(BaseSchema):
     desired_package_type_name: str | None = None
     desired_batch_code: str | None = None
     note: str | None = None
+    required_origin_country: str | None = None
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None
 
 

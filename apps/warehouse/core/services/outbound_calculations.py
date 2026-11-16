@@ -220,6 +220,7 @@ class OutboundCalculationsService:
                 desired_package_type=desired_package_type,
                 desired_batch=desired_batch,
                 note=item.note,
+                required_origin_country=item.required_origin_country,
             )
         return cls._item_to_schema(calculation, item_model)
 
@@ -256,6 +257,7 @@ class OutboundCalculationsService:
             item_model.desired_package_type = desired_package_type
             item_model.desired_batch = desired_batch
             item_model.note = item.note
+            item_model.required_origin_country = item.required_origin_country
             if item.index is not None:
                 item_model.index = item.index
             item_model.save()
@@ -386,6 +388,7 @@ class OutboundCalculationsService:
                     desired_package_type=item.desired_package_type,
                     desired_batch=item.desired_batch,
                     note=item.note,
+                    required_origin_country=item.required_origin_country,
                 )
                 for item in source.items.order_by("index")
             )
@@ -452,6 +455,7 @@ class OutboundCalculationsService:
                     desired_package_type=item.desired_package_type,
                     desired_batch=item.desired_batch,
                     note=item.note,
+                    required_origin_country=item.required_origin_country,
                 )
                 for item in items
             )

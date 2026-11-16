@@ -433,6 +433,7 @@ def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
         block_after_due_days=customer.block_after_due_days,
         is_self=customer.is_self,
         is_supplier=customer.is_supplier,
+        requires_origin_country=customer.requires_origin_country,
         minimum_item_value_enabled=customer.minimum_item_value_enabled,
         minimum_item_value=float(customer.minimum_item_value)
         if customer.minimum_item_value is not None
@@ -619,6 +620,7 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
         package=package_type,
         batch=batch_orm_to_schema(item.batch) if getattr(item, "batch") else None,  # type: ignore
         tracking_level=item.tracking_level,  # type: ignore
+        origin_country=item.origin_country,
     )
 
 
@@ -665,6 +667,7 @@ def inbound_order_item_orm_to_schema(
         total_price=float(item.total_price),
         index=item.index,
         requires_certification=item.requires_certification,
+        origin_country=item.origin_country,
         certification=certification_orm_to_schema(item.certification)
         if item.certification
         else None,
@@ -695,6 +698,7 @@ def outbound_order_item_orm_to_schema(
         else None,
         desired_batch_code=desired_batch_barcode,
         note=item.note,
+        required_origin_country=item.required_origin_country,
         pricing_details=pricing_details,
         changed=item.changed,
         created=item.created,
@@ -977,6 +981,7 @@ def inbound_warehouse_order_item_to_schema(
         unit_price_at_receipt=item.unit_price_at_receipt,
         index=item.index,
         batch_barcode=item.batch_barcode,
+        origin_country=item.origin_country,
         pending=is_pending,
         warehouse_item_id=linked_items[0].pk if linked_items else None,
         outbound_order_code=outbound_order_code,
@@ -1197,6 +1202,7 @@ def warehouse_outbound_order_orm_to_schema(
                 if item.desired_package_type
                 else None,
                 desired_batch_code=desired_batch_barcode,
+                required_origin_country=item.required_origin_country,
                 warehouse_item_id=item.warehouse_item.pk
                 if item.warehouse_item
                 else None,

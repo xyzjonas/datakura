@@ -163,6 +163,7 @@ class CustomerService:
             block_after_due_days=params.block_after_due_days,
             is_self=params.is_self,
             is_supplier=params.is_supplier,
+            requires_origin_country=params.requires_origin_country,
             minimum_item_value_enabled=params.minimum_item_value_enabled,
             minimum_item_value=CustomerService._to_decimal_or_none(
                 params.minimum_item_value
@@ -226,6 +227,7 @@ class CustomerService:
         customer.block_after_due_days = params.block_after_due_days
         customer.is_self = params.is_self
         customer.is_supplier = params.is_supplier
+        customer.requires_origin_country = params.requires_origin_country
         customer.minimum_item_value_enabled = params.minimum_item_value_enabled
         customer.minimum_item_value = CustomerService._to_decimal_or_none(
             params.minimum_item_value

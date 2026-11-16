@@ -225,6 +225,16 @@ class WarehouseItem(BaseModel, BarcodeMixin):
         help_text="Source package if created by unpacking",
     )
 
+    @property
+    def origin_country(self) -> str | None:
+        """Origin country (ISO), deduced via the frozen inbound warehouse order line.
+
+        item -> source_order_item (inbound warehouse order line, snapshot of the
+        purchase order line) -> origin_country. Null when unknown / not tracked.
+        """
+        source = self.source_order_item
+        return source.origin_country if source else None
+
     @cached_property
     def unit_of_measure(self) -> UnitOfMeasure:
         return self.stock_product.unit_of_measure
@@ -453,6 +463,8 @@ class OutboundWarehouseOrderItem(BaseModel):
         on_delete=models.PROTECT,
         related_name="outbound_warehouse_order_items",
     )
+    # Copy of the order item's requirement - informative only, picking is not validated
+    required_origin_country = models.CharField(max_length=2, null=True, blank=True)
     warehouse_item = models.OneToOneField(
         WarehouseItem,
         null=True,
@@ -582,6 +594,8 @@ class InboundWarehouseOrderItem(BaseModel):
     # Stores the batch barcode string during DRAFT so the actual Batch object
     # can be created when WarehouseItems are materialised on confirmation.
     batch_barcode = models.CharField(max_length=200, null=True, blank=True)
+    # Snapshot of `InboundOrderItem.origin_country` (ISO 3166-1 alpha-2), null = unknown
+    origin_country = models.CharField(max_length=2, null=True, blank=True)
 
     class Meta(BaseModel.Meta):
         ordering = ["index", "created"]

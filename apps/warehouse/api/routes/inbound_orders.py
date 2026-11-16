@@ -10,6 +10,7 @@ from ninja.pagination import paginate
 from apps.warehouse.api.pagination import IncomingOrdersPagination
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
 from apps.warehouse.core.schemas.certification import CertificationAttachSchema
+from apps.warehouse.core.schemas.country import OriginCountryBulkSchema
 from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.schemas.invoice import InvoiceStoreSchema
 from apps.warehouse.core.schemas.orders import (
@@ -163,6 +164,18 @@ def update_item_in_inbound_order(
 ):
     updated_item = inbound_orders_service.update_item(order_code, item_index, item)
     return CreateInboundOrderItemResponse(data=updated_item)
+
+
+@routes.post("/{order_code}/origin-country", response={200: GetInboundOrderResponse})
+def set_inbound_order_origin_country(
+    request: HttpRequest, order_code: str, body: OriginCountryBulkSchema
+):
+    """Bulk: set (or clear) the origin country on all items of the order."""
+    return GetInboundOrderResponse(
+        data=inbound_orders_service.set_items_origin_country(
+            order_code, body.country, RequestContext.from_django_request(request)
+        )
+    )
 
 
 @routes.post(

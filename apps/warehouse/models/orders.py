@@ -266,6 +266,8 @@ class InboundOrderItem(BaseModel):
     total_price = models.DecimalField(
         max_digits=12, decimal_places=4, default=Decimal("0")
     )
+    # ISO 3166-1 alpha-2, null = unknown. Defaults to the supplier country in the UI.
+    origin_country = models.CharField(max_length=2, null=True, blank=True)
     # Certified goods: a certification (with its batch) has to be supplied
     # before the order can be submitted.
     requires_certification = models.BooleanField(default=False)
@@ -407,6 +409,8 @@ class OutboundOrderItem(BaseModel):
         related_name="outbound_order_items",
     )
     note = models.TextField(null=True, blank=True)
+    # ISO 3166-1 alpha-2 - the buyer wants goods from this country (not enforced when picking)
+    required_origin_country = models.CharField(max_length=2, null=True, blank=True)
 
     class Meta(BaseModel.Meta):
         ordering = ["index", "created"]
@@ -529,6 +533,8 @@ class OutboundCalculationItem(BaseModel):
         related_name="outbound_calculation_items",
     )
     note = models.TextField(null=True, blank=True)
+    # ISO 3166-1 alpha-2 - the buyer wants goods from this country (not enforced when picking)
+    required_origin_country = models.CharField(max_length=2, null=True, blank=True)
 
     class Meta(BaseModel.Meta):
         ordering = ["index", "created"]
