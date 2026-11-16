@@ -170,7 +170,9 @@ def test_add_item_with_code_stores_it_for_customer(db) -> None:
 
 def test_add_item_shows_code_for_flagged_customer(db) -> None:
     client = TestClient(order_routes)
-    order = OutboundOrderFactory.it(customer=CustomerFactory.it(requires_own_codes=True))
+    order = OutboundOrderFactory.it(
+        customer=CustomerFactory.it(requires_own_codes=True)
+    )
     product = StockProductFactory.it()
 
     res = client.post(
@@ -184,7 +186,9 @@ def test_add_item_shows_code_for_flagged_customer(db) -> None:
 
 def test_item_without_code_keeps_existing_one(db) -> None:
     client = TestClient(order_routes)
-    order = OutboundOrderFactory.it(customer=CustomerFactory.it(requires_own_codes=True))
+    order = OutboundOrderFactory.it(
+        customer=CustomerFactory.it(requires_own_codes=True)
+    )
     product = StockProductFactory.it()
     CustomerProductCodeFactory.it(product=product, customer=order.customer, code="KEEP")
 
@@ -195,7 +199,9 @@ def test_item_without_code_keeps_existing_one(db) -> None:
 
 def test_update_item_replaces_code(db) -> None:
     client = TestClient(order_routes)
-    order = OutboundOrderFactory.it(customer=CustomerFactory.it(requires_own_codes=True))
+    order = OutboundOrderFactory.it(
+        customer=CustomerFactory.it(requires_own_codes=True)
+    )
     product = StockProductFactory.it()
     CustomerProductCodeFactory.it(product=product, customer=order.customer, code="OLD")
     OutboundOrderItemFactory(order=order, stock_product=product, index=0)
@@ -221,7 +227,9 @@ def test_code_too_long_rejected(db) -> None:
 
 def test_other_customers_code_not_used(db) -> None:
     client = TestClient(order_routes)
-    order = OutboundOrderFactory.it(customer=CustomerFactory.it(requires_own_codes=True))
+    order = OutboundOrderFactory.it(
+        customer=CustomerFactory.it(requires_own_codes=True)
+    )
     product = StockProductFactory.it()
     CustomerProductCodeFactory.it(product=product, code="NOT-MINE")
     OutboundOrderItemFactory(order=order, stock_product=product, index=0)
@@ -274,7 +282,9 @@ def test_confirm_works_when_all_items_have_codes(db) -> None:
 def test_confirm_ignores_missing_codes_without_flag(db) -> None:
     client = TestClient(order_routes)
     order = OutboundOrderFactory.it(state=OutboundOrderState.SUBMITTED)
-    OutboundOrderItemFactory(order=order, stock_product=StockProductFactory.it(), index=0)
+    OutboundOrderItemFactory(
+        order=order, stock_product=StockProductFactory.it(), index=0
+    )
 
     res = client.post(f"/{order.code}/transition", json={"action": "next"})
 
@@ -287,7 +297,9 @@ def test_cancel_not_blocked_by_missing_codes(db) -> None:
         state=OutboundOrderState.SUBMITTED,
         customer=CustomerFactory.it(requires_own_codes=True),
     )
-    OutboundOrderItemFactory(order=order, stock_product=StockProductFactory.it(), index=0)
+    OutboundOrderItemFactory(
+        order=order, stock_product=StockProductFactory.it(), index=0
+    )
 
     res = client.post(f"/{order.code}/transition", json={"action": "cancel"})
 
