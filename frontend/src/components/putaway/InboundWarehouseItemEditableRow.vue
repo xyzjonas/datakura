@@ -22,6 +22,12 @@
           <TrackingLevelBadge :level="item.tracking_level" />
           <PackageTypeBadge v-if="item.package" :package-type="item.package.type" />
           <BatchBadge v-if="item.batch_barcode" :batch-code="item.batch_barcode" />
+          <CertificationBadge
+            v-if="item.certification"
+            link
+            :requires-certification="true"
+            :certification="item.certification"
+          />
           <CountryBadge :code="item.origin_country" />
           <q-badge v-if="missingWeight" color="negative" class="py-1" data-test="missing-weight">
             <q-icon name="sym_o_warning" class="mr-1" />Chybí hmotnost
@@ -182,6 +188,7 @@ import type {
 import { warehouseApiRoutesWarehouseOffloadItemsToChildOrder } from '@/client'
 import { computed, ref } from 'vue'
 import BatchBadge from '../warehouse/BatchBadge.vue'
+import CertificationBadge from '../certification/CertificationBadge.vue'
 import CountryBadge from '../CountryBadge.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'

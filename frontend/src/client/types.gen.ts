@@ -1110,6 +1110,7 @@ export type InboundWarehouseOrderItemSchema = {
      * Batch Barcode
      */
     batch_barcode: string | null;
+    certification?: CertificationRefSchema | null;
     /**
      * Origin Country
      */

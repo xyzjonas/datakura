@@ -127,6 +127,7 @@ class InboundWarehouseOrderItemSchema(BaseSchema):
     unit_price_at_receipt: Decimal
     index: int
     batch_barcode: str | None
+    certification: CertificationRefSchema | None = None
     origin_country: str | None = None
     pending: bool
     warehouse_item_id: int | None = None
