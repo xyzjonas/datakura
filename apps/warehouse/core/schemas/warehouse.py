@@ -170,6 +170,7 @@ class OutboundWarehouseOrderItemSchema(BaseSchema):
     amount: Decimal
     desired_package_type_name: str | None
     desired_batch_code: str | None
+    desired_batch_certification: CertificationRefSchema | None = None
     required_origin_country: str | None = None
     warehouse_item_id: int | None = None
     warehouse_item: WarehouseItemSchema | None = None

@@ -1352,6 +1352,7 @@ export type OutboundWarehouseOrderItemSchema = {
      * Desired Batch Code
      */
     desired_batch_code: string | null;
+    desired_batch_certification?: CertificationRefSchema | null;
     /**
      * Required Origin Country
      */
@@ -3448,6 +3449,7 @@ export type OutboundOrderItemSchema = {
      * Desired Batch Code
      */
     desired_batch_code?: string | null;
+    desired_batch_certification?: CertificationRefSchema | null;
     /**
      * Note
      */

@@ -8,50 +8,54 @@
     <div class="flex gap-4 items-start lg:items-center">
       <IndexRectangle :index="index + 1" />
       <div class="flex flex-col gap-1">
-      <span :class="['text-xs font-bold', item.pending ? 'text-orange' : 'text-positive']">
-        {{ item.pending ? 'K VYCHYSTÁNÍ' : 'PŘIŘAZENO' }}
-      </span>
-      <router-link :to="{ name: 'productDetail', params: { productCode: item.product.code } }">
-        <h5 class="link text-lg">{{ item.product.name }}</h5>
-      </router-link>
-      <span class="text-muted text-xs">{{ item.product.code }}</span>
-
-      <div class="flex flex-wrap gap-2 items-center">
-        <WarehouseItemAmountBadge :item="amountBadgeItem" />
-        <PackageTypeBadge
-          v-if="item.desired_package_type_name"
-          :package-type="item.desired_package_type_name"
-        />
-        <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
-        <CountryBadge :code="item.required_origin_country" tooltip="Požadovaná země původu" />
-        <q-badge
-          v-if="item.warehouse_item?.inbound_order_code"
-          color="accent"
-          class="py-1 cursor-pointer"
-          @click="
-            $router.push({
-              name: 'warehouseInboundOrderDetail',
-              params: { code: item.warehouse_item!.inbound_order_code },
-            })
-          "
-        >
-          PŘÍJEMKA {{ item.warehouse_item.inbound_order_code }}
-        </q-badge>
-      </div>
-
-      <div v-if="item.warehouse_item" class="text-sm text-gray-6 flex flex-wrap gap-3">
-        <span v-if="item.warehouse_item.location">
-          {{ item.warehouse_item.location.warehouse_name }} /
-          {{ item.warehouse_item.location.code }}
+        <span :class="['text-xs font-bold', item.pending ? 'text-orange' : 'text-positive']">
+          {{ item.pending ? 'K VYCHYSTÁNÍ' : 'PŘIŘAZENO' }}
         </span>
-        <span v-else class="text-gray-4 italic">vychystáno</span>
-        <WarehouseItemTypeBadgeGroup :item="item.warehouse_item" />
-        <WarehouseItemLink :item-id="item.warehouse_item.id" />
-        <span v-if="item.price_at_shipment != null" class="font-medium text-gray-7">
-          Cena při výdeji: {{ Number(item.price_at_shipment).toFixed(2) }} CZK
-        </span>
+        <router-link :to="{ name: 'productDetail', params: { productCode: item.product.code } }">
+          <h5 class="link text-lg">{{ item.product.name }}</h5>
+        </router-link>
+        <span class="text-muted text-xs">{{ item.product.code }}</span>
+
+        <div class="flex flex-wrap gap-2 items-center">
+          <WarehouseItemAmountBadge :item="amountBadgeItem" />
+          <PackageTypeBadge
+            v-if="item.desired_package_type_name"
+            :package-type="item.desired_package_type_name"
+          />
+          <BatchCertificationBadges
+            v-if="item.desired_batch_code"
+            :batch-code="item.desired_batch_code"
+            :certification="item.desired_batch_certification"
+          />
+          <CountryBadge :code="item.required_origin_country" tooltip="Požadovaná země původu" />
+          <q-badge
+            v-if="item.warehouse_item?.inbound_order_code"
+            color="accent"
+            class="py-1 cursor-pointer"
+            @click="
+              $router.push({
+                name: 'warehouseInboundOrderDetail',
+                params: { code: item.warehouse_item!.inbound_order_code },
+              })
+            "
+          >
+            PŘÍJEMKA {{ item.warehouse_item.inbound_order_code }}
+          </q-badge>
+        </div>
+
+        <div v-if="item.warehouse_item" class="text-sm text-gray-6 flex flex-wrap gap-3">
+          <span v-if="item.warehouse_item.location">
+            {{ item.warehouse_item.location.warehouse_name }} /
+            {{ item.warehouse_item.location.code }}
+          </span>
+          <span v-else class="text-gray-4 italic">vychystáno</span>
+          <WarehouseItemTypeBadgeGroup :item="item.warehouse_item" />
+          <WarehouseItemLink :item-id="item.warehouse_item.id" />
+          <span v-if="item.price_at_shipment != null" class="font-medium text-gray-7">
+            Cena při výdeji: {{ Number(item.price_at_shipment).toFixed(2) }} CZK
+          </span>
+        </div>
       </div>
-    </div>
     </div>
 
     <div class="flex gap-2 items-center self-end lg:self-auto">
@@ -98,7 +102,7 @@ import {
 import { useApi } from '@/composables/use-api'
 import { computed, ref } from 'vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
-import BatchBadge from '../warehouse/BatchBadge.vue'
+import BatchCertificationBadges from '../warehouse/BatchCertificationBadges.vue'
 import CountryBadge from '../CountryBadge.vue'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGroup.vue'

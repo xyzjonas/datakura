@@ -13,7 +13,11 @@
     />
     <div class="flex items-center gap-1">
       <PackageTypeBadge v-if="packageTypeName" :package-type="packageTypeName" />
-      <BatchBadge v-if="batchCode" :batch-code="batchCode" />
+      <BatchCertificationBadges
+        v-if="batchCode"
+        :batch-code="batchCode"
+        :certification="batchCertification"
+      />
       <CountryBadge v-if="originCountry" :code="originCountry" tooltip="Požadovaná země původu" />
       <span v-if="!packageTypeName && !batchCode && !originCountry" class="text-muted text-xs"
         >Bez požadavku</span
@@ -27,6 +31,7 @@
     :product-code="productCode"
     :desired-package-type-name="packageTypeName"
     :desired-batch-code="batchCode"
+    :desired-batch-certification="batchCertification"
     :required-origin-country="originCountry"
     @save="onSave"
   />
@@ -36,7 +41,7 @@
 import { ref } from 'vue'
 import CountryBadge from '../CountryBadge.vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
-import BatchBadge from '../warehouse/BatchBadge.vue'
+import BatchCertificationBadges from '../warehouse/BatchCertificationBadges.vue'
 import OutboundOrderItemRequirementsDialog from './OutboundOrderItemRequirementsDialog.vue'
 
 defineProps<{
@@ -47,6 +52,10 @@ defineProps<{
 const packageTypeName = defineModel<string | null | undefined>('packageTypeName')
 const batchCode = defineModel<string | null | undefined>('batchCode')
 const originCountry = defineModel<string | null | undefined>('originCountry')
+/** Certification of the required batch - shown next to it. */
+const batchCertification = defineModel<{ id?: number; code: string } | null | undefined>(
+  'batchCertification',
+)
 
 /** Fired after the models were updated - lets the parent persist the change. */
 const emit = defineEmits<{ (e: 'save'): void }>()
@@ -56,10 +65,12 @@ const dialog = ref(false)
 const onSave = (payload: {
   desired_package_type_name: string | null
   desired_batch_code: string | null
+  desired_batch_certification?: { code: string } | null
   required_origin_country?: string | null
 }) => {
   packageTypeName.value = payload.desired_package_type_name
   batchCode.value = payload.desired_batch_code
+  batchCertification.value = payload.desired_batch_certification ?? null
   originCountry.value = payload.required_origin_country ?? null
   emit('save')
 }

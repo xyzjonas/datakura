@@ -62,6 +62,7 @@
           <OutboundItemRequirements
             v-model:package-type-name="item.desired_package_type_name"
             v-model:batch-code="item.desired_batch_code"
+            v-model:batch-certification="batchCertification"
             v-model:origin-country="item.required_origin_country"
             :product-name="item.product_name"
             :product-code="item.product_code"
@@ -145,6 +146,9 @@ const props = defineProps<{
 const productUom = ref('')
 const pricingLookup = ref<SellingPriceLookupSchema>()
 const showNote = ref(false)
+
+/** Certification of the chosen batch - display only (the server derives it from the batch). */
+const batchCertification = ref<{ id?: number; code: string } | null>(null)
 
 const item = ref<OutboundOrderItemCreateSchema>({
   product_code: '',
@@ -251,6 +255,7 @@ const addItem = () => {
 }
 
 const reset = (close = true) => {
+  batchCertification.value = null
   item.value = {
     product_code: '',
     product_name: '',

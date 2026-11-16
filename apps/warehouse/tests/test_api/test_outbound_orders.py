@@ -25,6 +25,7 @@ from apps.warehouse.models.warehouse import (
     OutboundWarehouseOrderItem,
     OutboundWarehouseOrderState,
 )
+from apps.warehouse.tests.factories.certification import CertificationFactory
 from apps.warehouse.tests.factories.order import (
     InvoiceFactory,
     OutboundCalculationFactory,
@@ -1120,3 +1121,45 @@ def test_remove_item_recomputes_indexes_so_next_add_succeeds(db, removed) -> Non
     )
     assert res.status_code == 200
     assert res.json()["data"]["index"] == 2
+
+
+@pytest.mark.parametrize("certified", [True, False])
+def test_outbound_order_item_exposes_certification_of_the_desired_batch(
+    db, certified
+) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    product = StockProductFactory()
+    batch = Batch.objects.create(
+        certification=CertificationFactory.it(code="ISO-1") if certified else None
+    )
+    batch.attach_barcode("BATCH-CERT-1", is_primary=True)
+
+    res = client.post(
+        f"/{order.code}/items",
+        json={
+            "product_code": product.code,
+            "product_name": product.name,
+            "amount": 1,
+            "total_price": 10,
+            "desired_batch_code": "BATCH-CERT-1",
+        },
+    )
+
+    assert res.status_code == 200
+    data = client.get(f"/{order.code}").json()["data"]["items"][0]
+    assert data["desired_batch_code"] == "BATCH-CERT-1"
+    if certified:
+        assert data["desired_batch_certification"]["code"] == "ISO-1"
+    else:
+        assert data["desired_batch_certification"] is None
+
+
+def test_outbound_order_item_without_batch_has_no_certification(db) -> None:
+    client = TestClient(routes)
+    order = OutboundOrderFactory.it()
+    OutboundOrderItemFactory.it(order=order)
+
+    (item,) = client.get(f"/{order.code}").json()["data"]["items"]
+
+    assert item["desired_batch_certification"] is None

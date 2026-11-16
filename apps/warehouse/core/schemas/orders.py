@@ -13,6 +13,7 @@ from .base_orders import (
     BaseOrder,
 )
 from .certification import CertificationSchema
+from .certification_ref import CertificationRefSchema
 from .country import CountryCode
 from .customer import ContactPersonSchema
 from .invoice import InvoiceSchema
@@ -129,6 +130,8 @@ class OutboundOrderItemSchema(BaseSchema):
     index: int
     desired_package_type_name: str | None = None
     desired_batch_code: str | None = None
+    # certification of the required batch (a certified batch = certification requirement)
+    desired_batch_certification: CertificationRefSchema | None = None
     note: str | None = None
     required_origin_country: str | None = None
     # the customer's own code of the product, if the customer has one set

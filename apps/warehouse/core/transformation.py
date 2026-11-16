@@ -335,6 +335,14 @@ def invoice_orm_to_detail_schema(invoice: Invoice) -> InvoiceDetailSchema:
     )
 
 
+def batch_certification_ref(batch: Batch | None) -> CertificationRefSchema | None:
+    if batch is None or batch.certification is None:
+        return None
+    return CertificationRefSchema(
+        id=batch.certification.pk, code=batch.certification.code
+    )
+
+
 def batch_orm_to_schema(batch: Batch) -> BatchSchema:
     barcode = batch.get_primary_barcode()
     return BatchSchema(
@@ -343,11 +351,7 @@ def batch_orm_to_schema(batch: Batch) -> BatchSchema:
         created=batch.created,
         changed=batch.changed,
         description=batch.description,
-        certification=CertificationRefSchema(
-            id=batch.certification.pk, code=batch.certification.code
-        )
-        if batch.certification
-        else None,
+        certification=batch_certification_ref(batch),
     )
 
 
@@ -728,6 +732,7 @@ def outbound_order_item_orm_to_schema(
         if item.desired_package_type
         else None,
         desired_batch_code=desired_batch_barcode,
+        desired_batch_certification=batch_certification_ref(item.desired_batch),
         note=item.note,
         required_origin_country=item.required_origin_country,
         customer_product_code=(customer_codes or {}).get(item.stock_product_id),
@@ -1259,6 +1264,7 @@ def warehouse_outbound_order_orm_to_schema(
                 if item.desired_package_type
                 else None,
                 desired_batch_code=desired_batch_barcode,
+                desired_batch_certification=batch_certification_ref(item.desired_batch),
                 required_origin_country=item.required_origin_country,
                 warehouse_item_id=item.warehouse_item.pk
                 if item.warehouse_item

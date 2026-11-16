@@ -17,7 +17,11 @@
             v-if="item.desired_package_type_name"
             :package-type="item.desired_package_type_name"
           />
-          <BatchBadge v-if="item.desired_batch_code" :batch-code="item.desired_batch_code" />
+          <BatchCertificationBadges
+            v-if="item.desired_batch_code"
+            :batch-code="item.desired_batch_code"
+            :certification="item.desired_batch_certification"
+          />
           <CountryBadge :code="item.required_origin_country" tooltip="Požadovaná země původu" />
         </div>
 
@@ -168,10 +172,15 @@
               />
 
               <!-- Visual Amount Comparison when partial picking -->
-              <div v-if="partialPick" class="bg-white border-2 border-gray-3 rounded-xl p-4 flex flex-col gap-3">
+              <div
+                v-if="partialPick"
+                class="bg-white border-2 border-gray-3 rounded-xl p-4 flex flex-col gap-3"
+              >
                 <div class="flex justify-between items-center">
                   <div class="flex flex-col gap-1">
-                    <span class="text-xs text-gray-5 uppercase tracking-wide">Potřebné množství</span>
+                    <span class="text-xs text-gray-5 uppercase tracking-wide"
+                      >Potřebné množství</span
+                    >
                     <div class="flex items-baseline gap-1">
                       <span class="text-3xl font-bold text-primary">{{ item.amount }}</span>
                       <span class="text-lg text-gray-6">{{
@@ -261,7 +270,10 @@
                   <span class="text-xs text-gray-6">Celkem dostupné</span>
                   <span class="text-lg font-bold">
                     {{
-                      (lookupResult?.matching_items ?? []).reduce((sum, item) => sum + item.amount, 0)
+                      (lookupResult?.matching_items ?? []).reduce(
+                        (sum, item) => sum + item.amount,
+                        0,
+                      )
                     }}
                     {{ lookupResult?.matching_items?.[0]?.unit_of_measure ?? '' }}
                   </span>
@@ -288,7 +300,11 @@
               <div class="text-sm text-gray-5 uppercase tracking-wide">
                 Dostupné lokace ({{ fungibleLocations.length }}) - klikněte pro výběr
               </div>
-              <q-list bordered separator class="rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+              <q-list
+                bordered
+                separator
+                class="rounded-xl overflow-hidden max-h-64 overflow-y-auto"
+              >
                 <q-item
                   v-for="loc in fungibleLocations"
                   :key="loc.code"
@@ -349,11 +365,13 @@
             <!-- Product/Batch Info -->
             <div class="bg-blue-1 p-4 rounded-xl">
               <div class="font-semibold">
-                {{ lookupResult?.batch?.description ?? lookupResult?.product?.name ?? props.item.product.name }}
+                {{
+                  lookupResult?.batch?.description ??
+                  lookupResult?.product?.name ??
+                  props.item.product.name
+                }}
               </div>
-              <div class="text-sm text-gray-6">
-                Lokace: {{ selectedLocation }}
-              </div>
+              <div class="text-sm text-gray-6">Lokace: {{ selectedLocation }}</div>
             </div>
 
             <!-- Visual Amount Comparison -->
@@ -372,7 +390,9 @@
                   size="48px"
                 />
                 <div class="flex flex-col gap-1 items-end">
-                  <span class="text-xs text-gray-5 uppercase tracking-wide">Dostupné na lokaci</span>
+                  <span class="text-xs text-gray-5 uppercase tracking-wide"
+                    >Dostupné na lokaci</span
+                  >
                   <div class="flex items-baseline gap-1">
                     <span
                       class="text-3xl font-bold"
@@ -475,7 +495,9 @@
               label="zpět"
               @click="
                 currentStep =
-                  lookupResult?.entity_type === 'warehouse_item' ? 'scan' : 'scan-location-for-product'
+                  lookupResult?.entity_type === 'warehouse_item'
+                    ? 'scan'
+                    : 'scan-location-for-product'
               "
             />
             <q-btn
@@ -537,19 +559,25 @@
               <div class="bg-white border-2 border-gray-3 rounded-xl p-4 flex flex-col gap-3">
                 <div class="flex justify-between items-center">
                   <div class="flex flex-col gap-1">
-                    <span class="text-xs text-gray-5 uppercase tracking-wide">Potřebné množství</span>
+                    <span class="text-xs text-gray-5 uppercase tracking-wide"
+                      >Potřebné množství</span
+                    >
                     <div class="flex items-baseline gap-1">
                       <span class="text-3xl font-bold text-primary">{{ item.amount }}</span>
                       <span class="text-lg text-gray-6">{{ unitOfMeasure }}</span>
                     </div>
                   </div>
                   <q-icon
-                    :name="maxAvailableInLocation >= Number(item.amount) ? 'check_circle' : 'warning'"
+                    :name="
+                      maxAvailableInLocation >= Number(item.amount) ? 'check_circle' : 'warning'
+                    "
                     :color="maxAvailableInLocation >= Number(item.amount) ? 'positive' : 'warning'"
                     size="48px"
                   />
                   <div class="flex flex-col gap-1 items-end">
-                    <span class="text-xs text-gray-5 uppercase tracking-wide">Dostupné na lokaci</span>
+                    <span class="text-xs text-gray-5 uppercase tracking-wide"
+                      >Dostupné na lokaci</span
+                    >
                     <div class="flex items-baseline gap-1">
                       <span
                         class="text-3xl font-bold"
@@ -679,7 +707,7 @@ import { useAppSettings } from '@/composables/use-app-settings'
 import { useBarcodeLookup } from '@/composables/use-barcode-lookup'
 import { computed, ref, watch } from 'vue'
 import PackageTypeBadge from '../PackageTypeBadge.vue'
-import BatchBadge from '../warehouse/BatchBadge.vue'
+import BatchCertificationBadges from '../warehouse/BatchCertificationBadges.vue'
 import CountryBadge from '../CountryBadge.vue'
 import WarehouseItemAmountBadge from '../warehouse/WarehouseItemAmountBadge.vue'
 import WarehouseItemTypeBadgeGroup from '../warehouse/WarehouseItemTypeBadgeGroup.vue'
@@ -943,9 +971,10 @@ const onBarcodeInput = async (barcode: string | number | null) => {
     currentStep.value = 'confirm-location'
     selectedLocation.value = result.location?.code ?? null
     const availableAtLocation = (result.matching_items ?? []).reduce((sum, i) => sum + i.amount, 0)
-    pickAmount.value = availableAtLocation > 0
-      ? Math.min(Number(props.item.amount), availableAtLocation)
-      : Number(props.item.amount)
+    pickAmount.value =
+      availableAtLocation > 0
+        ? Math.min(Number(props.item.amount), availableAtLocation)
+        : Number(props.item.amount)
     // Auto-select first item if only one
     if (result.matching_items?.length === 1) {
       selectedWarehouseItemId.value = result.matching_items[0].id
@@ -960,7 +989,7 @@ const onLocationScanForProduct = async (locationCode: string | number | null) =>
 
   // Search for location by code in the available locations
   const matchingLocation = fungibleLocations.value.find(
-    (loc) => loc.code.toLowerCase() === locationCode.trim().toLowerCase()
+    (loc) => loc.code.toLowerCase() === locationCode.trim().toLowerCase(),
   )
 
   if (!matchingLocation) {
@@ -971,7 +1000,7 @@ const onLocationScanForProduct = async (locationCode: string | number | null) =>
   // Filter matching items to only those in this location
   const itemsInLocation =
     lookupResult.value?.matching_items?.filter(
-      (item) => item.location?.code.toLowerCase() === locationCode.trim().toLowerCase()
+      (item) => item.location?.code.toLowerCase() === locationCode.trim().toLowerCase(),
     ) ?? []
 
   if (itemsInLocation.length === 0) {

@@ -17,6 +17,7 @@
         class="mt-1"
         :package-type="item.desired_package_type_name"
         :batch-code="item.desired_batch_code"
+        :batch-certification="item.desired_batch_certification"
         :origin-country="item.required_origin_country"
       />
     </template>
@@ -52,6 +53,7 @@
           class="mt-1"
           :package-type="item.desired_package_type_name"
           :batch-code="item.desired_batch_code"
+          :batch-certification="item.desired_batch_certification"
           :origin-country="item.required_origin_country"
         />
       </div>
