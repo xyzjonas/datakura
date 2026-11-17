@@ -54,7 +54,7 @@ def test_sales_outbound_code_uses_numeric_part_of_order_code(context) -> None:
     wo = create_warehouse_order(
         WarehouseOrderKind.SALES_OUTBOUND, context, sales_order=order
     )
-    assert wo.code == "WO2026110003001"
+    assert wo.code == "V2026110003001"
 
 
 def test_inbound_suffix_increments_across_children(context) -> None:
