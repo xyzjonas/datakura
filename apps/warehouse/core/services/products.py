@@ -12,6 +12,7 @@ from apps.warehouse.core.schemas.product import (
     ProductBarcodeCreateSchema,
     ProductBarcodeUpdateSchema,
     ProductCreateOrUpdateSchema,
+    ProductBasePriceSchema,
     ProductCustomsWeightSchema,
     ProductDuplicateSchema,
     CustomerPriceOverrideUpsertSchema,
@@ -264,6 +265,19 @@ class StockProductsService:
         defaults = StockProductsService._build_product_defaults(params)
         for field, value in defaults.items():
             setattr(product, field, value)
+        product.save()
+
+        current = get_product_by_code(product.code)
+        StockProductsService._audit_product_update(product, previous, current)
+        return current
+
+    @staticmethod
+    @transaction.atomic
+    def update_base_price(product_code: str, params: ProductBasePriceSchema):
+        product = StockProduct.objects.get(code=product_code)
+        previous = get_product_by_code(product_code)
+
+        product.base_price = Decimal(str(params.base_price))
         product.save()
 
         current = get_product_by_code(product.code)
