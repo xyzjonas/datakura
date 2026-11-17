@@ -26,7 +26,7 @@
         </div>
         <div class="flex items-center gap-1 text-sm">
           <q-icon name="sym_o_weight" size="16px" class="text-muted" />
-          <span data-testid="shipping-weight">{{ formattedWeight }} g</span>
+          <span data-testid="shipping-weight">{{ formattedWeight }} kg</span>
         </div>
       </div>
 
@@ -44,16 +44,6 @@
       </div>
 
       <div class="flex flex-col gap-1 md:items-end">
-        <template v-if="shipping.price != null || shipping.price_with_vat != null">
-          <span class="text-xs text-muted">Cena dopravy</span>
-          <span v-if="shipping.price != null" data-testid="shipping-price">
-            {{ formatPrice(shipping.price) }}
-          </span>
-          <strong v-if="shipping.price_with_vat != null" data-testid="shipping-price-vat">
-            {{ formatPrice(shipping.price_with_vat) }} s DPH
-          </strong>
-        </template>
-        <span v-else class="text-sm text-muted">Cena nezadána</span>
         <q-btn
           v-if="editable"
           class="mt-auto"
@@ -79,7 +69,6 @@ const props = defineProps<{
   shipping: OutboundOrderShippingSchema
   /** derived from the order items */
   weight: number
-  currency: string
   editable?: boolean
 }>()
 
@@ -97,7 +86,4 @@ const dimensions = computed(() => {
   }
   return [width, height, depth].map((value) => value ?? '?').join(' × ') + ' cm'
 })
-
-const formatPrice = (value: number) =>
-  `${value.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${props.currency}`
 </script>

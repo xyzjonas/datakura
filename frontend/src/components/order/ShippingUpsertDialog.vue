@@ -50,7 +50,7 @@
               outlined
               readonly
               label="Váha"
-              suffix="g"
+              suffix="kg"
               hint="Dle položek objednávky"
               data-testid="shipping-weight"
             />
@@ -84,30 +84,6 @@
             <q-input v-model.trim="form.postal_code" outlined label="PSČ" />
             <q-input v-model.trim="form.email" outlined type="email" label="Email" />
             <q-input v-model.trim="form.phone" outlined label="Telefon" />
-          </div>
-
-          <div class="text-xs text-muted uppercase">Cena</div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <q-input
-              v-model.number="form.price"
-              outlined
-              type="number"
-              min="0"
-              step="any"
-              label="Cena"
-              :suffix="currency"
-              :rules="[nonNegative]"
-            />
-            <q-input
-              v-model.number="form.price_with_vat"
-              outlined
-              type="number"
-              min="0"
-              step="any"
-              label="Cena s DPH"
-              :suffix="currency"
-              :rules="[nonNegative]"
-            />
           </div>
 
           <div class="mt-2 flex justify-end">
@@ -147,7 +123,6 @@ const props = withDefaults(
     loading?: boolean
     /** derived from the order, never editable */
     weight?: number
-    currency?: string
     /** the order's contact, source of the address */
     contact?: ContactPersonSchema | null
   }>(),
@@ -156,7 +131,6 @@ const props = withDefaults(
     submitLabel: 'uložit',
     loading: false,
     weight: 0,
-    currency: undefined,
     contact: null,
   },
 )

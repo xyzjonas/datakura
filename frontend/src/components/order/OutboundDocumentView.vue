@@ -105,7 +105,6 @@
       v-if="orderDocument"
       :shipping="orderDocument.shipping"
       :weight="orderDocument.total_weight ?? 0"
-      :currency="orderDocument.currency"
       :editable="orderDocument.state !== 'cancelled'"
       @edit="openShippingDialog"
     />
@@ -182,7 +181,6 @@
       v-model:show="shippingDialog"
       v-model="shippingForm"
       :weight="orderDocument.total_weight ?? 0"
-      :currency="orderDocument.currency"
       :contact="contact"
       :loading="savingShipping"
       @submit="saveShipping"
