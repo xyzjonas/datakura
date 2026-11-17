@@ -25,7 +25,7 @@ from apps.warehouse.models.warehouse import (
 INBOUND_PREFIX = "P"  # purchase-order–linked příjemka
 MFG_INBOUND_PREFIX = "ZP"  # manufacturing–linked příjemka (výroba)
 OUTBOUND_PREFIX = "V"  # generic výdejka (child orders / misc)
-SALES_OUTBOUND_PREFIX = "WO"  # sales-order–linked výdejka
+SALES_OUTBOUND_PREFIX = "V"  # sales-order–linked výdejka
 MFG_OUTBOUND_PREFIX = "ZV"  # manufacturing–linked výdejka (výroba)
 
 
@@ -35,7 +35,7 @@ class WarehouseOrderKind(str, Enum):
     INBOUND = "inbound"  # příjemka for a purchase order        → P
     MFG_INBOUND = "mfg_inbound"  # příjemka for manufacturing return     → ZP
     CHILD_INBOUND = "child_inbound"  # child příjemka split from a parent    → P
-    SALES_OUTBOUND = "sales_outbound"  # výdejka for a sales order             → WO
+    SALES_OUTBOUND = "sales_outbound"  # výdejka for a sales order             → V
     MFG_OUTBOUND = "mfg_outbound"  # výdejka for manufacturing dispatch    → ZV
     CHILD_OUTBOUND = "child_outbound"  # child výdejka split from a parent     → V
 
