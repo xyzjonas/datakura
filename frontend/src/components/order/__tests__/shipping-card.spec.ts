@@ -36,7 +36,7 @@ const shipping = {
 
 const mountCard = (props: Partial<InstanceType<typeof ShippingCard>['$props']> = {}) =>
   mount(ShippingCard, {
-    props: { shipping, weight: 35.1, currency: 'CZK', editable: true, ...props },
+    props: { shipping, weight: 35.1, editable: true, ...props },
     global: { stubs },
   })
 
@@ -57,19 +57,20 @@ describe('ShippingCard', () => {
     })
 
     expect(wrapper.get('[data-testid="shipping-type"]').text()).toBe('Typ dopravy nezadán')
-    expect(wrapper.get('[data-testid="shipping-weight"]').text()).toBe('35.10 g')
+    expect(wrapper.get('[data-testid="shipping-weight"]').text()).toBe('35.10 kg')
     expect(wrapper.get('[data-testid="shipping-dimensions"]').text()).toBe('rozměry nezadány')
   })
 
-  it('renders type, dimensions, derived weight, address and prices', () => {
+  it('renders type, dimensions, derived weight, address, no prices', () => {
     const wrapper = mountCard()
 
     expect(wrapper.text()).toContain('Balík PPL')
     expect(wrapper.text()).toContain('PKG-1')
     expect(wrapper.get('[data-testid="shipping-dimensions"]').text()).toBe('10 × 20 × 30 cm')
-    expect(wrapper.get('[data-testid="shipping-weight"]').text()).toBe('35.10 g')
+    expect(wrapper.get('[data-testid="shipping-weight"]').text()).toBe('35.10 kg')
     expect(wrapper.get('[data-testid="shipping-address"]').text()).toContain('78401 LITOVEL')
-    expect(wrapper.get('[data-testid="shipping-price-vat"]').text()).toContain('CZK')
+    expect(wrapper.find('[data-testid="shipping-price"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="shipping-price-vat"]').exists()).toBe(false)
   })
 
   it('handles missing dimensions and prices', () => {
@@ -86,7 +87,7 @@ describe('ShippingCard', () => {
     })
 
     expect(wrapper.get('[data-testid="shipping-dimensions"]').text()).toBe('rozměry nezadány')
-    expect(wrapper.text()).toContain('Cena nezadána')
+    expect(wrapper.text()).not.toContain('Cena')
     expect(wrapper.text()).not.toContain('číslo balíku')
   })
 
