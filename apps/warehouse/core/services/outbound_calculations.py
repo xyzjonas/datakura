@@ -115,7 +115,7 @@ class OutboundCalculationsService:
     def generate_next_calculation_code() -> str:
         return generate_next_sequential_code(
             queryset=OutboundCalculation.objects.all(),
-            prefix="K",
+            prefix="N",
         )
 
     @staticmethod
