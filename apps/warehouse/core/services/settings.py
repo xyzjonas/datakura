@@ -42,6 +42,10 @@ class SettingsService:
         settings = GlobalSettings.load()
         if params.minimum_item_value is not None:
             settings.minimum_item_value = Decimal(str(params.minimum_item_value))
+        if params.minimum_markup_percent is not None:
+            settings.minimum_markup_percent = Decimal(
+                str(params.minimum_markup_percent)
+            )
         if params.code_sequence is not None:
             settings.code_sequence = params.code_sequence
         settings.save()

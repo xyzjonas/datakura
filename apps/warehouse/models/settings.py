@@ -20,6 +20,12 @@ class GlobalSettings(BaseModel):
         max_digits=12, decimal_places=4, default=Decimal("0")
     )
 
+    # Lowest allowed profit of an outbound order / item, as přirážka (markup on top of
+    # the purchase price, in %). Marže is derived from it. 0 = no guard.
+    minimum_markup_percent = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0")
+    )
+
     # Numbering schema of newly generated order codes
     code_sequence = models.CharField(
         max_length=10,

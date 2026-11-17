@@ -1,5 +1,7 @@
 import { formatNumber } from '@/utils/format-number'
+import { useMinimumProfit } from '@/composables/use-minimum-profit'
 import { calculateOrderMargin } from '@/utils/margin'
+import { isBelowMinimumProfit } from '@/utils/minimum-profit'
 import { round } from '@/utils/round'
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
@@ -24,6 +26,16 @@ export const useOrderTotals = (order: MaybeRefOrGetter<OrderTotalsSource | null 
   )
   const isMarginPositive = computed(() =>
     orderMargin.value ? orderMargin.value.amount > 0 : false,
+  )
+  const { minimumMarkupPercent } = useMinimumProfit()
+  const isBelowMinimum = computed(() =>
+    orderMargin.value
+      ? isBelowMinimumProfit(
+          orderMargin.value.sellingValue,
+          orderMargin.value.purchaseValue,
+          minimumMarkupPercent.value,
+        )
+      : false,
   )
   const formattedTotalPrice = computed(() => formatNumber(totalPrice.value))
   const orderMargin = computed(() => calculateOrderMargin(toValue(order)?.items))
@@ -71,5 +83,6 @@ export const useOrderTotals = (order: MaybeRefOrGetter<OrderTotalsSource | null 
     totalWeight,
     formattedWeight,
     isMarginPositive,
+    isBelowMinimum,
   }
 }

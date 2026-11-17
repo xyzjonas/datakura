@@ -420,6 +420,7 @@ def global_settings_orm_to_schema(settings: GlobalSettings) -> GlobalSettingsSch
         created=settings.created,
         changed=settings.changed,
         minimum_item_value=float(settings.minimum_item_value),
+        minimum_markup_percent=float(settings.minimum_markup_percent),
         code_sequence=CodeSequence(settings.code_sequence),
     )
 

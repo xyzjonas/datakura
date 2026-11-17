@@ -1,5 +1,5 @@
 <template>
-  <span :class="['font-medium', margin.amount >= 0 ? 'text-green-600' : 'text-red']">
+  <span :class="['font-medium', margin.amount >= 0 && !danger ? 'text-green-600' : 'text-red']">
     {{ markup ? formatMarkupPercent(margin) : formatMarginPercent(margin) }}
   </span>
 </template>
@@ -11,5 +11,7 @@ import { formatMarginPercent, formatMarkupPercent, type Margin } from '@/utils/m
 defineProps<{
   margin: Margin
   markup?: boolean
+  /** Below the minimum allowed profit - red even when still positive. */
+  danger?: boolean
 }>()
 </script>

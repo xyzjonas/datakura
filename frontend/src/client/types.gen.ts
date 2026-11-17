@@ -5960,6 +5960,10 @@ export type GlobalSettingsSchema = {
      * Minimum Item Value
      */
     minimum_item_value: number;
+    /**
+     * Minimum Markup Percent
+     */
+    minimum_markup_percent: number;
     code_sequence: CodeSequence;
 };
 
@@ -5971,6 +5975,10 @@ export type GlobalSettingsUpdateSchema = {
      * Minimum Item Value
      */
     minimum_item_value?: number | null;
+    /**
+     * Minimum Markup Percent
+     */
+    minimum_markup_percent?: number | null;
     code_sequence?: CodeSequence | null;
 };
 

@@ -47,6 +47,11 @@
       </section>
 
       <section>
+        <h2 class="text-lg font-semibold uppercase mb-3">Minimální zisk objednávky</h2>
+        <MinimumProfitSetting />
+      </section>
+
+      <section>
         <h2 class="text-lg font-semibold uppercase mb-3">Číslování dokladů</h2>
         <CodeSequenceSetting />
       </section>
@@ -133,6 +138,7 @@ import {
 } from '@/client'
 import CodeSequenceSetting from '@/components/settings/CodeSequenceSetting.vue'
 import MinimumItemValueSetting from '@/components/settings/MinimumItemValueSetting.vue'
+import MinimumProfitSetting from '@/components/settings/MinimumProfitSetting.vue'
 import PrinterSelect from '@/components/selects/PrinterSelect.vue'
 import PrinterUpsertDialog from '@/components/settings/printers/PrinterUpsertDialog.vue'
 import { useApi } from '@/composables/use-api'

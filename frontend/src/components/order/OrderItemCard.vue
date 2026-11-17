@@ -2,7 +2,9 @@
   <div
     :class="[
       'w-full flex flex-col gap-2.5 p-3.5 rounded-xl border border-solid light:bg-white shadow-sm',
-      ownCodeMissing ? 'border-red border-2' : 'light:border-slate-200 dark:border-gray-7',
+      ownCodeMissing || belowMinimumProfit
+        ? 'border-red border-2'
+        : 'light:border-slate-200 dark:border-gray-7',
     ]"
     data-test="order-item-card"
   >
@@ -28,6 +30,7 @@
           <span v-else class="text-xs text-slate-500 font-mono mt-1">{{ item.product.code }}</span>
           <MissingOwnCodeBadge v-if="ownCodeMissing" class="mt-1 self-start" />
           <NonPhysicalBadge v-if="item.product.non_physical" class="mt-1 self-start" />
+          <BelowMinimumProfitBadge v-if="belowMinimumProfit" class="mt-1 self-start" />
           <CertificationBadge
             class="mt-1 self-start"
             :requires-certification="requiresCertification"
@@ -68,7 +71,10 @@
         <div v-if="margin" class="flex flex-col" data-test="item-margin">
           <span class="text-[11px] text-slate-500">Marže položky</span>
           <span
-            :class="['text-xs font-semibold', margin.amount >= 0 ? 'text-green-600' : 'text-red']"
+            :class="[
+              'text-xs font-semibold',
+              margin.amount >= 0 && !belowMinimumProfit ? 'text-green-600' : 'text-red',
+            ]"
           >
             {{ formatDecimal(margin.amount, true) }} {{ currency }}
             <span class="text-[11px] font-medium"
@@ -93,6 +99,7 @@ import type { Margin } from '@/utils/margin'
 import CertificationBadge from '../certification/CertificationBadge.vue'
 import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'
+import BelowMinimumProfitBadge from './BelowMinimumProfitBadge.vue'
 import MissingOwnCodeBadge from './MissingOwnCodeBadge.vue'
 import NonPhysicalBadge from './NonPhysicalBadge.vue'
 
@@ -119,6 +126,8 @@ const props = defineProps<{
   ownCode?: string | null
   /** Outbound only: the customer requires own codes, but this item has none. */
   ownCodeMissing?: boolean
+  /** Outbound only: the profit of this item is below the configured minimum. */
+  belowMinimumProfit?: boolean
 }>()
 
 defineEmits<{ (e: 'edit'): void; (e: 'remove'): void }>()

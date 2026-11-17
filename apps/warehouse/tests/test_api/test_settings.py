@@ -89,3 +89,35 @@ def test_update_global_settings_rejects_unknown_code_sequence(db, value) -> None
 
     assert response.status_code == 422
     assert GlobalSettings.load().code_sequence == "yearly"
+
+
+def test_get_global_settings_minimum_markup_defaults_to_off(db) -> None:
+    response = TestClient(routes).get("")
+
+    assert response.json()["data"]["minimum_markup_percent"] == 0.0
+
+
+@pytest.mark.parametrize("value", [0, 0.5, 15, 33.33, 250])
+def test_update_global_settings_minimum_markup(db, value) -> None:
+    response = TestClient(routes).put("", json={"minimum_markup_percent": value})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["minimum_markup_percent"] == value
+    assert float(GlobalSettings.load().minimum_markup_percent) == value
+
+
+@pytest.mark.parametrize("value", [-1, -0.01, 100001])
+def test_update_global_settings_rejects_invalid_minimum_markup(db, value) -> None:
+    response = TestClient(routes).put("", json={"minimum_markup_percent": value})
+
+    assert response.status_code == 422
+    assert GlobalSettings.load().minimum_markup_percent == 0
+
+
+def test_update_global_settings_without_markup_keeps_it(db) -> None:
+    GlobalSettingsFactory(minimum_markup_percent=20)
+
+    response = TestClient(routes).put("", json={"minimum_item_value": 3})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["minimum_markup_percent"] == 20.0

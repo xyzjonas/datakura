@@ -12,3 +12,4 @@ class GlobalSettingsFactory(DjangoModelFactory):
 
     pk = 1
     minimum_item_value = Decimal("0")
+    minimum_markup_percent = Decimal("0")
