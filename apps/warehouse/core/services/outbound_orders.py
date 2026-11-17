@@ -532,9 +532,9 @@ class OutboundOrdersService:
         item: OutboundOrderItemCreateSchema,
     ) -> None:
         """A code given with the item becomes the customer's code of the product."""
-        code = (item.customer_product_code or "").strip()
-        if code:
-            customer_product_codes_service.upsert(stock_product, order.customer, code)
+        customer_product_codes_service.upsert_if_given(
+            stock_product, order.customer, item.customer_product_code
+        )
 
     @classmethod
     def add_item(

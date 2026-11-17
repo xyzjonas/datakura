@@ -7,6 +7,7 @@ from apps.warehouse.core.exceptions import (
     WarehouseItemBadRequestError,
 )
 from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.orders import OutboundCalculation, OutboundOrder
 from apps.warehouse.models.product import CustomerProductCode, StockProduct
 
 
@@ -32,6 +33,15 @@ class CustomerProductCodesService:
             product=product, customer=customer, defaults={"code": code}
         )
         return entry
+
+    @classmethod
+    def upsert_if_given(
+        cls, product: StockProduct, customer: Customer, code: str | None
+    ) -> None:
+        """A code given with an order/calculation item becomes the customer's code."""
+        code = (code or "").strip()
+        if code:
+            cls.upsert(product, customer, code)
 
     @classmethod
     def upsert_by_codes(
@@ -61,7 +71,9 @@ class CustomerProductCodesService:
         ).delete()
 
     @staticmethod
-    def assert_order_items_have_codes(order) -> None:
+    def assert_order_items_have_codes(
+        order: OutboundOrder | OutboundCalculation,
+    ) -> None:
         """
         Customers that order by their own codes need one for every item - raises a
         bad request listing the products still lacking it.

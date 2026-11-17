@@ -13,6 +13,7 @@ from apps.warehouse.models.orders import (
     OutboundOrder,
     OutboundOrderState,
 )
+from apps.warehouse.models.product import CustomerProductCode
 from apps.warehouse.models.warehouse import OutboundWarehouseOrder
 from apps.warehouse.tests.factories.customer import (
     ContactPersonFactory,
@@ -24,7 +25,10 @@ from apps.warehouse.tests.factories.order import (
     OutboundOrderFactory,
 )
 from apps.warehouse.tests.factories.packaging import PackageTypeFactory
-from apps.warehouse.tests.factories.product import StockProductFactory
+from apps.warehouse.tests.factories.product import (
+    CustomerProductCodeFactory,
+    StockProductFactory,
+)
 from apps.warehouse.tests.factories.settings import GlobalSettingsFactory
 
 
@@ -778,3 +782,127 @@ def test_order_created_from_calculation_is_confirmable_like_any_order(db) -> Non
     assert data["state"] == "picking"
     assert data["code"] == order_code
     assert len(data["warehouse_orders"]) == 1
+
+
+# --- customer's own product codes ----------------------------------------------------
+
+
+def _flagged_calculation(**kwargs) -> OutboundCalculation:
+    return OutboundCalculationFactory.it(
+        customer=CustomerFactory.it(requires_own_codes=True), **kwargs
+    )
+
+
+@pytest.mark.parametrize("flagged", [True, False])
+def test_add_item_with_code_stores_it_and_shows_it_only_for_flagged(
+    db, flagged: bool
+) -> None:
+    calculation = OutboundCalculationFactory.it(
+        customer=CustomerFactory.it(requires_own_codes=flagged)
+    )
+    product = StockProductFactory.it()
+
+    res = TestClient(routes).post(
+        f"/{calculation.code}/items",
+        json=_item_payload(product, customer_product_code="C-9"),
+    )
+
+    assert res.status_code == 200
+    assert res.json()["data"]["customer_product_code"] == ("C-9" if flagged else None)
+    assert (
+        CustomerProductCode.objects.get(
+            product=product, customer=calculation.customer
+        ).code
+        == "C-9"
+    )
+
+
+def test_calculation_detail_lists_codes_of_own_customer_only(db) -> None:
+    calculation = _flagged_calculation()
+    mine, other = StockProductFactory.it(), StockProductFactory.it()
+    CustomerProductCodeFactory.it(
+        product=mine, customer=calculation.customer, code="MINE"
+    )
+    CustomerProductCodeFactory.it(product=other, code="NOT-MINE")
+    OutboundCalculationItemFactory(calculation=calculation, stock_product=mine, index=0)
+    OutboundCalculationItemFactory(
+        calculation=calculation, stock_product=other, index=1
+    )
+
+    res = TestClient(routes).get(f"/{calculation.code}")
+
+    items = res.json()["data"]["items"]
+    assert [i["customer_product_code"] for i in items] == ["MINE", None]
+
+
+def test_update_item_replaces_code_and_blank_keeps_it(db) -> None:
+    client = TestClient(routes)
+    calculation = _flagged_calculation()
+    product = StockProductFactory.it()
+    CustomerProductCodeFactory.it(
+        product=product, customer=calculation.customer, code="OLD"
+    )
+    OutboundCalculationItemFactory(
+        calculation=calculation, stock_product=product, index=0
+    )
+
+    res = client.put(
+        f"/{calculation.code}/items/0",
+        json=_item_payload(product, customer_product_code="NEW"),
+    )
+    assert res.json()["data"]["customer_product_code"] == "NEW"
+
+    res = client.put(
+        f"/{calculation.code}/items/0",
+        json=_item_payload(product, customer_product_code="  "),
+    )
+    assert res.json()["data"]["customer_product_code"] == "NEW"
+
+
+def test_code_too_long_rejected(db) -> None:
+    calculation = OutboundCalculationFactory.it()
+    res = TestClient(routes).post(
+        f"/{calculation.code}/items",
+        json=_item_payload(StockProductFactory.it(), customer_product_code="x" * 101),
+    )
+    assert res.status_code == 422
+
+
+def test_create_order_blocked_when_item_lacks_code(db) -> None:
+    calculation = _flagged_calculation()
+    with_code, without = StockProductFactory.it(), StockProductFactory.it()
+    CustomerProductCodeFactory.it(product=with_code, customer=calculation.customer)
+    OutboundCalculationItemFactory(
+        calculation=calculation, stock_product=with_code, index=0
+    )
+    OutboundCalculationItemFactory(
+        calculation=calculation, stock_product=without, index=1
+    )
+
+    with pytest.raises(WarehouseItemBadRequestError) as exc:
+        TestClient(routes).post(f"/{calculation.code}/create-order")
+
+    assert without.code in str(exc.value)
+    assert with_code.code not in str(exc.value)
+    calculation.refresh_from_db()
+    assert calculation.order is None
+    assert calculation.state == OutboundCalculationState.OPEN
+    assert not OutboundOrder.objects.exists()
+
+
+@pytest.mark.parametrize("flagged", [True, False])
+def test_create_order_with_all_codes_or_without_flag(db, flagged: bool) -> None:
+    calculation = OutboundCalculationFactory.it(
+        customer=CustomerFactory.it(requires_own_codes=flagged)
+    )
+    product = StockProductFactory.it()
+    if flagged:
+        CustomerProductCodeFactory.it(product=product, customer=calculation.customer)
+    OutboundCalculationItemFactory(
+        calculation=calculation, stock_product=product, index=0
+    )
+
+    res = TestClient(routes).post(f"/{calculation.code}/create-order")
+
+    assert res.status_code == 200
+    assert OutboundOrder.objects.count() == 1

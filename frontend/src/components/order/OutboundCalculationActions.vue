@@ -5,9 +5,13 @@
     color="positive"
     icon="sym_o_order_approve"
     label="vytvořit objednávku"
-    :disable="!calculation.items?.length"
+    :disable="!calculation.items?.length || !!missingOwnCodes.length"
     @click="createOrderDialog = true"
-  />
+  >
+    <q-tooltip v-if="missingOwnCodes.length">
+      Zákazník vyžaduje vlastní kódy - chybí u {{ missingOwnCodes.length }} položek
+    </q-tooltip>
+  </q-btn>
   <q-btn
     v-if="editable"
     unelevated
@@ -58,8 +62,9 @@ import {
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
+import { itemsMissingOwnCode } from '@/utils/own-codes'
 import { useQuasar } from 'quasar'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import OutboundOrderStateBadge from './OutboundOrderStateBadge.vue'
 
 defineProps<{ editable: boolean }>()
@@ -68,6 +73,8 @@ const calculation = defineModel<OutboundCalculationSchema>('calculation', { requ
 const { onResponse } = useApi()
 const { goToOrderOut, goToCalculations } = useAppRouter()
 const $q = useQuasar()
+
+const missingOwnCodes = computed(() => itemsMissingOwnCode(calculation.value))
 
 const createOrderDialog = ref(false)
 const deleteDialog = ref(false)
