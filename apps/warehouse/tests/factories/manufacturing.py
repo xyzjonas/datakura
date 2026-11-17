@@ -15,6 +15,10 @@ class ManufacturingOrderFactory(DjangoModelFactory):
     class Meta:
         model = ManufacturingOrder
 
+    @classmethod
+    def it(cls, **kwargs) -> ManufacturingOrder:
+        return cls(**kwargs)  # type: ignore
+
     code = factory.Sequence(lambda n: f"PV{n:06d}")
     state = ManufacturingOrderState.IN_PROGRESS
 
@@ -22,6 +26,10 @@ class ManufacturingOrderFactory(DjangoModelFactory):
 class ManufacturingOrderItemFactory(DjangoModelFactory):
     class Meta:
         model = ManufacturingOrderItem
+
+    @classmethod
+    def it(cls, **kwargs) -> ManufacturingOrderItem:
+        return cls(**kwargs)  # type: ignore
 
     order = factory.SubFactory(ManufacturingOrderFactory)
     in_product = factory.SubFactory(StockProductFactory)

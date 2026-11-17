@@ -62,6 +62,24 @@ export function useQueryProducts() {
     },
   })
 
+  /** Warehouse order lists: hide orders that belong to a manufacturing order. */
+  const hideManufacturing = computed<boolean>({
+    get() {
+      return route.query.hide_manufacturing === '1'
+    },
+    set(val: boolean) {
+      const query = { ...route.query }
+      // a different result set - start from the first page again
+      delete query.page
+      if (val) {
+        query.hide_manufacturing = '1'
+      } else {
+        delete query.hide_manufacturing
+      }
+      router.push({ query })
+    },
+  })
+
   const productType = computed<string | null>({
     get() {
       const raw = route.query.product_type
@@ -142,5 +160,6 @@ export function useQueryProducts() {
     productGroup,
     stockProductCode,
     includeAll,
+    hideManufacturing,
   }
 }

@@ -33,6 +33,7 @@
           :debounce="300"
           class="min-w-[260px] flex-1"
         ></SearchInput>
+        <HideManufacturingToggle v-model="hideManufacturing" class="ml-4" />
       </template>
       <template #body-cell-code="props">
         <q-td>
@@ -96,12 +97,13 @@ import OrderProgress from '@/components/OrderProgress.vue'
 import OutboundWarehouseOrderGridCard from '@/components/putaway/OutboundWarehouseOrderGridCard.vue'
 import OutboundWarehouseOrderStateBadge from '@/components/putaway/OutboundWarehouseOrderStateBadge.vue'
 import SearchInput from '@/components/SearchInput.vue'
+import HideManufacturingToggle from '@/components/warehouse/HideManufacturingToggle.vue'
 import { useQueryProducts } from '@/composables/query/use-products-query'
 import { type QTableColumn, type QTableProps } from 'quasar'
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-const { page, pageSize, search } = useQueryProducts()
+const { page, pageSize, search, hideManufacturing } = useQueryProducts()
 
 const pagination = ref<NonNullable<QTableProps['pagination']>>({
   rowsPerPage: pageSize.value,
@@ -119,6 +121,7 @@ const fetchOrders = async () => {
         page: page.value,
         page_size: pageSize.value,
         search_term: search.value,
+        hide_manufacturing: hideManufacturing.value,
       },
     })
     if (res.data?.data) {
@@ -156,7 +159,7 @@ watch(currentRoute, () => {
   }
 })
 
-watch(search, fetchOrders)
+watch([search, hideManufacturing], fetchOrders)
 
 const columns: QTableColumn[] = [
   {

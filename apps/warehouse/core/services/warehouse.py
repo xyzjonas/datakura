@@ -5,7 +5,7 @@ from typing import cast
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.db.models import QuerySet, Sum
+from django.db.models import Q, QuerySet, Sum
 from django.utils import timezone
 
 from apps.warehouse.core.exceptions import (
@@ -59,6 +59,10 @@ from apps.warehouse.core.transformation import (
 )
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.barcode import BarcodeType, Barcode
+from apps.warehouse.models.manufacturing import (
+    ManufacturingOrder,
+    ManufacturingOrderItem,
+)
 from apps.warehouse.models.orders import (
     InboundOrder,
     InboundOrderState,
@@ -591,6 +595,52 @@ class WarehouseService:
         return warehouse_outbound_order_orm_to_schema(order)
 
     @staticmethod
+    def list_inbound_warehouse_orders(
+        search_term: str | None = None,
+        include_all: bool = False,
+        hide_manufacturing: bool = False,
+    ) -> QuerySet[InboundWarehouseOrder]:
+        qs = inbound_warehouse_orders_for_schema()
+        if hide_manufacturing:
+            qs = qs.filter(manufacturing_order__isnull=True)
+        if not include_all and not search_term:
+            qs = qs.exclude(order__state=InboundOrderState.CANCELLED).exclude(
+                order__state=InboundOrderState.COMPLETED
+            )
+        if search_term:
+            search_term = search_term.lower()
+            qs = qs.filter(
+                Q(code__iexact=search_term)
+                | Q(code__icontains=search_term)
+                | Q(order__code__icontains=search_term)
+                | Q(manufacturing_order__code__icontains=search_term)
+            )
+        return qs.all()
+
+    @staticmethod
+    def list_outbound_warehouse_orders(
+        search_term: str | None = None,
+        include_all: bool = False,
+        hide_manufacturing: bool = False,
+    ) -> QuerySet[OutboundWarehouseOrder]:
+        qs = outbound_warehouse_orders_for_schema()
+        if hide_manufacturing:
+            qs = qs.filter(manufacturing_order__isnull=True)
+        if not include_all and not search_term:
+            qs = qs.exclude(order__state=OutboundOrderState.CANCELLED).exclude(
+                order__state=OutboundOrderState.COMPLETED
+            )
+        if search_term:
+            search_term = search_term.lower()
+            qs = qs.filter(
+                Q(code__iexact=search_term)
+                | Q(code__icontains=search_term)
+                | Q(order__code__icontains=search_term)
+                | Q(manufacturing_order__code__icontains=search_term)
+            )
+        return qs.all()
+
+    @staticmethod
     def get_outbound_warehouse_order_model(code: str) -> OutboundWarehouseOrder:
         return (
             OutboundWarehouseOrder.objects.select_related(
@@ -822,6 +872,7 @@ class WarehouseService:
         fulfilled_item = OutboundWarehouseOrderItem.objects.create(
             warehouse_order=order_item.warehouse_order,
             source_order_item=order_item.source_order_item,
+            source_manufacturing_item=order_item.source_manufacturing_item,
             stock_product=order_item.stock_product,
             amount=available_amount,
             desired_package_type=order_item.desired_package_type,
@@ -1305,6 +1356,7 @@ class WarehouseService:
                     offloaded = OutboundWarehouseOrderItem.objects.create(
                         warehouse_order=child_order,
                         source_order_item=order_item.source_order_item,
+                        source_manufacturing_item=order_item.source_manufacturing_item,
                         stock_product=order_item.stock_product,
                         amount=amount,
                         desired_package_type=order_item.desired_package_type,
@@ -1371,6 +1423,28 @@ class WarehouseService:
             inbound_warehouse_orders_for_schema().get(pk=warehouse_order.pk)
         )
 
+    @staticmethod
+    def _picked_batch_barcode(
+        mfg_order: ManufacturingOrder, mfg_item: ManufacturingOrderItem
+    ) -> str | None:
+        """
+        Barcode of the batch the INPUT material of `mfg_item` was picked with.
+
+        The produced goods inherit it (so e.g. an attached certification keeps
+        following the material). Only a single, unambiguous batch can be
+        inherited - mixed or batch-less picks yield `None`.
+        """
+        picked = OutboundWarehouseOrderItem.objects.filter(
+            warehouse_order__manufacturing_order=mfg_order,
+            source_manufacturing_item=mfg_item,
+            warehouse_item__isnull=False,
+        )
+        batch_ids = set(picked.values_list("warehouse_item__batch_id", flat=True))
+        if len(batch_ids) != 1 or None in batch_ids:
+            return None
+        batch = Batch.objects.get(pk=batch_ids.pop())
+        return batch_primary_barcode(batch)
+
     @classmethod
     def confirm_arrival(
         cls, code: str, location_code: str, context: RequestContext
@@ -1432,7 +1506,13 @@ class WarehouseService:
                         else Decimal("0")
                     )
                     source_items.append(
-                        (mi.out_product, mi.out_amount, unit_price, None, None)
+                        (
+                            mi.out_product,
+                            mi.out_amount,
+                            unit_price,
+                            cls._picked_batch_barcode(mfg_order, mi),
+                            None,
+                        )
                     )
             else:
                 source_items = []

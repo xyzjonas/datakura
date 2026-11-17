@@ -10,6 +10,14 @@
           <div class="text-sm text-muted uppercase font-bold">Vstup (co jde na pracoviště)</div>
           <ProductSearchSelect v-model="inProduct" />
           <ProductAvailability v-if="inProduct" :product-code="inProduct.code" />
+          <OutboundItemRequirements
+            v-model:package-type-name="item.desired_package_type_name"
+            v-model:batch-code="item.desired_batch_code"
+            v-model:batch-certification="batchCertification"
+            v-model:origin-country="item.required_origin_country"
+            :product-name="item.in_product_name"
+            :product-code="item.in_product_code"
+          />
           <q-input
             v-model.number="item.in_amount"
             outlined
@@ -25,7 +33,9 @@
 
           <q-separator />
 
-          <div class="text-sm text-muted uppercase font-bold">Výstup (co se vrátí z pracoviště)</div>
+          <div class="text-sm text-muted uppercase font-bold">
+            Výstup (co se vrátí z pracoviště)
+          </div>
           <ProductSearchSelect v-model="outProduct" />
           <ProductAvailability v-if="outProduct" :product-code="outProduct.code" />
           <q-input
@@ -49,7 +59,12 @@
 </template>
 
 <script setup lang="ts">
-import type { ManufacturingOrderItemCreateSchema, ManufacturingOrderItemSchema, ProductSchema } from '@/client'
+import type {
+  ManufacturingOrderItemCreateSchema,
+  ManufacturingOrderItemSchema,
+  ProductSchema,
+} from '@/client'
+import OutboundItemRequirements from '@/components/order/OutboundItemRequirements.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductSearchSelect from '@/components/selects/ProductSearchSelect.vue'
 import { rules } from '@/utils/rules'
@@ -82,9 +97,26 @@ const item = ref<ManufacturingOrderItemCreateSchema>({
   out_product_code: props.itemIn?.out_product.code ?? '',
   out_product_name: props.itemIn?.out_product.name ?? '',
   out_amount: props.itemIn?.out_amount ?? 0,
+  desired_package_type_name: props.itemIn?.desired_package_type_name ?? null,
+  desired_batch_code: props.itemIn?.desired_batch_code ?? null,
+  required_origin_country: props.itemIn?.required_origin_country ?? null,
 })
+const batchCertification = ref<{ id?: number; code: string } | null>(
+  props.itemIn?.desired_batch_certification ?? null,
+)
 
-watch(inProduct, (val) => {
+const clearRequirements = () => {
+  item.value.desired_package_type_name = null
+  item.value.desired_batch_code = null
+  item.value.required_origin_country = null
+  batchCertification.value = null
+}
+
+watch(inProduct, (val, old) => {
+  // requirements (batch, package) are product specific
+  if (old && val?.code !== old.code) {
+    clearRequirements()
+  }
   if (val) {
     item.value.in_product_code = val.code
     item.value.in_product_name = val.name
@@ -122,7 +154,11 @@ const reset = () => {
     out_product_code: '',
     out_product_name: '',
     out_amount: 0,
+    desired_package_type_name: null,
+    desired_batch_code: null,
+    required_origin_country: null,
   }
+  batchCertification.value = null
   inProduct.value = undefined
   outProduct.value = undefined
   showDialog.value = false

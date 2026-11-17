@@ -102,6 +102,12 @@
         :pagination="{ rowsPerPage: 0 }"
         :grid="$q.screen.lt.sm"
       >
+        <template #body-cell-in_product="slotProps">
+          <q-td :props="slotProps">
+            {{ slotProps.value }}
+            <ManufacturingItemRequirementBadges :item="slotProps.row" class="mt-1" />
+          </q-td>
+        </template>
         <template #body-cell-actions="slotProps">
           <q-td :props="slotProps">
             <div v-if="isManufacturingOrderEditable(order)" class="flex gap-1">
@@ -131,6 +137,7 @@
           <div class="flex flex-col items-center w-full">
             <StockProductLink :product="props.row.in_product" class="uppercase text-lg" />
             {{ props.row.in_amount }} {{ props.row.in_product.unit }}
+            <ManufacturingItemRequirementBadges :item="props.row" />
             <q-icon name="sym_o_arrow_downward_alt" size="md" class="text-muted my-1" />
             <StockProductLink :product="props.row.out_product" class="uppercase text-lg" />
             {{ props.row.out_amount }} {{ props.row.out_product.unit }}
@@ -219,6 +226,7 @@ import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import StockProductLink from '@/components/links/StockProductLink.vue'
 import ManufacturingOrderDetailsListCard from '@/components/manufacturing/ManufacturingOrderDetailsListCard.vue'
+import ManufacturingItemRequirementBadges from '@/components/manufacturing/ManufacturingItemRequirementBadges.vue'
 import ManufacturingOrderItemDialog from '@/components/manufacturing/ManufacturingOrderItemDialog.vue'
 import ManufacturingOrderStateBadge from '@/components/manufacturing/ManufacturingOrderStateBadge.vue'
 import ManufacturingOrderTimeline from '@/components/manufacturing/ManufacturingOrderTimeline.vue'

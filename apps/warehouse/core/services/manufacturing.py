@@ -21,6 +21,11 @@ from apps.warehouse.core.schemas.manufacturing import (
     ManufacturingOrderSchema,
 )
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.outbound_common import (
+    get_desired_batch_or_none,
+    get_desired_package_or_none,
+    validate_desired_packaging,
+)
 from apps.warehouse.core.services.code_sequence import (
     generate_next_sequential_code,
 )
@@ -162,16 +167,29 @@ class ManufacturingOrdersService:
 
         in_product = StockProduct.objects.get(code=item.in_product_code)
         out_product = StockProduct.objects.get(code=item.out_product_code)
+        in_amount = Decimal(str(item.in_amount))
+        desired_package_type = get_desired_package_or_none(
+            item.desired_package_type_name
+        )
+        desired_batch = get_desired_batch_or_none(item.desired_batch_code)
+        validate_desired_packaging(
+            stock_product=in_product,
+            amount=in_amount,
+            desired_package_type=desired_package_type,
+        )
 
         with transaction.atomic():
             next_index = order.items.count()
             item_model = ManufacturingOrderItem.objects.create(
                 order=order,
                 in_product=in_product,
-                in_amount=Decimal(str(item.in_amount)),
+                in_amount=in_amount,
                 out_product=out_product,
                 out_amount=Decimal(str(item.out_amount)),
                 index=item.index if item.index is not None else next_index,
+                desired_package_type=desired_package_type,
+                desired_batch=desired_batch,
+                required_origin_country=item.required_origin_country,
             )
 
         return manufacturing_order_item_orm_to_schema(item_model)
@@ -189,11 +207,24 @@ class ManufacturingOrdersService:
 
         in_product = StockProduct.objects.get(code=item.in_product_code)
         out_product = StockProduct.objects.get(code=item.out_product_code)
+        in_amount = Decimal(str(item.in_amount))
+        desired_package_type = get_desired_package_or_none(
+            item.desired_package_type_name
+        )
+        desired_batch = get_desired_batch_or_none(item.desired_batch_code)
+        validate_desired_packaging(
+            stock_product=in_product,
+            amount=in_amount,
+            desired_package_type=desired_package_type,
+        )
 
         with transaction.atomic():
             item_model = ManufacturingOrderItem.objects.get(pk=item_id, order=order)
             item_model.in_product = in_product
-            item_model.in_amount = Decimal(str(item.in_amount))
+            item_model.in_amount = in_amount
+            item_model.desired_package_type = desired_package_type
+            item_model.desired_batch = desired_batch
+            item_model.required_origin_country = item.required_origin_country
             item_model.out_product = out_product
             item_model.out_amount = Decimal(str(item.out_amount))
             if item.index is not None:
@@ -295,15 +326,18 @@ class ManufacturingOrdersService:
         )
 
         for index, item in enumerate(
-            order.items.filter(in_product__type__non_physical=False).order_by(
-                "index", "created"
-            )
+            order.items.filter(in_product__type__non_physical=False)
+            .select_related("desired_package_type", "desired_batch")
+            .order_by("index", "created")
         ):
             OutboundWarehouseOrderItem.objects.create(
                 warehouse_order=warehouse_order,
                 source_manufacturing_item=item,
                 stock_product=item.in_product,
                 amount=item.in_amount,
+                desired_package_type=item.desired_package_type,
+                desired_batch=item.desired_batch,
+                required_origin_country=item.required_origin_country,
                 index=index,
             )
         audit_service.add_entry(
