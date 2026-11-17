@@ -37,6 +37,7 @@
             </span>
             <small class="text-gray-5">{{ slotProps.row.customer.code }}</small>
           </router-link>
+          <PriceChangedHint v-else-if="slotProps.row.changed" :date="slotProps.row.changed" />
           <span v-else>—</span>
         </q-td>
       </template>
@@ -118,6 +119,7 @@ import {
   type ProductSchema,
 } from '@/client'
 import AddDynamicPriceDialog from '@/components/product/AddDynamicPriceDialog.vue'
+import PriceChangedHint from '@/components/product/PriceChangedHint.vue'
 import ProductPricingGridCard from '@/components/product/ProductPricingGridCard.vue'
 import UpdateDynamicPriceDialog from '@/components/product/UpdateDynamicPriceDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -131,6 +133,7 @@ const product = defineModel<ProductSchema>({ required: true })
 
 type DynamicPriceRow = DynamicProductPriceSchema & {
   customer?: { code: string; name: string } | null
+  changed?: string
 }
 
 const { onResponse } = useApi()
@@ -281,7 +284,7 @@ const onConfirmDeleteDynamicPrice = async () => {
   }
 }
 
-const basePrice = computed<DynamicProductPriceSchema[]>(() => [
+const basePrice = computed<DynamicPriceRow[]>(() => [
   {
     price_id: -1,
     fixed_price: product.value.base_price ?? 0,
@@ -290,7 +293,8 @@ const basePrice = computed<DynamicProductPriceSchema[]>(() => [
       code: '',
       name: '',
     },
-  } as DynamicProductPriceSchema,
+    changed: product.value.base_price_changed,
+  } as DynamicPriceRow,
 ])
 
 const prices = computed(() => basePrice.value.concat(product.value.dynamic_prices ?? []))

@@ -64,7 +64,10 @@
             >
           </q-item>
           <q-item>
-            <q-item-section>Průměrná nákupní cena</q-item-section>
+            <q-item-section>
+              <span>Průměrná nákupní cena</span>
+              <PriceChangedHint :date="product.purchase_price_changed" />
+            </q-item-section>
             <q-item-section avatar>
               <span
                 class="flex border px-2 rounded-xl py-1 shadow-sm text-primary translate-x-3 cursor-help"
@@ -295,6 +298,7 @@ import {
 import BarcodeElement from '@/components/BarcodeElement.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import PriceChangedHint from '@/components/product/PriceChangedHint.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductCustomerCodesCard from '@/components/product/ProductCustomerCodesCard.vue'
 import ProductOrdersSection from '@/components/product/ProductOrdersSection.vue'

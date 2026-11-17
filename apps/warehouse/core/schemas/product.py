@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated
 
 from ninja import Schema
-from pydantic import Field, StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_serializer, field_validator
 
 from .base import BaseSchema, PaginatedResponse, Response
 from .barcode import BarcodeSchema
@@ -96,6 +97,8 @@ class ProductSchema(BaseSchema):
     unit_weight: float
     base_price: float
     purchase_price: float
+    base_price_changed: datetime
+    purchase_price_changed: datetime
     no_discount: bool
     disallow_unpacking: bool
     currency: str
@@ -104,6 +107,11 @@ class ProductSchema(BaseSchema):
     barcodes: list[BarcodeSchema] = Field(default_factory=list)
     primary_barcode: BarcodeSchema | None = None
     dynamic_prices: list[DynamicProductPriceSchema] = Field(default_factory=list)
+
+    @field_serializer("base_price_changed", "purchase_price_changed")
+    def serialize_price_changed(self, dt: datetime) -> datetime:
+        # same as `created` / `changed`: no microseconds
+        return dt.replace(microsecond=0)
 
 
 class ProductCreateOrUpdateSchema(Schema):

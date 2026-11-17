@@ -19,3 +19,12 @@ export const formatDateShort = (value: string) =>
     month: 'long',
     day: 'numeric',
   })
+
+export const formatDateWithYear = (value?: string | Date | null) =>
+  value
+    ? new Date(value).toLocaleDateString('cs-CZ', {
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+      })
+    : '-'
