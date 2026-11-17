@@ -24,16 +24,6 @@
               <span class="text-sm">{{ productUom }}</span>
             </template>
           </q-input>
-          <div class="ml-1" v-if="product">
-            <small :class="percentDifference >= 0 ? 'text-positive' : 'text-negative'">
-              Cena je o
-              <strong>{{ Math.abs(percentDifference) }}%</strong>
-              {{ percentDifference > 0 ? 'nižší' : 'vyšší' }} než aktuální průměrná nákupní cena ({{
-                serverPurchasePrice
-              }}
-              {{ product?.currency }})</small
-            >
-          </div>
           <q-input
             :model-value="derivedUnitPrice"
             readonly
@@ -60,6 +50,12 @@
               <span class="text-sm">{{ currency }}</span>
             </template>
           </q-input>
+          <InboundItemPricingPanel
+            v-model:product="product"
+            :currency="currency"
+            :new-purchase-price="Number(derivedUnitPrice) || 0"
+            data-test="new-item-pricing"
+          />
           <CountrySelect
             v-model="item.origin_country"
             label="Země původu"
@@ -111,6 +107,7 @@ import {
 } from '../certification/certification-upload'
 import CountrySelect from '../selects/CountrySelect.vue'
 import ProductSearchSelect from '../selects/ProductSearchSelect.vue'
+import InboundItemPricingPanel from './InboundItemPricingPanel.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 import { round } from '@/utils/round'
 
@@ -176,20 +173,24 @@ const priceSanityCheck = computed(() => {
 })
 const product = ref<ProductSchema>()
 
-watch(product, (newValue: ProductSchema | undefined) => {
-  console.info(`New prod: ${newValue}`)
-  if (newValue) {
-    item.value.product_code = newValue.code
-    item.value.product_name = newValue.name
-    item.value.unit_price = newValue.purchase_price ?? 0
-    item.value.total_price = (newValue.purchase_price ?? 0) * item.value.amount
-    serverPurchasePrice.value = newValue.purchase_price ?? 0
-    productUom.value = newValue.unit
-  } else {
-    item.value.product_code = ''
-    item.value.product_name = ''
-  }
-})
+// keyed on the code: saving a new base price swaps the product object but must not reset the prices
+watch(
+  () => product.value?.code,
+  () => {
+    const newValue = product.value
+    if (newValue) {
+      item.value.product_code = newValue.code
+      item.value.product_name = newValue.name
+      item.value.unit_price = newValue.purchase_price ?? 0
+      item.value.total_price = (newValue.purchase_price ?? 0) * item.value.amount
+      serverPurchasePrice.value = newValue.purchase_price ?? 0
+      productUom.value = newValue.unit
+    } else {
+      item.value.product_code = ''
+      item.value.product_name = ''
+    }
+  },
+)
 
 watch(
   () => item.value.amount,

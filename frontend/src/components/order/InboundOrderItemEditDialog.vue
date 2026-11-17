@@ -60,6 +60,12 @@
           </template>
         </q-input>
 
+        <InboundItemPricingPanel
+          v-model:product="item.product"
+          :currency="currency"
+          :new-purchase-price="Number(unitPrice) || 0"
+        />
+
         <q-separator />
 
         <CountrySelect
@@ -99,6 +105,7 @@ import { useQuasar } from 'quasar'
 import { ref, watch } from 'vue'
 import InboundItemCertification from '../certification/InboundItemCertification.vue'
 import CountrySelect from '../selects/CountrySelect.vue'
+import InboundItemPricingPanel from './InboundItemPricingPanel.vue'
 import ProductAvailability from '../product/ProductAvailability.vue'
 
 const $q = useQuasar()
