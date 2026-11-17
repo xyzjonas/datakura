@@ -1115,3 +1115,57 @@ def test_average_purchase_price_recalculation_bumps_timestamp(db):
     product.refresh_from_db()
     assert product.purchase_price_changed > old
     assert product.base_price_changed == old
+
+
+def test_update_product_base_price(db, client):
+    product = cast(StockProduct, StockProductFactory(base_price=100, purchase_price=70))
+
+    response = client.patch(f"/{product.code}/base-price", json={"base_price": 123.45})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["base_price"] == 123.45
+    product.refresh_from_db()
+    assert float(product.base_price) == 123.45
+    # purchase price is never touched
+    assert float(product.purchase_price) == 70
+    audit = AuditLog.objects.filter(action=AuditAction.UPDATE).last()
+    assert audit is not None
+    assert "base_price" in audit.changes
+
+
+def test_update_product_base_price_zero_allowed(db, client):
+    product = cast(StockProduct, StockProductFactory(base_price=100))
+
+    response = client.patch(f"/{product.code}/base-price", json={"base_price": 0})
+
+    assert response.status_code == 200
+    product.refresh_from_db()
+    assert float(product.base_price) == 0
+
+
+@pytest.mark.parametrize("payload", [{"base_price": -0.01}, {}, {"base_price": "abc"}])
+def test_update_product_base_price_invalid(db, client, payload):
+    product = cast(StockProduct, StockProductFactory(base_price=100))
+
+    response = client.patch(f"/{product.code}/base-price", json=payload)
+
+    assert response.status_code == 422
+    product.refresh_from_db()
+    assert float(product.base_price) == 100
+
+
+def test_update_product_base_price_unknown_product(db, client):
+    with pytest.raises(StockProduct.DoesNotExist):
+        client.patch("/NOPE/base-price", json={"base_price": 1})
+
+
+def test_update_product_base_price_bumps_only_base_price_timestamp(db, client):
+    product = cast(StockProduct, StockProductFactory(base_price=100, purchase_price=70))
+    old = _age_price_timestamps(product)
+
+    response = client.patch(f"/{product.code}/base-price", json={"base_price": 120})
+
+    assert response.status_code == 200
+    product.refresh_from_db()
+    assert product.base_price_changed > old
+    assert product.purchase_price_changed == old

@@ -1912,6 +1912,17 @@ export type CustomerPriceOverrideUpsertSchema = {
 };
 
 /**
+ * ProductBasePriceSchema
+ * Narrow correction payload used when ordering new stock (inbound order).
+ */
+export type ProductBasePriceSchema = {
+    /**
+     * Base Price
+     */
+    base_price: number;
+};
+
+/**
  * ProductCustomsWeightSchema
  * Narrow correction payload used during goods receiving.
  */
@@ -7176,6 +7187,27 @@ export type WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponses
 };
 
 export type WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponse = WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponses[keyof WarehouseApiRoutesProductUpsertProductCustomerPriceOverrideResponses];
+
+export type WarehouseApiRoutesProductUpdateProductBasePriceData = {
+    body: ProductBasePriceSchema;
+    path: {
+        /**
+         * Product Code
+         */
+        product_code: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_code}/base-price';
+};
+
+export type WarehouseApiRoutesProductUpdateProductBasePriceResponses = {
+    /**
+     * OK
+     */
+    200: GetProductResponse;
+};
+
+export type WarehouseApiRoutesProductUpdateProductBasePriceResponse = WarehouseApiRoutesProductUpdateProductBasePriceResponses[keyof WarehouseApiRoutesProductUpdateProductBasePriceResponses];
 
 export type WarehouseApiRoutesProductUpdateProductCustomsWeightData = {
     body: ProductCustomsWeightSchema;

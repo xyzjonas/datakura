@@ -27,6 +27,7 @@ from apps.warehouse.core.schemas.product import (
     GetBarcodeGenerateResponse,
     ProductSchema,
     ProductCreateOrUpdateSchema,
+    ProductBasePriceSchema,
     ProductCustomsWeightSchema,
     ProductDuplicateSchema,
     ProductBarcodeCreateSchema,
@@ -167,6 +168,17 @@ def update_product(
 ):
     return GetProductResponse(
         data=stock_product_service.update_product(product_code, body)
+    )
+
+
+@routes.patch("/{product_code}/base-price", response={200: GetProductResponse})
+def update_product_base_price(
+    request: HttpRequest,
+    product_code: str,
+    body: ProductBasePriceSchema,
+):
+    return GetProductResponse(
+        data=stock_product_service.update_base_price(product_code, body)
     )
 
 

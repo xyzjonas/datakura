@@ -135,6 +135,12 @@ class ProductCreateOrUpdateSchema(Schema):
         return _normalize_customs_code(value)
 
 
+class ProductBasePriceSchema(Schema):
+    """Narrow correction payload used when ordering new stock (inbound order)."""
+
+    base_price: float = Field(..., ge=0)
+
+
 class ProductCustomsWeightSchema(Schema):
     """Narrow correction payload used during goods receiving."""
 
