@@ -98,6 +98,23 @@ class ManufacturingOrderItem(BaseModel):
     )
     out_amount = models.DecimalField(max_digits=10, decimal_places=4)
     index = models.PositiveIntegerField(default=0)
+    # Requirements on the INPUT material - same semantics as on outbound order items.
+    desired_package_type = models.ForeignKey(
+        "warehouse.PackageType",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="mfg_order_items",
+    )
+    desired_batch = models.ForeignKey(
+        "warehouse.Batch",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="mfg_order_items",
+    )
+    # ISO 3166-1 alpha-2 - informative only (not enforced when picking)
+    required_origin_country = models.CharField(max_length=2, null=True, blank=True)
 
     class Meta(BaseModel.Meta):
         ordering = ["index", "created"]

@@ -5353,6 +5353,19 @@ export type ManufacturingOrderItemSchema = {
      * Index
      */
     index: number;
+    /**
+     * Desired Package Type Name
+     */
+    desired_package_type_name?: string | null;
+    /**
+     * Desired Batch Code
+     */
+    desired_batch_code?: string | null;
+    desired_batch_certification?: CertificationRefSchema | null;
+    /**
+     * Required Origin Country
+     */
+    required_origin_country?: string | null;
 };
 
 /**
@@ -5542,6 +5555,18 @@ export type ManufacturingOrderItemCreateSchema = {
      * Index
      */
     index?: number | null;
+    /**
+     * Desired Package Type Name
+     */
+    desired_package_type_name?: string | null;
+    /**
+     * Desired Batch Code
+     */
+    desired_batch_code?: string | null;
+    /**
+     * Required Origin Country
+     */
+    required_origin_country?: string | null;
 };
 
 /**
@@ -6508,6 +6533,10 @@ export type WarehouseApiRoutesWarehouseGetInboundWarehouseOrdersData = {
          */
         include_all?: boolean;
         /**
+         * Hide Manufacturing
+         */
+        hide_manufacturing?: boolean;
+        /**
          * Page
          */
         page?: number;
@@ -6556,6 +6585,10 @@ export type WarehouseApiRoutesWarehouseGetOutboundWarehouseOrdersData = {
          * Include All
          */
         include_all?: boolean;
+        /**
+         * Hide Manufacturing
+         */
+        hide_manufacturing?: boolean;
         /**
          * Page
          */

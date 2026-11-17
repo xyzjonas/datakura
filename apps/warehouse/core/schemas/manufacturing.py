@@ -10,6 +10,8 @@ from .base_orders import (
     OutboundWarehouseOrderBaseSchema,
     InboundWarehouseOrderBaseSchema,
 )
+from .certification_ref import CertificationRefSchema
+from .country import CountryCode
 from .product import ProductSchema
 
 
@@ -21,6 +23,9 @@ class ManufacturingOrderItemCreateSchema(Schema):
     out_product_name: str
     out_amount: float
     index: int | None = None
+    desired_package_type_name: str | None = None
+    desired_batch_code: str | None = None
+    required_origin_country: CountryCode | None = None
 
 
 class ManufacturingOrderItemSchema(BaseSchema):
@@ -30,6 +35,10 @@ class ManufacturingOrderItemSchema(BaseSchema):
     out_product: ProductSchema
     out_amount: float
     index: int
+    desired_package_type_name: str | None = None
+    desired_batch_code: str | None = None
+    desired_batch_certification: CertificationRefSchema | None = None
+    required_origin_country: str | None = None
 
 
 class ManufacturingOrderCreateOrUpdateSchema(Schema):

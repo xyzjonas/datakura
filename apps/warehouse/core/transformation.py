@@ -1340,6 +1340,14 @@ def manufacturing_order_item_orm_to_schema(
         out_product=product_orm_to_schema(item.out_product),
         out_amount=float(item.out_amount),
         index=item.index,
+        desired_package_type_name=item.desired_package_type.name
+        if item.desired_package_type
+        else None,
+        desired_batch_code=batch_primary_barcode(item.desired_batch)
+        if item.desired_batch
+        else None,
+        desired_batch_certification=batch_certification_ref(item.desired_batch),
+        required_origin_country=item.required_origin_country,
         created=item.created,
         changed=item.changed,
     )
