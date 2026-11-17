@@ -27,6 +27,7 @@
           suffix="%"
           :label="basis === 'markup' ? 'Minimální přirážka' : 'Minimální marže'"
           class="w-64"
+          hide-bottom-space
           :loading="loading"
           :error="!isValid"
           :error-message="
@@ -61,10 +62,12 @@ import {
 } from '@/client'
 import { setMinimumMarkupPercent } from '@/composables/use-minimum-profit'
 import { useApi } from '@/composables/use-api'
+import { useQuasar } from 'quasar'
 import { marginToMarkup, markupToMargin, type ProfitBasis } from '@/utils/minimum-profit'
 import { computed, onMounted, ref, watch } from 'vue'
 
 const { onResponse } = useApi()
+const $q = useQuasar()
 
 const basis = ref<ProfitBasis>('markup')
 const input = ref(0)
@@ -117,7 +120,10 @@ const save = async () => {
         body: { minimum_markup_percent: markup.value },
       }),
     )
-    if (response?.data) apply(response.data.minimum_markup_percent)
+    if (response?.data) {
+      apply(response.data.minimum_markup_percent)
+      $q.notify({ type: 'positive', message: 'Minimální zisk uložen' })
+    }
   } finally {
     saving.value = false
   }

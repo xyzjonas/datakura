@@ -16,6 +16,7 @@
           dense
           label="Číslování dokladů"
           class="w-64"
+          hide-bottom-space
           :loading="loading"
         />
         <q-btn
@@ -38,9 +39,11 @@ import {
   type CodeSequence,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
+import { useQuasar } from 'quasar'
 import { onMounted, ref } from 'vue'
 
 const { onResponse } = useApi()
+const $q = useQuasar()
 
 const options: { label: string; value: CodeSequence }[] = [
   { label: 'Roční (nové číslo každý rok)', value: 'yearly' },
@@ -75,7 +78,10 @@ const save = async () => {
         body: { code_sequence: codeSequence.value },
       }),
     )
-    if (response?.data) apply(response.data.code_sequence)
+    if (response?.data) {
+      apply(response.data.code_sequence)
+      $q.notify({ type: 'positive', message: 'Číslování dokladů uloženo' })
+    }
   } finally {
     saving.value = false
   }

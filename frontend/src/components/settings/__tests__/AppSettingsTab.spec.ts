@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AppSettingsTab from '@/components/settings/AppSettingsTab.vue'
 
 const mocks = vi.hoisted(() => ({
+  notify: vi.fn(),
   setDefaultPrinter: vi.fn(),
   createPrinter: vi.fn(),
   whoami: vi.fn(),
@@ -30,8 +31,17 @@ vi.mock('@/components/settings/MinimumItemValueSetting.vue', () => ({
   default: { template: '<div />' },
 }))
 
+vi.mock('@/components/settings/MinimumProfitSetting.vue', () => ({
+  default: { template: '<div />' },
+}))
+
 vi.mock('@/components/settings/CodeSequenceSetting.vue', () => ({
   default: { template: '<div />' },
+}))
+
+vi.mock('quasar', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('quasar')>()),
+  useQuasar: () => ({ notify: mocks.notify }),
 }))
 
 vi.mock('@/composables/use-api', () => ({
@@ -56,6 +66,7 @@ vi.mock('@/composables/use-app-settings', () => ({
 describe('AppSettingsTab', () => {
   beforeEach(() => {
     mocks.setDefaultPrinter.mockReset()
+    mocks.notify.mockReset()
     mocks.createPrinter.mockReset()
     mocks.whoami.mockReset()
     mocks.user.value = {
@@ -118,6 +129,7 @@ describe('AppSettingsTab', () => {
       body: { printer_code: 'PACK-01' },
     })
     expect(mocks.whoami).toHaveBeenCalled()
+    expect(mocks.notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'positive' }))
   })
 
   it('clears default printer assignment', async () => {
@@ -159,5 +171,6 @@ describe('AppSettingsTab', () => {
       body: { printer_code: null },
     })
     expect(mocks.whoami).toHaveBeenCalled()
+    expect(mocks.notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'positive' }))
   })
 })

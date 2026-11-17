@@ -145,10 +145,12 @@ import { useApi } from '@/composables/use-api'
 import { useAppSettings } from '@/composables/use-app-settings'
 import { useAuth } from '@/composables/use-auth'
 import { useDarkmode } from '@/composables/use-dark-mode'
+import { useQuasar } from 'quasar'
 import { computed, ref, watch } from 'vue'
 
 const { scannerMode } = useAppSettings()
 const { onResponse } = useApi()
+const $q = useQuasar()
 const { user, whoami } = useAuth()
 
 const selectedPrinterCode = ref<string | null>(null)
@@ -205,6 +207,12 @@ const saveDefaultPrinter = async () => {
     const response = onResponse(result)
     if (response) {
       await whoami()
+      $q.notify({
+        type: 'positive',
+        message: selectedPrinterCode.value
+          ? 'Výchozí tiskárna uložena'
+          : 'Přiřazení tiskárny odebráno',
+      })
     }
   } finally {
     savingDefaultPrinter.value = false

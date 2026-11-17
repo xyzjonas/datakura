@@ -4,11 +4,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MinimumProfitSetting from '@/components/settings/MinimumProfitSetting.vue'
 import { useMinimumProfit } from '@/composables/use-minimum-profit'
 
-const mocks = vi.hoisted(() => ({ getSettings: vi.fn(), updateSettings: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  notify: vi.fn(),
+  getSettings: vi.fn(),
+  updateSettings: vi.fn(),
+}))
 
 vi.mock('@/client', () => ({
   warehouseApiRoutesSettingsGetGlobalSettings: mocks.getSettings,
   warehouseApiRoutesSettingsUpdateGlobalSettings: mocks.updateSettings,
+}))
+
+vi.mock('quasar', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('quasar')>()),
+  useQuasar: () => ({ notify: mocks.notify }),
 }))
 
 vi.mock('@/composables/use-api', () => ({
@@ -83,6 +92,7 @@ describe('MinimumProfitSetting', () => {
     await flushPromises()
 
     expect(mocks.updateSettings).toHaveBeenCalledWith({ body: { minimum_markup_percent: 100 } })
+    expect(mocks.notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'positive' }))
     expect(useMinimumProfit().minimumMarkupPercent.value).toBe(100)
   })
 
