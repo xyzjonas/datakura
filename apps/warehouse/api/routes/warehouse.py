@@ -10,10 +10,6 @@ from apps.warehouse.api.pagination import (
     OutgoingWarehouseOrdersPagination,
     WarehouseLocationsPagination,
 )
-from apps.warehouse.core.query_optimization import (
-    inbound_warehouse_orders_for_schema,
-    outbound_warehouse_orders_for_schema,
-)
 from apps.warehouse.core.schemas.audit import GetAuditTimelineResponse
 from apps.warehouse.core.schemas.base import EmptyResponse
 from apps.warehouse.core.schemas.context import RequestContext
@@ -47,7 +43,6 @@ from apps.warehouse.core.transformation import (
     location_orm_to_detail_schema,
     location_orm_to_schema_with_count,
 )
-from apps.warehouse.models.orders import InboundOrderState, OutboundOrderState
 from apps.warehouse.models.warehouse import (
     Warehouse,
     WarehouseLocation,
@@ -165,23 +160,13 @@ def get_inbound_warehouse_orders(
     request: HttpRequest,
     search_term: str | None = None,
     include_all: bool = False,
+    hide_manufacturing: bool = False,
 ):
-    qs = cast(
-        QuerySet[InboundWarehouseOrder],
-        inbound_warehouse_orders_for_schema(),
+    return warehouse_service.list_inbound_warehouse_orders(
+        search_term=search_term,
+        include_all=include_all,
+        hide_manufacturing=hide_manufacturing,
     )
-    if not include_all and not search_term:
-        qs = qs.exclude(order__state=InboundOrderState.CANCELLED).exclude(
-            order__state=InboundOrderState.COMPLETED
-        )
-    if search_term:
-        search_term = search_term.lower()
-        qs = qs.filter(
-            Q(code__iexact=search_term)
-            | Q(code__icontains=search_term)
-            | Q(order__code__icontains=search_term)
-        )
-    return qs.all()
 
 
 @routes.get(
@@ -193,23 +178,13 @@ def get_outbound_warehouse_orders(
     request: HttpRequest,
     search_term: str | None = None,
     include_all: bool = False,
+    hide_manufacturing: bool = False,
 ):
-    qs = cast(
-        QuerySet[OutboundWarehouseOrder],
-        outbound_warehouse_orders_for_schema(),
+    return warehouse_service.list_outbound_warehouse_orders(
+        search_term=search_term,
+        include_all=include_all,
+        hide_manufacturing=hide_manufacturing,
     )
-    if not include_all and not search_term:
-        qs = qs.exclude(order__state=OutboundOrderState.CANCELLED).exclude(
-            order__state=OutboundOrderState.COMPLETED
-        )
-    if search_term:
-        search_term = search_term.lower()
-        qs = qs.filter(
-            Q(code__iexact=search_term)
-            | Q(code__icontains=search_term)
-            | Q(order__code__icontains=search_term)
-        )
-    return qs.all()
 
 
 @routes.get(
