@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CodeSequenceSetting from '@/components/settings/CodeSequenceSetting.vue'
 
 const mocks = vi.hoisted(() => ({
+  notify: vi.fn(),
   getSettings: vi.fn(),
   updateSettings: vi.fn(),
 }))
@@ -11,6 +12,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/client', () => ({
   warehouseApiRoutesSettingsGetGlobalSettings: mocks.getSettings,
   warehouseApiRoutesSettingsUpdateGlobalSettings: mocks.updateSettings,
+}))
+
+vi.mock('quasar', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('quasar')>()),
+  useQuasar: () => ({ notify: mocks.notify }),
 }))
 
 vi.mock('@/composables/use-api', () => ({
@@ -64,6 +70,7 @@ describe('CodeSequenceSetting', () => {
 
     expect(mocks.updateSettings).toHaveBeenCalledWith({ body: { code_sequence: 'yearly' } })
     expect(wrapper.find('button').attributes('disabled')).toBeDefined()
+    expect(mocks.notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'positive' }))
   })
 
   it('does not save when the request fails', async () => {
@@ -76,5 +83,6 @@ describe('CodeSequenceSetting', () => {
     await flushPromises()
 
     expect(wrapper.find('button').attributes('disabled')).toBeUndefined()
+    expect(mocks.notify).not.toHaveBeenCalled()
   })
 })

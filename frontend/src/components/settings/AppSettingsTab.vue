@@ -47,6 +47,11 @@
       </section>
 
       <section>
+        <h2 class="text-lg font-semibold uppercase mb-3">Minimální zisk objednávky</h2>
+        <MinimumProfitSetting />
+      </section>
+
+      <section>
         <h2 class="text-lg font-semibold uppercase mb-3">Číslování dokladů</h2>
         <CodeSequenceSetting />
       </section>
@@ -133,16 +138,19 @@ import {
 } from '@/client'
 import CodeSequenceSetting from '@/components/settings/CodeSequenceSetting.vue'
 import MinimumItemValueSetting from '@/components/settings/MinimumItemValueSetting.vue'
+import MinimumProfitSetting from '@/components/settings/MinimumProfitSetting.vue'
 import PrinterSelect from '@/components/selects/PrinterSelect.vue'
 import PrinterUpsertDialog from '@/components/settings/printers/PrinterUpsertDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppSettings } from '@/composables/use-app-settings'
 import { useAuth } from '@/composables/use-auth'
 import { useDarkmode } from '@/composables/use-dark-mode'
+import { useQuasar } from 'quasar'
 import { computed, ref, watch } from 'vue'
 
 const { scannerMode } = useAppSettings()
 const { onResponse } = useApi()
+const $q = useQuasar()
 const { user, whoami } = useAuth()
 
 const selectedPrinterCode = ref<string | null>(null)
@@ -199,6 +207,12 @@ const saveDefaultPrinter = async () => {
     const response = onResponse(result)
     if (response) {
       await whoami()
+      $q.notify({
+        type: 'positive',
+        message: selectedPrinterCode.value
+          ? 'Výchozí tiskárna uložena'
+          : 'Přiřazení tiskárny odebráno',
+      })
     }
   } finally {
     savingDefaultPrinter.value = false

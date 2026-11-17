@@ -9,6 +9,7 @@
     :margin="margin"
     :own-code="item.customer_product_code"
     :own-code-missing="ownCodeMissing"
+    :below-minimum-profit="belowMinimumProfit"
     @edit="editDialog = true"
     @remove="removeDialog = true"
   >
@@ -26,7 +27,9 @@
     v-else
     :class="[
       'flex flex-col flex-1 gap-2',
-      ownCodeMissing ? 'border-l-4 border-solid border-0 border-red pl-2' : '',
+      ownCodeMissing || belowMinimumProfit
+        ? 'border-l-4 border-solid border-0 border-red pl-2'
+        : '',
     ]"
   >
     <div class="flex items-center w-full flex-nowrap">
@@ -50,6 +53,7 @@
         <div v-else class="text-xs text-gray-5">{{ item.product.code }}</div>
         <MissingOwnCodeBadge v-if="ownCodeMissing" class="mt-1" />
         <NonPhysicalBadge v-if="item.product.non_physical" class="mt-1" />
+        <BelowMinimumProfitBadge v-if="belowMinimumProfit" class="mt-1" />
         <OutboundItemRequirementBadges
           class="mt-1"
           :package-type="item.desired_package_type_name"
@@ -98,9 +102,11 @@
 
         <!-- Margin -->
         <div data-test="item-margin" class="flex flex-col">
-          <span class="text-lg tabular-nums text-nowrap"><MarginPercent :margin="margin" /></span>
+          <span class="text-lg tabular-nums text-nowrap"
+            ><MarginPercent :margin="margin" :danger="belowMinimumProfit" />
+          </span>
           <span class="text-sm tabular-nums text-nowrap">
-            <MarginText :margin="margin" :currency="currency" />
+            <MarginText :margin="margin" :currency="currency" :danger="belowMinimumProfit" />
           </span>
         </div>
 
@@ -142,7 +148,9 @@
 <script setup lang="ts">
 import type { OutboundOrderItemSchema } from '@/client'
 import { useOrderItemCardLayout } from '@/composables/use-order-item-card-layout'
+import { useMinimumProfit } from '@/composables/use-minimum-profit'
 import { calculateMargin } from '@/utils/margin'
+import { itemIsBelowMinimumProfit } from '@/utils/minimum-profit'
 import { computed, defineEmits, defineModel, defineProps, ref } from 'vue'
 import CommentCard from '../CommentCard.vue'
 import OrderItemCard from './OrderItemCard.vue'
@@ -151,6 +159,7 @@ import EditIconButton from '../common/buttons/EditIconButton.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
 import IndexRectangle from '../IndexRectangle.vue'
 import OutboundItemRequirementBadges from './OutboundItemRequirementBadges.vue'
+import BelowMinimumProfitBadge from './BelowMinimumProfitBadge.vue'
 import MissingOwnCodeBadge from './MissingOwnCodeBadge.vue'
 import NonPhysicalBadge from './NonPhysicalBadge.vue'
 import MarginPercent from './MarginPercent.vue'
@@ -172,6 +181,11 @@ defineEmits<{ (e: 'remove'): void }>()
 const item = defineModel<OutboundOrderItemSchema>('item', { required: true })
 
 const ownCodeMissing = computed(() => !!props.requiresOwnCodes && !item.value.customer_product_code)
+
+const { minimumMarkupPercent } = useMinimumProfit()
+const belowMinimumProfit = computed(() =>
+  itemIsBelowMinimumProfit(item.value, minimumMarkupPercent.value),
+)
 
 const cardLayout = useOrderItemCardLayout()
 const editDialog = ref(false)

@@ -11,12 +11,15 @@ from apps.warehouse.models.settings import CodeSequence
 class GlobalSettingsSchema(BaseSchema):
     # 0 = no minimum
     minimum_item_value: float
+    # 0 = no guard
+    minimum_markup_percent: float
     code_sequence: CodeSequence
 
 
 class GlobalSettingsUpdateSchema(Schema):
     # every field is optional - None = keep the current value
     minimum_item_value: float | None = Field(default=None, ge=0)
+    minimum_markup_percent: float | None = Field(default=None, ge=0, le=100000)
     code_sequence: CodeSequence | None = None  # None = keep current
 
 

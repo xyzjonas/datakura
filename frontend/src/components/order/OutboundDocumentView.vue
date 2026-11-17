@@ -140,6 +140,14 @@
       objednávku nelze potvrdit.
     </q-banner>
 
+    <MinimumProfitBanner
+      v-if="minimumMarkupPercent > 0"
+      :item-count="itemsBelowMinimum.length"
+      :order-below="orderBelowMinimum"
+      :minimum-markup-percent="minimumMarkupPercent"
+      :document-label="isCalculation ? 'nabídky' : 'objednávky'"
+    />
+
     <OutboundOrderProductsList
       v-model:items="order.items"
       :currency="order.currency"
@@ -206,6 +214,10 @@ import {
 } from '@/client'
 import CommentCard from '@/components/CommentCard.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
+import MinimumProfitBanner from '@/components/order/MinimumProfitBanner.vue'
+import { loadMinimumMarkupPercent, useMinimumProfit } from '@/composables/use-minimum-profit'
+import { calculateOrderMargin } from '@/utils/margin'
+import { isBelowMinimumProfit, itemsBelowMinimumProfit } from '@/utils/minimum-profit'
 import { itemsMissingOwnCode } from '@/utils/own-codes'
 import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
@@ -297,6 +309,20 @@ const requiresOwnCodes = computed(
 const missingOwnCodeCount = computed(() =>
   order.value && requiresOwnCodes.value ? itemsMissingOwnCode(order.value).length : 0,
 )
+
+// profit guard: items / the whole order below the configured minimum profit
+const { minimumMarkupPercent } = useMinimumProfit()
+loadMinimumMarkupPercent().catch(() => undefined)
+const itemsBelowMinimum = computed(() =>
+  itemsBelowMinimumProfit(order.value?.items, minimumMarkupPercent.value),
+)
+const orderBelowMinimum = computed(() => {
+  const margin = calculateOrderMargin(order.value?.items)
+  return (
+    !!margin &&
+    isBelowMinimumProfit(margin.sellingValue, margin.purchaseValue, minimumMarkupPercent.value)
+  )
+})
 
 const addItemDialog = ref(false)
 const addItemDialogComponent = ref<InstanceType<typeof NewOutboundOrderItemDialog>>()

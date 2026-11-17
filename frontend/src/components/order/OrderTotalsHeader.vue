@@ -83,7 +83,10 @@ const {
   formattedMarkupPercent,
   formattedWeight,
   isMarginPositive,
+  isBelowMinimum,
 } = useOrderTotals(() => props.order)
 
-const marginColor = computed(() => (isMarginPositive.value ? 'text-green' : 'text-red'))
+const marginColor = computed(() =>
+  isMarginPositive.value && !isBelowMinimum.value ? 'text-green' : 'text-red',
+)
 </script>

@@ -15,6 +15,7 @@
           min="0"
           label="Minimální hodnota položky"
           class="w-64"
+          hide-bottom-space
           :loading="loading"
         />
         <q-btn
@@ -36,9 +37,11 @@ import {
   warehouseApiRoutesSettingsUpdateGlobalSettings,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
+import { useQuasar } from 'quasar'
 import { computed, onMounted, ref } from 'vue'
 
 const { onResponse } = useApi()
+const $q = useQuasar()
 
 const minimumItemValue = ref(0)
 const savedValue = ref(0)
@@ -72,7 +75,10 @@ const save = async () => {
         body: { minimum_item_value: minimumItemValue.value },
       }),
     )
-    if (response?.data) apply(response.data.minimum_item_value)
+    if (response?.data) {
+      apply(response.data.minimum_item_value)
+      $q.notify({ type: 'positive', message: 'Minimální hodnota položky uložena' })
+    }
   } finally {
     saving.value = false
   }
