@@ -98,7 +98,7 @@ def test_switching_setting_changes_the_layout_of_new_codes() -> None:
     [
         (inbound_orders_service.generate_next_incoming_order_code, "OV"),
         (outbound_orders_service.generate_next_outgoing_order_code, "OP"),
-        (outbound_calculations_service.generate_next_calculation_code, "K"),
+        (outbound_calculations_service.generate_next_calculation_code, "N"),
         (ManufacturingOrdersService.generate_next_code, "PV"),
     ],
 )
@@ -116,12 +116,12 @@ def test_all_document_generators_honour_the_setting(
 def test_generators_continue_existing_yearly_codes() -> None:
     _use(CodeSequence.YEARLY)
     OutboundOrderFactory(code="OP202600003")
-    OutboundCalculationFactory(code="K202600003")
+    OutboundCalculationFactory(code="N202600003")
     ManufacturingOrderFactory(code="PV202600003")
 
     assert outbound_orders_service.generate_next_outgoing_order_code() == "OP202600004"
     assert (
-        outbound_calculations_service.generate_next_calculation_code() == "K202600004"
+        outbound_calculations_service.generate_next_calculation_code() == "N202600004"
     )
     assert ManufacturingOrdersService.generate_next_code() == "PV202600004"
 

@@ -73,7 +73,7 @@ def test_create_calculation_is_open_with_k_code(db) -> None:
 
     assert res.status_code == 200
     data = res.json()["data"]
-    assert data["code"].startswith("K")
+    assert data["code"].startswith("N")
     assert data["state"] == "open"
     assert data["order_code"] is None
     assert data["customer"]["code"] == customer.code
