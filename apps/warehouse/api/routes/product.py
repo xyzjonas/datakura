@@ -76,7 +76,7 @@ def get_types(request: HttpRequest, search_term: str | None = None):
 
 @routes.post("/types", response={200: GetProductTypeResponse})
 def create_type(request: HttpRequest, body: ProductTypeCreateOrUpdateSchema):
-    product_type, _ = ProductType.objects.get_or_create(name=body.name)
+    product_type = stock_product_service.create_type(body)
     return GetProductTypeResponse(data=product_type_orm_to_schema(product_type))
 
 
@@ -86,9 +86,7 @@ def update_type(
     type_name: str,
     body: ProductTypeCreateOrUpdateSchema,
 ):
-    product_type = ProductType.objects.get(name=type_name)
-    product_type.name = body.name
-    product_type.save()
+    product_type = stock_product_service.update_type(type_name, body)
     return GetProductTypeResponse(data=product_type_orm_to_schema(product_type))
 
 

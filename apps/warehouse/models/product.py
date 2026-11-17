@@ -15,6 +15,13 @@ class ProductType(BaseModel):
     """Catalogue of all possible product types"""
 
     name = models.CharField(max_length=255, null=False, unique=True)
+    non_physical = models.BooleanField(
+        default=False,
+        help_text=(
+            "Products of this type (services, fees, ...) are never picked: they stay "
+            "in the base order for invoicing only and create no warehouse items."
+        ),
+    )
 
     def __str__(self) -> str:
         return self.name

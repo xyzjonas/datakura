@@ -10,6 +10,17 @@
         <q-form class="flex flex-col gap-3" @submit="onSubmit">
           <q-input v-model.trim="form.name" outlined label="Název" :rules="[rules.notEmpty]" />
 
+          <q-toggle
+            v-model="form.non_physical"
+            color="negative"
+            checked-icon="sym_o_deployed_code_off"
+            label="Nefyzické zboží"
+            class="mt-1 translate-x-[-4px]"
+          />
+          <div class="text-sm text-muted -mt-1">
+            Zboží tohoto typu se nevydává ze skladu - zůstává jen v objednávce kvůli fakturaci.
+          </div>
+
           <div class="mt-2 flex justify-end">
             <q-btn
               type="submit"

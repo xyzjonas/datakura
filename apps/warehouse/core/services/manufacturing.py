@@ -294,7 +294,11 @@ class ManufacturingOrdersService:
             ),
         )
 
-        for index, item in enumerate(order.items.order_by("index", "created")):
+        for index, item in enumerate(
+            order.items.filter(in_product__type__non_physical=False).order_by(
+                "index", "created"
+            )
+        ):
             OutboundWarehouseOrderItem.objects.create(
                 warehouse_order=warehouse_order,
                 source_manufacturing_item=item,

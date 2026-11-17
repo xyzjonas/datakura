@@ -154,7 +154,15 @@ class InvoicesService:
     @staticmethod
     def _has_completed_warehouse_order(order: OutboundOrder) -> bool:
         warehouse_orders = list(order.warehouse_orders.all())
-        return bool(warehouse_orders) and all(
+        if not warehouse_orders:
+            # nothing to pick at all (non-physical items only) - nothing to wait for
+            return (
+                order.items.exists()
+                and not order.items.filter(
+                    stock_product__type__non_physical=False
+                ).exists()
+            )
+        return all(
             warehouse_order.state == OutboundWarehouseOrderState.COMPLETED
             for warehouse_order in warehouse_orders
         )

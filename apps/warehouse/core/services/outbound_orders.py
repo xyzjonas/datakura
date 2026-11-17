@@ -77,9 +77,16 @@ class OutboundOrdersService:
     )
 
     @staticmethod
-    def _has_completed_warehouse_order(order: OutboundOrder) -> bool:
+    def _has_physical_items(order: OutboundOrder) -> bool:
+        return order.items.filter(stock_product__type__non_physical=False).exists()
+
+    @classmethod
+    def _has_completed_warehouse_order(cls, order: OutboundOrder) -> bool:
         warehouse_orders = list(order.warehouse_orders.all())
-        return bool(warehouse_orders) and all(
+        if not warehouse_orders:
+            # nothing to pick at all (non-physical items only) - nothing to wait for
+            return order.items.exists() and not cls._has_physical_items(order)
+        return all(
             warehouse_order.state == OutboundWarehouseOrderState.COMPLETED
             for warehouse_order in warehouse_orders
         )
@@ -151,11 +158,15 @@ class OutboundOrdersService:
             )
 
         next_index = 0
-        for order_item in linked_order.items.select_related(
-            "stock_product",
-            "desired_package_type",
-            "desired_batch",
-        ).order_by("index", "created"):
+        for order_item in (
+            linked_order.items.filter(stock_product__type__non_physical=False)
+            .select_related(
+                "stock_product",
+                "desired_package_type",
+                "desired_batch",
+            )
+            .order_by("index", "created")
+        ):
             remaining_amount = Decimal(str(order_item.amount))
             candidates = WarehouseItem.physical_stock.filter(
                 stock_product=order_item.stock_product,
@@ -386,6 +397,10 @@ class OutboundOrdersService:
         context: RequestContext,
     ) -> None:
         if not cls._requires_warehouse_sync(order):
+            return
+
+        # non-physical products (services, fees...) are only invoiced, never picked
+        if order_item.stock_product.type.non_physical:
             return
 
         cls._assert_assigned_requirements_compatible(order_item)
@@ -817,6 +832,7 @@ class OutboundOrdersService:
             if (
                 new_state == OutboundOrderState.PICKING
                 and not order.warehouse_orders.exists()
+                and cls._has_physical_items(order)
             ):
                 warehouse_order = cast(
                     OutboundWarehouseOrder,

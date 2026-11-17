@@ -32,6 +32,12 @@
       </q-td>
     </template>
 
+    <template #body-cell-non_physical="props">
+      <q-td>
+        <q-badge v-if="props.row.non_physical" color="info">nefyzické</q-badge>
+      </q-td>
+    </template>
+
     <template #body-cell-name="props">
       <q-td>
         <span class="font-bold light:text-primary dark:text-light">{{ props.row.name }}</span>
@@ -93,6 +99,7 @@ const editingType = ref<ProductTypeSchema | null>(null)
 
 const createDefaultForm = (): ProductTypeCreateOrUpdateSchema => ({
   name: '',
+  non_physical: false,
 })
 
 const typeForm = ref<ProductTypeCreateOrUpdateSchema>(createDefaultForm())
@@ -149,6 +156,7 @@ const openEditForm = (type: ProductTypeSchema) => {
   editingType.value = type
   typeForm.value = {
     name: type.name,
+    non_physical: type.non_physical ?? false,
   }
   showEditDialog.value = true
 }
@@ -199,6 +207,12 @@ const columns: QTableColumn[] = [
     name: 'name',
     field: 'name',
     label: 'Název',
+    align: 'left',
+  },
+  {
+    name: 'non_physical',
+    field: 'non_physical',
+    label: 'Nefyzické',
     align: 'left',
   },
 ]

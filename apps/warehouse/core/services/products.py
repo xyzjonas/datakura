@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Case, IntegerField, Q, QuerySet, Value, When
 
 from apps.warehouse.core.exceptions import WarehouseGenericError
+from apps.warehouse.core.schemas.type import ProductTypeCreateOrUpdateSchema
 from apps.warehouse.core.schemas.product import (
     ProductBarcodeCreateSchema,
     ProductBarcodeUpdateSchema,
@@ -196,6 +197,23 @@ class StockProductsService:
             "customs_declaration_group": params.customs_declaration_group,
             "attributes": params.attributes,
         }
+
+    @staticmethod
+    def create_type(params: ProductTypeCreateOrUpdateSchema) -> ProductType:
+        product_type, _ = ProductType.objects.get_or_create(
+            name=params.name, defaults={"non_physical": params.non_physical}
+        )
+        return product_type
+
+    @staticmethod
+    def update_type(
+        type_name: str, params: ProductTypeCreateOrUpdateSchema
+    ) -> ProductType:
+        product_type = ProductType.objects.get(name=type_name)
+        product_type.name = params.name
+        product_type.non_physical = params.non_physical
+        product_type.save()
+        return product_type
 
     @staticmethod
     @transaction.atomic

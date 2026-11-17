@@ -137,6 +137,7 @@ def product_group_orm_to_schema(group: ProductGroup) -> ProductGroupSchema:
 def product_type_orm_to_schema(product_type: ProductType) -> ProductTypeSchema:
     return ProductTypeSchema(
         name=product_type.name,
+        non_physical=product_type.non_physical,
         created=product_type.created,
         changed=product_type.changed,
     )
@@ -510,6 +511,7 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         name=product.name,
         code=product.code,
         type=product.type.name,
+        non_physical=product.type.non_physical,
         unit=product.unit_of_measure.name,
         group=product.group.name if product.group else None,
         created=product.created,
