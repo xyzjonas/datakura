@@ -290,9 +290,9 @@ const isEditable = computed(() => {
     : !FINISHED_ORDER_STATES.includes(order.value.state)
 })
 
-// customer ordering by own codes: all items need them (calculations don't store them)
+// customer ordering by own codes: all items need them (orders and calculations alike)
 const requiresOwnCodes = computed(
-  () => !isCalculation.value && !!order.value?.customer.requires_own_codes,
+  () => !!order.value?.customer.requires_own_codes,
 )
 const missingOwnCodeCount = computed(() =>
   order.value && requiresOwnCodes.value ? itemsMissingOwnCode(order.value).length : 0,

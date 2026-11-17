@@ -24,6 +24,7 @@ from apps.warehouse.core.services.item_reorder import (
     compact_order_items,
     reorder_order_items,
 )
+from apps.warehouse.core.services.customer_codes import customer_product_codes_service
 from apps.warehouse.core.services.outbound_common import (
     build_item_pricing_details,
     compute_unit_price,
@@ -38,6 +39,7 @@ from apps.warehouse.core.services.outbound_common import (
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
 from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.transformation import (
+    customer_codes_of_items,
     outbound_calculation_orm_to_schema,
     outbound_order_item_orm_to_schema,
 )
@@ -222,6 +224,9 @@ class OutboundCalculationsService:
                 note=item.note,
                 required_origin_country=item.required_origin_country,
             )
+            customer_product_codes_service.upsert_if_given(
+                stock_product, calculation.customer, item.customer_product_code
+            )
         return cls._item_to_schema(calculation, item_model)
 
     @classmethod
@@ -261,6 +266,11 @@ class OutboundCalculationsService:
             if item.index is not None:
                 item_model.index = item.index
             item_model.save()
+            customer_product_codes_service.upsert_if_given(
+                item_model.stock_product,
+                calculation.customer,
+                item.customer_product_code,
+            )
         return cls._item_to_schema(calculation, item_model)
 
     @classmethod
@@ -313,7 +323,9 @@ class OutboundCalculationsService:
             total_price=item_model.total_price,
         )
         return outbound_order_item_orm_to_schema(
-            item_model, pricing_details=pricing_details
+            item_model,
+            pricing_details=pricing_details,
+            customer_codes=customer_codes_of_items(calculation.customer, [item_model]),
         )
 
     @classmethod
@@ -436,6 +448,7 @@ class OutboundCalculationsService:
                     f"'{calculation.order.code}'."  # type: ignore[union-attr]
                 )
             cls._assert_editable(calculation)
+            customer_product_codes_service.assert_order_items_have_codes(calculation)
             items = list(
                 calculation.items.select_related(
                     "stock_product", "desired_package_type", "desired_batch"

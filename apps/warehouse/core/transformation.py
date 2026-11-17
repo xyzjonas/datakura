@@ -951,6 +951,8 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
 def outbound_calculation_orm_to_schema(
     calculation: OutboundCalculation,
 ) -> OutboundCalculationSchema:
+    calculation_items = list(calculation.items.all())
+    customer_codes = customer_codes_of_items(calculation.customer, calculation_items)
     return OutboundCalculationSchema(
         created=calculation.created,
         changed=calculation.changed,
@@ -967,7 +969,8 @@ def outbound_calculation_orm_to_schema(
         currency=calculation.currency,
         state=OutboundCalculationState.get_label(calculation.state),
         items=[
-            outbound_order_item_orm_to_schema(item) for item in calculation.items.all()
+            outbound_order_item_orm_to_schema(item, customer_codes=customer_codes)
+            for item in calculation_items
         ],
         requested_delivery_date=calculation.requested_delivery_date,
         order_code=calculation.order.code if calculation.order else None,
