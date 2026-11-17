@@ -1408,14 +1408,18 @@ class WarehouseService:
                         batch_primary_barcode(pi.batch) if pi.batch else None,
                         pi.origin_country,
                     )
-                    for pi in w_order.order.items.select_related(
-                        "stock_product", "batch"
-                    ).order_by("index", "created")
+                    for pi in w_order.order.items.filter(
+                        stock_product__type__non_physical=False
+                    )
+                    .select_related("stock_product", "batch")
+                    .order_by("index", "created")
                 ]
             elif w_order.manufacturing_order:
                 mfg_order = w_order.manufacturing_order
                 source_items = []
-                for mi in mfg_order.items.order_by("index", "created"):
+                for mi in mfg_order.items.filter(
+                    out_product__type__non_physical=False
+                ).order_by("index", "created"):
                     total_frozen_cost = OutboundWarehouseOrderItem.objects.filter(
                         warehouse_order__manufacturing_order=mfg_order,
                         source_manufacturing_item=mi,

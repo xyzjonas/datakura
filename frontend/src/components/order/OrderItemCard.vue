@@ -27,6 +27,7 @@
           >
           <span v-else class="text-xs text-slate-500 font-mono mt-1">{{ item.product.code }}</span>
           <MissingOwnCodeBadge v-if="ownCodeMissing" class="mt-1 self-start" />
+          <NonPhysicalBadge v-if="item.product.non_physical" class="mt-1 self-start" />
           <CertificationBadge
             class="mt-1 self-start"
             :requires-certification="requiresCertification"
@@ -93,6 +94,7 @@ import CertificationBadge from '../certification/CertificationBadge.vue'
 import CloseIconButton from '../common/buttons/CloseIconButton.vue'
 import EditIconButton from '../common/buttons/EditIconButton.vue'
 import MissingOwnCodeBadge from './MissingOwnCodeBadge.vue'
+import NonPhysicalBadge from './NonPhysicalBadge.vue'
 
 const props = defineProps<{
   item: {
@@ -100,7 +102,7 @@ const props = defineProps<{
     amount: number
     total_price: number
     note?: string | null
-    product: { code: string; name: string; unit: string }
+    product: { code: string; name: string; unit: string; non_physical?: boolean }
   }
   currency: string
   readonly?: boolean

@@ -49,6 +49,7 @@
         </div>
         <div v-else class="text-xs text-gray-5">{{ item.product.code }}</div>
         <MissingOwnCodeBadge v-if="ownCodeMissing" class="mt-1" />
+        <NonPhysicalBadge v-if="item.product.non_physical" class="mt-1" />
         <OutboundItemRequirementBadges
           class="mt-1"
           :package-type="item.desired_package_type_name"
@@ -151,6 +152,7 @@ import ConfirmDialog from '../ConfirmDialog.vue'
 import IndexRectangle from '../IndexRectangle.vue'
 import OutboundItemRequirementBadges from './OutboundItemRequirementBadges.vue'
 import MissingOwnCodeBadge from './MissingOwnCodeBadge.vue'
+import NonPhysicalBadge from './NonPhysicalBadge.vue'
 import MarginPercent from './MarginPercent.vue'
 import MarginText from './MarginText.vue'
 import OutboundOrderItemEditDialog from './OutboundOrderItemEditDialog.vue'

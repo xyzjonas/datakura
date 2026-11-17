@@ -7,10 +7,12 @@ from .base import BaseSchema, PaginatedResponse, Response
 
 class ProductTypeSchema(BaseSchema):
     name: str
+    non_physical: bool = False
 
 
 class ProductTypeCreateOrUpdateSchema(Schema):
     name: str
+    non_physical: bool = False
 
 
 class GetProductTypeResponse(Response[ProductTypeSchema]): ...

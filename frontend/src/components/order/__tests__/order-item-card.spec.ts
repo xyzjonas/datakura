@@ -24,6 +24,17 @@ const mountCard = (props = {}) =>
   })
 
 describe('OrderItemCard', () => {
+  it.each([
+    [true, true],
+    [false, false],
+    [undefined, false],
+  ])('non-physical product=%s -> badge shown=%s', (nonPhysical, shown) => {
+    const wrapper = mountCard({
+      item: item({ product: { code: 'S1', name: 'Doprava', unit: 'ks', non_physical: nonPhysical } }),
+    })
+    expect(wrapper.find('[data-test="non-physical-badge"]').exists()).toBe(shown)
+  })
+
   it('shows no certification badge by default (e.g. outbound items)', () => {
     expect(mountCard().find('[data-test="certification-badge"]').exists()).toBe(false)
   })

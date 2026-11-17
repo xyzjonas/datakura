@@ -89,6 +89,8 @@ class ProductSchema(BaseSchema):
     name: str
     code: str
     type: str
+    # derived from the product type - such products are never picked
+    non_physical: bool = False
     unit: str
     group: str | None = None
     unit_weight: float

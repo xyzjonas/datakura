@@ -534,6 +534,10 @@ export type ProductSchema = {
      */
     type: string;
     /**
+     * Non Physical
+     */
+    non_physical?: boolean;
+    /**
      * Unit
      */
     unit: string;
@@ -1708,6 +1712,10 @@ export type ProductTypeSchema = {
      * Name
      */
     name: string;
+    /**
+     * Non Physical
+     */
+    non_physical?: boolean;
 };
 
 /**
@@ -1730,6 +1738,10 @@ export type ProductTypeCreateOrUpdateSchema = {
      * Name
      */
     name: string;
+    /**
+     * Non Physical
+     */
+    non_physical?: boolean;
 };
 
 /**
