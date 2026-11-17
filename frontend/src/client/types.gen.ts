@@ -558,6 +558,14 @@ export type ProductSchema = {
      */
     purchase_price: number;
     /**
+     * Base Price Changed
+     */
+    base_price_changed: string;
+    /**
+     * Purchase Price Changed
+     */
+    purchase_price_changed: string;
+    /**
      * No Discount
      */
     no_discount: boolean;

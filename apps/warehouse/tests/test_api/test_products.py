@@ -1,5 +1,6 @@
+from decimal import Decimal
 from typing import cast
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 from django.utils import timezone
@@ -8,7 +9,9 @@ from ninja.testing import TestClient
 from apps.warehouse.api.routes.product import routes
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.core.schemas.product import ProductSchema, GetProductsResponse
+from apps.warehouse.core.schemas.context import RequestContext
 from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.services.warehouse import WarehouseService
 from apps.warehouse.models.audit import AuditAction, AuditLog
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.product import StockProduct
@@ -73,6 +76,8 @@ def test_get_all_one_product(db, client):
                             "unit_weight": product.unit_weight,
                             "base_price": product.base_price,
                             "purchase_price": product.purchase_price,
+                            "base_price_changed": product.base_price_changed,
+                            "purchase_price_changed": product.purchase_price_changed,
                             "no_discount": product.no_discount,
                             "disallow_unpacking": product.disallow_unpacking,
                             "currency": product.currency,
@@ -998,3 +1003,115 @@ def test_create_product_negative_weight_rejected(db, client):
     )
 
     assert response.status_code == 422
+
+
+def _put_body(product: StockProduct, **overrides) -> dict:
+    body = {
+        "name": product.name,
+        "code": product.code,
+        "type": product.type.name,
+        "unit": product.unit_of_measure.name,
+        "base_price": float(product.base_price),
+        "purchase_price": float(product.purchase_price),
+    }
+    return body | overrides
+
+
+def _age_price_timestamps(product: StockProduct) -> datetime:
+    old = timezone.now() - timedelta(days=30)
+    StockProduct.objects.filter(pk=product.pk).update(
+        purchase_price_changed=old, base_price_changed=old
+    )
+    return old
+
+
+def test_create_product_sets_price_timestamps(db, client):
+    before = timezone.now()
+    response = client.post(
+        "/",
+        json={
+            "name": "Stamped",
+            "code": "PRD-STAMP-001",
+            "type": "Finished Good",
+            "unit": "KS",
+            "base_price": 10,
+            "purchase_price": 5,
+        },
+    )
+
+    assert response.status_code == 200
+    product = StockProduct.objects.get(code="PRD-STAMP-001")
+    assert product.purchase_price_changed >= before
+    assert product.base_price_changed >= before
+    data = response.json()["data"]
+    assert data["purchase_price_changed"]
+    assert data["base_price_changed"]
+
+
+@pytest.mark.parametrize(
+    ("overrides", "purchase_bumped", "base_bumped"),
+    [
+        ({"purchase_price": 99}, True, False),
+        ({"base_price": 99}, False, True),
+        ({"purchase_price": 99, "base_price": 99}, True, True),
+        ({"name": "Renamed"}, False, False),
+        ({}, False, False),
+    ],
+)
+def test_update_product_bumps_only_changed_price_timestamps(
+    db, client, overrides, purchase_bumped, base_bumped
+):
+    product = cast(
+        StockProduct,
+        StockProductFactory(base_price=10, purchase_price=5),
+    )
+    old = _age_price_timestamps(product)
+
+    response = client.put(f"/{product.code}", json=_put_body(product, **overrides))
+
+    assert response.status_code == 200
+    product.refresh_from_db()
+    assert (product.purchase_price_changed > old) is purchase_bumped
+    assert (product.base_price_changed > old) is base_bumped
+
+
+def test_price_timestamp_ignores_sub_cent_noise(db):
+    product = cast(StockProduct, StockProductFactory(purchase_price=5))
+    old = _age_price_timestamps(product)
+
+    product = StockProduct.objects.get(pk=product.pk)
+    product.purchase_price = Decimal("5.001")  # persisted as 5.00
+    product.save()
+
+    product.refresh_from_db()
+    assert product.purchase_price_changed == old
+
+
+def test_price_timestamp_bumped_with_update_fields_and_repeated_saves(db):
+    product = cast(StockProduct, StockProductFactory(purchase_price=5))
+    old = _age_price_timestamps(product)
+
+    product = StockProduct.objects.get(pk=product.pk)
+    product.purchase_price = Decimal("7")
+    product.save(update_fields=["purchase_price"])
+    product.refresh_from_db()
+    bumped = product.purchase_price_changed
+    assert bumped > old
+
+    # unchanged re-save must not bump again
+    product.save()
+    product.refresh_from_db()
+    assert product.purchase_price_changed == bumped
+
+
+def test_average_purchase_price_recalculation_bumps_timestamp(db):
+    product = cast(StockProduct, StockProductFactory(purchase_price=10))
+    old = _age_price_timestamps(product)
+
+    WarehouseService.recalculate_average_purchase_price(
+        product.code, Decimal("1"), Decimal("20"), RequestContext(user_id=None)
+    )
+
+    product.refresh_from_db()
+    assert product.purchase_price_changed > old
+    assert product.base_price_changed == old

@@ -3,7 +3,8 @@
     <q-card-section class="flex justify-between items-start gap-2">
       <div class="min-w-0">
         <div class="font-semibold">{{ priceTypeLabel }}</div>
-        <div class="text-gray-5 text-sm truncate">
+        <PriceChangedHint v-if="row.changed" :date="row.changed" />
+        <div v-else class="text-gray-5 text-sm truncate">
           {{ targetDescription }}
         </div>
       </div>
@@ -64,9 +65,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { DynamicProductPriceSchema } from '@/client'
+import PriceChangedHint from '@/components/product/PriceChangedHint.vue'
 
 type DynamicPriceRow = DynamicProductPriceSchema & {
   customer?: { code: string; name: string } | null
+  changed?: string
 }
 
 const props = defineProps<{

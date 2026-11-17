@@ -521,6 +521,8 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         currency=product.currency,
         base_price=float(product.base_price),
         purchase_price=float(product.purchase_price),
+        base_price_changed=product.base_price_changed,
+        purchase_price_changed=product.purchase_price_changed,
         no_discount=product.no_discount,
         disallow_unpacking=product.disallow_unpacking,
         customs_declaration_group=product.customs_declaration_group,

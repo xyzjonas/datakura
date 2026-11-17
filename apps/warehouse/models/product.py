@@ -1,9 +1,11 @@
 """Models related to the stock itself (items, packaging, etc...)"""
 
 from collections.abc import Iterable
+from decimal import Decimal
 
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 from .base import BaseModel
 from .barcode import BarcodeMixin
@@ -61,6 +63,9 @@ class StockProduct(BaseModel, BarcodeMixin):
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # bumped automatically by `save()` whenever the respective price changes
+    purchase_price_changed = models.DateTimeField(default=timezone.now)
+    base_price_changed = models.DateTimeField(default=timezone.now)
     no_discount = models.BooleanField(default=False)
     disallow_unpacking = models.BooleanField(
         default=False, help_text="Prevent unpacking packages during outbound picking"
@@ -73,8 +78,49 @@ class StockProduct(BaseModel, BarcodeMixin):
     class Meta(BaseModel.Meta, BarcodeMixin.Meta):
         ordering = ["code"]
 
+    # price field -> field holding the time of its last change
+    PRICE_TIMESTAMP_FIELDS = {
+        "purchase_price": "purchase_price_changed",
+        "base_price": "base_price_changed",
+    }
+
     def __str__(self):
         return self.name
+
+    @staticmethod
+    def _normalize_price(value) -> Decimal | None:
+        if value is None:
+            return None
+        return Decimal(str(value)).quantize(Decimal("0.01"))
+
+    def _snapshot_prices(self) -> None:
+        """Remember the persisted prices (skipping deferred ones)."""
+        self._persisted_prices = {
+            field: self._normalize_price(self.__dict__[field])
+            for field in self.PRICE_TIMESTAMP_FIELDS
+            if field in self.__dict__
+        }
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._snapshot_prices()
+        return instance
+
+    def save(self, *args, update_fields=None, **kwargs):
+        persisted = getattr(self, "_persisted_prices", {})
+        now = timezone.now()
+        touched: list[str] = []
+        for field, timestamp_field in self.PRICE_TIMESTAMP_FIELDS.items():
+            if field not in persisted:
+                continue
+            if self._normalize_price(getattr(self, field)) != persisted[field]:
+                setattr(self, timestamp_field, now)
+                touched.append(timestamp_field)
+        if update_fields is not None:
+            update_fields = [*update_fields, *touched]
+        super().save(*args, update_fields=update_fields, **kwargs)
+        self._snapshot_prices()
 
 
 class PriceGroup(BaseModel):
