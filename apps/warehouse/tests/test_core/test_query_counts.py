@@ -350,3 +350,64 @@ def test_inventory_snapshot_creation_query_count_is_constant() -> None:
         return lambda: inventory_snapshot_service.create_snapshot(force=True)
 
     _assert_constant_queries(build)
+
+
+def _order_with_returns(n_returns: int) -> OutboundOrder:
+    """Sent order of which `n_returns` rows were taken back (receipt + credit note each)."""
+    from apps.warehouse.core.schemas.context import RequestContext
+    from apps.warehouse.core.schemas.orders import (
+        OutboundOrderReturnItemSchema,
+        OutboundOrderReturnSchema,
+    )
+    from apps.warehouse.core.services.order_returns import order_returns_service
+    from apps.warehouse.models.orders import OutboundOrderState
+
+    order = _outbound_order(n_returns)
+    order.state = OutboundOrderState.SENT
+    order.save()
+    for item in order.items.all():
+        order_returns_service.create_return(
+            order.code,
+            OutboundOrderReturnSchema(
+                items=[OutboundOrderReturnItemSchema(item_index=item.index, amount=1)]
+            ),
+            RequestContext(user_id=None),
+        )
+    return order
+
+
+@pytest.mark.django_db
+def test_outbound_order_with_returns_query_count_is_constant() -> None:
+    client = TestClient(outbound_routes)
+
+    def build(n: int):
+        code = _order_with_returns(n).code
+        return lambda: client.get(f"/{code}").json()
+
+    _assert_constant_queries(build)
+
+
+@pytest.mark.django_db
+def test_outbound_order_list_with_returns_query_count_is_constant() -> None:
+    client = TestClient(outbound_routes)
+
+    def build(n: int):
+        for _ in range(n):
+            _order_with_returns(2)
+        return lambda: client.get("", query_params={"page_size": 50}).json()
+
+    _assert_constant_queries(build)
+
+
+@pytest.mark.django_db
+def test_return_receipt_list_query_count_is_constant() -> None:
+    client = TestClient(warehouse_routes)
+
+    def build(n: int):
+        for _ in range(n):
+            _order_with_returns(2)
+        return lambda: client.get(
+            "orders-incoming", query_params={"page_size": 50}
+        ).json()
+
+    _assert_constant_queries(build)

@@ -81,6 +81,8 @@ class InvoiceOutboundOrderItemSchema(BaseSchema):
     unit_price: float
     total_price: float
     index: int
+    # goods taken back from the customer: subtracted from the totals
+    is_returned: bool = False
 
 
 class InvoiceOutboundOrderSchema(BaseSchema):

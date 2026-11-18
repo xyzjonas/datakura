@@ -159,7 +159,7 @@ class InvoicesService:
             return (
                 order.items.exists()
                 and not order.items.filter(
-                    stock_product__type__non_physical=False
+                    stock_product__type__non_physical=False, is_returned=False
                 ).exists()
             )
         return all(
@@ -238,8 +238,12 @@ class InvoicesService:
         order_sections = []
         total_amount = Decimal("0")
         for order in cls._get_related_orders(invoice):
+            # goods taken back are subtracted
             order_total_amount = sum(
-                (Decimal(str(item.total_price)) for item in order.items),
+                (
+                    Decimal(str(item.total_price)) * (-1 if item.is_returned else 1)
+                    for item in order.items
+                ),
                 Decimal("0"),
             )
             total_amount += order_total_amount

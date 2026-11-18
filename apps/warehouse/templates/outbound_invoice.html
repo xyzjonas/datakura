@@ -431,12 +431,12 @@
                             {% for item in section.order.items %}
                                 <tr>
                                     <td>
-                                        <div class="product-name">{{ item.product.name }}</div>
+                                        <div class="product-name">{{ item.product.name }}{% if item.is_returned %} (vratka){% endif %}</div>
                                         <div class="product-meta">{{ item.product.code }}</div>
                                     </td>
                                     <td class="number">{{ item.amount|floatformat:4 }} {% if item.product.unit %}{{ item.product.unit }}{% endif %}</td>
                                     <td class="number">{{ item.unit_price|floatformat:4 }} {{ invoice.currency }}</td>
-                                    <td class="number">{{ item.total_price|floatformat:4 }} {{ invoice.currency }}</td>
+                                    <td class="number">{% if item.is_returned %}-{% endif %}{{ item.total_price|floatformat:4 }} {{ invoice.currency }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>

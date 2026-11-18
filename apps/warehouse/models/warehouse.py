@@ -510,6 +510,15 @@ class InboundWarehouseOrder(BaseModel):
         null=True,
         blank=True,
     )
+    # "vratka": receipt of goods taken back from the customer of this sales order
+    return_order_id: int | None
+    return_order = models.ForeignKey(
+        OutboundOrder,
+        on_delete=models.PROTECT,
+        related_name="return_warehouse_orders",
+        null=True,
+        blank=True,
+    )
     items: QuerySet[WarehouseItem]
     order_items: QuerySet["InboundWarehouseOrderItem"]
     derived_orders: QuerySet["InboundWarehouseOrder"]
@@ -552,8 +561,21 @@ class InboundWarehouseOrder(BaseModel):
         constraints = [
             models.CheckConstraint(
                 condition=(
-                    models.Q(order__isnull=False, manufacturing_order__isnull=True)
-                    | models.Q(order__isnull=True, manufacturing_order__isnull=False)
+                    models.Q(
+                        order__isnull=False,
+                        manufacturing_order__isnull=True,
+                        return_order__isnull=True,
+                    )
+                    | models.Q(
+                        order__isnull=True,
+                        manufacturing_order__isnull=False,
+                        return_order__isnull=True,
+                    )
+                    | models.Q(
+                        order__isnull=True,
+                        manufacturing_order__isnull=True,
+                        return_order__isnull=False,
+                    )
                 ),
                 name="inbound_warehouse_order_one_parent",
             )

@@ -359,7 +359,9 @@ class OutboundOrder(BaseModel):
     )
 
     warehouse_orders: "QuerySet[OutboundWarehouseOrder]"
-    credit_note: "CreditNoteToCustomer"
+    # receipts of goods taken back from the customer ("vratka")
+    return_warehouse_orders: "QuerySet[InboundWarehouseOrder]"
+    credit_notes: "QuerySet[CreditNoteToCustomer]"
     calculation: "OutboundCalculation | None"
 
     requested_delivery_date = models.DateTimeField(null=True, blank=True)
@@ -411,6 +413,25 @@ class OutboundOrderItem(BaseModel):
     note = models.TextField(null=True, blank=True)
     # ISO 3166-1 alpha-2 - the buyer wants goods from this country (not enforced when picking)
     required_origin_country = models.CharField(max_length=2, null=True, blank=True)
+    # "vratka": the goods of this row were taken back from the customer. Such a row
+    # is never picked, it is subtracted from the order totals and margin.
+    is_returned = models.BooleanField(default=False)
+    returned_from = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="returned_items",
+        help_text="Sold row this returned row takes goods back from",
+    )
+    return_receipt = models.ForeignKey(
+        "warehouse.InboundWarehouseOrder",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="returned_order_items",
+        help_text="Receipt (příjemka) the returned goods are received with",
+    )
 
     class Meta(BaseModel.Meta):
         ordering = ["index", "created"]
@@ -589,11 +610,19 @@ class CreditNoteToSupplierItem(BaseModel):
 
 
 class CreditNoteToCustomer(BaseModel):
-    """Credit note"""
+    """Credit note for goods the customer returned ("vratka"), one per return."""
 
     code = models.CharField(max_length=50, null=False, unique=True)
-    order = models.OneToOneField(
-        OutboundOrder, on_delete=models.CASCADE, related_name="credit_note"
+    order = models.ForeignKey(
+        OutboundOrder, on_delete=models.CASCADE, related_name="credit_notes"
+    )
+    warehouse_order = models.OneToOneField(
+        "warehouse.InboundWarehouseOrder",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="customer_credit_note",
+        help_text="Receipt (příjemka) the returned goods came back with",
     )
     reason = models.TextField(null=True, blank=True)
     note = models.TextField(null=True, blank=True)
