@@ -370,6 +370,8 @@ import type {
   WarehouseApiRoutesWarehouseAssignOutboundWarehouseOrderItemResponses,
   WarehouseApiRoutesWarehouseBarcodeLookupData,
   WarehouseApiRoutesWarehouseBarcodeLookupResponses,
+  WarehouseApiRoutesWarehouseClaimReturnedItemData,
+  WarehouseApiRoutesWarehouseClaimReturnedItemResponses,
   WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderData,
   WarehouseApiRoutesWarehouseCreateInboundWarehouseOrderResponses,
   WarehouseApiRoutesWarehouseCreateMovementData,
@@ -398,6 +400,8 @@ import type {
   WarehouseApiRoutesWarehouseGetWarehouseLocationsResponses,
   WarehouseApiRoutesWarehouseGetWarehousesData,
   WarehouseApiRoutesWarehouseGetWarehousesResponses,
+  WarehouseApiRoutesWarehouseMatchReturnedItemData,
+  WarehouseApiRoutesWarehouseMatchReturnedItemResponses,
   WarehouseApiRoutesWarehouseOffloadItemsToChildOrderData,
   WarehouseApiRoutesWarehouseOffloadItemsToChildOrderResponses,
   WarehouseApiRoutesWarehouseOffloadOutboundItemsToChildOrderData,
@@ -1042,6 +1046,62 @@ export const warehouseApiRoutesWarehouseTrackInboundWarehouseOrderItem = <
       },
     ],
     url: '/api/v1/warehouse/orders-incoming/{code}/order-items/{item_id}/track',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+}
+
+/**
+ * Match Returned Item
+ * Recognise an item we shipped earlier by its barcode (receipts of returns).
+ */
+export const warehouseApiRoutesWarehouseMatchReturnedItem = <ThrowOnError extends boolean = false>(
+  options: Options<WarehouseApiRoutesWarehouseMatchReturnedItemData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<
+    WarehouseApiRoutesWarehouseMatchReturnedItemResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/warehouse/orders-incoming/{code}/returned-items/match',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+}
+
+/**
+ * Claim Returned Item
+ * Receive the very item we shipped earlier back, instead of a new one.
+ */
+export const warehouseApiRoutesWarehouseClaimReturnedItem = <ThrowOnError extends boolean = false>(
+  options: Options<WarehouseApiRoutesWarehouseClaimReturnedItemData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<
+    WarehouseApiRoutesWarehouseClaimReturnedItemResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/warehouse/orders-incoming/{code}/returned-items',
     ...options,
     headers: {
       'Content-Type': 'application/json',

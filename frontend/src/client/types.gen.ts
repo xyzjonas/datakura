@@ -1591,6 +1591,62 @@ export type SetupTrackingWarehouseItemRequest = {
 }
 
 /**
+ * GetReturnedItemMatchResponse
+ */
+export type GetReturnedItemMatchResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  data: ReturnedItemMatchSchema
+}
+
+/**
+ * ReturnedItemMatchSchema
+ * A shipped item recognised by its barcode, offered to be received back as is.
+ */
+export type ReturnedItemMatchSchema = {
+  /**
+   * Created
+   */
+  created: string
+  /**
+   * Changed
+   */
+  changed: string
+  warehouse_item: WarehouseItemSchema
+  /**
+   * Order Item Id
+   */
+  order_item_id: number
+}
+
+/**
+ * ReturnedItemMatchRequest
+ */
+export type ReturnedItemMatchRequest = {
+  /**
+   * Barcode
+   */
+  barcode: string
+}
+
+/**
+ * ReturnedItemClaimRequest
+ */
+export type ReturnedItemClaimRequest = {
+  /**
+   * Order Item Id
+   */
+  order_item_id: number
+  /**
+   * Warehouse Item Id
+   */
+  warehouse_item_id: number
+}
+
+/**
  * RemoveItemToCreditNoteRequest
  */
 export type RemoveItemToCreditNoteRequest = {
@@ -6911,6 +6967,50 @@ export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses =
 
 export type WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponse =
   WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses[keyof WarehouseApiRoutesWarehouseTrackInboundWarehouseOrderItemResponses]
+
+export type WarehouseApiRoutesWarehouseMatchReturnedItemData = {
+  body: ReturnedItemMatchRequest
+  path: {
+    /**
+     * Code
+     */
+    code: string
+  }
+  query?: never
+  url: '/api/v1/warehouse/orders-incoming/{code}/returned-items/match'
+}
+
+export type WarehouseApiRoutesWarehouseMatchReturnedItemResponses = {
+  /**
+   * OK
+   */
+  200: GetReturnedItemMatchResponse
+}
+
+export type WarehouseApiRoutesWarehouseMatchReturnedItemResponse =
+  WarehouseApiRoutesWarehouseMatchReturnedItemResponses[keyof WarehouseApiRoutesWarehouseMatchReturnedItemResponses]
+
+export type WarehouseApiRoutesWarehouseClaimReturnedItemData = {
+  body: ReturnedItemClaimRequest
+  path: {
+    /**
+     * Code
+     */
+    code: string
+  }
+  query?: never
+  url: '/api/v1/warehouse/orders-incoming/{code}/returned-items'
+}
+
+export type WarehouseApiRoutesWarehouseClaimReturnedItemResponses = {
+  /**
+   * OK
+   */
+  200: GetWarehouseOrderResponse
+}
+
+export type WarehouseApiRoutesWarehouseClaimReturnedItemResponse =
+  WarehouseApiRoutesWarehouseClaimReturnedItemResponses[keyof WarehouseApiRoutesWarehouseClaimReturnedItemResponses]
 
 export type WarehouseApiRoutesWarehouseDissolveInboundWarehouseOrderItemData = {
   body?: never

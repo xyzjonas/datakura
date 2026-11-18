@@ -264,6 +264,27 @@ class SetupTrackingWarehouseItemRequest(Schema):
     to_be_added: list[WarehouseItemSchema]
 
 
+class ReturnedItemMatchRequest(Schema):
+    barcode: str
+
+
+class ReturnedItemMatchSchema(BaseSchema):
+    """A shipped item recognised by its barcode, offered to be received back as is."""
+
+    warehouse_item: WarehouseItemSchema
+    # the (fungible) receipt line the item would be taken from
+    order_item_id: int
+
+
+class GetReturnedItemMatchResponse(BaseResponse):
+    data: ReturnedItemMatchSchema
+
+
+class ReturnedItemClaimRequest(Schema):
+    order_item_id: int
+    warehouse_item_id: int
+
+
 class RemoveItemToCreditNoteRequest(Schema):
     item_id: int
     amount: float

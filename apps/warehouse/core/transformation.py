@@ -631,8 +631,8 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
         amount=float(amount or 0),
         location=location_orm_to_schema(item.location) if item.location else None,
         inbound_order_code=item.order_in.code if item.order_in else None,
-        outbound_order_code=item.outbound_assignment.warehouse_order.code
-        if hasattr(item, "outbound_assignment") and item.outbound_assignment is not None
+        outbound_order_code=item.live_outbound_assignment.warehouse_order.code
+        if item.live_outbound_assignment is not None
         else None,
         package=package_type,
         batch=batch_orm_to_schema(item.batch) if getattr(item, "batch") else None,  # type: ignore
@@ -1056,10 +1056,9 @@ def inbound_warehouse_order_item_to_schema(
     linked_items = list(item.warehouse_items.all())
     outbound_assignment = next(
         (
-            linked_item.outbound_assignment
+            linked_item.live_outbound_assignment
             for linked_item in linked_items
-            if hasattr(linked_item, "outbound_assignment")
-            and linked_item.outbound_assignment is not None
+            if linked_item.live_outbound_assignment is not None
         ),
         None,
     )

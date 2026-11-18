@@ -54,6 +54,12 @@ class AuditMessages:
             AuditLanguage.CS: "Stav dobropisu se změnil z '{old_state}' na '{new_state}'",
         }
     )
+    ITEM_RETURNED_BY_CUSTOMER = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Item received back from the customer with receipt '{receipt_code}'",
+            AuditLanguage.CS: "Položka byla přijata zpět od zákazníka příjemkou '{receipt_code}'",
+        }
+    )
     GOODS_RETURNED_BY_CUSTOMER = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Goods returned by the customer, receipt '{receipt_code}' and credit note '{credit_note_code}' created",

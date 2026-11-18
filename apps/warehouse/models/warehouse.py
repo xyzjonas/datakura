@@ -96,6 +96,12 @@ class Batch(BaseModel, BarcodeMixin):
     )
 
 
+# picked for an outbound order and (not yet) taken back by a return receipt
+LIVE_OUTBOUND_ASSIGNMENT = models.Q(
+    outbound_assignment__isnull=False, outbound_assignment__returned_at__isnull=True
+)
+
+
 class AvailableWarehouseItemQuerySet(models.QuerySet["WarehouseItem"]):
     def total_amount(self, product_code: str | None = None) -> Decimal:
         queryset = self
@@ -136,7 +142,7 @@ class AvailableWarehouseItemManager(_WarehouseItemManagerBase):
                     InboundWarehouseOrderState.IN_TRANSIT,
                 )
             )
-            .exclude(outbound_assignment__isnull=False),
+            .exclude(LIVE_OUTBOUND_ASSIGNMENT),
         )
 
 
@@ -146,7 +152,7 @@ class PhysicalWarehouseItemManager(_WarehouseItemManagerBase):
     def get_queryset(self) -> AvailableWarehouseItemQuerySet:
         return cast(
             AvailableWarehouseItemQuerySet,
-            super().get_queryset().exclude(outbound_assignment__isnull=False),
+            super().get_queryset().exclude(LIVE_OUTBOUND_ASSIGNMENT),
         )
 
 
@@ -224,6 +230,14 @@ class WarehouseItem(BaseModel, BarcodeMixin):
         related_name="unpacked_items",
         help_text="Source package if created by unpacking",
     )
+
+    @property
+    def live_outbound_assignment(self) -> "OutboundWarehouseOrderItem | None":
+        """The pick this item left the warehouse with - unless it came back since."""
+        assignment = getattr(self, "outbound_assignment", None)
+        if assignment is not None and assignment.returned_at is None:
+            return assignment
+        return None
 
     @property
     def origin_country(self) -> str | None:
@@ -479,6 +493,11 @@ class OutboundWarehouseOrderItem(BaseModel):
         blank=True,
         help_text="Total cost at shipment time: amount × avg purchase price at the moment of picking. Frozen for tax/accounting.",
     )
+    returned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="The picked item came back with a return receipt (vratka) - it is in stock again",
+    )
     index = models.PositiveIntegerField(default=0)
 
     class Meta(BaseModel.Meta):
@@ -636,6 +655,15 @@ class InboundWarehouseOrderItem(BaseModel):
         help_text="Parent order line this row is valued from (null for manufacturing / legacy rows)",
     )
     index = models.PositiveIntegerField(default=0)
+    # "vratka": the very item we shipped earlier comes back (matched by its barcode),
+    # no new warehouse item is created for this row on confirmation
+    returned_warehouse_item = models.ForeignKey(
+        WarehouseItem,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="return_receipt_lines",
+    )
     # Stores the batch barcode string during DRAFT so the actual Batch object
     # can be created when WarehouseItems are materialised on confirmation.
     batch_barcode = models.CharField(max_length=200, null=True, blank=True)

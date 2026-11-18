@@ -26,7 +26,10 @@ from apps.warehouse.core.schemas.warehouse import (
     UpdateWarehouseOrderDraftItemsRequest,
     InboundWarehouseOrderUpdateSchema,
     SetupTrackingWarehouseItemRequest,
+    GetReturnedItemMatchResponse,
     RemoveItemToCreditNoteRequest,
+    ReturnedItemClaimRequest,
+    ReturnedItemMatchRequest,
     InboundWarehouseOrderSetStateSchema,
     WarehouseLocationSchema,
     PutawayItemRequest,
@@ -38,6 +41,7 @@ from apps.warehouse.core.schemas.warehouse import (
     MoveItemRequest,
 )
 from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.services.order_returns import order_returns_service
 from apps.warehouse.core.services.warehouse import warehouse_service
 from apps.warehouse.core.transformation import (
     location_orm_to_detail_schema,
@@ -305,6 +309,36 @@ def track_inbound_warehouse_order_item(
         code,
         item_id,
         body.to_be_added,
+        context=RequestContext.from_django_request(request),
+    )
+    return GetWarehouseOrderResponse(data=order)
+
+
+@routes.post(
+    "orders-incoming/{code}/returned-items/match",
+    response={200: GetReturnedItemMatchResponse},
+)
+def match_returned_item(
+    request: HttpRequest, code: str, body: ReturnedItemMatchRequest
+):
+    """Recognise an item we shipped earlier by its barcode (receipts of returns)."""
+    return GetReturnedItemMatchResponse(
+        data=order_returns_service.match_returned_item(code, body.barcode)
+    )
+
+
+@routes.post(
+    "orders-incoming/{code}/returned-items",
+    response={200: GetWarehouseOrderResponse},
+)
+def claim_returned_item(
+    request: HttpRequest, code: str, body: ReturnedItemClaimRequest
+):
+    """Receive the very item we shipped earlier back, instead of a new one."""
+    order = order_returns_service.claim_returned_item(
+        code,
+        body.order_item_id,
+        body.warehouse_item_id,
         context=RequestContext.from_django_request(request),
     )
     return GetWarehouseOrderResponse(data=order)

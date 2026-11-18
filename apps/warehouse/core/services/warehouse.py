@@ -1186,12 +1186,9 @@ class WarehouseService:
                     f"Warehouse item '{warehouse_item_id}' does not exist."
                 )
             # Check if it's already assigned
-            if (
-                hasattr(warehouse_item_exists, "outbound_assignment")
-                and warehouse_item_exists.outbound_assignment
-            ):
+            if warehouse_item_exists.live_outbound_assignment:
                 raise WarehouseGenericError(
-                    f"Warehouse item '{warehouse_item_id}' is already assigned to order item '{warehouse_item_exists.outbound_assignment.pk}'."
+                    f"Warehouse item '{warehouse_item_id}' is already assigned to order item '{warehouse_item_exists.live_outbound_assignment.pk}'."
                 )
             # Check product match
             if warehouse_item_exists.stock_product != order_item.stock_product:
@@ -2231,6 +2228,11 @@ class WarehouseService:
             )
 
             for order_item in order_items:
+                if order_item.returned_warehouse_item_id:
+                    order_returns_service.receive_returned_item(
+                        order_item, w_order, location, context
+                    )
+                    continue
                 batch = None
                 if order_item.batch_barcode:
                     batch, _ = get_or_create_batch(order_item.batch_barcode)
