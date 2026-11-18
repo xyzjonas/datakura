@@ -21,7 +21,7 @@
   <template v-else>
     <div class="flex items-center flex-nowrap px-5 text-muted">
       <div class="w-16">#</div>
-      <div class="w-xs">Produkt</div>
+      <div class="w-xs">{{ productLabel }}</div>
       <div :class="['grid flex-1 text-right', columnsClass]">
         <slot name="header" />
       </div>
@@ -36,7 +36,7 @@
             draggingIndex === index ? 'dragging' : '',
             dragOverIndex === index ? 'drag-over' : '',
           ]"
-          :draggable="!readonly"
+          :draggable="draggable"
           @dragstart="handleDragStart($event, index)"
           @dragend="handleDragEnd"
           @dragover="handleDragOver($event, index)"
@@ -44,8 +44,8 @@
           @drop="handleDrop($event, index)"
           :body-class="['flex w-full items-center gap-2 flex-nowrap']"
         >
-          <div :class="!readonly ? 'drag-handle' : ''">
-            <q-icon :name="readonly ? 'sym_o_check_small' : 'sym_o_drag_indicator'" size="1rem" />
+          <div :class="draggable ? 'drag-handle' : ''">
+            <q-icon :name="draggable ? 'sym_o_drag_indicator' : 'sym_o_check_small'" size="1rem" />
           </div>
           <slot name="row" :item="item" :index="index" />
         </ForegroundPanel>
@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends { index: number }">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useOrderItemCardLayout } from '@/composables/use-order-item-card-layout'
 import EmptyPanel from '../EmptyPanel.vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
@@ -73,11 +73,20 @@ const emit = defineEmits<{
   (e: 'reorderItem', itemIndex: number, newIndex: number): void
 }>()
 
-defineProps<{
-  readonly?: boolean
-  /** UnoCSS grid-cols class for the header / row columns. */
-  columnsClass?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    readonly?: boolean
+    /** Allow drag & drop reordering (when not readonly). */
+    reorderable?: boolean
+    /** Label of the product column. */
+    productLabel?: string
+    /** UnoCSS grid-cols class for the header / row columns. */
+    columnsClass?: string
+  }>(),
+  { reorderable: true, productLabel: 'Produkt' },
+)
+
+const draggable = computed(() => !props.readonly && props.reorderable)
 
 const cardLayout = useOrderItemCardLayout()
 
