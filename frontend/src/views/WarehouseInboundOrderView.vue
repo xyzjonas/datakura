@@ -77,6 +77,21 @@
       <InboundWarehouseOrderTimeline :order="order" />
     </ForegroundPanel>
 
+    <div v-if="order.state != 'in transit'" class="flex items-center justify-between mb-1 mt-3">
+      <div>
+        <span class="text-gray-5 text-xs">Položky k naskladnění</span>
+        <div class="text-sm text-gray-6 mt-1">
+          Hotovo {{ doneItems.length }} / {{ order.order_items.length }}
+        </div>
+      </div>
+      <span v-if="Number(order.total_price_at_receipt) > 0" class="text-sm text-gray-6">
+        Celková cena příjmu:
+        <strong class="text-lg text-primary"
+          >{{ Number(order.total_price_at_receipt).toFixed(2) }} {{ order.currency }}</strong
+        >
+      </span>
+    </div>
+
     <div v-if="order.state != 'in transit'" class="flex gap-2 my-1">
       <q-btn
         :outline="!showPending"

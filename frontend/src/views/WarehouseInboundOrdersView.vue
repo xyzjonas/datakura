@@ -206,6 +206,15 @@ const columns: QTableColumn[] = [
     align: 'left',
   },
   {
+    name: 'total_price_at_receipt',
+    field: (order: InboundWarehouseOrderSchema) =>
+      Number(order.total_price_at_receipt) > 0
+        ? `${Number(order.total_price_at_receipt).toFixed(2)} ${order.currency}`
+        : '—',
+    label: 'Cena příjmu',
+    align: 'right',
+  },
+  {
     name: 'supplier',
     field: (order: InboundWarehouseOrderSchema) => order.order.supplier?.name,
     label: 'Dodavatel',

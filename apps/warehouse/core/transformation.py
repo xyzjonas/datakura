@@ -1146,6 +1146,13 @@ def warehouse_inbound_order_orm_to_schema(
     def _child_parent_code(child: InboundWarehouseOrder) -> str:
         return _inbound_wo_parent_code(child)
 
+    total_price_at_receipt = sum(
+        (item.amount * item.unit_price_at_receipt for item in order_item_schemas),
+        Decimal("0"),
+    )
+    # Frozen at draft confirmation; until then the parent order's currency applies.
+    currency = w_order.currency if w_order.valued_at else linked_order.currency
+
     return InboundWarehouseOrderSchema(
         code=w_order.code,
         created=w_order.created,
@@ -1165,6 +1172,8 @@ def warehouse_inbound_order_orm_to_schema(
         ),
         total_amount=total_amount,
         remaining_amount=remaining_amount,
+        total_price_at_receipt=total_price_at_receipt,
+        currency=currency,
         order_code=linked_order.code,
         order=linked_order,
         state=InboundWarehouseOrderState.get_label(w_order.state),
