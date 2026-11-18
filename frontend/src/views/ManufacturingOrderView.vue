@@ -37,7 +37,7 @@
           unelevated
           color="negative"
           label="Zrušit"
-          icon="sym_o_scan_delete"
+          icon="sym_o_close"
           @click="cancelDialog = true"
         />
         <q-btn
@@ -79,72 +79,19 @@
       <ManufacturingOrderTimeline :state="order.state" />
     </ForegroundPanel>
 
-    <div class="flex items-center gap-2 mt-5">
-      <h2>Položky výrobního příkazu</h2>
-      <q-btn
-        v-if="isManufacturingOrderEditable(order)"
-        flat
-        color="primary"
-        icon="sym_o_add"
-        label="přidat položku"
-        @click="addItemDialog = true"
-        class="ml-5"
-      />
-    </div>
+    <OrderItemsHeader
+      title="Položky výrobního příkazu"
+      :disabled="!isManufacturingOrderEditable(order)"
+      @add="addItemDialog = true"
+    />
 
-    <ForegroundPanel>
-      <q-table
-        :rows="order.items ?? []"
-        :columns="itemColumns"
-        row-key="id"
-        flat
-        hide-bottom
-        :pagination="{ rowsPerPage: 0 }"
-        :grid="$q.screen.lt.sm"
-      >
-        <template #body-cell-in_product="slotProps">
-          <q-td :props="slotProps">
-            {{ slotProps.value }}
-            <ManufacturingItemRequirementBadges :item="slotProps.row" class="mt-1" />
-          </q-td>
-        </template>
-        <template #body-cell-actions="slotProps">
-          <q-td :props="slotProps">
-            <div v-if="isManufacturingOrderEditable(order)" class="flex gap-1">
-              <q-btn
-                flat
-                dense
-                round
-                icon="edit"
-                color="primary"
-                @click.stop="openEditItem(slotProps.row)"
-              />
-              <q-btn
-                flat
-                dense
-                round
-                icon="delete"
-                color="negative"
-                @click.stop="removeItem(slotProps.row.id)"
-              />
-            </div>
-          </q-td>
-        </template>
-        <template #no-data>
-          <div class="text-center text-gray-5 py-8 w-full">Žádné položky</div>
-        </template>
-        <template v-slot:item="props">
-          <div class="flex flex-col items-center w-full">
-            <StockProductLink :product="props.row.in_product" class="uppercase text-lg" />
-            {{ props.row.in_amount }} {{ props.row.in_product.unit }}
-            <ManufacturingItemRequirementBadges :item="props.row" />
-            <q-icon name="sym_o_arrow_downward_alt" size="md" class="text-muted my-1" />
-            <StockProductLink :product="props.row.out_product" class="uppercase text-lg" />
-            {{ props.row.out_amount }} {{ props.row.out_product.unit }}
-          </div>
-        </template>
-      </q-table>
-    </ForegroundPanel>
+    <ManufacturingOrderProductsList
+      v-model:items="order.items"
+      :readonly="!isManufacturingOrderEditable(order)"
+      @edit-item="openEditItem"
+      @remove-item="removeItem"
+      @add-item="addItemDialog = true"
+    />
 
     <ManufacturingOrderItemDialog
       ref="addItemDialogComponent"
@@ -224,26 +171,23 @@ import CommentCard from '@/components/CommentCard.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
-import StockProductLink from '@/components/links/StockProductLink.vue'
 import ManufacturingOrderDetailsListCard from '@/components/manufacturing/ManufacturingOrderDetailsListCard.vue'
-import ManufacturingItemRequirementBadges from '@/components/manufacturing/ManufacturingItemRequirementBadges.vue'
 import ManufacturingOrderItemDialog from '@/components/manufacturing/ManufacturingOrderItemDialog.vue'
+import ManufacturingOrderProductsList from '@/components/manufacturing/ManufacturingOrderProductsList.vue'
 import ManufacturingOrderStateBadge from '@/components/manufacturing/ManufacturingOrderStateBadge.vue'
 import ManufacturingOrderTimeline from '@/components/manufacturing/ManufacturingOrderTimeline.vue'
 import ManufacturingOrderUpdateOrCreateDialog from '@/components/manufacturing/ManufacturingOrderUpdateOrCreateDialog.vue'
+import OrderItemsHeader from '@/components/order/OrderItemsHeader.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { isManufacturingOrderEditable } from '@/constants/manufacturing-order'
-import type { QTableColumn } from 'quasar'
-import { useQuasar } from 'quasar'
 import { ref } from 'vue'
 
 const props = defineProps<{ code: string }>()
 const order = ref<ManufacturingOrderSchema>()
 
 const { onResponse } = useApi()
-const $q = useQuasar()
 
 const response = await warehouseApiRoutesManufacturingOrdersGetManufacturingOrder({
   path: { order_code: props.code },
@@ -252,36 +196,6 @@ const data = onResponse(response)
 if (data) {
   order.value = data.data
 }
-
-const itemColumns: QTableColumn[] = [
-  {
-    name: 'in_product',
-    field: (row: ManufacturingOrderItemSchema) => row.in_product.name,
-    label: 'Vstupní produkt',
-    align: 'left',
-  },
-  {
-    name: 'in_amount',
-    field: 'in_amount',
-    label: 'Množství (vstup)',
-    align: 'left',
-    format: (val: number) => String(val),
-  },
-  {
-    name: 'out_product',
-    field: (row: ManufacturingOrderItemSchema) => row.out_product.name,
-    label: 'Výstupní produkt',
-    align: 'left',
-  },
-  {
-    name: 'out_amount',
-    field: 'out_amount',
-    label: 'Množství (výstup)',
-    align: 'left',
-    format: (val: number) => String(val),
-  },
-  { name: 'actions', field: 'id', label: '', align: 'right' },
-]
 
 const addItemDialog = ref(false)
 const addItemDialogComponent = ref<InstanceType<typeof ManufacturingOrderItemDialog>>()
