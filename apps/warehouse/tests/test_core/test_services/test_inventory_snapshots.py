@@ -1,11 +1,9 @@
 from decimal import Decimal
-from typing import cast
 
 import pytest
 
 from apps.warehouse.core.exceptions import WarehouseGenericError
 from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
-from apps.warehouse.models.orders import InboundOrder
 from apps.warehouse.models.warehouse import (
     InboundWarehouseOrderState,
     InventorySnapshotLine,
@@ -36,12 +34,11 @@ def create_snapshot_item(
         currency=purchase_currency,
     )
     location = WarehouseLocationFactory(code=location_code)
-    inbound_order = InboundWarehouseOrderFactory(
+    inbound_order = InboundWarehouseOrderFactory.it(
         state=InboundWarehouseOrderState.PENDING,
     )
-    inbound_order_order = cast(InboundOrder, inbound_order.order)
-    inbound_order_order.currency = receipt_currency
-    inbound_order_order.save(update_fields=["currency"])
+    inbound_order.currency = receipt_currency
+    inbound_order.save(update_fields=["currency"])
 
     source_order_item = None
     if receipt_price is not None:

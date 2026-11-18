@@ -8,8 +8,13 @@ from ninja.testing import TestClient
 from apps.warehouse.api.routes.analytics import routes
 from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
 from apps.warehouse.models.orders import InboundOrderState
-from apps.warehouse.models.warehouse import OutboundWarehouseOrderState
+from apps.warehouse.models.warehouse import (
+    InboundWarehouseOrder,
+    InboundWarehouseOrderState,
+    OutboundWarehouseOrderState,
+)
 from apps.warehouse.tests.factories.customer import CustomerFactory
+from apps.warehouse.tests.factories.manufacturing import ManufacturingOrderFactory
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
     InboundOrderItemFactory,
@@ -18,6 +23,8 @@ from apps.warehouse.tests.factories.order import (
 )
 from apps.warehouse.tests.factories.product import StockProductFactory
 from apps.warehouse.tests.factories.warehouse import (
+    InboundWarehouseOrderFactory,
+    InboundWarehouseOrderItemFactory,
     OutboundWarehouseOrderItemFactory,
     WarehouseItemFactory,
     WarehouseLocationFactory,
@@ -44,18 +51,27 @@ def make_items(count: int, *, prefix: str = "P") -> None:
 
 
 def closed_inbound(*, closed_at, prices=(("10", "2"),), currency="CZK", state=None):
-    order = InboundOrderFactory(
+    """Inbound *warehouse* order with its frozen receipt valuation."""
+    parent = InboundOrderFactory(
         currency=currency,
-        state=state or InboundOrderState.COMPLETED,
-        completed_date=closed_at,
+        # the parent order's own state / dates / prices must not matter
+        state=InboundOrderState.PUTAWAY,
         supplier=CustomerFactory(name="Dodavatel s.r.o."),
         description="Nákup profilů",
     )
+    w_order = InboundWarehouseOrderFactory(
+        order=parent,
+        state=state or InboundWarehouseOrderState.COMPLETED,
+        completed_date=closed_at,
+        currency=currency,
+    )
     for amount, unit in prices:
-        InboundOrderItemFactory(
-            order=order, amount=Decimal(amount), unit_price=Decimal(unit)
+        InboundWarehouseOrderItemFactory(
+            warehouse_order=w_order,
+            amount=Decimal(amount),
+            unit_price_at_receipt=Decimal(unit),
         )
-    return order
+    return w_order
 
 
 def closed_outbound(
@@ -254,8 +270,8 @@ def test_order_closed_exactly_at_previous_capture_is_not_counted_twice(db, clien
 
 
 def test_unclosed_and_cancelled_orders_are_ignored(db, client):
-    closed_inbound(closed_at=T0, state=InboundOrderState.CANCELLED)
-    closed_inbound(closed_at=None, state=InboundOrderState.PUTAWAY)
+    closed_inbound(closed_at=T0, state=InboundWarehouseOrderState.CANCELLED)
+    closed_inbound(closed_at=None, state=InboundWarehouseOrderState.STARTED)
     closed_outbound(closed_at=T0, state=OutboundWarehouseOrderState.CANCELLED)
     closed_outbound(closed_at=None, state=OutboundWarehouseOrderState.STARTED)
 
@@ -299,11 +315,12 @@ def test_frozen_order_skeleton_survives_later_changes(db, client):
     order = closed_inbound(closed_at=T0, prices=(("2", "5"),))
     snapshot = inventory_snapshot_service.create_snapshot(captured_at=T0)
 
-    order.items.update(total_price=Decimal("999"))
-    order.supplier.name = "Renamed"
-    order.supplier.save()
-    order.description = "changed"
-    order.save()
+    order.order_items.update(unit_price_at_receipt=Decimal("999"))
+    parent = order.order
+    parent.supplier.name = "Renamed"
+    parent.supplier.save()
+    parent.description = "changed"
+    parent.save()
 
     [row] = client.get(f"inventory-snapshots/{snapshot.id}").json()["data"][
         "inbound_orders"
@@ -336,3 +353,41 @@ def test_period_start_stays_frozen_when_earlier_snapshot_is_added_later(db, clie
     payload = client.get(f"inventory-snapshots/{second.id}").json()["data"]
 
     assert datetime.fromisoformat(payload["period_start"]) == T0
+
+
+@pytest.mark.parametrize(
+    "parent_state",
+    [
+        InboundOrderState.CANCELLED,
+        InboundOrderState.PUTAWAY,
+        InboundOrderState.COMPLETED,
+    ],
+)
+def test_inbound_value_ignores_parent_order_entirely(db, client, parent_state):
+    w_order = closed_inbound(closed_at=T0, prices=(("2", "5"),))  # 10
+    parent = w_order.order
+    parent.state = parent_state
+    parent.currency = "USD"
+    parent.save()
+    InboundOrderItemFactory(
+        order=parent, amount=Decimal("100"), unit_price=Decimal("100")
+    )
+
+    snapshot = inventory_snapshot_service.create_snapshot(captured_at=T0)
+    payload = client.get(f"inventory-snapshots/{snapshot.id}").json()["data"]
+
+    assert payload["expenditure_totals"] == [{"currency": "CZK", "value": "10.0000"}]
+
+
+def test_inbound_orders_without_parent_order_are_skipped(db, client):
+    # mirrors the outbound side: manufacturing warehouse orders are not purchases
+    w_order = closed_inbound(closed_at=T0)
+    InboundWarehouseOrder.objects.filter(pk=w_order.pk).update(
+        order=None, manufacturing_order=ManufacturingOrderFactory()
+    )
+
+    snapshot = inventory_snapshot_service.create_snapshot(captured_at=T0)
+    payload = client.get(f"inventory-snapshots/{snapshot.id}").json()["data"]
+
+    assert payload["inbound_orders"] == []
+    assert payload["expenditure_totals"] == []

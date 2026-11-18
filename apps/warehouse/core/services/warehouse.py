@@ -1449,6 +1449,8 @@ class WarehouseService:
     def confirm_arrival(
         cls, code: str, location_code: str, context: RequestContext
     ) -> None:
+        from apps.warehouse.models.orders import InboundOrderItem
+
         with transaction.atomic():
             # Lock the warehouse order to prevent concurrent arrivals
             w_order = (
@@ -1473,6 +1475,16 @@ class WarehouseService:
             w_order.pickup_location = location
             w_order.save(update_fields=["pickup_location"])
 
+            source_items: list[
+                tuple[
+                    StockProduct,
+                    Decimal,
+                    Decimal,
+                    str | None,
+                    str | None,
+                    InboundOrderItem | None,
+                ]
+            ]
             if w_order.order:
                 source_items = [
                     (
@@ -1481,6 +1493,7 @@ class WarehouseService:
                         pi.unit_price,
                         batch_primary_barcode(pi.batch) if pi.batch else None,
                         pi.origin_country,
+                        pi,
                     )
                     for pi in w_order.order.items.filter(
                         stock_product__type__non_physical=False
@@ -1512,6 +1525,7 @@ class WarehouseService:
                             unit_price,
                             cls._picked_batch_barcode(mfg_order, mi),
                             None,
+                            None,
                         )
                     )
             else:
@@ -1523,6 +1537,7 @@ class WarehouseService:
                 unit_price,
                 batch_barcode,
                 origin_country,
+                parent_item,
             ) in enumerate(source_items):
                 # Certified rows arrive pre-assigned to their batch (the
                 # tracking dialog pre-fills and locks it), so the worker cannot
@@ -1532,6 +1547,7 @@ class WarehouseService:
                     stock_product=stock_product,
                     amount=amount,
                     unit_price_at_receipt=unit_price,
+                    source_order_item=parent_item,
                     tracking_level=TrackingLevel.FUNGIBLE,
                     batch_barcode=batch_barcode,
                     origin_country=origin_country,
@@ -1875,6 +1891,7 @@ class WarehouseService:
                         tracking_level=new_item.tracking_level,
                         package_type=package_type,
                         unit_price_at_receipt=source_item.unit_price_at_receipt,
+                        source_order_item=source_item.source_order_item,
                         index=source_item.index,
                         batch_barcode=batch_barcode,
                         origin_country=source_item.origin_country,
@@ -1933,6 +1950,7 @@ class WarehouseService:
                         amount=item.amount,
                         tracking_level=TrackingLevel.FUNGIBLE,
                         unit_price_at_receipt=item.unit_price_at_receipt,
+                        source_order_item=item.source_order_item,
                         origin_country=item.origin_country,
                         index=item.index,
                     )
@@ -1959,6 +1977,11 @@ class WarehouseService:
             order = InboundWarehouseOrder.objects.get(code=code)
             old_state = order.state
             order.state = body.state
+            if body.state == InboundWarehouseOrderState.COMPLETED:
+                if old_state != InboundWarehouseOrderState.COMPLETED:
+                    order.completed_date = timezone.now()
+            else:
+                order.completed_date = None
             order.save()
             if not no_audit:
                 audit_service.add_entry(
@@ -2112,6 +2135,31 @@ class WarehouseService:
             )
 
     @staticmethod
+    def _freeze_valuation(
+        w_order: InboundWarehouseOrder,
+        order_items: list[InboundWarehouseOrderItem],
+    ) -> None:
+        """
+        Freeze the receipt valuation of a warehouse order, item by item.
+
+        Prices are grabbed from the parent order lines at this very moment (draft
+        confirmation); later changes of the parent order do not matter - the goods
+        are in the warehouse and accounted for. Rows without a parent line
+        (manufacturing, legacy) keep their already derived price.
+        """
+        for order_item in order_items:
+            parent_item = order_item.source_order_item
+            if parent_item is None:
+                continue
+            order_item.unit_price_at_receipt = parent_item.unit_price
+            order_item.save(update_fields=["unit_price_at_receipt", "changed"])
+
+        if w_order.order:
+            w_order.currency = w_order.order.currency
+        w_order.valued_at = timezone.now()
+        w_order.save(update_fields=["currency", "valued_at", "changed"])
+
+    @staticmethod
     def _ensure_items_have_weight(order_items) -> None:
         missing = sorted(
             {
@@ -2154,6 +2202,7 @@ class WarehouseService:
                 ).all()
             )
             cls._ensure_items_have_weight(order_items)
+            cls._freeze_valuation(w_order, order_items)
             cls._recalculate_purchase_prices_for_confirmed_order(
                 order_items,
                 context=context,
@@ -2477,12 +2526,17 @@ class WarehouseService:
         parent_order = InboundWarehouseOrder.objects.select_related(
             "order", "pickup_location"
         ).get(code=parent_code)
-        return create_warehouse_order(  # type: ignore[return-value]
+        child = create_warehouse_order(
             WarehouseOrderKind.CHILD_INBOUND,
             context,
             primary_order=parent_order,
             initial_state=initial_state,
         )
+        # Valuation currency is inherited; the child gets its own price freeze
+        # on its draft confirmation (or none if split off after the parent's).
+        child.currency = parent_order.currency  # type: ignore[union-attr]
+        child.save(update_fields=["currency"])  # type: ignore[union-attr]
+        return child  # type: ignore[return-value]
 
     @classmethod
     def offload_items_to_child_order(
@@ -2548,6 +2602,7 @@ class WarehouseService:
                             amount=amount,
                             package_type=order_item.package_type,
                             unit_price_at_receipt=order_item.unit_price_at_receipt,
+                            source_order_item=order_item.source_order_item,
                             index=order_item.index,
                             batch_barcode=order_item.batch_barcode,
                             origin_country=order_item.origin_country,
