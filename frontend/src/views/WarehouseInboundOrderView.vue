@@ -55,14 +55,16 @@
     </div>
     <div class="flex gap-5">
       <CustomerCard
-        v-if="order.order.supplier"
-        :customer="order.order.supplier"
-        title="Dodavatel"
+        v-if="parentOrderPartner(order.order)"
+        :customer="parentOrderPartner(order.order)"
+        :title="parentOrderPartnerLabel(order.order)"
         class="flex-1"
       />
       <LinkedEntitiesCard
-        show-inbound-order
+        :show-inbound-order="order.order.type !== 'Outbound'"
         :inbound-order="order.order"
+        :show-outbound-order="order.order.type === 'Outbound'"
+        :outbound-order="order.order"
         show-credit-note
         :credit-note="order.credit_note"
         :show-parent-inbound-warehouse-order="!!order.parent_order"
@@ -109,7 +111,30 @@
         no-caps
         @click="showDone = !showDone"
       />
+      <q-btn
+        v-if="isReturnReceipt && order.state === 'draft'"
+        class="ml-auto"
+        unelevated
+        no-caps
+        size="lg"
+        color="primary"
+        icon="sym_o_qr_code_scanner"
+        label="Skenovat existující zboží"
+        data-test="scan-existing-goods"
+        @click="scanDialog = true"
+      >
+        <q-tooltip :offset="[0, 10]">
+          Vrácené zboží najít podle původního čárového kódu - žádná nová položka nevznikne
+        </q-tooltip>
+      </q-btn>
     </div>
+
+    <ReturnedItemScanDialog
+      v-if="isReturnReceipt"
+      v-model:show="scanDialog"
+      :order-code="order.code"
+      @claimed="(updated) => (order = updated)"
+    />
 
     <InboundWarehouseOrderItemsList
       v-if="showPending"
@@ -159,6 +184,7 @@
 </template>
 
 <script setup lang="ts">
+import { parentOrderPartner, parentOrderPartnerLabel } from '@/utils/parent-order'
 import {
   type BatchSchema,
   type InboundWarehouseOrderSchema,
@@ -177,6 +203,7 @@ import CustomerCard from '@/components/customer/CustomerCard.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
 import LinkedEntitiesCard from '@/components/order/LinkedEntitiesCard.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
+import ReturnedItemScanDialog from '@/components/putaway/ReturnedItemScanDialog.vue'
 import InboundWarehouseOrderItemsList from '@/components/putaway/InboundWarehouseOrderItemsList.vue'
 import InboundWarehouseOrderStateBadge from '@/components/putaway/InboundWarehouseOrderStateBadge.vue'
 import InboundWarehouseOrderTimeline from '@/components/putaway/InboundWarehouseOrderTimeline.vue'
@@ -193,6 +220,9 @@ const props = defineProps<{ code: string }>()
 const { onResponse } = useApi()
 const $q = useQuasar()
 
+const scanDialog = ref(false)
+// receipt of goods taken back from a customer: the shipped items can be scanned back in
+const isReturnReceipt = computed(() => order.value?.order.type === 'Outbound')
 const showPending = ref(true)
 const showDone = ref(true)
 

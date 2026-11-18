@@ -24,6 +24,7 @@ from apps.warehouse.models.warehouse import (
 # ──────────────────────────────────────────────────────────────────────────────
 INBOUND_PREFIX = "P"  # purchase-order–linked příjemka
 MFG_INBOUND_PREFIX = "ZP"  # manufacturing–linked příjemka (výroba)
+RETURN_INBOUND_PREFIX = "PV"  # příjemka of goods returned by a customer (vratka)
 OUTBOUND_PREFIX = "V"  # generic výdejka (child orders / misc)
 SALES_OUTBOUND_PREFIX = "V"  # sales-order–linked výdejka
 MFG_OUTBOUND_PREFIX = "ZV"  # manufacturing–linked výdejka (výroba)
@@ -34,6 +35,7 @@ class WarehouseOrderKind(str, Enum):
 
     INBOUND = "inbound"  # příjemka for a purchase order        → P
     MFG_INBOUND = "mfg_inbound"  # příjemka for manufacturing return     → ZP
+    RETURN_INBOUND = "return_inbound"  # příjemka for goods a customer returned → PV
     CHILD_INBOUND = "child_inbound"  # child příjemka split from a parent    → P
     SALES_OUTBOUND = "sales_outbound"  # výdejka for a sales order             → V
     MFG_OUTBOUND = "mfg_outbound"  # výdejka for manufacturing dispatch    → ZV
@@ -56,6 +58,7 @@ def generate_linked_code(
     *,
     order: InboundOrder | OutboundOrder | None = None,
     manufacturing_order: ManufacturingOrder | None = None,
+    return_order: OutboundOrder | None = None,
 ) -> str:
     """
     Generate a warehouse order code derived from its parent document's code.
@@ -72,6 +75,9 @@ def generate_linked_code(
     elif manufacturing_order is not None:
         parent_code = manufacturing_order.code
         siblings = model.objects.filter(manufacturing_order=manufacturing_order)
+    elif return_order is not None:
+        parent_code = return_order.code
+        siblings = model.objects.filter(return_order=return_order)
     else:
         return generate_next_code(model, prefix)
 
@@ -141,6 +147,30 @@ def _create_mfg_inbound(
     return order
 
 
+def _create_return_inbound(
+    sales_order: OutboundOrder,
+    context: RequestContext,
+    prefix: str,
+) -> InboundWarehouseOrder:
+    code = generate_linked_code(InboundWarehouseOrder, prefix, return_order=sales_order)
+    with transaction.atomic():
+        order = InboundWarehouseOrder.objects.create(
+            code=code,
+            return_order=sales_order,
+            currency=sales_order.currency,
+            state=InboundWarehouseOrderState.IN_TRANSIT,
+        )
+        audit_service.add_entry(
+            order,
+            action=AuditAction.CREATE,
+            user=context.user_id,
+            reason=AuditMessages.WAREHOUSE_ORDER_BOUND_TO_PURCHASE_ORDER.CS.format(
+                purchase_order_code=sales_order.code
+            ),
+        )
+    return order
+
+
 def _create_child_inbound(
     primary_order: InboundWarehouseOrder,
     context: RequestContext,
@@ -152,12 +182,14 @@ def _create_child_inbound(
         prefix,
         order=primary_order.order,
         manufacturing_order=primary_order.manufacturing_order,
+        return_order=primary_order.return_order,
     )
     with transaction.atomic():
         child = InboundWarehouseOrder.objects.create(
             code=code,
             order=primary_order.order,
             manufacturing_order=primary_order.manufacturing_order,
+            return_order=primary_order.return_order,
             primary_order=primary_order,
             state=initial_state,
             pickup_location=primary_order.pickup_location,
@@ -318,6 +350,12 @@ def create_warehouse_order(
                 manufacturing_order=manufacturing_order,  # type: ignore[arg-type]
                 context=context,
                 prefix=code_prefix or MFG_INBOUND_PREFIX,
+            )
+        case WarehouseOrderKind.RETURN_INBOUND:
+            return _create_return_inbound(
+                sales_order=sales_order,  # type: ignore[arg-type]
+                context=context,
+                prefix=code_prefix or RETURN_INBOUND_PREFIX,
             )
         case WarehouseOrderKind.CHILD_INBOUND:
             return _create_child_inbound(

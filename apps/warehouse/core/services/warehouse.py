@@ -40,7 +40,9 @@ from apps.warehouse.core.schemas.warehouse import (
     MoveItemRequest,
 )
 from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.services.credit_notes import credit_notes_service
 from apps.warehouse.core.services.manufacturing import manufacturing_orders_service
+from apps.warehouse.core.services.order_returns import order_returns_service
 from apps.warehouse.core.services.orders import inbound_orders_service
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
 from apps.warehouse.core.services.warehouse_order_factory import (
@@ -614,6 +616,7 @@ class WarehouseService:
                 | Q(code__icontains=search_term)
                 | Q(order__code__icontains=search_term)
                 | Q(manufacturing_order__code__icontains=search_term)
+                | Q(return_order__code__icontains=search_term)
             )
         return qs.all()
 
@@ -1183,12 +1186,9 @@ class WarehouseService:
                     f"Warehouse item '{warehouse_item_id}' does not exist."
                 )
             # Check if it's already assigned
-            if (
-                hasattr(warehouse_item_exists, "outbound_assignment")
-                and warehouse_item_exists.outbound_assignment
-            ):
+            if warehouse_item_exists.live_outbound_assignment:
                 raise WarehouseGenericError(
-                    f"Warehouse item '{warehouse_item_id}' is already assigned to order item '{warehouse_item_exists.outbound_assignment.pk}'."
+                    f"Warehouse item '{warehouse_item_id}' is already assigned to order item '{warehouse_item_exists.live_outbound_assignment.pk}'."
                 )
             # Check product match
             if warehouse_item_exists.stock_product != order_item.stock_product:
@@ -1528,6 +1528,23 @@ class WarehouseService:
                             None,
                         )
                     )
+            elif w_order.return_order:
+                # goods taken back from a customer: rows of the return itself
+                source_items = [
+                    (
+                        row.stock_product,
+                        row.amount,
+                        order_returns_service.unit_cost(row.returned_from)
+                        if row.returned_from
+                        else Decimal("0"),
+                        None,
+                        row.required_origin_country,
+                        None,
+                    )
+                    for row in w_order.returned_order_items.select_related(
+                        "stock_product", "returned_from__stock_product"
+                    ).order_by("index", "created")
+                ]
             else:
                 source_items = []
 
@@ -2156,6 +2173,8 @@ class WarehouseService:
 
         if w_order.order:
             w_order.currency = w_order.order.currency
+        elif w_order.return_order:
+            w_order.currency = w_order.return_order.currency
         w_order.valued_at = timezone.now()
         w_order.save(update_fields=["currency", "valued_at", "changed"])
 
@@ -2209,6 +2228,11 @@ class WarehouseService:
             )
 
             for order_item in order_items:
+                if order_item.returned_warehouse_item_id:
+                    order_returns_service.receive_returned_item(
+                        order_item, w_order, location, context
+                    )
+                    continue
                 batch = None
                 if order_item.batch_barcode:
                     batch, _ = get_or_create_batch(order_item.batch_barcode)
@@ -2275,6 +2299,13 @@ class WarehouseService:
         # These service calls stay outside the atomic block as they're separate operations
         # Manufacturing-linked inbound orders have no InboundOrder to transition.
         if w_order.manufacturing_order_id:
+            return
+        if w_order.return_order_id:
+            # goods are back: the credit note of the return is final
+            if customer_note := getattr(w_order, "customer_credit_note", None):
+                credit_notes_service.transition_customer_credit_note(
+                    customer_note.code, CreditNoteState.CONFIRMED, context=context
+                )
             return
         inbound_order = InboundOrder.objects.get(warehouse_orders__code=code)
         inbound_orders_service.transition_order(

@@ -30,7 +30,9 @@ describe('OrderItemCard', () => {
     [undefined, false],
   ])('non-physical product=%s -> badge shown=%s', (nonPhysical, shown) => {
     const wrapper = mountCard({
-      item: item({ product: { code: 'S1', name: 'Doprava', unit: 'ks', non_physical: nonPhysical } }),
+      item: item({
+        product: { code: 'S1', name: 'Doprava', unit: 'ks', non_physical: nonPhysical },
+      }),
     })
     expect(wrapper.find('[data-test="non-physical-badge"]').exists()).toBe(shown)
   })

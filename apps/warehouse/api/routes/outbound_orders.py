@@ -17,12 +17,14 @@ from apps.warehouse.core.schemas.orders import (
     GetOutboundOrderResponse,
     OutboundOrderCreateOrUpdateSchema,
     OutboundOrderItemCreateSchema,
+    OutboundOrderReturnSchema,
     OutboundOrderSchema,
     OutboundOrderTransitionSchema,
     ReorderItemSchema,
 )
 from apps.warehouse.core.schemas.shipping import OutboundOrderShippingUpsertSchema
 from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.services.order_returns import order_returns_service
 from apps.warehouse.core.services.shipping import shipping_service
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
 from apps.warehouse.models.orders import OutboundOrder
@@ -185,6 +187,20 @@ def transition_outbound_order(
         action=body.action,
     )
     return GetOutboundOrderResponse(data=new_item)
+
+
+@routes.post("/{order_code}/returns", response={200: GetOutboundOrderResponse})
+def return_goods_of_outbound_order(
+    request: HttpRequest, order_code: str, body: OutboundOrderReturnSchema
+):
+    """Take goods of a sent order back: returned rows, a receipt and a credit note."""
+    return GetOutboundOrderResponse(
+        data=order_returns_service.create_return(
+            order_code,
+            body,
+            context=RequestContext.from_django_request(request),
+        )
+    )
 
 
 @routes.put(

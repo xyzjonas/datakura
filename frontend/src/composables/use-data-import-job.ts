@@ -44,7 +44,9 @@ export const useDataImportJob = () => {
     const response = await warehouseApiRoutesDataImportGetDataImportJob({
       path: { job_id: id },
     })
-    const data = onResponse(response, { hideNotification: failedPolls + 1 < MAX_CONSECUTIVE_POLL_ERRORS })
+    const data = onResponse(response, {
+      hideNotification: failedPolls + 1 < MAX_CONSECUTIVE_POLL_ERRORS,
+    })
     if (jobId.value !== id) {
       return // stopped / replaced while the request was in flight
     }

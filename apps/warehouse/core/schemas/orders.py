@@ -137,6 +137,12 @@ class OutboundOrderItemSchema(BaseSchema):
     # the customer's own code of the product, if the customer has one set
     customer_product_code: str | None = None
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None
+    # "vratka": goods taken back from the customer - never sold, subtracted from the totals
+    is_returned: bool = False
+    # index of the sold row this returned row takes the goods back from
+    returned_from_index: int | None = None
+    # amount of this (sold) row that was already taken back
+    returned_amount: float = 0
 
 
 class OutboundDocumentCreateOrUpdateSchema(Schema):
@@ -162,6 +168,17 @@ class OutboundCalculationCreateOrUpdateSchema(OutboundDocumentCreateOrUpdateSche
 
 class OutboundOrderTransitionSchema(Schema):
     action: Literal["next", "cancel"] = "next"
+
+
+class OutboundOrderReturnItemSchema(Schema):
+    item_index: int
+    amount: Annotated[float, Field(gt=0, lt=1_000_000)]
+
+
+class OutboundOrderReturnSchema(Schema):
+    """Goods taken back from the customer: any amount of any (sold) row."""
+
+    items: Annotated[list[OutboundOrderReturnItemSchema], Field(min_length=1)]
 
 
 class OutboundCalculationTransitionSchema(Schema):
@@ -190,7 +207,12 @@ class OutboundOrderSchema(OutboundDocumentSchema):
     warehouse_orders: list[OutboundWarehouseOrderBaseSchema] = Field(
         default_factory=list
     )
-    credit_note: CreditNoteBaseSchema | None = None
+    # receipts (příjemky) of the goods taken back from the customer
+    return_warehouse_orders: list[InboundWarehouseOrderBaseSchema] = Field(
+        default_factory=list
+    )
+    # one credit note per return
+    credit_notes: list[CreditNoteBaseSchema] = Field(default_factory=list)
     invoice: InvoiceSchema | None = None
     shipping: OutboundOrderShippingSchema
     # derived from the items (amount x product unit weight)

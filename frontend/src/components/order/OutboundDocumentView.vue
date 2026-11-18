@@ -93,10 +93,14 @@
       />
       <LinkedEntitiesCard
         v-if="orderDocument"
+        :show-inbound-warehouse-orders="!!orderDocument.return_warehouse_orders?.length"
+        :inbound-warehouse-orders="orderDocument.return_warehouse_orders"
         show-outbound-warehouse-orders
         :outbound-warehouse-orders="orderDocument.warehouse_orders"
         show-invoice
         :invoice="orderDocument.invoice"
+        :show-credit-note="!!orderDocument.credit_notes?.length"
+        :credit-notes="orderDocument.credit_notes"
         class="flex-1"
       />
     </div>
@@ -124,8 +128,15 @@
           description="Požadovaná země původu zboží na všech položkách najednou."
           @apply="setOriginCountry"
         />
+        <OutboundReturnToggleButton v-if="!isCalculation" :disabled="!canReturn" />
       </template>
       <OrderTotalsHeader :order="order" />
+      <OutboundReturnBar
+        :value="returnValue"
+        :currency="order.currency"
+        :loading="applyingReturn"
+        @apply="applyReturn"
+      />
     </OrderItemsHeader>
 
     <q-banner
@@ -203,6 +214,7 @@
 
 <script setup lang="ts">
 import {
+  warehouseApiRoutesOutboundOrdersReturnGoodsOfOutboundOrder,
   warehouseApiRoutesOutboundOrdersUpsertOutboundOrderShipping,
   type OutboundCalculationCreateOrUpdateSchema,
   type OutboundCalculationSchema,
@@ -224,6 +236,8 @@ import NewOutboundOrderItemDialog from '@/components/order/NewOutboundOrderItemD
 import BulkOriginCountryButton from '@/components/order/BulkOriginCountryButton.vue'
 import OrderItemsHeader from '@/components/order/OrderItemsHeader.vue'
 import OrderTotalsHeader from '@/components/order/OrderTotalsHeader.vue'
+import OutboundReturnBar from '@/components/order/OutboundReturnBar.vue'
+import OutboundReturnToggleButton from '@/components/order/OutboundReturnToggleButton.vue'
 import OutboundCalculationActions from '@/components/order/OutboundCalculationActions.vue'
 import OutboundOrderActions from '@/components/order/OutboundOrderActions.vue'
 import OutboundOrderDetailsListCard from '@/components/order/OutboundOrderDetailsListCard.vue'
@@ -236,6 +250,11 @@ import OutboundOrderUpdateOrCreateDialog from '@/components/order/OutboundOrderU
 import AuditLogDialog from '@/components/warehouse/AuditLogDialog.vue'
 import { useApi } from '@/composables/use-api'
 import { useAppRouter } from '@/composables/use-app-router'
+import {
+  provideReturnSelection,
+  RETURNABLE_ORDER_STATES,
+  returnableAmount,
+} from '@/composables/use-return-selection'
 import {
   provideOutboundDocumentKind,
   provideRequiresOriginCountry,
@@ -265,6 +284,7 @@ const api = useOutboundDocumentApi(() => props.kind)
 provideOutboundDocumentKind(props.kind)
 provideRequiresOriginCountry(() => order.value?.customer.requires_origin_country ?? false)
 const isCalculation = computed(() => props.kind === 'calculation')
+const returnSelection = provideReturnSelection()
 
 // kind specific views of the very same ref
 const calculation = computed<OutboundCalculationSchema | undefined>({
@@ -301,9 +321,7 @@ const isEditable = computed(() => {
 })
 
 // customer ordering by own codes: all items need them (orders and calculations alike)
-const requiresOwnCodes = computed(
-  () => !!order.value?.customer.requires_own_codes,
-)
+const requiresOwnCodes = computed(() => !!order.value?.customer.requires_own_codes)
 const missingOwnCodeCount = computed(() =>
   order.value && requiresOwnCodes.value ? itemsMissingOwnCode(order.value).length : 0,
 )
@@ -321,6 +339,45 @@ const orderBelowMinimum = computed(() => {
     isBelowMinimumProfit(margin.sellingValue, margin.purchaseValue, minimumMarkupPercent.value)
   )
 })
+
+// "vratka": goods of a sent order can be taken back, any amount of any (sold) row
+const canReturn = computed(
+  () =>
+    !isCalculation.value &&
+    RETURNABLE_ORDER_STATES.includes(order.value?.state ?? '') &&
+    !!order.value?.items?.some((item) => returnableAmount(item) > 0),
+)
+const returnValue = computed(() =>
+  returnSelection.lines.value.reduce((sum, line) => {
+    const item = order.value?.items?.find((row) => row.index === line.item_index)
+    return sum + line.amount * Number(item?.unit_price ?? 0)
+  }, 0),
+)
+const applyingReturn = ref(false)
+const applyReturn = async () => {
+  if (!orderDocument.value || !returnSelection.count.value) {
+    return
+  }
+  applyingReturn.value = true
+  try {
+    const data = onResponse(
+      await warehouseApiRoutesOutboundOrdersReturnGoodsOfOutboundOrder({
+        path: { order_code: orderDocument.value.code },
+        body: { items: returnSelection.lines.value },
+      }),
+    )
+    if (data) {
+      order.value = data.data
+      returnSelection.reset()
+      $q.notify({
+        type: 'positive',
+        message: 'Vratka přijata - vytvořena příjemka a dobropis',
+      })
+    }
+  } finally {
+    applyingReturn.value = false
+  }
+}
 
 const addItemDialog = ref(false)
 const addItemDialogComponent = ref<InstanceType<typeof NewOutboundOrderItemDialog>>()

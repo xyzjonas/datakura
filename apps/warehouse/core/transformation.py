@@ -263,6 +263,7 @@ def invoice_outbound_order_item_orm_to_schema(
         unit_price=float(item.unit_price),
         total_price=float(item.total_price),
         index=item.index,
+        is_returned=item.is_returned,
         changed=item.changed,
         created=item.created,
     )
@@ -630,8 +631,8 @@ def warehouse_item_orm_to_schema(item: WarehouseItem) -> WarehouseItemSchema:
         amount=float(amount or 0),
         location=location_orm_to_schema(item.location) if item.location else None,
         inbound_order_code=item.order_in.code if item.order_in else None,
-        outbound_order_code=item.outbound_assignment.warehouse_order.code
-        if hasattr(item, "outbound_assignment") and item.outbound_assignment is not None
+        outbound_order_code=item.live_outbound_assignment.warehouse_order.code
+        if item.live_outbound_assignment is not None
         else None,
         package=package_type,
         batch=batch_orm_to_schema(item.batch) if getattr(item, "batch") else None,  # type: ignore
@@ -720,6 +721,8 @@ def outbound_order_item_orm_to_schema(
     item: OutboundOrderItem | OutboundCalculationItem,
     pricing_details: OutboundOrderItemPricingDetailsSchema | None = None,
     customer_codes: dict[int, str] | None = None,
+    returned_from_index: int | None = None,
+    returned_amount: Decimal = Decimal(0),
 ) -> OutboundOrderItemSchema:
     desired_batch_barcode = None
     if item.desired_batch:
@@ -742,6 +745,9 @@ def outbound_order_item_orm_to_schema(
         required_origin_country=item.required_origin_country,
         customer_product_code=(customer_codes or {}).get(item.stock_product_id),
         pricing_details=pricing_details,
+        is_returned=isinstance(item, OutboundOrderItem) and item.is_returned,
+        returned_from_index=returned_from_index,
+        returned_amount=float(returned_amount),
         changed=item.changed,
         created=item.created,
     )
@@ -916,6 +922,25 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
         shipping = shipping_service.ensure_order_shipping(order)
     order_items = list(order.items.all())
     customer_codes = customer_codes_of_items(order.customer, order_items)
+    index_by_pk = {item.pk: item.index for item in order_items}
+    returned_amounts: dict[int, Decimal] = {}
+    for item in order_items:
+        if item.is_returned and item.returned_from_id is not None:
+            returned_amounts[item.returned_from_id] = (
+                returned_amounts.get(item.returned_from_id, Decimal(0)) + item.amount
+            )
+    return_warehouse_orders = [
+        InboundWarehouseOrderBaseSchema(
+            code=wo.code,
+            order_code=order.code,
+            state=InboundWarehouseOrderState.get_label(wo.state),
+            created=wo.created,
+            changed=wo.changed,
+            parent_order=None,
+            child_orders=[],
+        )
+        for wo in _newest_first(order.return_warehouse_orders.all())
+    ]
     return OutboundOrderSchema(
         created=order.created,
         changed=order.changed,
@@ -933,17 +958,32 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
         warehouse_orders=warehouse_orders,
         state=OutboundOrderState.get_label(order.state),
         items=[
-            outbound_order_item_orm_to_schema(item, customer_codes=customer_codes)
+            outbound_order_item_orm_to_schema(
+                item,
+                customer_codes=customer_codes,
+                returned_from_index=index_by_pk.get(item.returned_from_id)
+                if item.returned_from_id is not None
+                else None,
+                returned_amount=returned_amounts.get(item.pk, Decimal(0)),
+            )
             for item in order_items
         ],
-        credit_note=credit_note_supplier_orm_to_base_schema(order.credit_note)
-        if getattr(order, "credit_note", None)
-        else None,
+        return_warehouse_orders=return_warehouse_orders,
+        credit_notes=[
+            credit_note_supplier_orm_to_base_schema(note)
+            for note in _newest_first(order.credit_notes.all())
+        ],
         invoice=invoice_orm_to_schema(order.invoice) if order.invoice else None,
         shipping=outbound_order_shipping_orm_to_schema(shipping),
+        # net weight: goods taken back do not count
         total_weight=float(
             sum(
-                (item.amount * item.stock_product.unit_weight for item in order_items),
+                (
+                    (-1 if item.is_returned else 1)
+                    * item.amount
+                    * item.stock_product.unit_weight
+                    for item in order_items
+                ),
                 Decimal(0),
             )
         ),
@@ -983,7 +1023,7 @@ def outbound_calculation_orm_to_schema(
 
 
 def credit_note_supplier_orm_to_schema(
-    credit_note: CreditNoteToSupplier,
+    credit_note: CreditNoteToSupplier | CreditNoteToCustomer,
 ) -> CreditNoteSupplierSchema:
     return CreditNoteSupplierSchema(
         **credit_note_supplier_orm_to_base_schema(credit_note).model_dump(),
@@ -1016,10 +1056,9 @@ def inbound_warehouse_order_item_to_schema(
     linked_items = list(item.warehouse_items.all())
     outbound_assignment = next(
         (
-            linked_item.outbound_assignment
+            linked_item.live_outbound_assignment
             for linked_item in linked_items
-            if hasattr(linked_item, "outbound_assignment")
-            and linked_item.outbound_assignment is not None
+            if linked_item.live_outbound_assignment is not None
         ),
         None,
     )
@@ -1064,6 +1103,8 @@ def _inbound_wo_parent_code(w_order: InboundWarehouseOrder) -> str:
         return w_order.order.code
     if w_order.manufacturing_order:
         return w_order.manufacturing_order.code
+    if w_order.return_order:
+        return w_order.return_order.code
     return w_order.code
 
 
@@ -1113,6 +1154,10 @@ def warehouse_inbound_order_orm_to_schema(
         total_amount = sum(
             float(item.out_amount) for item in w_order.manufacturing_order.items.all()
         )
+    elif w_order.return_order:
+        total_amount = sum(
+            float(item.amount) for item in w_order.returned_order_items.all()
+        )
     else:
         total_amount = 0.0
 
@@ -1138,9 +1183,21 @@ def warehouse_inbound_order_orm_to_schema(
     elif w_order.manufacturing_order:
         linked_order = base_order_orm_to_schema(w_order.manufacturing_order)
         credit_note = None
+    elif w_order.return_order:
+        linked_order = base_order_orm_to_schema(w_order.return_order)
+        customer_note = getattr(w_order, "customer_credit_note", None)
+        credit_note = (
+            CreditNoteSupplierSchema(
+                **credit_note_supplier_orm_to_base_schema(customer_note).model_dump(),
+                order=linked_order,
+            )
+            if customer_note
+            else None
+        )
     else:
         raise ValueError(
-            f"Warehouse order '{w_order.code}' is missing either order or manufacturing order."
+            f"Warehouse order '{w_order.code}' is missing its parent order "
+            "(purchase, manufacturing or returned sales order)."
         )
 
     def _child_parent_code(child: InboundWarehouseOrder) -> str:

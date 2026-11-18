@@ -78,7 +78,9 @@ class OutboundOrdersService:
 
     @staticmethod
     def _has_physical_items(order: OutboundOrder) -> bool:
-        return order.items.filter(stock_product__type__non_physical=False).exists()
+        return order.items.filter(
+            stock_product__type__non_physical=False, is_returned=False
+        ).exists()
 
     @classmethod
     def _has_completed_warehouse_order(cls, order: OutboundOrder) -> bool:
@@ -159,7 +161,9 @@ class OutboundOrdersService:
 
         next_index = 0
         for order_item in (
-            linked_order.items.filter(stock_product__type__non_physical=False)
+            linked_order.items.filter(
+                stock_product__type__non_physical=False, is_returned=False
+            )
             .select_related(
                 "stock_product",
                 "desired_package_type",
@@ -399,6 +403,10 @@ class OutboundOrdersService:
         if not cls._requires_warehouse_sync(order):
             return
 
+        # goods taken back from the customer are received, never picked
+        if order_item.is_returned:
+            return
+
         # non-physical products (services, fees...) are only invoiced, never picked
         if order_item.stock_product.type.non_physical:
             return
@@ -627,6 +635,10 @@ class OutboundOrdersService:
         )
         cls._assert_order_editable(order)
         item_model = OutboundOrderItem.objects.get(order=order, index=item_index)
+        if item_model.is_returned:
+            raise WarehouseItemBadRequestError(
+                "Returned rows are read-only (goods were already taken back)."
+            )
         desired_package_type = get_desired_package_or_none(
             item.desired_package_type_name
         )
@@ -687,6 +699,10 @@ class OutboundOrdersService:
             order=order,
             index=item_index,
         )
+        if item_model.is_returned or item_model.returned_items.exists():
+            raise WarehouseItemBadRequestError(
+                "Rows of returned goods cannot be removed."
+            )
         if cls._get_assigned_warehouse_requirements(item_model).exists():
             raise WarehouseItemBadRequestError(
                 "Assigned warehouse items prevent removing this order item."
@@ -727,7 +743,7 @@ class OutboundOrdersService:
         cls._assert_order_editable(order)
         with transaction.atomic():
             OutboundOrder.objects.select_for_update().get(pk=order.pk)
-            items = list(order.items.all())
+            items = list(order.items.filter(is_returned=False))
             now = timezone.now()
             for item in items:
                 item.required_origin_country = country
@@ -898,14 +914,17 @@ class OutboundOrdersService:
                 requested_delivery_date=source.requested_delivery_date,
                 state=OutboundOrderState.SUBMITTED,
             )
-            for item in source.items.order_by("index"):
+            # goods taken back are not part of what the customer orders
+            for index, item in enumerate(
+                source.items.filter(is_returned=False).order_by("index")
+            ):
                 OutboundOrderItem.objects.create(
                     order=new_order,
                     stock_product=item.stock_product,
                     amount=item.amount,
                     unit_price=item.unit_price,
                     total_price=item.total_price,
-                    index=item.index,
+                    index=index,
                     desired_package_type=item.desired_package_type,
                     desired_batch=item.desired_batch,
                     note=item.note,

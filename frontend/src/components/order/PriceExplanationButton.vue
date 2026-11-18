@@ -26,7 +26,6 @@
 </template>
 
 <script setup lang="ts">
-
 defineProps<{
   currency: string
   basePrice: number

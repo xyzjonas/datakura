@@ -266,14 +266,18 @@
         class="my-2"
       />
       <h3 class="text-xs uppercase mb-1">Dobropis</h3>
-      <div v-if="creditNote" class="flex items-center justify-between">
+      <div
+        v-for="note in creditNotesToRender"
+        :key="note.code"
+        class="flex items-center justify-between py-1"
+      >
         <span class="flex items-center gap-1">
           <q-icon name="sym_o_receipt_long" size="16px" color="primary" />
-          <a class="link" @click="goToCreditNote(creditNote.code)">{{ creditNote.code }}</a>
+          <a class="link" @click="goToCreditNote(note.code)">{{ note.code }}</a>
         </span>
-        <GenericStateBadge :state="creditNote.state" />
+        <GenericStateBadge :state="note.state" />
       </div>
-      <span v-else class="text-gray-5">Žádný Dobropis</span>
+      <span v-if="!creditNotesToRender.length" class="text-gray-5">Žádný Dobropis</span>
     </template>
   </ForegroundPanel>
 </template>
@@ -319,6 +323,8 @@ const props = defineProps<{
   invoice?: InvoiceSchema | null
   showCreditNote?: boolean
   creditNote?: Optional<CreditNoteBaseSchema>
+  /** Orders can have several credit notes (one per return). */
+  creditNotes?: Optional<CreditNoteBaseSchema[]>
 }>()
 
 const { goToInvoice, goToWarehouseOrderOut, goToWarehouseOrderIn, goToCreditNote } = useAppRouter()
@@ -328,6 +334,13 @@ const inboundWarehouseOrdersToRender = computed(() => {
     return props.inboundWarehouseOrders
   }
   return props.inboundWarehouseOrder ? [props.inboundWarehouseOrder] : []
+})
+
+const creditNotesToRender = computed(() => {
+  if (props.creditNotes && props.creditNotes.length > 0) {
+    return props.creditNotes
+  }
+  return props.creditNote ? [props.creditNote] : []
 })
 
 const childInboundWarehouseOrdersToRender = computed(() => props.childInboundWarehouseOrders ?? [])

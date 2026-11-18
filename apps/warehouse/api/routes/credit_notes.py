@@ -11,7 +11,7 @@ from apps.warehouse.core.schemas.credit_notes import (
     GetCreditNoteToSupplierResponse,
     CreditNoteSupplierSchema,
 )
-from apps.warehouse.core.transformation import credit_note_supplier_orm_to_schema
+from apps.warehouse.core.services.credit_notes import credit_notes_service
 from apps.warehouse.models.orders import CreditNoteToSupplier
 
 routes = Router(tags=["inbound_order"])
@@ -41,10 +41,8 @@ def get_credit_notes_to_supplier(request: HttpRequest, search_term: str | None =
 @routes.get("/{note_code}", response={200: GetCreditNoteToSupplierResponse})
 def get_credit_note_to_supplier(request: HttpRequest, note_code: str):
     """
-    Retrieve a single credit note.
+    Retrieve a single credit note (towards a supplier or a customer).
     """
     return GetCreditNoteToSupplierResponse(
-        data=credit_note_supplier_orm_to_schema(
-            CreditNoteToSupplier.objects.get(code=note_code)
-        )
+        data=credit_notes_service.get_credit_note(note_code)
     )

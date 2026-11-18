@@ -33,7 +33,10 @@
 
     <template #body-cell-dueDate="props">
       <q-td>
-        <span v-if="props.row.due_date && new Date(props.row.due_date) < new Date()" class="text-negative">
+        <span
+          v-if="props.row.due_date && new Date(props.row.due_date) < new Date()"
+          class="text-negative"
+        >
           {{ props.row.due_date }} (po termínu)
         </span>
         <span v-else>

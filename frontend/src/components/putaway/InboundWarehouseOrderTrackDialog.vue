@@ -120,7 +120,9 @@
             type="submit"
             unelevated
             color="primary"
-            :label="trackingType.value || (attachBatch && selectedBatch) ? 'evidovat' : 'ne-evidovat'"
+            :label="
+              trackingType.value || (attachBatch && selectedBatch) ? 'evidovat' : 'ne-evidovat'
+            "
             class="h-[3rem] mt-2"
           />
         </q-form>

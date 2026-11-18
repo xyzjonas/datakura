@@ -31,8 +31,17 @@
     </div>
 
     <div class="flex gap-2">
-      <CustomerCard :customer="credit_note.order.supplier" title="DODAVATEL" class="flex-1" />
-      <LinkedEntitiesCard show-inbound-order :inbound-order="credit_note.order" />
+      <CustomerCard
+        :customer="parentOrderPartner(credit_note.order)"
+        :title="parentOrderPartnerLabel(credit_note.order).toUpperCase()"
+        class="flex-1"
+      />
+      <LinkedEntitiesCard
+        :show-inbound-order="credit_note.order.type !== 'Outbound'"
+        :inbound-order="credit_note.order"
+        :show-outbound-order="credit_note.order.type === 'Outbound'"
+        :outbound-order="credit_note.order"
+      />
     </div>
 
     <div class="flex items-center gap-2 mt-5">
@@ -60,6 +69,7 @@
 </template>
 
 <script setup lang="ts">
+import { parentOrderPartner, parentOrderPartnerLabel } from '@/utils/parent-order'
 import {
   warehouseApiRoutesCreditNotesGetCreditNoteToSupplier,
   warehouseApiRoutesInboundOrdersGetInboundOrderPdf,

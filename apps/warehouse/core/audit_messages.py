@@ -54,6 +54,24 @@ class AuditMessages:
             AuditLanguage.CS: "Stav dobropisu se změnil z '{old_state}' na '{new_state}'",
         }
     )
+    ITEM_RETURNED_BY_CUSTOMER = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Item received back from the customer with receipt '{receipt_code}'",
+            AuditLanguage.CS: "Položka byla přijata zpět od zákazníka příjemkou '{receipt_code}'",
+        }
+    )
+    GOODS_RETURNED_BY_CUSTOMER = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Goods returned by the customer, receipt '{receipt_code}' and credit note '{credit_note_code}' created",
+            AuditLanguage.CS: "Zboží bylo vráceno zákazníkem, vytvořena příjemka '{receipt_code}' a dobropis '{credit_note_code}'",
+        }
+    )
+    CREDIT_NOTE_CREATED_FOR_OUTBOUND_ORDER = LocalizedAuditMessage(
+        {
+            AuditLanguage.EN: "Credit note '{credit_note_code}' created for returned goods",
+            AuditLanguage.CS: "Dobropis '{credit_note_code}' byl vytvořen pro vrácené zboží",
+        }
+    )
     CREDIT_NOTE_CREATED_FOR_INBOUND_ORDER = LocalizedAuditMessage(
         {
             AuditLanguage.EN: "Credit note '{credit_note_code}' created for inbound order",

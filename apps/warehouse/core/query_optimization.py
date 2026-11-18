@@ -154,7 +154,6 @@ def outbound_orders_for_schema(
         "contact",
         "calculation",
         "shipping__shipping_type",
-        "credit_note",
         *invoice_related(),
     ).prefetch_related(
         "items__desired_package_type",
@@ -170,7 +169,11 @@ def outbound_orders_for_schema(
             "warehouse_orders__derived_orders",
             queryset=OutboundWarehouseOrder.objects.select_related("order"),
         ),
-        *_credit_note_prefetch("credit_note"),
+        Prefetch(
+            "return_warehouse_orders",
+            queryset=InboundWarehouseOrder.objects.select_related("return_order"),
+        ),
+        *_credit_note_prefetch("credit_notes"),
         *invoice_prefetch(),
     )
 
@@ -230,13 +233,16 @@ def inbound_warehouse_orders_for_schema(
 ) -> "QuerySet[InboundWarehouseOrder]":
     """Receiving orders ready for `warehouse_inbound_order_orm_to_schema`."""
     qs = InboundWarehouseOrder.objects.all() if queryset is None else queryset
-    parent_paths = ("order", "manufacturing_order")
+    parent_paths = ("order", "manufacturing_order", "return_order")
     return qs.select_related(
         *customer_related("order__customer"),
         *customer_related("order__supplier"),
         *customer_related("manufacturing_order__customer"),
         *customer_related("manufacturing_order__supplier"),
+        *customer_related("return_order__customer"),
+        *customer_related("return_order__supplier"),
         "order__credit_note",
+        "customer_credit_note",
         "primary_order",
         *(f"primary_order__{p}" for p in parent_paths),
     ).prefetch_related(
@@ -256,10 +262,12 @@ def inbound_warehouse_orders_for_schema(
         *warehouse_item_prefetch("items"),
         "order__items",
         "manufacturing_order__items",
+        "returned_order_items",
         Prefetch(
             "derived_orders",
             queryset=InboundWarehouseOrder.objects.select_related(*parent_paths),
         ),
         *_credit_note_prefetch("order__credit_note"),
+        *_credit_note_prefetch("customer_credit_note"),
         *_movements_prefetch(),
     )
