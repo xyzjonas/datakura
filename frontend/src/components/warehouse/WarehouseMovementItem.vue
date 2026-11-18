@@ -44,7 +44,10 @@
 
     <WarehouseItemAmountBadge
       :amount="parseFloat(movement.amount)"
-      :item="{ amount: parseFloat(movement.amount), unit_of_measure: movement.stock_product.unit_of_measure }"
+      :item="{
+        amount: parseFloat(movement.amount),
+        unit_of_measure: movement.stock_product.unit_of_measure,
+      }"
     />
   </div>
 </template>

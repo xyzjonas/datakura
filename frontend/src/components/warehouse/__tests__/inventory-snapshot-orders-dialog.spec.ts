@@ -1,5 +1,6 @@
 import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { defineComponent } from 'vue'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { InventorySnapshotOrderSchema } from '@/client'
 import InventorySnapshotOrdersDialog from '@/components/warehouse/InventorySnapshotOrdersDialog.vue'
@@ -19,25 +20,40 @@ const order: InventorySnapshotOrderSchema = {
   total_value: '120.5000',
 }
 
+const linkTargets: unknown[] = []
+const RouterLinkStub = defineComponent({
+  props: { to: { type: [Object, String], default: '' } },
+  setup(props) {
+    linkTargets.push(props.to)
+  },
+  template: '<a><slot /></a>',
+})
+
 let wrapper: ReturnType<typeof mount> | undefined
 
-const mountIt = async (orders: InventorySnapshotOrderSchema[]) => {
+const mountIt = async (
+  orders: InventorySnapshotOrderSchema[],
+  routeName:
+    | 'warehouseInboundOrderDetail'
+    | 'warehouseOutboundOrderDetail' = 'warehouseOutboundOrderDetail',
+) => {
   wrapper = mount(InventorySnapshotOrdersDialog, {
     props: {
       show: true,
       title: 'Uzavřené výdejky',
       subtitle: 'podtitul',
       orders,
-      routeName: 'warehouseOutboundOrderDetail',
+      routeName,
       emptyLabel: 'Nic',
     },
     attachTo: document.body,
-    global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+    global: { stubs: { RouterLink: RouterLinkStub } },
   })
   await flushPromises()
 }
 
 afterEach(() => {
+  linkTargets.length = 0
   wrapper?.unmount()
   document.body.innerHTML = ''
 })
@@ -65,4 +81,13 @@ describe('InventorySnapshotOrdersDialog', () => {
 
     expect(document.body.textContent).toContain('Nic')
   })
+
+  it.each(['warehouseInboundOrderDetail', 'warehouseOutboundOrderDetail'] as const)(
+    'links to the warehouse order detail route %s with the order code',
+    async (routeName) => {
+      await mountIt([order], routeName)
+
+      expect(linkTargets).toEqual([{ name: routeName, params: { code: 'WOUT-000001' } }])
+    },
+  )
 })

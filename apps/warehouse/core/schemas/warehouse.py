@@ -148,6 +148,8 @@ class InboundWarehouseOrderSchema(InboundWarehouseOrderBaseSchema):
     completed_items_count: int
     total_amount: float
     remaining_amount: float
+    total_price_at_receipt: Decimal
+    currency: str
     order: BaseOrder
     credit_note: CreditNoteSupplierSchema | None = None
 

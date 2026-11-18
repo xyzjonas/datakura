@@ -1194,6 +1194,14 @@ export type InboundWarehouseOrderSchema = {
      * Remaining Amount
      */
     remaining_amount: number;
+    /**
+     * Total Price At Receipt
+     */
+    total_price_at_receipt: string;
+    /**
+     * Currency
+     */
+    currency: string;
     order: BaseOrder;
     credit_note?: CreditNoteSupplierSchema | null;
 };

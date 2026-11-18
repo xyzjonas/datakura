@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum
 from django.utils import timezone
 
 from apps.warehouse.core.exceptions import WarehouseGenericError
@@ -17,8 +17,9 @@ from apps.warehouse.core.schemas.analytics import (
     InventorySnapshotSummarySchema,
     LatestInventoryValueSchema,
 )
-from apps.warehouse.models.orders import InboundOrder, InboundOrderState
 from apps.warehouse.models.warehouse import (
+    InboundWarehouseOrder,
+    InboundWarehouseOrderState,
     InventorySnapshot,
     InventorySnapshotLine,
     InventorySnapshotOrder,
@@ -185,9 +186,10 @@ class InventorySnapshotService:
         """
         Freeze skeletons of orders closed in (since, until].
 
-        Inbound: purchase orders (COMPLETED), valued by their purchase total.
-        Outbound: *warehouse* orders (COMPLETED) valued by the total price at
-        shipment ("Celková cena výdeje") - deliberately not the base order total.
+        Both directions are derived from *warehouse* orders alone (COMPLETED),
+        never from the logical parent orders:
+        Inbound: valued by the receipt value frozen at draft confirmation.
+        Outbound: valued by the total price at shipment ("Celková cena výdeje").
         """
         closed_window = Q(completed_date__lte=until)
         if since is not None:
@@ -198,26 +200,38 @@ class InventorySnapshotService:
         rows: list[InventorySnapshotOrder] = []
 
         inbound_orders = (
-            InboundOrder.objects.filter(
-                closed_window, state=InboundOrderState.COMPLETED
+            InboundWarehouseOrder.objects.filter(
+                closed_window,
+                state=InboundWarehouseOrderState.COMPLETED,
+                order__isnull=False,
             )
-            .select_related("supplier")
-            .annotate(purchase_total=Sum("items__total_price"))
+            .select_related("order", "order__supplier")
+            .annotate(
+                receipt_total=Sum(
+                    ExpressionWrapper(
+                        F("order_items__amount")
+                        * F("order_items__unit_price_at_receipt"),
+                        output_field=DecimalField(max_digits=20, decimal_places=8),
+                    )
+                )
+            )
             .order_by("completed_date", "pk")
         )
         for inbound in inbound_orders:
-            total = cls._quantize(inbound.purchase_total or Decimal("0"))
+            parent = inbound.order
+            assert parent is not None
+            total = cls._quantize(inbound.receipt_total or Decimal("0"))
             expenditures[inbound.currency] += total
             rows.append(
                 InventorySnapshotOrder(
                     snapshot=snapshot,
                     kind=InventorySnapshotOrderKind.INBOUND,
-                    inbound_order=inbound,
+                    inbound_warehouse_order=inbound,
                     code=inbound.code,
-                    base_order_code=inbound.code,
-                    external_code=inbound.external_code,
-                    description=inbound.description,
-                    counterparty_name=inbound.supplier.name,
+                    base_order_code=parent.code,
+                    external_code=parent.external_code,
+                    description=parent.description,
+                    counterparty_name=parent.supplier.name,
                     closed_at=cast_datetime(inbound.completed_date),
                     currency=inbound.currency,
                     total_value=total,
@@ -316,7 +330,6 @@ class InventorySnapshotService:
                 "location",
                 "source_order_item",
                 "source_order_item__warehouse_order",
-                "source_order_item__warehouse_order__order",
             ).order_by("stock_product__code", "location__code", "pk")
         )
 
@@ -353,9 +366,7 @@ class InventorySnapshotService:
                 receipt_price_fallback_reason: str | None = None
 
                 if item.source_order_item:
-                    receipt_currency = (
-                        item.source_order_item.warehouse_order.order.currency
-                    )
+                    receipt_currency = item.source_order_item.warehouse_order.currency
                     receipt_unit_price = cls._quantize(
                         item.source_order_item.unit_price_at_receipt
                     )

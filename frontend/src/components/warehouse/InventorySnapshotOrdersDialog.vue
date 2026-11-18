@@ -48,7 +48,7 @@ defineProps<{
   title: string
   subtitle: string
   orders: InventorySnapshotOrderSchema[]
-  routeName: 'inboundOrderDetail' | 'warehouseOutboundOrderDetail'
+  routeName: 'warehouseInboundOrderDetail' | 'warehouseOutboundOrderDetail'
   emptyLabel: string
 }>()
 

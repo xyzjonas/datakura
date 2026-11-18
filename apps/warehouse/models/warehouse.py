@@ -534,6 +534,18 @@ class InboundWarehouseOrder(BaseModel):
         related_name="inbound_pickup_orders",
         help_text="Location where goods are staged upon arrival confirmation",
     )
+    currency = models.CharField(
+        max_length=3,
+        choices=CURRENCY_CHOICES,
+        default="CZK",
+        help_text="Valuation currency, frozen from the parent order at draft confirmation",
+    )
+    valued_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the item prices were frozen (draft confirmation); null = not valued yet",
+    )
+    completed_date = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-created"]
@@ -588,7 +600,18 @@ class InboundWarehouseOrderItem(BaseModel):
         max_digits=10,
         decimal_places=4,
         default=0,
-        help_text="Unit price frozen from the purchase order at arrival confirmation",
+        help_text=(
+            "Unit price from the parent order. Provisional until the warehouse order "
+            "is confirmed (DRAFT → PENDING), then frozen for valuation."
+        ),
+    )
+    source_order_item = models.ForeignKey(
+        "warehouse.InboundOrderItem",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="warehouse_order_items",
+        help_text="Parent order line this row is valued from (null for manufacturing / legacy rows)",
     )
     index = models.PositiveIntegerField(default=0)
     # Stores the batch barcode string during DRAFT so the actual Batch object
@@ -734,8 +757,9 @@ class InventorySnapshotOrder(BaseModel):
     """
     Frozen skeleton of an order closed between the previous and this snapshot.
 
-    INBOUND rows come from purchase orders (value = purchase total), OUTBOUND
-    rows from outbound *warehouse* orders (value = total price at shipment).
+    Both directions come from *warehouse* orders only: INBOUND rows from
+    inbound warehouse orders (value = frozen receipt value), OUTBOUND rows from
+    outbound warehouse orders (value = total price at shipment).
     """
 
     snapshot = models.ForeignKey(
@@ -744,8 +768,8 @@ class InventorySnapshotOrder(BaseModel):
         related_name="orders",
     )
     kind = models.CharField(max_length=16, choices=InventorySnapshotOrderKind.choices)
-    inbound_order = models.ForeignKey(
-        "warehouse.InboundOrder",
+    inbound_warehouse_order = models.ForeignKey(
+        InboundWarehouseOrder,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

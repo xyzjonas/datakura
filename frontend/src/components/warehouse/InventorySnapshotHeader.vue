@@ -54,7 +54,7 @@
       title="Uzavřené nákupy"
       subtitle="Přijaté objednávky uzavřené od minulého stavu skladu"
       :orders="snapshot.inbound_orders"
-      route-name="inboundOrderDetail"
+      route-name="warehouseInboundOrderDetail"
       empty-label="Žádné uzavřené objednávky"
     />
     <InventorySnapshotOrdersDialog
