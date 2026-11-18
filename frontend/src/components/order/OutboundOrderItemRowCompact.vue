@@ -6,13 +6,18 @@
     :readonly="readonly"
     :purchase-price="Number(pricing.avgPurchasePrice)"
     :selling-price="Number(item.unit_price)"
-    :margin="margin"
+    :margin="item.is_returned ? undefined : margin"
     :own-code="item.customer_product_code"
     :own-code-missing="ownCodeMissing"
     :below-minimum-profit="belowMinimumProfit"
+    :returned="item.is_returned"
     @edit="editDialog = true"
     @remove="removeDialog = true"
   >
+    <template v-if="returnSelection?.active.value" #actions>
+      <OutboundItemReturnControl :item="item" />
+    </template>
+
     <template #requirements>
       <OutboundItemRequirementBadges
         class="mt-1"
@@ -27,9 +32,11 @@
     v-else
     :class="[
       'flex flex-col flex-1 gap-2',
-      ownCodeMissing || belowMinimumProfit
-        ? 'border-l-4 border-solid border-0 border-red pl-2'
-        : '',
+      item.is_returned
+        ? 'border-l-4 border-solid border-0 border-red pl-2 light:bg-red-50 dark:bg-red-9/20'
+        : ownCodeMissing || belowMinimumProfit
+          ? 'border-l-4 border-solid border-0 border-red pl-2'
+          : '',
     ]"
   >
     <div class="flex items-center w-full flex-nowrap">
@@ -51,6 +58,7 @@
           {{ item.customer_product_code }}
         </div>
         <div v-else class="text-xs text-gray-5">{{ item.product.code }}</div>
+        <ReturnedBadge v-if="item.is_returned" class="mt-1" />
         <MissingOwnCodeBadge v-if="ownCodeMissing" class="mt-1" />
         <NonPhysicalBadge v-if="item.product.non_physical" class="mt-1" />
         <BelowMinimumProfitBadge v-if="belowMinimumProfit" class="mt-1" />
@@ -102,28 +110,35 @@
 
         <!-- Margin -->
         <div data-test="item-margin" class="flex flex-col">
-          <span class="text-lg tabular-nums text-nowrap"
-            ><MarginPercent :margin="margin" :danger="belowMinimumProfit" />
-          </span>
-          <span class="text-sm tabular-nums text-nowrap">
-            <MarginText :margin="margin" :currency="currency" :danger="belowMinimumProfit" />
-          </span>
+          <template v-if="!item.is_returned">
+            <span class="text-lg tabular-nums text-nowrap"
+              ><MarginPercent :margin="margin" :danger="belowMinimumProfit" />
+            </span>
+            <span class="text-sm tabular-nums text-nowrap">
+              <MarginText :margin="margin" :currency="currency" :danger="belowMinimumProfit" />
+            </span>
+          </template>
         </div>
 
         <!-- Total price -->
         <div class="flex flex-col">
-          <span class="text-lg font-bold tabular-nums">{{ totalPrice }}</span>
+          <span :class="['text-lg font-bold tabular-nums', item.is_returned ? 'text-red' : '']"
+            >{{ item.is_returned ? '-' : '' }}{{ totalPrice }}</span
+          >
           <span>{{ currency }}</span>
         </div>
 
         <!-- Actions -->
         <div class="flex gap-1 justify-end">
-          <EditIconButton @click="editDialog = true" :disable="readonly">
-            <q-tooltip>Upravit</q-tooltip>
-          </EditIconButton>
-          <CloseIconButton @click="removeDialog = true" :disable="readonly">
-            <q-tooltip>Odebrat</q-tooltip>
-          </CloseIconButton>
+          <OutboundItemReturnControl v-if="returnSelection?.active.value" :item="item" />
+          <template v-else-if="!item.is_returned">
+            <EditIconButton @click="editDialog = true" :disable="readonly">
+              <q-tooltip>Upravit</q-tooltip>
+            </EditIconButton>
+            <CloseIconButton @click="removeDialog = true" :disable="readonly">
+              <q-tooltip>Odebrat</q-tooltip>
+            </CloseIconButton>
+          </template>
         </div>
       </div>
     </div>
@@ -149,6 +164,7 @@
 import type { OutboundOrderItemSchema } from '@/client'
 import { useOrderItemCardLayout } from '@/composables/use-order-item-card-layout'
 import { useMinimumProfit } from '@/composables/use-minimum-profit'
+import { useReturnSelection } from '@/composables/use-return-selection'
 import { calculateMargin } from '@/utils/margin'
 import { itemIsBelowMinimumProfit } from '@/utils/minimum-profit'
 import { computed, defineEmits, defineModel, defineProps, ref } from 'vue'
@@ -162,6 +178,8 @@ import OutboundItemRequirementBadges from './OutboundItemRequirementBadges.vue'
 import BelowMinimumProfitBadge from './BelowMinimumProfitBadge.vue'
 import MissingOwnCodeBadge from './MissingOwnCodeBadge.vue'
 import NonPhysicalBadge from './NonPhysicalBadge.vue'
+import OutboundItemReturnControl from './OutboundItemReturnControl.vue'
+import ReturnedBadge from './ReturnedBadge.vue'
 import MarginPercent from './MarginPercent.vue'
 import MarginText from './MarginText.vue'
 import OutboundOrderItemEditDialog from './OutboundOrderItemEditDialog.vue'
@@ -186,6 +204,8 @@ const { minimumMarkupPercent } = useMinimumProfit()
 const belowMinimumProfit = computed(() =>
   itemIsBelowMinimumProfit(item.value, minimumMarkupPercent.value),
 )
+
+const returnSelection = useReturnSelection()
 
 const cardLayout = useOrderItemCardLayout()
 const editDialog = ref(false)

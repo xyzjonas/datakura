@@ -1,8 +1,5 @@
 import { ref } from 'vue'
-import {
-  warehouseApiRoutesWarehouseBarcodeLookup,
-  type BarcodeLookupResponse,
-} from '@/client'
+import { warehouseApiRoutesWarehouseBarcodeLookup, type BarcodeLookupResponse } from '@/client'
 import { useApi } from './use-api'
 
 export function useBarcodeLookup() {
@@ -12,7 +9,7 @@ export function useBarcodeLookup() {
 
   const lookup = async (
     barcode: string,
-    productCode?: string
+    productCode?: string,
   ): Promise<BarcodeLookupResponse | null> => {
     loading.value = true
     error.value = null

@@ -2,7 +2,9 @@
   <q-select
     ref="batchSelect"
     outlined
-    :label="modelValue ? (modelValue.primary_barcode?.code || `Šarže #${modelValue.id}`) : 'Vyhledat šarži'"
+    :label="
+      modelValue ? modelValue.primary_barcode?.code || `Šarže #${modelValue.id}` : 'Vyhledat šarži'
+    "
     hint="Vyberte existující šarži"
     v-model="modelValue"
     :options="options"
@@ -23,8 +25,12 @@
     <template v-slot:option="scope">
       <q-item v-bind="scope.itemProps">
         <q-item-section>
-          <q-item-label>{{ scope.opt.primary_barcode?.code || `Šarže #${scope.opt.id}` }}</q-item-label>
-          <q-item-label caption v-if="scope.opt.description">{{ scope.opt.description }}</q-item-label>
+          <q-item-label>{{
+            scope.opt.primary_barcode?.code || `Šarže #${scope.opt.id}`
+          }}</q-item-label>
+          <q-item-label caption v-if="scope.opt.description">{{
+            scope.opt.description
+          }}</q-item-label>
         </q-item-section>
       </q-item>
     </template>

@@ -23,7 +23,12 @@ type MarginItem = {
   unit_price: number
   total_price?: number
   pricing_details?: { avg_purchase_price: number } | null
+  /** Goods taken back from the customer ("vratka"): subtracted from the totals. */
+  is_returned?: boolean
 }
+
+/** +1 for sold rows, -1 for the returned ones. */
+export const itemSign = (item: { is_returned?: boolean }): 1 | -1 => (item.is_returned ? -1 : 1)
 
 export type OrderMarginSummary = Margin & {
   sellingValue: number
@@ -36,12 +41,14 @@ export const calculateOrderMargin = (items?: MarginItem[]): OrderMarginSummary |
   if (!priced.length) {
     return null
   }
+  // returned rows are subtracted - neither their value nor their profit counts
   const sellingValue = priced.reduce(
-    (sum, item) => sum + (item.total_price ?? item.amount * item.unit_price),
+    (sum, item) => sum + itemSign(item) * (item.total_price ?? item.amount * item.unit_price),
     0,
   )
   const purchaseValue = priced.reduce(
-    (sum, item) => sum + item.amount * (item.pricing_details?.avg_purchase_price ?? 0),
+    (sum, item) =>
+      sum + itemSign(item) * item.amount * (item.pricing_details?.avg_purchase_price ?? 0),
     0,
   )
   return { sellingValue, purchaseValue, ...calculateMargin(sellingValue, purchaseValue) }

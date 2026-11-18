@@ -1,6 +1,6 @@
 import { formatNumber } from '@/utils/format-number'
 import { useMinimumProfit } from '@/composables/use-minimum-profit'
-import { calculateOrderMargin } from '@/utils/margin'
+import { calculateOrderMargin, itemSign } from '@/utils/margin'
 import { isBelowMinimumProfit } from '@/utils/minimum-profit'
 import { round } from '@/utils/round'
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
@@ -13,6 +13,8 @@ export type OrderTotalsSource = {
     total_price?: number
     pricing_details?: { avg_purchase_price: number } | null
     product?: { unit_weight?: number | null }
+    /** Goods taken back from the customer: subtracted from the totals. */
+    is_returned?: boolean
   }[]
 }
 
@@ -20,7 +22,7 @@ export const useOrderTotals = (order: MaybeRefOrGetter<OrderTotalsSource | null 
   const currency = computed(() => toValue(order)?.currency ?? '')
   const totalPrice = computed(() =>
     (toValue(order)?.items ?? []).reduce(
-      (sum, item) => sum + (item.total_price ?? item.amount * item.unit_price),
+      (sum, item) => sum + itemSign(item) * (item.total_price ?? item.amount * item.unit_price),
       0,
     ),
   )
@@ -62,7 +64,7 @@ export const useOrderTotals = (order: MaybeRefOrGetter<OrderTotalsSource | null 
 
   const totalWeight = computed(() => {
     return (toValue(order)?.items ?? []).reduce(
-      (sum, item) => sum + item.amount * (item.product?.unit_weight ?? 0),
+      (sum, item) => sum + itemSign(item) * item.amount * (item.product?.unit_weight ?? 0),
       0,
     )
   })

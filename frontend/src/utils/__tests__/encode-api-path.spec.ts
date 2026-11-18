@@ -22,7 +22,7 @@ describe('fetchWithEncodedPath', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   function stubFetch() {
-    const fetchMock = vi.fn<(request: Request) => Promise<Response>>(async () => new Response("{}"))
+    const fetchMock = vi.fn<(request: Request) => Promise<Response>>(async () => new Response('{}'))
     vi.stubGlobal('fetch', fetchMock)
     return fetchMock
   }

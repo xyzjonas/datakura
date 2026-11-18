@@ -370,7 +370,7 @@ def test_receipt_must_have_exactly_one_parent(db) -> None:
 
     with pytest.raises(IntegrityError), transaction.atomic():
         InboundWarehouseOrder.objects.create(
-            code="X1", order=InboundOrderFactory(), return_order=order
+            code="X1", order=InboundOrderFactory.it(), return_order=order
         )
     with pytest.raises(IntegrityError), transaction.atomic():
         InboundWarehouseOrder.objects.create(code="X2")

@@ -25,7 +25,7 @@
             class="link truncate text-right max-w-40"
             @click="
               $router.push({
-                name: 'inboundOrderDetail',
+                name: parentOrderRouteName(order.order),
                 params: { code: order.order.code },
               })
             "
@@ -34,8 +34,10 @@
           </a>
         </div>
         <div class="flex items-center justify-between gap-2">
-          <span class="text-gray-4">Dodavatel</span>
-          <span class="truncate text-right max-w-40">{{ order.order.supplier?.name ?? '-' }}</span>
+          <span class="text-gray-4">{{ parentOrderPartnerLabel(order.order) }}</span>
+          <span class="truncate text-right max-w-40">{{
+            parentOrderPartner(order.order)?.name ?? '-'
+          }}</span>
         </div>
         <div class="flex items-center justify-between gap-2">
           <span class="text-gray-4">Naskladněno</span>
@@ -49,6 +51,11 @@
 </template>
 
 <script setup lang="ts">
+import {
+  parentOrderPartner,
+  parentOrderPartnerLabel,
+  parentOrderRouteName,
+} from '@/utils/parent-order'
 import type { InboundWarehouseOrderSchema } from '@/client'
 import ForegroundPanel from '../ForegroundPanel.vue'
 import OrderProgress from '../OrderProgress.vue'

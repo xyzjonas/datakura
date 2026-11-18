@@ -35,12 +35,17 @@ type GuardedItem = {
   total_price?: number
   pricing_details?: { avg_purchase_price?: number } | null
   product?: { purchase_price?: number | null }
+  /** Goods taken back were not sold - there is no profit to guard. */
+  is_returned?: boolean
 }
 
 export const itemIsBelowMinimumProfit = (
   item: GuardedItem,
   minimumMarkupPercent: number | null | undefined,
 ): boolean => {
+  if (item.is_returned) {
+    return false
+  }
   const purchasePrice =
     item.pricing_details?.avg_purchase_price ?? item.product?.purchase_price ?? 0
   return isBelowMinimumProfit(

@@ -114,9 +114,9 @@ describe('useDataImportJob', () => {
 
   it('resumes a job stored before a page reload', async () => {
     localStorage.setItem(STORAGE_KEY, JOB_ID)
-    mocks.getJob.mockResolvedValueOnce(job({ percent: 40 })).mockResolvedValue(
-      job({ state: 'succeeded', percent: 100 }),
-    )
+    mocks.getJob
+      .mockResolvedValueOnce(job({ percent: 40 }))
+      .mockResolvedValue(job({ state: 'succeeded', percent: 100 }))
 
     const { api, scope } = setup()
     await vi.advanceTimersByTimeAsync(0)

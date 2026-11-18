@@ -61,10 +61,7 @@
             class="link"
             @click="
               $router.push({
-                name:
-                  props.row.order.type === 'Inbound'
-                    ? 'inboundOrderDetail'
-                    : 'manufacturingOrderDetail',
+                name: parentOrderRouteName(props.row.order),
                 params: { code: props.row.order.code },
               })
             "
@@ -72,6 +69,11 @@
           >
           <InboundOrderStateBadge
             v-if="props.row.order.type === 'Inbound'"
+            :state="props.row.order.state"
+            class="ml-2"
+          />
+          <OutboundOrderStateBadge
+            v-else-if="props.row.order.type === 'Outbound'"
             :state="props.row.order.state"
             class="ml-2"
           />
@@ -96,6 +98,8 @@ import {
   type InboundWarehouseOrderSchema,
 } from '@/client'
 import ManufacturingOrderStateBadge from '@/components/manufacturing/ManufacturingOrderStateBadge.vue'
+import OutboundOrderStateBadge from '@/components/order/OutboundOrderStateBadge.vue'
+import { parentOrderPartner, parentOrderRouteName } from '@/utils/parent-order'
 import InboundOrderStateBadge from '@/components/order/InboundOrderStateBadge.vue'
 import OrderProgress from '@/components/OrderProgress.vue'
 import InboundWarehouseOrderGridCard from '@/components/putaway/InboundWarehouseOrderGridCard.vue'
@@ -216,8 +220,8 @@ const columns: QTableColumn[] = [
   },
   {
     name: 'supplier',
-    field: (order: InboundWarehouseOrderSchema) => order.order.supplier?.name,
-    label: 'Dodavatel',
+    field: (order: InboundWarehouseOrderSchema) => parentOrderPartner(order.order)?.name,
+    label: 'Dodavatel / odběratel',
     align: 'left',
   },
 ]

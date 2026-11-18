@@ -55,14 +55,16 @@
     </div>
     <div class="flex gap-5">
       <CustomerCard
-        v-if="order.order.supplier"
-        :customer="order.order.supplier"
-        title="Dodavatel"
+        v-if="parentOrderPartner(order.order)"
+        :customer="parentOrderPartner(order.order)"
+        :title="parentOrderPartnerLabel(order.order)"
         class="flex-1"
       />
       <LinkedEntitiesCard
-        show-inbound-order
+        :show-inbound-order="order.order.type !== 'Outbound'"
         :inbound-order="order.order"
+        :show-outbound-order="order.order.type === 'Outbound'"
+        :outbound-order="order.order"
         show-credit-note
         :credit-note="order.credit_note"
         :show-parent-inbound-warehouse-order="!!order.parent_order"
@@ -159,6 +161,7 @@
 </template>
 
 <script setup lang="ts">
+import { parentOrderPartner, parentOrderPartnerLabel } from '@/utils/parent-order'
 import {
   type BatchSchema,
   type InboundWarehouseOrderSchema,

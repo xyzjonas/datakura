@@ -98,7 +98,8 @@ const selectedOrders: OutboundOrderSchema[] = [
         child_orders: [],
       },
     ],
-    credit_note: null,
+    credit_notes: [],
+    return_warehouse_orders: [],
     invoice: null,
     shipping: {
       id: 1,

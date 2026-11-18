@@ -2,9 +2,11 @@
   <div
     :class="[
       'w-full flex flex-col gap-2.5 p-3.5 rounded-xl border border-solid light:bg-white shadow-sm',
-      ownCodeMissing || belowMinimumProfit
-        ? 'border-red border-2'
-        : 'light:border-slate-200 dark:border-gray-7',
+      returned
+        ? 'border-red-4 border-2 light:bg-red-50 dark:bg-red-9/20'
+        : ownCodeMissing || belowMinimumProfit
+          ? 'border-red border-2'
+          : 'light:border-slate-200 dark:border-gray-7',
     ]"
     data-test="order-item-card"
   >
@@ -28,6 +30,7 @@
             >{{ ownCode }}</span
           >
           <span v-else class="text-xs text-slate-500 font-mono mt-1">{{ item.product.code }}</span>
+          <ReturnedBadge v-if="returned" class="mt-1 self-start" />
           <MissingOwnCodeBadge v-if="ownCodeMissing" class="mt-1 self-start" />
           <NonPhysicalBadge v-if="item.product.non_physical" class="mt-1 self-start" />
           <BelowMinimumProfitBadge v-if="belowMinimumProfit" class="mt-1 self-start" />
@@ -40,8 +43,12 @@
         </div>
       </div>
       <div class="flex items-center gap-1 shrink-0">
-        <EditIconButton class="min-w-9 min-h-9" :disable="readonly" @click="$emit('edit')" />
-        <CloseIconButton class="min-w-9 min-h-9" :disable="readonly" @click="$emit('remove')" />
+        <slot name="actions">
+          <template v-if="!returned">
+            <EditIconButton class="min-w-9 min-h-9" :disable="readonly" @click="$emit('edit')" />
+            <CloseIconButton class="min-w-9 min-h-9" :disable="readonly" @click="$emit('remove')" />
+          </template>
+        </slot>
       </div>
     </div>
 
@@ -83,9 +90,11 @@
           </span>
         </div>
         <div v-else />
-        <span class="text-base font-bold tabular-nums leading-none" data-test="item-total-price">{{
-          money(item.total_price)
-        }}</span>
+        <span
+          :class="['text-base font-bold tabular-nums leading-none', returned ? 'text-red' : '']"
+          data-test="item-total-price"
+          >{{ returned ? '-' : '' }}{{ money(item.total_price) }}</span
+        >
       </div>
     </div>
 
@@ -102,6 +111,7 @@ import EditIconButton from '../common/buttons/EditIconButton.vue'
 import BelowMinimumProfitBadge from './BelowMinimumProfitBadge.vue'
 import MissingOwnCodeBadge from './MissingOwnCodeBadge.vue'
 import NonPhysicalBadge from './NonPhysicalBadge.vue'
+import ReturnedBadge from './ReturnedBadge.vue'
 
 const props = defineProps<{
   item: {
@@ -128,6 +138,8 @@ const props = defineProps<{
   ownCodeMissing?: boolean
   /** Outbound only: the profit of this item is below the configured minimum. */
   belowMinimumProfit?: boolean
+  /** Outbound only: goods taken back from the customer - not sold, subtracted from the totals. */
+  returned?: boolean
 }>()
 
 defineEmits<{ (e: 'edit'): void; (e: 'remove'): void }>()

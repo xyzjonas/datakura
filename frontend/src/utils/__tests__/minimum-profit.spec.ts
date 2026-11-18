@@ -60,3 +60,17 @@ describe('itemsBelowMinimumProfit', () => {
     expect(itemsBelowMinimumProfit([item(1, 60)], 0)).toEqual([])
   })
 })
+
+describe('returned rows', () => {
+  it('are never below the minimum profit - they were not sold', () => {
+    const returned = {
+      amount: 2,
+      unit_price: 10,
+      is_returned: true,
+      pricing_details: { avg_purchase_price: 100 },
+    }
+
+    expect(itemsBelowMinimumProfit([returned], 20)).toEqual([])
+    expect(itemsBelowMinimumProfit([{ ...returned, is_returned: false }], 20)).toHaveLength(1)
+  })
+})
