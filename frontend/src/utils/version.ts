@@ -7,10 +7,30 @@ export type ChangelogEntry = {
   rows: string[]
 }
 
-export const APP_VERSION = '0.0.1.dev12'
+export const APP_VERSION = '0.0.1.dev13'
 export const STORAGE_KEY = 'app-last-acknowledged-version'
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
+  {
+    version: '0.0.1.dev13',
+    releaseDate: '2026-11-18',
+    rows: [
+      'Vratky: přijetí odeslaného zboží zpět od zákazníka, včetně skenování čárového kódu a zobrazení vrácených řádků v objednávce.',
+      'Výrobní zakázky: požadavky na položky, dědění šarží a sjednocený vzhled detailu s objednávkami.',
+      'Zobrazení hodnoty příjemky v seznamu i detailu, hodnota příjmu se zafixuje při vytvoření příjemky.',
+      'Sledování poslední změny nákupní a základní ceny, úplný přehled cen a rychlá úprava základní ceny v dialozích položek.',
+      'Sledování certifikovaného zboží: certifikát u příjemky, zobrazení certifikace šarže u příjmových i výdejových položek a varování při výdeji certifikovaného zboží na objednávku, která jej nevyžaduje.',
+      'Hlídání minimální přirážky/marže u výdejek a nabídek.',
+      'Vlastní kódy produktů podle zákazníka s kontrolou při potvrzení objednávky, zobrazené v detailu produktu i ve výdejkách.',
+      'Sledování země původu u příjmových a výdejních objednávek, hromadné nastavení a možnost požadovat zemi původu u položek.',
+      'Požadavky na položky výdejek jsou seznam omezení zobrazený formou štítků.',
+      'Nefyzické typy produktů se již nevychystávají ani nepřijímají.',
+      'Nové předpony kódů: „N“ pro nabídky a „V“ pro prodejní výdejky.',
+      'Přeprava: hmotnost se zobrazuje v kg, cena dopravy je v UI skryta.',
+      'Aplikaci lze nainstalovat jako PWA s automatickými aktualizacemi.',
+      'Nové logo a sada ikon aplikace.',
+    ],
+  },
   {
     version: '0.0.1.dev12',
     releaseDate: '2026-11-04',
