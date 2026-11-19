@@ -571,7 +571,7 @@ class OrdersService:
             invoice.external_code = params.external_code
             invoice.taxable_supply_date = params.taxable_supply_date
             invoice.paid_date = params.paid_date
-            invoice.currency = params.currency
+            invoice.currency = params.currency or order.currency
             invoice.note = params.note
 
             if invoice_file is not None:

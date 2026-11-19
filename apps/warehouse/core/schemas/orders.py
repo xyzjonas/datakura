@@ -99,7 +99,13 @@ class OutboundOrderItemCreateSchema(Schema):
     product_code: str
     product_name: str
     amount: Annotated[float, Field(gt=0, lt=1_000_000)]
-    total_price: Annotated[float, Field(ge=0, lt=100_000_000)]
+    # Item total in the BASE currency. Optional only for orders in a foreign currency,
+    # where `document_total_price` is the source of truth.
+    total_price: Annotated[float, Field(ge=0, lt=100_000_000)] | None = None
+    # Item total in the document currency of the order (only for orders in a foreign
+    # currency). Stored as entered, the base total is derived from it with the order's
+    # frozen exchange rate.
+    document_total_price: Annotated[float, Field(ge=0, lt=100_000_000)] | None = None
     unit_price: float | None = None
     index: int | None = None
     desired_package_type_name: str | None = None
@@ -125,8 +131,12 @@ class OutboundOrderItemPricingDetailsSchema(Schema):
 class OutboundOrderItemSchema(BaseSchema):
     product: ProductSchema
     amount: float
+    # base currency (all the calculations)
     unit_price: float
     total_price: float
+    # document currency of the order (equals the base prices for base currency orders)
+    document_unit_price: float
+    document_total_price: float
     index: int
     desired_package_type_name: str | None = None
     desired_batch_code: str | None = None
@@ -151,7 +161,9 @@ class OutboundDocumentCreateOrUpdateSchema(Schema):
     external_code: str | None = None
     description: str | None = None
     note: str | None = None
-    currency: str
+    # Currency the customer is invoiced in. null = the customer's currency override,
+    # or the base currency. For an existing document null keeps the current one.
+    document_currency: str | None = None
     customer_code: str
     customer_name: str
     # must be a (non-deleted) contact of `customer_code`; null = not specified
@@ -192,7 +204,12 @@ class OutboundDocumentSchema(BaseOrder):
     external_code: str | None = None
     description: str | None = None
     note: str | None = None
+    # base currency, all the calculations are made in
     currency: str
+    # currency shown on the document / invoiced (the base one unless overridden)
+    document_currency: str
+    # base currency units per 1 document currency unit, frozen with the document
+    exchange_rate: float
     requested_delivery_date: datetime | None = None
     items: list[OutboundOrderItemSchema] = Field(default_factory=list)
     state: str

@@ -75,6 +75,8 @@ class CustomerBaseSchema(BaseSchema):
     # sales orders of this customer need the origin country on every item
     requires_origin_country: bool = False
     requires_own_codes: bool = False
+    # invoicing currency override, null = the base currency of the app
+    currency: str | None = None
 
 
 class CustomerSchema(CustomerBaseSchema):
@@ -207,6 +209,8 @@ class CustomerCreateOrUpdateSchema(Schema):
     minimum_item_value_enabled: bool = True
     minimum_item_value: float | None = Field(default=None, ge=0)
     requires_own_codes: bool = False
+    # null = the base currency of the app
+    currency: str | None = None
     default_payment_method_name: Optional[str] = None
 
     # Agreements

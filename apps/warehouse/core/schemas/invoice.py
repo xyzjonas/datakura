@@ -50,7 +50,8 @@ class InvoiceStoreSchema(Schema):
     external_code: str | None = None
     taxable_supply_date: date | None = None
     paid_date: date | None = None
-    currency: str = "CZK"
+    # null = the document currency of the invoiced order(s), else the base currency
+    currency: str | None = None
     note: str | None = None
 
 

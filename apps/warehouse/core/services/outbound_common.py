@@ -6,6 +6,7 @@ Everything here is duck-typed on "a document with `customer` and `items`".
 """
 
 from calendar import monthrange
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Literal, TypeVar
@@ -16,10 +17,12 @@ from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
 from apps.warehouse.core.packaging import get_package_amount_in_product_uom
 from apps.warehouse.core.query_optimization import outbound_orders_for_schema
 from apps.warehouse.core.schemas.orders import (
+    OutboundOrderItemCreateSchema,
     OutboundOrderSchema,
     OutboundDocumentSchema,
     OutboundOrderItemPricingDetailsSchema,
 )
+from apps.warehouse.core.services.exchange_rates import exchange_rates_service
 from apps.warehouse.core.services.products import stock_product_service
 from apps.warehouse.core.services.settings import MinimumItemValue, settings_service
 from apps.warehouse.core.transformation import outbound_order_orm_to_schema
@@ -120,6 +123,136 @@ def compute_unit_price(amount: Decimal, total_price: Decimal) -> Decimal:
     if amount <= 0:
         return Decimal("0")
     return (total_price / amount).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+
+@dataclass(frozen=True)
+class ItemPrices:
+    """
+    Prices of an item. `total_price`/`unit_price` are in the base currency (what the
+    system calculates with), `document_*` are the exact amounts in the document
+    currency - None for documents in the base currency.
+    """
+
+    total_price: Decimal
+    unit_price: Decimal
+    document_total_price: Decimal | None
+    document_unit_price: Decimal | None
+
+
+def is_foreign(document: OutboundDocument) -> bool:
+    return document.document_currency != document.currency
+
+
+def resolve_item_prices(
+    document: OutboundDocument,
+    item: OutboundOrderItemCreateSchema,
+    amount: Decimal,
+) -> ItemPrices:
+    """
+    The price entered in the document currency wins and is stored as it is (it never
+    changes with the rate), the base price is derived from it with the frozen rate of
+    the document. The customer's minimum item value (base currency) is applied last.
+    """
+    foreign = is_foreign(document)
+    rate = Decimal(str(document.exchange_rate))
+    if item.document_total_price is not None and not foreign:
+        raise WarehouseItemBadRequestError(
+            "Document total price can only be set for a document in a foreign currency."
+        )
+
+    document_total: Decimal | None = None
+    if foreign and item.document_total_price is not None:
+        document_total = Decimal(str(item.document_total_price))
+        base_total = exchange_rates_service.to_base(document_total, rate)
+    elif item.total_price is not None:
+        base_total = Decimal(str(item.total_price))
+    else:
+        raise WarehouseItemBadRequestError("Item total price is required.")
+
+    total_price = settings_service.apply_minimum_item_value(
+        document.customer, base_total
+    )
+    if not foreign:
+        return ItemPrices(
+            total_price, compute_unit_price(amount, total_price), None, None
+        )
+    if document_total is None or total_price != base_total:
+        document_total = exchange_rates_service.from_base(total_price, rate)
+    return ItemPrices(
+        total_price,
+        compute_unit_price(amount, total_price),
+        document_total,
+        compute_unit_price(amount, document_total),
+    )
+
+
+def apply_item_prices(item_model, prices: ItemPrices) -> None:
+    """Set all the price fields of an order / calculation item (does not save)."""
+    item_model.total_price = prices.total_price
+    item_model.unit_price = prices.unit_price
+    item_model.document_total_price = prices.document_total_price
+    item_model.document_unit_price = prices.document_unit_price
+
+
+def resolve_document_currencies(
+    existing: OutboundDocument | None,
+    customer: Customer,
+    requested: str | None,
+) -> tuple[str, str, Decimal]:
+    """
+    `(currency, document_currency, exchange_rate)` for the header of a document.
+
+    New documents are in the base currency, invoiced in the requested currency / the
+    customer's currency / the base one. Existing documents keep their currency and
+    their frozen rate, unless a different currency is requested (a new rate is frozen).
+    """
+    base = settings_service.get_base_currency()
+    if existing is None:
+        document_currency = settings_service.resolve_document_currency(
+            customer, requested
+        )
+        return (
+            base,
+            document_currency,
+            exchange_rates_service.get_rate(document_currency, base),
+        )
+
+    document_currency = settings_service.resolve_document_currency(
+        None, requested or existing.document_currency
+    )
+    if document_currency == existing.document_currency:
+        return existing.currency, document_currency, existing.exchange_rate
+    if existing.currency != base:
+        raise WarehouseItemBadRequestError(
+            "The base currency changed since the document was created, "
+            "its currency can't be changed."
+        )
+    return (
+        base,
+        document_currency,
+        exchange_rates_service.get_rate(document_currency, base),
+    )
+
+
+def reprice_items_for_document_currency(document: OutboundDocument) -> None:
+    """
+    The document currency was changed: derive the document prices of all its items
+    from their base prices with the (new) rate. Base prices stay untouched.
+    """
+    rate = Decimal(str(document.exchange_rate))
+    foreign = is_foreign(document)
+    for item in document.items.all():
+        if foreign:
+            item.document_total_price = exchange_rates_service.from_base(
+                item.total_price, rate
+            )
+            item.document_unit_price = compute_unit_price(
+                item.amount, item.document_total_price
+            )
+        else:
+            item.document_total_price = None
+            item.document_unit_price = None
+        item.save(update_fields=["document_total_price", "document_unit_price"])
 
 
 def build_item_pricing_details(

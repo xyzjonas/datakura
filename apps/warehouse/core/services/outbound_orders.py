@@ -28,19 +28,21 @@ from apps.warehouse.core.services.item_reorder import (
     reorder_order_items,
 )
 from apps.warehouse.core.services.outbound_common import (
+    apply_item_prices,
     build_item_pricing_details,
-    compute_unit_price,
     diff_schemas,
     get_customer_contact_or_none,
     get_desired_batch_or_none,
     get_desired_package_or_none,
+    reprice_items_for_document_currency,
+    resolve_document_currencies,
+    resolve_item_prices,
     validate_desired_packaging,
     outbound_order_schema,
     outbound_order_schema_with_pricing,
     with_pricing_details,
 )
 from apps.warehouse.core.services.customer_codes import customer_product_codes_service
-from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.services.shipping import shipping_service
 from apps.warehouse.core.services.warehouse_order_factory import (
     WarehouseOrderKind,
@@ -498,28 +500,29 @@ class OutboundOrdersService:
 
         customer = Customer.objects.get(code=params.customer_code)
         contact = get_customer_contact_or_none(customer, params.contact_id)
+        currency, document_currency, exchange_rate = resolve_document_currencies(
+            existing_order, customer, params.document_currency
+        )
+        values = dict(
+            external_code=params.external_code,
+            description=params.description,
+            note=params.note,
+            currency=currency,
+            document_currency=document_currency,
+            exchange_rate=exchange_rate,
+            customer=customer,
+            contact=contact,
+            requested_delivery_date=params.requested_delivery_date,
+        )
         with transaction.atomic():
             order, created = OutboundOrder.objects.update_or_create(
-                code=code,
-                create_defaults=dict(
-                    external_code=params.external_code,
-                    description=params.description,
-                    note=params.note,
-                    currency=params.currency,
-                    customer=customer,
-                    contact=contact,
-                    requested_delivery_date=params.requested_delivery_date,
-                ),
-                defaults=dict(
-                    external_code=params.external_code,
-                    description=params.description,
-                    note=params.note,
-                    currency=params.currency,
-                    customer=customer,
-                    contact=contact,
-                    requested_delivery_date=params.requested_delivery_date,
-                ),
+                code=code, create_defaults=values, defaults=values
             )
+            if (
+                existing_order
+                and existing_order.document_currency != order.document_currency
+            ):
+                reprice_items_for_document_currency(order)
             if (
                 existing_order
                 and existing_order.contact_id != order.contact_id
@@ -581,9 +584,7 @@ class OutboundOrdersService:
             OutboundOrder.objects.select_for_update().get(pk=order.pk)
             next_index = order.items.count()
             amount = Decimal(str(item.amount))
-            total_price = settings_service.apply_minimum_item_value(
-                order.customer, Decimal(str(item.total_price))
-            )
+            prices = resolve_item_prices(order, item, amount)
             validate_desired_packaging(
                 stock_product=stock_product,
                 amount=amount,
@@ -593,8 +594,10 @@ class OutboundOrdersService:
                 stock_product=stock_product,
                 amount=amount,
                 order=order,
-                total_price=total_price,
-                unit_price=compute_unit_price(amount, total_price),
+                total_price=prices.total_price,
+                unit_price=prices.unit_price,
+                document_total_price=prices.document_total_price,
+                document_unit_price=prices.document_unit_price,
                 index=item.index if item.index is not None else next_index,
                 desired_package_type=desired_package_type,
                 desired_batch=desired_batch,
@@ -609,12 +612,11 @@ class OutboundOrdersService:
                 order_item=item_model,
                 context=context,
             )
-        selected_unit_price = compute_unit_price(amount, total_price)
         pricing_details = build_item_pricing_details(
             order=order,
             stock_product=stock_product,
-            selected_unit_price=selected_unit_price,
-            total_price=total_price,
+            selected_unit_price=prices.unit_price,
+            total_price=prices.total_price,
         )
         return outbound_order_item_orm_to_schema(
             item_model,
@@ -646,17 +648,14 @@ class OutboundOrdersService:
 
         with transaction.atomic():
             amount = Decimal(str(item.amount))
-            total_price = settings_service.apply_minimum_item_value(
-                order.customer, Decimal(str(item.total_price))
-            )
+            prices = resolve_item_prices(order, item, amount)
             validate_desired_packaging(
                 stock_product=item_model.stock_product,
                 amount=amount,
                 desired_package_type=desired_package_type,
             )
             item_model.amount = amount
-            item_model.total_price = total_price
-            item_model.unit_price = compute_unit_price(amount, total_price)
+            apply_item_prices(item_model, prices)
             item_model.desired_package_type = desired_package_type
             item_model.desired_batch = desired_batch
             item_model.note = item.note
@@ -908,6 +907,8 @@ class OutboundOrdersService:
                 description=source.description,
                 note=source.note,
                 currency=source.currency,
+                document_currency=source.document_currency,
+                exchange_rate=source.exchange_rate,
                 customer=source.customer,
                 contact=source.contact,
                 supplier=source.supplier,
@@ -924,6 +925,8 @@ class OutboundOrdersService:
                     amount=item.amount,
                     unit_price=item.unit_price,
                     total_price=item.total_price,
+                    document_unit_price=item.document_unit_price,
+                    document_total_price=item.document_total_price,
                     index=index,
                     desired_package_type=item.desired_package_type,
                     desired_batch=item.desired_batch,
@@ -979,7 +982,8 @@ class OutboundOrdersService:
             invoice.external_code = params.external_code
             invoice.taxable_supply_date = params.taxable_supply_date
             invoice.paid_date = params.paid_date
-            invoice.currency = params.currency
+            # PUT semantics: what is not sent falls back to the default
+            invoice.currency = params.currency or order.document_currency
             invoice.note = params.note
 
             if invoice_file is not None:

@@ -8,7 +8,12 @@ from django.db import transaction
 
 from apps.warehouse.core.schemas.settings import GlobalSettingsUpdateSchema
 from apps.warehouse.models.customer import Customer
-from apps.warehouse.models.settings import GlobalSettings
+from apps.warehouse.core.exceptions import WarehouseItemBadRequestError
+from apps.warehouse.models.settings import (
+    SUPPORTED_CURRENCIES,
+    CurrencyRate,
+    GlobalSettings,
+)
 
 
 class MinimumItemValueSource(StrEnum):
@@ -48,8 +53,49 @@ class SettingsService:
             )
         if params.code_sequence is not None:
             settings.code_sequence = params.code_sequence
+        if (
+            params.base_currency is not None
+            and params.base_currency != settings.base_currency
+        ):
+            SettingsService.assert_supported_currency(params.base_currency)
+            settings.base_currency = params.base_currency
+            # rates are relative to the base currency - the old ones are meaningless
+            CurrencyRate.objects.all().delete()
         settings.save()
+        for rate in params.exchange_rates or []:
+            SettingsService.assert_supported_currency(rate.currency)
+            if rate.currency == settings.base_currency:
+                raise WarehouseItemBadRequestError(
+                    "Base currency has no exchange rate (it is always 1)."
+                )
+            CurrencyRate.objects.update_or_create(
+                currency=rate.currency, defaults={"rate": Decimal(str(rate.rate))}
+            )
         return settings
+
+    @staticmethod
+    def assert_supported_currency(currency: str) -> None:
+        if currency not in SUPPORTED_CURRENCIES:
+            raise WarehouseItemBadRequestError(
+                f"Currency '{currency}' is not supported "
+                f"(supported: {', '.join(SUPPORTED_CURRENCIES)})."
+            )
+
+    @staticmethod
+    def get_base_currency() -> str:
+        return GlobalSettings.load().base_currency
+
+    @staticmethod
+    def resolve_document_currency(
+        customer: Customer | None, requested: str | None = None
+    ) -> str:
+        """Explicit choice > the customer's currency override > the base currency."""
+        if requested:
+            SettingsService.assert_supported_currency(requested)
+            return requested
+        if customer is not None and customer.currency:
+            return customer.currency
+        return SettingsService.get_base_currency()
 
     @staticmethod
     def resolve_minimum_item_value(

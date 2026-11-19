@@ -12,6 +12,7 @@ from apps.warehouse.core.schemas.customer import (
     ContactPersonCreateOrUpdateSchema,
 )
 from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.core.transformation import customer_orm_to_schema
@@ -70,6 +71,14 @@ class CustomerService:
             raise SelfNotFoundException("Active self customer not found") from exc
 
         return customer_orm_to_schema(customer)
+
+    @staticmethod
+    def _validated_currency(currency: str | None) -> str | None:
+        """Invoicing currency override; blank = none (the base currency applies)."""
+        if not currency:
+            return None
+        settings_service.assert_supported_currency(currency)
+        return currency
 
     @staticmethod
     def _to_decimal_or_none(value: float | None) -> Decimal | None:
@@ -166,6 +175,7 @@ class CustomerService:
             requires_origin_country=params.requires_origin_country,
             minimum_item_value_enabled=params.minimum_item_value_enabled,
             requires_own_codes=params.requires_own_codes,
+            currency=CustomerService._validated_currency(params.currency),
             minimum_item_value=CustomerService._to_decimal_or_none(
                 params.minimum_item_value
             ),
@@ -231,6 +241,7 @@ class CustomerService:
         customer.requires_origin_country = params.requires_origin_country
         customer.minimum_item_value_enabled = params.minimum_item_value_enabled
         customer.requires_own_codes = params.requires_own_codes
+        customer.currency = CustomerService._validated_currency(params.currency)
         customer.minimum_item_value = CustomerService._to_decimal_or_none(
             params.minimum_item_value
         )
