@@ -17,13 +17,22 @@ const makeItem = (unit: number, purchase: number) =>
     amount: 1,
     unit_price: unit,
     total_price: unit,
+    document_unit_price: unit,
+    document_total_price: unit,
     product: { code: 'P1', name: 'Prod', unit: 'KS', base_price: unit, purchase_price: purchase },
     pricing_details: { avg_purchase_price: purchase },
   }) as unknown as OutboundOrderItemSchema
 
 const mountRow = (item: OutboundOrderItemSchema) =>
   mount(OutboundOrderItemRowCompact, {
-    props: { item, currency: 'CZK', orderCode: 'K1', readonly: true },
+    props: {
+      item,
+      currency: 'CZK',
+      baseCurrency: 'CZK',
+      exchangeRate: 1,
+      orderCode: 'K1',
+      readonly: true,
+    },
     global: {
       stubs: {
         RouterLink: true,

@@ -93,6 +93,8 @@ import {
   warehouseApiRoutesOutboundOrdersUpdateItemInOutboundOrder,
   warehouseApiRoutesInboundOrdersUpdateItemInInboundOrder,
   warehouseApiRoutesProductUpsertProductCustomerPriceOverride,
+  type CreateInboundOrderItemResponse,
+  type CreateOutboundOrderItemResponse,
   type CreditNoteSupplierItemSchema,
   type InboundOrderItemSchema,
   type OutboundOrderItemSchema,
@@ -210,7 +212,7 @@ const update = async (changedField: 'amount' | 'unit' | 'total') => {
           body: payload,
         })
 
-  const data = onResponse(res)
+  const data = onResponse<CreateOutboundOrderItemResponse | CreateInboundOrderItemResponse>(res)
   if (data?.data) {
     item.value = data.data
     totalPrice.value = data.data.total_price

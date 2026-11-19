@@ -6,11 +6,15 @@ import { round } from '@/utils/round'
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
 export type OrderTotalsSource = {
+  /** Base currency - all the calculations (margin, purchase value) are in it. */
   currency: string
+  /** Outbound documents only: the currency the customer sees / is invoiced in. */
+  document_currency?: string
   items?: {
     amount: number
     unit_price: number
     total_price?: number
+    document_total_price?: number
     pricing_details?: { avg_purchase_price: number } | null
     product?: { unit_weight?: number | null }
     /** Goods taken back from the customer: subtracted from the totals. */
@@ -20,6 +24,17 @@ export type OrderTotalsSource = {
 
 export const useOrderTotals = (order: MaybeRefOrGetter<OrderTotalsSource | null | undefined>) => {
   const currency = computed(() => toValue(order)?.currency ?? '')
+  const documentCurrency = computed(() => toValue(order)?.document_currency ?? currency.value)
+  const isForeign = computed(() => documentCurrency.value !== currency.value)
+  const documentTotalPrice = computed(() =>
+    (toValue(order)?.items ?? []).reduce(
+      (sum, item) =>
+        sum +
+        itemSign(item) *
+          (item.document_total_price ?? item.total_price ?? item.amount * item.unit_price),
+      0,
+    ),
+  )
   const totalPrice = computed(() =>
     (toValue(order)?.items ?? []).reduce(
       (sum, item) => sum + itemSign(item) * (item.total_price ?? item.amount * item.unit_price),
@@ -40,6 +55,7 @@ export const useOrderTotals = (order: MaybeRefOrGetter<OrderTotalsSource | null 
       : false,
   )
   const formattedTotalPrice = computed(() => formatNumber(totalPrice.value))
+  const formattedDocumentTotalPrice = computed(() => formatNumber(documentTotalPrice.value))
   const orderMargin = computed(() => calculateOrderMargin(toValue(order)?.items))
   const formattedPurchaseValue = computed(() =>
     orderMargin.value ? formatNumber(round(orderMargin.value.purchaseValue)) : '0',
@@ -75,8 +91,12 @@ export const useOrderTotals = (order: MaybeRefOrGetter<OrderTotalsSource | null 
 
   return {
     currency,
+    documentCurrency,
+    isForeign,
     totalPrice,
+    documentTotalPrice,
     formattedTotalPrice,
+    formattedDocumentTotalPrice,
     orderMargin,
     formattedPurchaseValue,
     formattedMarginValue,

@@ -962,6 +962,10 @@ export type CustomerBaseSchema = {
    * Requires Own Codes
    */
   requires_own_codes?: boolean
+  /**
+   * Currency
+   */
+  currency?: string | null
 }
 
 /**
@@ -1902,7 +1906,7 @@ export type ProductCreateOrUpdateSchema = {
   /**
    * Currency
    */
-  currency?: string
+  currency?: string | null
   /**
    * Customs Declaration Group
    */
@@ -2048,7 +2052,7 @@ export type ProductDuplicateSchema = {
   /**
    * Currency
    */
-  currency?: string
+  currency?: string | null
   /**
    * Customs Declaration Group
    */
@@ -2567,6 +2571,10 @@ export type CustomerSchema = {
    */
   requires_own_codes?: boolean
   /**
+   * Currency
+   */
+  currency?: string | null
+  /**
    * Email
    */
   email?: string | null
@@ -2795,6 +2803,10 @@ export type CustomerCreateOrUpdateSchema = {
    * Requires Own Codes
    */
   requires_own_codes?: boolean
+  /**
+   * Currency
+   */
+  currency?: string | null
   /**
    * Default Payment Method Name
    */
@@ -3355,7 +3367,7 @@ export type InvoiceStoreSchema = {
   /**
    * Currency
    */
-  currency?: string
+  currency?: string | null
   /**
    * Note
    */
@@ -3533,6 +3545,14 @@ export type OutboundOrderItemSchema = {
    */
   total_price: number
   /**
+   * Document Unit Price
+   */
+  document_unit_price: number
+  /**
+   * Document Total Price
+   */
+  document_total_price: number
+  /**
    * Index
    */
   index: number
@@ -3612,6 +3632,14 @@ export type OutboundOrderSchema = {
    * Note
    */
   note?: string | null
+  /**
+   * Document Currency
+   */
+  document_currency: string
+  /**
+   * Exchange Rate
+   */
+  exchange_rate: number
   /**
    * Requested Delivery Date
    */
@@ -3805,9 +3833,9 @@ export type OutboundOrderCreateOrUpdateSchema = {
    */
   note?: string | null
   /**
-   * Currency
+   * Document Currency
    */
-  currency: string
+  document_currency?: string | null
   /**
    * Customer Code
    */
@@ -3926,7 +3954,11 @@ export type OutboundOrderItemCreateSchema = {
   /**
    * Total Price
    */
-  total_price: number
+  total_price?: number | null
+  /**
+   * Document Total Price
+   */
+  document_total_price?: number | null
   /**
    * Unit Price
    */
@@ -4033,6 +4065,14 @@ export type OutboundCalculationSchema = {
    */
   note?: string | null
   /**
+   * Document Currency
+   */
+  document_currency: string
+  /**
+   * Exchange Rate
+   */
+  exchange_rate: number
+  /**
    * Requested Delivery Date
    */
   requested_delivery_date?: string | null
@@ -4102,9 +4142,9 @@ export type OutboundCalculationCreateOrUpdateSchema = {
    */
   note?: string | null
   /**
-   * Currency
+   * Document Currency
    */
-  currency: string
+  document_currency?: string | null
   /**
    * Customer Code
    */
@@ -6089,6 +6129,21 @@ export type WarehouseImportResultSchema = {
 export type CodeSequence = 'monthly' | 'yearly'
 
 /**
+ * ExchangeRateSchema
+ * Base currency units per 1 unit of `currency`
+ */
+export type ExchangeRateSchema = {
+  /**
+   * Currency
+   */
+  currency: string
+  /**
+   * Rate
+   */
+  rate: number
+}
+
+/**
  * GetGlobalSettingsResponse
  */
 export type GetGlobalSettingsResponse = {
@@ -6121,6 +6176,32 @@ export type GlobalSettingsSchema = {
    */
   minimum_markup_percent: number
   code_sequence: CodeSequence
+  /**
+   * Base Currency
+   */
+  base_currency: string
+  /**
+   * Supported Currencies
+   */
+  supported_currencies: Array<string>
+  /**
+   * Exchange Rates
+   */
+  exchange_rates: Array<ExchangeRateSchema>
+}
+
+/**
+ * ExchangeRateUpdateSchema
+ */
+export type ExchangeRateUpdateSchema = {
+  /**
+   * Currency
+   */
+  currency: string
+  /**
+   * Rate
+   */
+  rate: number
 }
 
 /**
@@ -6136,6 +6217,14 @@ export type GlobalSettingsUpdateSchema = {
    */
   minimum_markup_percent?: number | null
   code_sequence?: CodeSequence | null
+  /**
+   * Base Currency
+   */
+  base_currency?: string | null
+  /**
+   * Exchange Rates
+   */
+  exchange_rates?: Array<ExchangeRateUpdateSchema> | null
 }
 
 /**
@@ -8497,7 +8586,7 @@ export type WarehouseApiRoutesInboundOrdersStoreInboundOrderInvoiceData = {
     /**
      * Currency
      */
-    currency?: string
+    currency?: string | null
     /**
      * Note
      */
@@ -8996,7 +9085,7 @@ export type WarehouseApiRoutesOutboundOrdersStoreOutboundOrderInvoiceData = {
     /**
      * Currency
      */
-    currency?: string
+    currency?: string | null
     /**
      * Note
      */
@@ -10280,7 +10369,7 @@ export type WarehouseApiRoutesInvoicesUpdateInvoiceData = {
     /**
      * Currency
      */
-    currency?: string
+    currency?: string | null
     /**
      * Note
      */

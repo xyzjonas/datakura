@@ -5,7 +5,7 @@
         clickable
         v-close-popup
         @click="currency = option"
-        v-for="option in options"
+        v-for="option in currencies"
         :key="option"
       >
         <q-item-section>
@@ -17,9 +17,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCurrencySettings } from '@/composables/use-currency-settings'
+
 const currency = defineModel<string>({ required: true })
 
-const options = ['CZK', 'EUR', 'PLN']
+const { currencies } = useCurrencySettings()
 </script>
-
-<style lang="scss" scoped></style>

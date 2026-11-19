@@ -99,6 +99,9 @@
             :disable="!form.minimum_item_value_enabled"
           />
 
+          <!-- Invoicing currency -->
+          <CustomerCurrencySelect v-model="form.currency" />
+
           <!-- Note -->
           <q-input v-model.trim="form.note" outlined type="textarea" rows="3" label="Poznámka" />
 
@@ -171,6 +174,7 @@
 
 <script setup lang="ts">
 import type { CustomerCreateOrUpdateSchema, CustomerGroupSchema } from '@/client'
+import CustomerCurrencySelect from './CustomerCurrencySelect.vue'
 import CustomerMinimumValueFields from '@/components/customer/CustomerMinimumValueFields.vue'
 import ToggleRow from '@/components/customer/ToggleRow.vue'
 import CountrySelect from '@/components/selects/CountrySelect.vue'

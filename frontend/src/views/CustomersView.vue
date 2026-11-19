@@ -119,6 +119,7 @@ const newCustomer = ref<CustomerCreateOrUpdateSchema>({
   minimum_item_value_enabled: true,
   minimum_item_value: null,
   requires_own_codes: false,
+  currency: null,
   default_payment_method_name: undefined,
   state: 'CZ',
   data_collection_agreement: false,

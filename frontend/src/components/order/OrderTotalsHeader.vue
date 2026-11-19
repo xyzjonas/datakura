@@ -14,7 +14,13 @@
       <div class="flex flex-col gap-2 p-4">
         <span>{{ showMargin ? 'Celková prodejní cena' : 'Celková nákupní cena' }}</span>
         <span class="text-primary">
-          <strong class="text-lg">{{ formattedTotalPrice }}</strong> {{ currency }}
+          <strong class="text-lg" data-test="order-total-price">{{
+            formattedDocumentTotalPrice
+          }}</strong>
+          {{ documentCurrency }}
+        </span>
+        <span v-if="isForeign" class="text-xs text-muted" data-test="order-total-base">
+          = {{ formattedTotalPrice }} {{ currency }}
         </span>
       </div>
       <q-separator vertical />
@@ -76,8 +82,11 @@ const props = withDefaults(defineProps<{ order: OrderTotalsSource; showMargin?: 
 
 const {
   formattedTotalPrice,
+  formattedDocumentTotalPrice,
   formattedPurchaseValue,
   currency,
+  documentCurrency,
+  isForeign,
   formattedMarginValue,
   formattedMarginPercent,
   formattedMarkupPercent,

@@ -47,7 +47,7 @@ export const getOutboundInvoiceSelectionBlockReason = (
     return 'different-customer'
   }
 
-  if (anchorOrder.currency !== order.currency) {
+  if (anchorOrder.document_currency !== order.document_currency) {
     return 'different-currency'
   }
 

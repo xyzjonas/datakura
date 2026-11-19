@@ -77,6 +77,8 @@ const selectedOrders: OutboundOrderSchema[] = [
     external_code: null,
     description: null,
     note: null,
+    document_currency: 'CZK',
+    exchange_rate: 1,
     type: 'Outbound',
     customer: baseCustomer,
     supplier: baseCustomer,

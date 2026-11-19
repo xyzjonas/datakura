@@ -33,4 +33,35 @@ describe('SellingPriceEditor', () => {
     )
     expect(wrapper.text()).toContain('Discount groups disabled for this product')
   })
+
+  const mountEditor = (extra: Record<string, unknown>) =>
+    mount(SellingPriceEditor, {
+      props: {
+        modelValue: 2,
+        currency: 'EUR',
+        unit: 'KS',
+        basePrice: 2,
+        suggestedPrice: 2,
+        avgPurchasePrice: 1,
+        discountPercent: 0,
+        reason: 'Base',
+        ...extra,
+      },
+      global: { stubs: { QPopupProxy: { template: '<div><slot /></div>' } } },
+    })
+
+  it('hints the price in the base currency for a foreign currency document', () => {
+    const wrapper = mountEditor({ baseCurrency: 'CZK', exchangeRate: 25 })
+
+    expect(wrapper.find('[data-test="base-price-hint"]').text()).toBe('≈ 50.00 CZK / KS')
+  })
+
+  it.each([
+    { baseCurrency: 'EUR', exchangeRate: 1 }, // same currency
+    {}, // not a multicurrency context
+  ])('has no base currency hint for %j', (extra) => {
+    const wrapper = mountEditor(extra)
+
+    expect(wrapper.find('[data-test="base-price-hint"]').exists()).toBe(false)
+  })
 })

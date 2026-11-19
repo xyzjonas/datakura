@@ -14,6 +14,8 @@ const makeItem = (unit: number, purchase: number, amount = 2) =>
     amount,
     unit_price: unit,
     total_price: unit * amount,
+    document_unit_price: unit,
+    document_total_price: unit * amount,
     product: { code: 'P1', name: 'Prod', unit: 'KS', base_price: unit, purchase_price: purchase },
     pricing_details: {
       base_price: unit,
@@ -30,7 +32,14 @@ const makeItem = (unit: number, purchase: number, amount = 2) =>
 
 const mountRow = (item: OutboundOrderItemSchema) =>
   mount(OutboundOrderItemRowCompact, {
-    props: { item, currency: 'CZK', orderCode: 'K1', readonly: true },
+    props: {
+      item,
+      currency: 'CZK',
+      baseCurrency: 'CZK',
+      exchangeRate: 1,
+      orderCode: 'K1',
+      readonly: true,
+    },
     global: {
       stubs: {
         RouterLink: true,
@@ -44,7 +53,13 @@ const mountRow = (item: OutboundOrderItemSchema) =>
 describe('OutboundOrderItemRowCompact remove', () => {
   const mountEditable = () =>
     mount(OutboundOrderItemRowCompact, {
-      props: { item: makeItem(100, 60), currency: 'CZK', orderCode: 'K1' },
+      props: {
+        item: makeItem(100, 60),
+        currency: 'CZK',
+        baseCurrency: 'CZK',
+        exchangeRate: 1,
+        orderCode: 'K1',
+      },
       global: {
         stubs: {
           RouterLink: true,
@@ -94,5 +109,58 @@ describe('OutboundOrderItemRowCompact margin', () => {
     const text = mountRow(makeItem(100, 60)).get('[data-test="item-unit-price"]').text()
     expect(text).toContain('100.00')
     expect(text).toContain('CZK')
+  })
+})
+
+describe('OutboundOrderItemRowCompact foreign currency', () => {
+  const foreignItem = () =>
+    ({
+      ...makeItem(50, 30),
+      document_unit_price: 2,
+      document_total_price: 4,
+    }) as OutboundOrderItemSchema
+
+  const mountForeign = () =>
+    mount(OutboundOrderItemRowCompact, {
+      props: {
+        item: foreignItem(),
+        currency: 'EUR',
+        baseCurrency: 'CZK',
+        exchangeRate: 25,
+        orderCode: 'K1',
+        readonly: true,
+      },
+      global: {
+        stubs: {
+          RouterLink: true,
+          ProductAvailability: true,
+          OutboundOrderItemEditDialog: true,
+          QPopupProxy: true,
+        },
+      },
+    })
+
+  it('shows selling price and total in the document currency, with the base amount hinted', () => {
+    const wrapper = mountForeign()
+
+    expect(wrapper.find('[data-test="item-unit-price"]').text()).toContain('2.00')
+    expect(wrapper.find('[data-test="item-unit-price"]').text()).toContain('EUR')
+    expect(wrapper.find('[data-test="item-unit-price-base"]').text()).toContain('50.00 CZK')
+    expect(wrapper.find('[data-test="item-total-price-base"]').text()).toContain('100.00 CZK')
+  })
+
+  it('keeps purchase price and margin in the base currency', () => {
+    const wrapper = mountForeign()
+
+    expect(wrapper.find('[data-test="item-purchase-price"]').text()).toContain('30.00')
+    expect(wrapper.find('[data-test="item-purchase-price"]').text()).toContain('CZK')
+    expect(wrapper.find('[data-test="item-margin"]').text()).toContain('CZK')
+  })
+
+  it('has no base hints for a base currency document', () => {
+    const wrapper = mountRow(makeItem(100, 60))
+
+    expect(wrapper.find('[data-test="item-unit-price-base"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="item-total-price-base"]').exists()).toBe(false)
   })
 })

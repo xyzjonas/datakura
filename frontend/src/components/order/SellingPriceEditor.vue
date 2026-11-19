@@ -33,6 +33,9 @@
         <span class="text-xs">{{ currency }} / {{ unit }}</span>
       </template>
     </q-input>
+    <div v-if="baseHint" class="text-xs text-muted mt-1" data-test="base-price-hint">
+      {{ baseHint }}
+    </div>
 
     <q-slider
       :model-value="editorValue"
@@ -95,12 +98,17 @@ const props = withDefaults(
     canPersistOverride?: boolean
     overrideSaving?: boolean
     readonly?: boolean
+    /** Foreign currency documents: prices here are in `currency`, hint shows them in base. */
+    baseCurrency?: string
+    exchangeRate?: number
   }>(),
   {
     readonly: false,
     priceSource: null,
     canPersistOverride: false,
     overrideSaving: false,
+    baseCurrency: undefined,
+    exchangeRate: 1,
   },
 )
 
@@ -114,6 +122,12 @@ const resetToSuggested = () => {
   editorValue.value = suggested
   emit('update:modelValue', suggested)
 }
+
+const baseHint = computed(() =>
+  props.baseCurrency && props.baseCurrency !== props.currency
+    ? `≈ ${(resolvedModelValue.value * props.exchangeRate).toFixed(2)} ${props.baseCurrency} / ${props.unit}`
+    : '',
+)
 
 const resolvedModelValue = computed(() => Number(props.modelValue ?? 0))
 const editorValue = ref(resolvedModelValue.value)
