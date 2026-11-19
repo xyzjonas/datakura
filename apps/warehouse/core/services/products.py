@@ -21,6 +21,7 @@ from apps.warehouse.core.schemas.product import (
     SellingPriceLookupSchema,
 )
 from apps.warehouse.core.services.audit import audit_service
+from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.audit_messages import AuditMessages
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.core.transformation import get_product_by_code
@@ -191,7 +192,7 @@ class StockProductsService:
             "group": product_group,
             "unit_of_measure": unit_of_measure,
             "unit_weight": Decimal(str(params.unit_weight or 0)),
-            "currency": params.currency,
+            "currency": params.currency or settings_service.get_base_currency(),
             "purchase_price": Decimal(str(params.purchase_price or 0)),
             "base_price": Decimal(str(params.base_price or 0)),
             "no_discount": params.no_discount,

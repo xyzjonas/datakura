@@ -133,7 +133,7 @@
       <OrderTotalsHeader :order="order" />
       <OutboundReturnBar
         :value="returnValue"
-        :currency="order.currency"
+        :currency="order.document_currency"
         :loading="applyingReturn"
         @apply="applyReturn"
       />
@@ -160,7 +160,9 @@
 
     <OutboundOrderProductsList
       v-model:items="order.items"
-      :currency="order.currency"
+      :currency="order.document_currency"
+      :base-currency="order.currency"
+      :exchange-rate="order.exchange_rate"
       :readonly="!isEditable"
       :order-code="order.code"
       :customer-code="order.customer.code"
@@ -174,7 +176,9 @@
       ref="addItemDialogComponent"
       v-model:show="addItemDialog"
       @add-item="addItem"
-      :currency="order.currency"
+      :currency="order.document_currency"
+      :base-currency="order.currency"
+      :exchange-rate="order.exchange_rate"
       :customer-code="order.customer.code"
       :requires-own-codes="requiresOwnCodes"
     />
@@ -350,7 +354,7 @@ const canReturn = computed(
 const returnValue = computed(() =>
   returnSelection.lines.value.reduce((sum, line) => {
     const item = order.value?.items?.find((row) => row.index === line.item_index)
-    return sum + line.amount * Number(item?.unit_price ?? 0)
+    return sum + line.amount * Number(item?.document_unit_price ?? 0)
   }, 0),
 )
 const applyingReturn = ref(false)
@@ -450,7 +454,7 @@ const contact = computed({
       return
     }
     const saved = await updateOrder({
-      currency: order.value.currency,
+      document_currency: order.value.document_currency,
       customer_code: order.value.customer.code,
       customer_name: order.value.customer.name,
       external_code: order.value.external_code,

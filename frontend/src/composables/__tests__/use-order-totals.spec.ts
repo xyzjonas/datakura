@@ -75,3 +75,39 @@ describe('useOrderTotals with returned goods', () => {
     expect(totals.totalWeight.value).toBe(0)
   })
 })
+
+describe('useOrderTotals foreign currency', () => {
+  const order: OrderTotalsSource = {
+    currency: 'CZK',
+    document_currency: 'EUR',
+    items: [
+      { amount: 2, unit_price: 50, total_price: 100, document_total_price: 4 },
+      // goods taken back are subtracted from both
+      { amount: 1, unit_price: 50, total_price: 50, document_total_price: 2, is_returned: true },
+    ],
+  }
+
+  it('sums the document prices in the document currency, the base ones separately', () => {
+    const totals = useOrderTotals(order)
+    expect(totals.isForeign.value).toBe(true)
+    expect(totals.documentCurrency.value).toBe('EUR')
+    expect(totals.documentTotalPrice.value).toBe(2)
+    expect(totals.currency.value).toBe('CZK')
+    expect(totals.totalPrice.value).toBe(50)
+  })
+
+  it('is not foreign without a document currency (inbound) or when it is the base one', () => {
+    expect(useOrderTotals({ currency: 'CZK', items: [] }).isForeign.value).toBe(false)
+    expect(
+      useOrderTotals({ currency: 'CZK', document_currency: 'CZK', items: [] }).isForeign.value,
+    ).toBe(false)
+  })
+
+  it('falls back to the base total when an item has no document price', () => {
+    const { documentTotalPrice } = useOrderTotals({
+      currency: 'CZK',
+      items: [{ amount: 2, unit_price: 10, total_price: 15 }],
+    })
+    expect(documentTotalPrice.value).toBe(15)
+  })
+})

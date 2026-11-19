@@ -3,7 +3,7 @@
     <q-card class="w-full">
       <div class="p-4 flex flex-col">
         <div class="w-full flex justify-start items-center mb-3 gap-2">
-          <CurrencyDropdown v-model="item.currency" />
+          <CurrencyDropdown v-model="documentCurrency" data-test="document-currency" />
           <span class="text-2xl uppercase">{{ title }}</span>
           <q-btn flat round icon="close" v-close-popup class="ml-auto" />
         </div>
@@ -65,7 +65,8 @@ import type {
   OutboundOrderCreateOrUpdateSchema,
 } from '@/client'
 import type { OutboundDocument } from '@/composables/use-outbound-document-api'
-import { ref, watch } from 'vue'
+import { useCurrencySettings } from '@/composables/use-currency-settings'
+import { computed, ref, watch } from 'vue'
 import ContactPersonSelect from '../selects/ContactPersonSelect.vue'
 import CustomerSearchSelect from '../selects/CustomerSearchSelect.vue'
 import CurrencyDropdown from './CurrencyDropdown.vue'
@@ -77,6 +78,8 @@ type Props = {
 }
 
 const deliveryDate = ref<string>('')
+
+const { baseCurrency } = useCurrencySettings()
 
 const showDialog = defineModel('show', { default: false })
 const props = withDefaults(defineProps<Props>(), {
@@ -102,7 +105,7 @@ const propToRef = (order?: OutboundDocument) => {
     deliveryDate.value = new Date(order.requested_delivery_date).toISOString()
   }
   return {
-    currency: order.currency,
+    document_currency: order.document_currency,
     note: order.note,
     description: order.description,
     customer_code: order.customer.code,
@@ -117,12 +120,20 @@ const item = ref<OutboundOrderCreateOrUpdateSchema>(
   propToRef(props.orderOut) ?? {
     customer_code: '',
     customer_name: '',
-    currency: 'CZK',
+    document_currency: null,
     description: '',
     external_code: '',
     note: '',
   },
 )
+
+// the currency the customer is invoiced in: the customer's own one, else the base one
+const documentCurrency = computed({
+  get: () => item.value.document_currency ?? customer.value?.currency ?? baseCurrency.value,
+  set: (value: string) => {
+    item.value.document_currency = value
+  },
+})
 
 watch(contact, (newValue) => {
   item.value.contact_id = newValue?.id ?? null
@@ -136,6 +147,10 @@ watch(customer, (newValue: CustomerBaseSchema | undefined, oldValue) => {
   if (newValue) {
     item.value.customer_code = newValue.code
     item.value.customer_name = newValue.name
+    // a new customer brings its currency (can still be changed per order)
+    if (oldValue && newValue.code !== oldValue.code) {
+      item.value.document_currency = newValue.currency ?? baseCurrency.value
+    }
   } else {
     item.value.customer_code = ''
     item.value.customer_name = ''
@@ -158,7 +173,7 @@ const reset = () => {
   item.value = {
     customer_code: '',
     customer_name: '',
-    currency: 'CZK',
+    document_currency: null,
     description: '',
     external_code: '',
     note: '',

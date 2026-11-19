@@ -3,9 +3,10 @@
     v-if="cardLayout"
     :item="item"
     :currency="currency"
+    :base-currency="baseCurrency"
     :readonly="readonly"
     :purchase-price="Number(pricing.avgPurchasePrice)"
-    :selling-price="Number(item.unit_price)"
+    :selling-price="Number(item.document_unit_price)"
     :margin="item.is_returned ? undefined : margin"
     :own-code="item.customer_product_code"
     :own-code-missing="ownCodeMissing"
@@ -83,7 +84,7 @@
         <!-- Purchase price -->
         <div class="flex flex-col" data-test="item-purchase-price">
           <span class="tabular-nums">{{ pricing.avgPurchasePrice.toFixed(2) }}</span>
-          <span>{{ currency }}</span>
+          <span>{{ baseCurrency }}</span>
           <span class="text-xs text-muted">za {{ item.product.unit }}</span>
         </div>
 
@@ -92,7 +93,7 @@
           <div class="flex flex-col" data-test="item-unit-price">
             <div class="flex items-center justify-end">
               <PriceExplanationButton
-                :currency="currency"
+                :currency="baseCurrency"
                 :base-price="pricing.basePrice"
                 :suggested-price="pricing.suggestedPrice"
                 :avg-purchase-price="pricing.avgPurchasePrice"
@@ -106,6 +107,9 @@
             <span>{{ currency }}</span>
           </div>
           <div class="text-xs text-muted">za {{ item.product.unit }}</div>
+          <div v-if="foreign" class="text-xs text-muted" data-test="item-unit-price-base">
+            ≈ {{ Number(item.unit_price).toFixed(2) }} {{ baseCurrency }}
+          </div>
         </div>
 
         <!-- Margin -->
@@ -115,7 +119,7 @@
               ><MarginPercent :margin="margin" :danger="belowMinimumProfit" />
             </span>
             <span class="text-sm tabular-nums text-nowrap">
-              <MarginText :margin="margin" :currency="currency" :danger="belowMinimumProfit" />
+              <MarginText :margin="margin" :currency="baseCurrency" :danger="belowMinimumProfit" />
             </span>
           </template>
         </div>
@@ -126,6 +130,9 @@
             >{{ item.is_returned ? '-' : '' }}{{ totalPrice }}</span
           >
           <span>{{ currency }}</span>
+          <span v-if="foreign" class="text-xs text-muted" data-test="item-total-price-base">
+            ≈ {{ Number(item.total_price).toFixed(2) }} {{ baseCurrency }}
+          </span>
         </div>
 
         <!-- Actions -->
@@ -154,6 +161,8 @@
     v-model:show="editDialog"
     v-model:item="item"
     :currency="currency"
+    :base-currency="baseCurrency"
+    :exchange-rate="exchangeRate"
     :order-code="orderCode"
     :customer-code="customerCode"
     :requires-own-codes="requiresOwnCodes"
@@ -186,7 +195,12 @@ import OutboundOrderItemEditDialog from './OutboundOrderItemEditDialog.vue'
 import PriceExplanationButton from './PriceExplanationButton.vue'
 
 const props = defineProps<{
+  /** Document currency (what the customer sees): selling prices and totals are in it. */
   currency: string
+  /** Base currency: purchase prices and margins are in it. */
+  baseCurrency: string
+  /** Base currency units per 1 unit of the document currency (frozen on the order). */
+  exchangeRate: number
   readonly?: boolean
   orderCode: string
   customerCode?: string
@@ -211,8 +225,9 @@ const cardLayout = useOrderItemCardLayout()
 const editDialog = ref(false)
 const removeDialog = ref(false)
 
-const unitPrice = computed(() => Number(item.value.unit_price).toFixed(2))
-const totalPrice = computed(() => Number(item.value.total_price).toFixed(2))
+const foreign = computed(() => props.currency !== props.baseCurrency)
+const unitPrice = computed(() => Number(item.value.document_unit_price).toFixed(2))
+const totalPrice = computed(() => Number(item.value.document_total_price).toFixed(2))
 
 const pricing = computed(() => {
   const details = item.value.pricing_details

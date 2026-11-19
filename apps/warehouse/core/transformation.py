@@ -54,7 +54,10 @@ from apps.warehouse.core.schemas.orders import (
 )
 from apps.warehouse.core.schemas.packaging import PackageTypeSchema
 from apps.warehouse.core.schemas.printer import PrinterSchema
-from apps.warehouse.core.schemas.settings import GlobalSettingsSchema
+from apps.warehouse.core.schemas.settings import (
+    ExchangeRateSchema,
+    GlobalSettingsSchema,
+)
 from apps.warehouse.core.schemas.product import (
     ProductSchema,
     DynamicProductPriceSchema,
@@ -78,7 +81,12 @@ from apps.warehouse.core.schemas.warehouse import (
 )
 from apps.warehouse.models.barcode import Barcode
 from apps.warehouse.models.customer import Customer, CustomerGroup
-from apps.warehouse.models.settings import CodeSequence, GlobalSettings
+from apps.warehouse.models.settings import (
+    SUPPORTED_CURRENCIES,
+    CodeSequence,
+    CurrencyRate,
+    GlobalSettings,
+)
 from apps.warehouse.models.manufacturing import (
     ManufacturingOrder,
     ManufacturingOrderItem,
@@ -260,8 +268,17 @@ def invoice_outbound_order_item_orm_to_schema(
             else None,
         ),
         amount=float(item.amount),
-        unit_price=float(item.unit_price),
-        total_price=float(item.total_price),
+        # invoiced in the document currency of the order
+        unit_price=float(
+            item.unit_price
+            if item.document_unit_price is None
+            else item.document_unit_price
+        ),
+        total_price=float(
+            item.total_price
+            if item.document_total_price is None
+            else item.document_total_price
+        ),
         index=item.index,
         is_returned=item.is_returned,
         changed=item.changed,
@@ -276,7 +293,7 @@ def invoice_outbound_order_orm_to_schema(
         code=order.code,
         external_code=order.external_code,
         state=OutboundOrderState.get_label(order.state),
-        currency=order.currency,
+        currency=order.document_currency,
         items=[
             invoice_outbound_order_item_orm_to_schema(item)
             for item in order.items.order_by("index", "created").all()
@@ -413,6 +430,7 @@ def customer_orm_to_base_schema(customer: Customer) -> CustomerBaseSchema:
         else None,
         invoice_due_days=customer.invoice_due_days,
         requires_own_codes=customer.requires_own_codes,
+        currency=customer.currency,
     )
 
 
@@ -423,6 +441,12 @@ def global_settings_orm_to_schema(settings: GlobalSettings) -> GlobalSettingsSch
         minimum_item_value=float(settings.minimum_item_value),
         minimum_markup_percent=float(settings.minimum_markup_percent),
         code_sequence=CodeSequence(settings.code_sequence),
+        base_currency=settings.base_currency,
+        supported_currencies=list(SUPPORTED_CURRENCIES),
+        exchange_rates=[
+            ExchangeRateSchema(currency=rate.currency, rate=float(rate.rate))
+            for rate in CurrencyRate.objects.all()
+        ],
     )
 
 
@@ -449,6 +473,7 @@ def customer_orm_to_schema(customer: Customer) -> CustomerSchema:
         requires_origin_country=customer.requires_origin_country,
         minimum_item_value_enabled=customer.minimum_item_value_enabled,
         requires_own_codes=customer.requires_own_codes,
+        currency=customer.currency,
         minimum_item_value=float(customer.minimum_item_value)
         if customer.minimum_item_value is not None
         else None,
@@ -735,6 +760,16 @@ def outbound_order_item_orm_to_schema(
         amount=float(item.amount),
         unit_price=float(item.unit_price),
         total_price=float(item.total_price),
+        document_unit_price=float(
+            item.unit_price
+            if item.document_unit_price is None
+            else item.document_unit_price
+        ),
+        document_total_price=float(
+            item.total_price
+            if item.document_total_price is None
+            else item.document_total_price
+        ),
         index=item.index,
         desired_package_type_name=item.desired_package_type.name
         if item.desired_package_type
@@ -954,6 +989,8 @@ def outbound_order_orm_to_schema(order: OutboundOrder) -> OutboundOrderSchema:
         description=order.description,
         note=order.note,
         currency=order.currency,
+        document_currency=order.document_currency,
+        exchange_rate=float(order.exchange_rate),
         warehouse_order_codes=[wo.code for wo in order.warehouse_orders.all()],
         warehouse_orders=warehouse_orders,
         state=OutboundOrderState.get_label(order.state),
@@ -1012,6 +1049,8 @@ def outbound_calculation_orm_to_schema(
         description=calculation.description,
         note=calculation.note,
         currency=calculation.currency,
+        document_currency=calculation.document_currency,
+        exchange_rate=float(calculation.exchange_rate),
         state=OutboundCalculationState.get_label(calculation.state),
         items=[
             outbound_order_item_orm_to_schema(item, customer_codes=customer_codes)

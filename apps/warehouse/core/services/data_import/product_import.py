@@ -21,6 +21,7 @@ from apps.warehouse.core.services.data_import.audit import log_import, snapshot
 from apps.warehouse.core.services.data_import.errors import DataImportError
 from apps.warehouse.core.services.data_import.progress import ImportProgress
 from apps.warehouse.models.barcode import Barcode, BarcodeType
+from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.models.currency import CURRENCY_CHOICES
 from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.customer import Customer
@@ -44,7 +45,6 @@ AUDITED_FIELDS = (
 )
 TYPE_MAP = {"GOODS": "Zboží"}
 PROGRESS_EVERY = 1000
-DEFAULT_CURRENCY = "CZK"
 DEFAULT_UOM = "KS"
 BASE_PRICE_TYPE = "NORMAL"
 _CURRENCIES = {code for code, _ in CURRENCY_CHOICES}
@@ -309,7 +309,13 @@ class ProductImportService:
         before = self._snapshot(existing) if existing else None
 
         stock_product, created = StockProduct.objects.update_or_create(
-            code=product.code, defaults=defaults
+            code=product.code,
+            defaults=defaults,
+            # new products without an explicit currency are in the base one
+            create_defaults={
+                "currency": settings_service.get_base_currency(),
+                **defaults,
+            },
         )
         if stock is not None:
             self._attach_barcodes(stock_product, stock, summary)

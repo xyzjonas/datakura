@@ -134,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+import { useCurrencySettings } from '@/composables/use-currency-settings'
 import type { CustomerBaseSchema, InvoiceStoreSchema, MediaFileSchema } from '@/client'
 import { rules } from '@/utils/rules'
 import { ref, watch } from 'vue'
@@ -174,7 +175,7 @@ const customer = ref<CustomerBaseSchema | undefined>()
 const supplier = ref<CustomerBaseSchema | undefined>()
 const invoiceFile = ref<File | null>(null)
 const showOptional = ref(false)
-const currencies = ['CZK', 'EUR', 'PLN']
+const { currencies, baseCurrency } = useCurrencySettings()
 
 const invoiceFileRule = (val: File | null) => !!val || 'Nahrajte PDF faktury.'
 
@@ -213,7 +214,7 @@ const onSubmit = () => {
     taxable_supply_date: form.value.taxable_supply_date || undefined,
     paid_date: form.value.paid_date || undefined,
     payment_method_name: form.value.payment_method_name || undefined,
-    currency: form.value.currency || 'CZK',
+    currency: form.value.currency || baseCurrency.value,
     customer_code: customer.value?.code,
     supplier_code: supplier.value?.code,
   }

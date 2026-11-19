@@ -26,18 +26,20 @@ from apps.warehouse.core.services.item_reorder import (
 )
 from apps.warehouse.core.services.customer_codes import customer_product_codes_service
 from apps.warehouse.core.services.outbound_common import (
+    apply_item_prices,
     build_item_pricing_details,
-    compute_unit_price,
     diff_schemas,
     get_customer_contact_or_none,
     get_desired_batch_or_none,
     get_desired_package_or_none,
+    reprice_items_for_document_currency,
+    resolve_document_currencies,
+    resolve_item_prices,
     validate_desired_packaging,
     outbound_order_schema_with_pricing,
     with_pricing_details,
 )
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
-from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.transformation import (
     customer_codes_of_items,
     outbound_calculation_orm_to_schema,
@@ -143,11 +145,16 @@ class OutboundCalculationsService:
 
         customer = Customer.objects.get(code=params.customer_code)
         contact = get_customer_contact_or_none(customer, params.contact_id)
+        currency, document_currency, exchange_rate = resolve_document_currencies(
+            calculation, customer, params.document_currency
+        )
         values = dict(
             external_code=params.external_code,
             description=params.description,
             note=params.note,
-            currency=params.currency,
+            currency=currency,
+            document_currency=document_currency,
+            exchange_rate=exchange_rate,
             customer=customer,
             contact=contact,
             requested_delivery_date=params.requested_delivery_date,
@@ -165,9 +172,12 @@ class OutboundCalculationsService:
                     reason=AuditMessages.CALCULATION_CREATED.CS,
                 )
             else:
+                currency_changed = calculation.document_currency != document_currency
                 for field, value in values.items():
                     setattr(calculation, field, value)
                 calculation.save()
+                if currency_changed:
+                    reprice_items_for_document_currency(calculation)
                 assert previous_schema is not None
                 audit_service.add_entry(
                     calculation,
@@ -202,9 +212,7 @@ class OutboundCalculationsService:
         with transaction.atomic():
             # lock the calculation row to serialize concurrent index allocation
             OutboundCalculation.objects.select_for_update().get(pk=calculation.pk)
-            total_price = settings_service.apply_minimum_item_value(
-                calculation.customer, Decimal(str(item.total_price))
-            )
+            prices = resolve_item_prices(calculation, item, amount)
             validate_desired_packaging(
                 stock_product=stock_product,
                 amount=amount,
@@ -214,8 +222,10 @@ class OutboundCalculationsService:
                 stock_product=stock_product,
                 amount=amount,
                 calculation=calculation,
-                total_price=total_price,
-                unit_price=compute_unit_price(amount, total_price),
+                total_price=prices.total_price,
+                unit_price=prices.unit_price,
+                document_total_price=prices.document_total_price,
+                document_unit_price=prices.document_unit_price,
                 index=item.index
                 if item.index is not None
                 else calculation.items.count(),
@@ -248,17 +258,14 @@ class OutboundCalculationsService:
         amount = Decimal(str(item.amount))
 
         with transaction.atomic():
-            total_price = settings_service.apply_minimum_item_value(
-                calculation.customer, Decimal(str(item.total_price))
-            )
+            prices = resolve_item_prices(calculation, item, amount)
             validate_desired_packaging(
                 stock_product=item_model.stock_product,
                 amount=amount,
                 desired_package_type=desired_package_type,
             )
             item_model.amount = amount
-            item_model.total_price = total_price
-            item_model.unit_price = compute_unit_price(amount, total_price)
+            apply_item_prices(item_model, prices)
             item_model.desired_package_type = desired_package_type
             item_model.desired_batch = desired_batch
             item_model.note = item.note
@@ -398,6 +405,8 @@ class OutboundCalculationsService:
                 description=source.description,
                 note=source.note,
                 currency=source.currency,
+                document_currency=source.document_currency,
+                exchange_rate=source.exchange_rate,
                 customer=source.customer,
                 contact=source.contact,
                 supplier=source.supplier,
@@ -410,6 +419,8 @@ class OutboundCalculationsService:
                     amount=item.amount,
                     unit_price=item.unit_price,
                     total_price=item.total_price,
+                    document_unit_price=item.document_unit_price,
+                    document_total_price=item.document_total_price,
                     index=item.index,
                     desired_package_type=item.desired_package_type,
                     desired_batch=item.desired_batch,
@@ -465,6 +476,8 @@ class OutboundCalculationsService:
                 description=calculation.description,
                 note=calculation.note,
                 currency=calculation.currency,
+                document_currency=calculation.document_currency,
+                exchange_rate=calculation.exchange_rate,
                 customer=calculation.customer,
                 supplier=calculation.supplier,
                 contact=calculation.contact,
@@ -478,6 +491,8 @@ class OutboundCalculationsService:
                     amount=item.amount,
                     unit_price=item.unit_price,
                     total_price=item.total_price,
+                    document_unit_price=item.document_unit_price,
+                    document_total_price=item.document_total_price,
                     index=item.index,
                     desired_package_type=item.desired_package_type,
                     desired_batch=item.desired_batch,

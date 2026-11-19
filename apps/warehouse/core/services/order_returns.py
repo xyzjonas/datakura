@@ -181,12 +181,22 @@ class OrderReturnsService:
                 total_price = (source.total_price * amount / source.amount).quantize(
                     _MONEY, rounding=ROUND_HALF_UP
                 )
+                # returned goods are credited at the very (frozen) document price
+                document_total_price = (
+                    None
+                    if source.document_total_price is None
+                    else (
+                        source.document_total_price * amount / source.amount
+                    ).quantize(_MONEY, rounding=ROUND_HALF_UP)
+                )
                 OutboundOrderItem.objects.create(
                     order=order,
                     stock_product=source.stock_product,
                     amount=amount,
                     unit_price=source.unit_price,
                     total_price=total_price,
+                    document_unit_price=source.document_unit_price,
+                    document_total_price=document_total_price,
                     index=next_index,
                     required_origin_country=source.required_origin_country,
                     is_returned=True,

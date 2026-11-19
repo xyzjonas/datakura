@@ -22,6 +22,8 @@ const makeItem = (overrides: Partial<OutboundOrderItemSchema> = {}) =>
     is_returned: false,
     unit_price: 100,
     total_price: 1000,
+    document_unit_price: 100,
+    document_total_price: 1000,
     product: { code: 'P1', name: 'Prod', unit: 'KS', purchase_price: 60 },
     pricing_details: {
       base_price: 100,
@@ -45,7 +47,14 @@ const withSelection = (child: ReturnType<typeof defineComponent>, active = true)
     setup(props) {
       state.selection = provideReturnSelection()
       state.selection.active.value = active
-      return () => h(child, { item: props.item, currency: 'CZK', orderCode: 'OP1' })
+      return () =>
+        h(child, {
+          item: props.item,
+          currency: 'CZK',
+          baseCurrency: 'CZK',
+          exchangeRate: 1,
+          orderCode: 'OP1',
+        })
     },
   })
   return { Host, state }
@@ -66,7 +75,9 @@ describe('returned row', () => {
   }
 
   it('is marked as returned, negative and without margin or actions', () => {
-    const wrapper = mountRow(makeItem({ is_returned: true, amount: 4, total_price: 400 }))
+    const wrapper = mountRow(
+      makeItem({ is_returned: true, amount: 4, total_price: 400, document_total_price: 400 }),
+    )
 
     expect(wrapper.find('[data-test="returned-badge"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('-400.00')

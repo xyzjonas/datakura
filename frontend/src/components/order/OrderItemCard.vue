@@ -66,7 +66,7 @@
       <div class="flex items-center justify-between text-xs text-slate-500">
         <div data-test="item-purchase-price">
           Nákupní / {{ item.product.unit }}:
-          <span class="font-medium">{{ money(purchasePrice) }}</span>
+          <span class="font-medium">{{ money(purchasePrice, baseCurrency ?? currency) }}</span>
         </div>
         <div v-if="sellingPrice !== undefined" class="text-right" data-test="item-unit-price">
           Prodejní / {{ item.product.unit }}:
@@ -83,7 +83,7 @@
               margin.amount >= 0 && !belowMinimumProfit ? 'text-green-600' : 'text-red',
             ]"
           >
-            {{ formatDecimal(margin.amount, true) }} {{ currency }}
+            {{ formatDecimal(margin.amount, true) }} {{ baseCurrency ?? currency }}
             <span class="text-[11px] font-medium"
               >({{ formatDecimal(margin.percent, true) }} %)</span
             >
@@ -93,7 +93,7 @@
         <span
           :class="['text-base font-bold tabular-nums leading-none', returned ? 'text-red' : '']"
           data-test="item-total-price"
-          >{{ returned ? '-' : '' }}{{ money(item.total_price) }}</span
+          >{{ returned ? '-' : '' }}{{ money(item.document_total_price ?? item.total_price) }}</span
         >
       </div>
     </div>
@@ -118,10 +118,14 @@ const props = defineProps<{
     index: number
     amount: number
     total_price: number
+    document_total_price?: number
     note?: string | null
     product: { code: string; name: string; unit: string; non_physical?: boolean }
   }
+  /** Document currency: selling price and total are shown in it. */
   currency: string
+  /** Currency of the purchase price and the margin (defaults to `currency`). */
+  baseCurrency?: string
   readonly?: boolean
   /** Inbound only. */
   requiresCertification?: boolean
@@ -144,5 +148,6 @@ const props = defineProps<{
 
 defineEmits<{ (e: 'edit'): void; (e: 'remove'): void }>()
 
-const money = (value: number) => `${formatDecimal(Number(value))} ${props.currency}`
+const money = (value: number, currency = props.currency) =>
+  `${formatDecimal(Number(value))} ${currency}`
 </script>

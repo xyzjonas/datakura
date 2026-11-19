@@ -99,6 +99,8 @@ class OutboundOrderFactory(DjangoModelFactory):
 
     customer = factory.SubFactory(CustomerFactory)
     currency = CURRENCY_CHOICES[0][0]
+    # by default a document is in the base currency
+    document_currency = factory.SelfAttribute("currency")
     invoice = None
     state = OutboundOrderState.SUBMITTED
 
@@ -143,6 +145,8 @@ class OutboundCalculationFactory(DjangoModelFactory):
 
     customer = factory.SubFactory(CustomerFactory)
     currency = CURRENCY_CHOICES[0][0]
+    # by default a document is in the base currency
+    document_currency = factory.SelfAttribute("currency")
     state = OutboundCalculationState.OPEN
     order = None
     is_deleted = False

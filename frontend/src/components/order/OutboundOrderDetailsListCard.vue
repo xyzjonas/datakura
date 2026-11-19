@@ -28,7 +28,17 @@
       </q-item>
       <q-item clickable>
         <q-item-section>Měna objednávky</q-item-section>
-        <q-item-section avatar>{{ order.currency }}</q-item-section>
+        <q-item-section avatar data-test="order-currency">{{
+          order.document_currency
+        }}</q-item-section>
+      </q-item>
+      <q-item v-if="order.document_currency !== order.currency" clickable>
+        <q-item-section
+          >Kurz (1 {{ order.document_currency }} v {{ order.currency }})</q-item-section
+        >
+        <q-item-section avatar data-test="order-exchange-rate">{{
+          order.exchange_rate
+        }}</q-item-section>
       </q-item>
 
       <q-item clickable>

@@ -4,6 +4,7 @@ from django.db import connection, models
 from django.db.models import Q, QuerySet
 
 from .base import BaseModel
+from .currency import CURRENCY_CHOICES
 
 
 STATE_CHOICES = [
@@ -83,6 +84,12 @@ class Customer(BaseModel):
     # needs a `CustomerProductCode` (order can't be confirmed otherwise) and only
     # these codes are shown/printed to the customer.
     requires_own_codes = models.BooleanField(default=False)
+
+    # Invoicing currency override (e.g. EUR when selling abroad). Null = the base
+    # currency of the app (`GlobalSettings.base_currency`).
+    currency = models.CharField(
+        max_length=3, choices=CURRENCY_CHOICES, null=True, blank=True, default=None
+    )
 
     # Agreements
     data_collection_agreement = models.BooleanField(default=False)
