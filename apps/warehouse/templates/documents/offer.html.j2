@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8" />
+    <title>{{ offer.code }}</title>
+    <style>
+        @page { size: A4; margin: 18mm 16mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; color: #132238; font-family: "DejaVu Sans", sans-serif; font-size: 11px; line-height: 1.45; }
+        h1 { margin: 0; font-size: 24px; }
+        .eyebrow { margin: 0 0 4px; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; font-size: 9px; font-weight: 700; }
+        .code { margin-top: 8px; display: inline-block; padding: 4px 10px; border-radius: 999px; background: #dff5f2; color: #0f766e; font-weight: 700; }
+        .header { display: flex; justify-content: space-between; padding: 16px 18px; border: 1px solid #d7dee7; border-radius: 12px; background: #eef6f5; }
+        .meta { text-align: right; color: #64748b; }
+        .meta strong { color: #132238; }
+        .parties { display: flex; gap: 16px; margin: 16px 0; }
+        .party { flex: 1; padding: 12px 14px; border: 1px solid #d7dee7; border-radius: 10px; }
+        .party-name { font-weight: 700; font-size: 12px; }
+        .muted { color: #64748b; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th { text-align: left; padding: 7px 8px; background: #f6f8fb; border-bottom: 1px solid #d7dee7; font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; }
+        td { padding: 7px 8px; border-bottom: 1px solid #e8edf3; vertical-align: top; }
+        .number { text-align: right; white-space: nowrap; }
+        .total { margin-top: 12px; text-align: right; font-size: 14px; font-weight: 700; }
+        .note { margin-top: 14px; padding: 10px 12px; border-left: 3px solid #0f766e; background: #f6f8fb; }
+        .footer { margin-top: 24px; color: #64748b; font-size: 9px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <p class="eyebrow">Datakura</p>
+            <h1>Nabídka</h1>
+            <div class="code">{{ offer.code }}</div>
+        </div>
+        <div class="meta">
+            <div>Vystaveno: <strong>{{ offer.created|date }}</strong></div>
+            <div>Požadované datum dodání: <strong>{{ offer.requested_delivery_date|date }}</strong></div>
+            {% if offer.contact %}<div>Kontakt: <strong>{{ offer.contact.first_name }} {{ offer.contact.last_name }}</strong></div>{% endif %}
+        </div>
+    </div>
+
+    <div class="parties">
+            <div class="party">
+                <p class="eyebrow">Dodavatel</p>
+                {% if offer.supplier %}
+                    <div class="party-name">{{ offer.supplier.name }}</div>
+                    {% if offer.supplier.street or offer.supplier.city %}<div>{{ offer.supplier.street }}, {{ offer.supplier.postal_code }} {{ offer.supplier.city }}</div>{% endif %}
+                    {% if offer.supplier.identification %}<div class="muted">IČO: {{ offer.supplier.identification }}</div>{% endif %}
+                    {% if offer.supplier.tax_identification %}<div class="muted">DIČ: {{ offer.supplier.tax_identification }}</div>{% endif %}
+                {% else %}
+                    <div class="muted">-</div>
+                {% endif %}
+            </div>
+            <div class="party">
+                <p class="eyebrow">Zákazník</p>
+                {% if offer.customer %}
+                    <div class="party-name">{{ offer.customer.name }}</div>
+                    {% if offer.customer.street or offer.customer.city %}<div>{{ offer.customer.street }}, {{ offer.customer.postal_code }} {{ offer.customer.city }}</div>{% endif %}
+                    {% if offer.customer.identification %}<div class="muted">IČO: {{ offer.customer.identification }}</div>{% endif %}
+                    {% if offer.customer.tax_identification %}<div class="muted">DIČ: {{ offer.customer.tax_identification }}</div>{% endif %}
+                {% else %}
+                    <div class="muted">-</div>
+                {% endif %}
+            </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr><th>Položka</th><th class="number">Množství</th><th class="number">Cena / MJ</th><th class="number">Celkem</th></tr>
+        </thead>
+        <tbody>
+            {% for item in offer.items %}
+                <tr>
+                    <td>
+                        <strong>{{ item.product.name }}</strong>
+                        <div class="muted">{{ item.product.code }}</div>
+                    </td>
+                    <td class="number">{{ item.amount|number(2) }} {{ item.product.unit }}</td>
+                    <td class="number">{{ item.unit_price|money(offer.currency) }}</td>
+                    <td class="number">{{ item.total_price|money(offer.currency) }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="total">Celkem: {{ offer.items|sum(attribute="total_price")|money(offer.currency) }}</div>
+    {% if offer.note %}<div class="note">{{ offer.note }}</div>{% endif %}
+
+    <div class="footer">Dokument byl vygenerován automaticky systémem Datakura.</div>
+</body>
+</html>

@@ -308,15 +308,15 @@
             <div class="hero-meta">
                 <div class="meta-card">
                     <span class="meta-label">Vystaveno</span>
-                    <span class="meta-value">{{ invoice.issued_date|date:"d. m. Y" }}</span>
+                    <span class="meta-value">{{ invoice.issued_date|date }}</span>
                 </div>
                 <div class="meta-card">
                     <span class="meta-label">Splatnost</span>
-                    <span class="meta-value">{{ invoice.due_date|date:"d. m. Y" }}</span>
+                    <span class="meta-value">{{ invoice.due_date|date }}</span>
                 </div>
                 <div class="meta-card">
                     <span class="meta-label">DUZP</span>
-                    <span class="meta-value">{{ invoice.taxable_supply_date|date:"d. m. Y" }}</span>
+                    <span class="meta-value">{{ invoice.taxable_supply_date|date }}</span>
                 </div>
                 <div class="meta-card">
                     <span class="meta-label">Mena</span>
@@ -380,7 +380,7 @@
             <div class="summary-panel totals">
                 <div class="total-row">
                     <span>Platebni metoda</span>
-                    <span>{{ invoice.payment_method.name|default:"-" }}</span>
+                    <span>{{ invoice.payment_method.name|default("-") }}</span>
                 </div>
                 {% if invoice.external_code %}
                     <div class="total-row">
@@ -391,12 +391,12 @@
                 {% if invoice.paid_date %}
                     <div class="total-row">
                         <span>Uhrazeno</span>
-                        <span>{{ invoice.paid_date|date:"d. m. Y" }}</span>
+                        <span>{{ invoice.paid_date|date }}</span>
                     </div>
                 {% endif %}
                 <div class="total-row">
                     <span>Celkem k uhrade</span>
-                    <strong>{{ total_amount|floatformat:2 }} {{ invoice.currency }}</strong>
+                    <strong>{{ total_amount|number(2) }} {{ invoice.currency }}</strong>
                 </div>
             </div>
         </section>
@@ -434,9 +434,9 @@
                                         <div class="product-name">{{ item.product.name }}{% if item.is_returned %} (vratka){% endif %}</div>
                                         <div class="product-meta">{{ item.product.code }}</div>
                                     </td>
-                                    <td class="number">{{ item.amount|floatformat:4 }} {% if item.product.unit %}{{ item.product.unit }}{% endif %}</td>
-                                    <td class="number">{{ item.unit_price|floatformat:4 }} {{ invoice.currency }}</td>
-                                    <td class="number">{% if item.is_returned %}-{% endif %}{{ item.total_price|floatformat:4 }} {{ invoice.currency }}</td>
+                                    <td class="number">{{ item.amount|number(4) }} {% if item.product.unit %}{{ item.product.unit }}{% endif %}</td>
+                                    <td class="number">{{ item.unit_price|number(4) }} {{ invoice.currency }}</td>
+                                    <td class="number">{% if item.is_returned %}-{% endif %}{{ item.total_price|number(4) }} {{ invoice.currency }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -444,7 +444,7 @@
 
                     <div class="order-total">
                         <span class="order-total-label">Mezisoucet objednavky</span>
-                        <span class="order-total-value">{{ section.total_amount|floatformat:2 }} {{ invoice.currency }}</span>
+                        <span class="order-total-value">{{ section.total_amount|number(2) }} {{ invoice.currency }}</span>
                     </div>
                 </article>
             {% endfor %}

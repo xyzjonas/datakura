@@ -1,10 +1,10 @@
 from calendar import monthrange
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 from django.db import transaction
 from django.db.models import QuerySet
-from django.template.loader import get_template
 from django.utils import timezone
 
 from apps.warehouse.core.audit_messages import AuditMessages
@@ -19,10 +19,10 @@ from apps.warehouse.core.schemas.invoice import (
     OutboundInvoiceCreateSchema,
 )
 from apps.warehouse.core.services import audit_service
-from apps.warehouse.core.services.pdf import print_html_to_pdf
 from apps.warehouse.core.transformation import invoice_orm_to_detail_schema
 from apps.warehouse.models.audit import AuditAction
 from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.document_template import DocumentTarget
 from apps.warehouse.models.orders import (
     Invoice,
     InvoicePaymentMethod,
@@ -233,7 +233,8 @@ class InvoicesService:
         return invoice_orm_to_detail_schema(invoice)
 
     @classmethod
-    def get_html(cls, invoice_code: str) -> str:
+    def get_document_context(cls, invoice_code: str) -> dict[str, Any]:
+        """Data of the printed invoice (the context of its document template)."""
         invoice = cls.get_invoice(invoice_code)
         order_sections = []
         total_amount = Decimal("0")
@@ -253,18 +254,31 @@ class InvoicesService:
                     "total_amount": order_total_amount,
                 }
             )
-        template = get_template("outbound_invoice.html")
-        return template.render(
-            {
-                "invoice": invoice.model_dump(),
-                "order_sections": order_sections,
-                "total_amount": total_amount,
-            }
+        return {
+            "invoice": invoice.model_dump(),
+            "order_sections": order_sections,
+            "total_amount": total_amount,
+        }
+
+    @classmethod
+    def get_html(cls, invoice_code: str) -> str:
+        from apps.warehouse.core.services.document_templates import (
+            document_template_service,
+        )
+
+        return document_template_service.render_record_html(
+            DocumentTarget.OUTBOUND_INVOICE, invoice_code
         )
 
     @classmethod
     def get_pdf(cls, invoice_code: str) -> bytes:
-        return print_html_to_pdf(content_html=cls.get_html(invoice_code))
+        from apps.warehouse.core.services.document_templates import (
+            document_template_service,
+        )
+
+        return document_template_service.render_record_pdf(
+            DocumentTarget.OUTBOUND_INVOICE, invoice_code
+        )
 
     @classmethod
     def create_outbound_invoice(

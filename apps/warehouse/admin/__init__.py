@@ -24,6 +24,7 @@ from apps.warehouse.models.orders import (
 from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.printer import Printer, UserAppSettings
 from apps.warehouse.models.settings import GlobalSettings
+from apps.warehouse.models.document_template import DocumentTemplate
 from apps.warehouse.models.product import (
     StockProduct,
     UnitOfMeasure,
@@ -128,6 +129,7 @@ admin.site.register(ShippingType)
 admin.site.register(OutboundOrderShipping)
 admin.site.register(UserAppSettings)
 admin.site.register(GlobalSettings)
+admin.site.register(DocumentTemplate)
 
 
 @admin.register(Printer)

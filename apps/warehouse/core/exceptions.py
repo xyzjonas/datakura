@@ -25,6 +25,8 @@ class ErrorCode(enum.Enum):
 
     DATA_IMPORT_FAILED = ("IMPORT_0001", "Data import failed")
 
+    INVALID_DOCUMENT_TEMPLATE = ("TEMPLATE_0001", "Invalid document template")
+
     @property
     def code(self):
         return self.value[0]
@@ -102,3 +104,15 @@ def raise_by_code(code: ErrorCode, message: str) -> NoReturn:
     exc = ApiBaseException(message)
     exc.code = code
     raise exc
+
+
+class TemplateRenderError(ApiBaseException):
+    """A document template does not compile / fails while rendering."""
+
+    code = ErrorCode.INVALID_DOCUMENT_TEMPLATE
+    http_status = 422
+
+    def __init__(self, message: str, line: int | None = None):
+        self.line = line
+        super().__init__(f"{message} (line {line})" if line else message)
+        self.reason = message
