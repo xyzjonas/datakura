@@ -6406,6 +6406,221 @@ export type GetCertificationItemsResponse = {
   data: Array<WarehouseItemSchema>
 }
 
+/**
+ * DocumentTarget
+ * Printable document kinds - each has (at most) one customised template
+ */
+export type DocumentTarget =
+  | 'goods_receipt'
+  | 'issue_note'
+  | 'delivery_note'
+  | 'outbound_invoice'
+  | 'offer'
+
+/**
+ * DocumentTargetSchema
+ */
+export type DocumentTargetSchema = {
+  target: DocumentTarget
+  /**
+   * Label
+   */
+  label: string
+  /**
+   * Is Default
+   */
+  is_default: boolean
+}
+
+/**
+ * GetDocumentTargetsResponse
+ */
+export type GetDocumentTargetsResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  /**
+   * Data
+   */
+  data: Array<DocumentTargetSchema>
+}
+
+/**
+ * DocumentLegendSchema
+ */
+export type DocumentLegendSchema = {
+  /**
+   * Fields
+   */
+  fields: Array<LegendEntrySchema>
+  /**
+   * Filters
+   */
+  filters: Array<LegendFilterSchema>
+}
+
+/**
+ * DocumentTemplateSchema
+ */
+export type DocumentTemplateSchema = {
+  target: DocumentTarget
+  /**
+   * Label
+   */
+  label: string
+  /**
+   * Content
+   */
+  content: string
+  /**
+   * Is Default
+   */
+  is_default: boolean
+  legend: DocumentLegendSchema
+}
+
+/**
+ * GetDocumentTemplateResponse
+ */
+export type GetDocumentTemplateResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  data: DocumentTemplateSchema
+}
+
+/**
+ * LegendEntrySchema
+ * One variable available in the template context.
+ */
+export type LegendEntrySchema = {
+  /**
+   * Path
+   */
+  path: string
+  /**
+   * Type
+   */
+  type: string
+  /**
+   * Description
+   */
+  description?: string | null
+}
+
+/**
+ * LegendFilterSchema
+ */
+export type LegendFilterSchema = {
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Signature
+   */
+  signature: string
+  /**
+   * Description
+   */
+  description: string
+}
+
+/**
+ * DocumentTemplateUpdateSchema
+ */
+export type DocumentTemplateUpdateSchema = {
+  /**
+   * Content
+   */
+  content: string
+}
+
+/**
+ * DocumentRecordSchema
+ */
+export type DocumentRecordSchema = {
+  /**
+   * Code
+   */
+  code: string
+  /**
+   * Label
+   */
+  label: string
+}
+
+/**
+ * GetDocumentRecordsResponse
+ */
+export type GetDocumentRecordsResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  /**
+   * Data
+   */
+  data: Array<DocumentRecordSchema>
+}
+
+/**
+ * DocumentPreviewSchema
+ */
+export type DocumentPreviewSchema = {
+  /**
+   * Html
+   */
+  html?: string | null
+  error?: TemplateErrorSchema | null
+}
+
+/**
+ * GetDocumentPreviewResponse
+ */
+export type GetDocumentPreviewResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  data: DocumentPreviewSchema
+}
+
+/**
+ * TemplateErrorSchema
+ */
+export type TemplateErrorSchema = {
+  /**
+   * Message
+   */
+  message: string
+  /**
+   * Line
+   */
+  line?: number | null
+}
+
+/**
+ * DocumentRenderSchema
+ * Render request: the (possibly unsaved) template over a real record.
+ */
+export type DocumentRenderSchema = {
+  /**
+   * Record Code
+   */
+  record_code: string
+  /**
+   * Content
+   */
+  content?: string | null
+}
+
 export type WarehouseApiRoutesAuthLoginUserData = {
   body: LoginFormSchema
   path?: never
@@ -11307,3 +11522,160 @@ export type WarehouseApiRoutesCertificationsGetCertificationItemsResponses = {
 
 export type WarehouseApiRoutesCertificationsGetCertificationItemsResponse =
   WarehouseApiRoutesCertificationsGetCertificationItemsResponses[keyof WarehouseApiRoutesCertificationsGetCertificationItemsResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/v1/document-templates'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentTargetsResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponse =
+  WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses[keyof WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateData = {
+  body?: never
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised template
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentTemplateResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponse =
+  WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponses[keyof WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateData = {
+  body?: never
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised template
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentTemplateResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponse =
+  WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponses[keyof WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateData = {
+  body: DocumentTemplateUpdateSchema
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised template
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentTemplateResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponse =
+  WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponses[keyof WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsData = {
+  body?: never
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised template
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: {
+    /**
+     * Q
+     */
+    q?: string | null
+  }
+  url: '/api/v1/document-templates/{target}/records'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentRecordsResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponse =
+  WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponses[keyof WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesPreviewDocumentData = {
+  body: DocumentRenderSchema
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised template
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}/preview'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentPreviewResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponse =
+  WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponses[keyof WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesExportDocumentPdfData = {
+  body: DocumentRenderSchema
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised template
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}/pdf'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesExportDocumentPdfResponses = {
+  /**
+   * OK
+   */
+  200: unknown
+}
