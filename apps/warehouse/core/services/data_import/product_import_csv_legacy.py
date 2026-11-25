@@ -6,6 +6,7 @@ from pathlib import Path
 from django.db import transaction
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.product import ProductGroup, ProductType, StockProduct
 
@@ -174,7 +175,7 @@ class ProductCsvImportService:
                 "group": product_group,
                 "unit_of_measure": product_uom,
                 "unit_weight": product.weight or 0,
-                "currency": product.currency or "CZK",
+                "currency": product.currency or settings_service.get_base_currency(),
                 "purchase_price": product.purchase_price or 0,
                 "base_price": product.base_price or 0,
                 "attributes": product.attributes,

@@ -25,6 +25,8 @@
           <SellingPriceEditor
             v-model="item.unit_price"
             :currency="currency"
+            :base-currency="baseCurrency"
+            :exchange-rate="exchangeRate"
             :unit="productUom"
             :base-price="pricingContext.basePrice"
             :suggested-price="pricingContext.suggestedPrice"
@@ -38,7 +40,7 @@
             v-model.number="item.total_price"
             outlined
             label="Celková cena"
-            hint="Celková cena položky"
+            :hint="totalHint"
             inputmode="numeric"
             :rules="[rules.atLeastOne, rules.max99999]"
             @update:model-value="recalcUnitFromTotal"
@@ -49,10 +51,10 @@
           </q-input>
           <ItemMarginSummary
             v-if="product"
-            :currency="currency"
+            :currency="baseCurrency"
             :amount="item.amount"
-            :purchase-price="pricingContext.avgPurchasePrice"
-            :total-price="item.total_price"
+            :purchase-price="baseAvgPurchasePrice"
+            :total-price="toBase(item.total_price ?? 0, exchangeRate)"
           />
           <CustomerProductCodeInput
             v-if="requiresOwnCodes"
@@ -119,6 +121,8 @@ import {
   type SellingPriceLookupSchema,
 } from '@/client'
 import { useApi } from '@/composables/use-api'
+import { fromBase, toBase } from '@/utils/currency'
+import { round } from '@/utils/round'
 import { rules } from '@/utils/rules'
 import { computed, nextTick, ref, watch } from 'vue'
 import type { QForm } from 'quasar'
@@ -137,7 +141,11 @@ export interface NewOutboundOrderItemDialogExpose {
 }
 
 const props = defineProps<{
+  /** Document currency: the prices are entered in it. */
   currency: string
+  baseCurrency: string
+  /** Base currency units per 1 unit of the document currency. */
+  exchangeRate: number
   customerCode: string
   /** Customer orders by own codes - the code field is shown (and highlighted when empty). */
   requiresOwnCodes?: boolean
@@ -185,10 +193,10 @@ watch(product, (newValue: ProductSchema | undefined) => {
     const data = onResponse(response)
     if (data?.data) {
       pricingLookup.value = data.data
-      item.value.unit_price = data.data.final_price
+      item.value.unit_price = toDocument(data.data.final_price)
     } else {
       pricingLookup.value = undefined
-      item.value.unit_price = newValue.base_price ?? 0
+      item.value.unit_price = toDocument(newValue.base_price ?? 0)
     }
     item.value.total_price = (item.value.unit_price ?? 0) * item.value.amount
   }
@@ -213,10 +221,24 @@ watch(product, (newValue: ProductSchema | undefined) => {
   void resolveOwnCode()
 })
 
+const foreign = computed(() => props.currency !== props.baseCurrency)
+
+/** Prices of the system are in the base currency, the form is in the document one. */
+const toDocument = (basePrice: number) =>
+  foreign.value ? round(fromBase(basePrice, props.exchangeRate)) : basePrice
+
+const totalHint = computed(() =>
+  foreign.value
+    ? `Celková cena položky ≈ ${toBase(item.value.total_price ?? 0, props.exchangeRate).toFixed(2)} ${props.baseCurrency}`
+    : 'Celková cena položky',
+)
+
+const baseAvgPurchasePrice = computed(() => product.value?.purchase_price ?? 0)
+
 const pricingContext = computed(() => ({
-  basePrice: pricingLookup.value?.base_price ?? product.value?.base_price ?? 0,
-  suggestedPrice: pricingLookup.value?.final_price ?? product.value?.base_price ?? 0,
-  avgPurchasePrice: product.value?.purchase_price ?? 0,
+  basePrice: toDocument(pricingLookup.value?.base_price ?? product.value?.base_price ?? 0),
+  suggestedPrice: toDocument(pricingLookup.value?.final_price ?? product.value?.base_price ?? 0),
+  avgPurchasePrice: toDocument(baseAvgPurchasePrice.value),
   discountPercent: pricingLookup.value?.discount_percent ?? 0,
   reason: pricingLookup.value?.reason ?? 'Base selling price',
   source: pricingLookup.value?.source ?? 'BASE_PRICE',
@@ -231,7 +253,7 @@ const recalcUnitFromTotal = () => {
     item.value.unit_price = 0
     return
   }
-  item.value.unit_price = item.value.total_price / item.value.amount
+  item.value.unit_price = (item.value.total_price ?? 0) / item.value.amount
 }
 
 const emit = defineEmits<{
@@ -250,7 +272,11 @@ const productSelect = ref<InstanceType<typeof ProductSearchSelect>>()
 const keepOpen = ref(false)
 
 const addItem = () => {
-  emit('addItem', item.value, keepOpen.value)
+  // a price entered in a foreign currency is stored as it is, the base one is derived from it
+  const payload: OutboundOrderItemCreateSchema = foreign.value
+    ? { ...item.value, total_price: null, document_total_price: item.value.total_price }
+    : item.value
+  emit('addItem', payload, keepOpen.value)
   keepOpen.value = false
 }
 

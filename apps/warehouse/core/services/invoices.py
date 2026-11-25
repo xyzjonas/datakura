@@ -19,6 +19,7 @@ from apps.warehouse.core.schemas.invoice import (
     OutboundInvoiceCreateSchema,
 )
 from apps.warehouse.core.services import audit_service
+from apps.warehouse.core.services.settings import settings_service
 from apps.warehouse.core.services.pdf import print_html_to_pdf
 from apps.warehouse.core.transformation import invoice_orm_to_detail_schema
 from apps.warehouse.models.audit import AuditAction
@@ -334,7 +335,7 @@ class InvoicesService:
                 "Selected outbound orders must belong to same customer."
             )
 
-        currencies = {order.currency for order in ordered_orders}
+        currencies = {order.document_currency for order in ordered_orders}
         if len(currencies) != 1:
             raise WarehouseItemBadRequestError(
                 "Selected outbound orders must use same currency."
@@ -347,7 +348,7 @@ class InvoicesService:
         )
         due_date = cls._resolve_due_date(customer, params.issued_date, params.due_date)
         invoice_code = cls.generate_next_outbound_invoice_code()
-        currency = ordered_orders[0].currency
+        currency = ordered_orders[0].document_currency
 
         with transaction.atomic():
             invoice = Invoice.objects.create(
@@ -419,7 +420,7 @@ class InvoicesService:
             external_code=params.external_code,
             taxable_supply_date=params.taxable_supply_date,
             paid_date=params.paid_date,
-            currency=params.currency,
+            currency=params.currency or settings_service.get_base_currency(),
             note=params.note,
             invoice_file_name=invoice_file.name if invoice_file is not None else None,
         )
@@ -434,7 +435,7 @@ class InvoicesService:
             invoice.external_code = params.external_code
             invoice.taxable_supply_date = params.taxable_supply_date
             invoice.paid_date = params.paid_date
-            invoice.currency = params.currency
+            invoice.currency = params.currency or settings_service.get_base_currency()
             invoice.note = params.note
 
             if invoice_file is not None:

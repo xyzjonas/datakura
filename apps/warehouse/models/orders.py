@@ -353,6 +353,15 @@ class OutboundOrder(BaseModel):
     items: QuerySet["OutboundOrderItem"]
 
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
+    # `currency` above is always the BASE currency (what everything is calculated
+    # in). The document currency is what the customer sees / is invoiced in; the
+    # exchange rate (base per 1 document currency) is frozen when it is set.
+    document_currency = models.CharField(
+        max_length=3, choices=CURRENCY_CHOICES, default="CZK"
+    )
+    exchange_rate = models.DecimalField(
+        max_digits=18, decimal_places=8, default=Decimal("1")
+    )
     state = models.PositiveIntegerField(
         choices=OutboundOrderState.choices,
         default=OutboundOrderState.SUBMITTED,
@@ -395,6 +404,14 @@ class OutboundOrderItem(BaseModel):
     )
     total_price = models.DecimalField(
         max_digits=12, decimal_places=4, default=Decimal("0")
+    )
+    # Exact amounts in the order's document currency (as entered by the sales person),
+    # frozen - never re-derived from the rate. Null = order is in the base currency.
+    document_unit_price = models.DecimalField(
+        max_digits=14, decimal_places=4, null=True, blank=True
+    )
+    document_total_price = models.DecimalField(
+        max_digits=16, decimal_places=4, null=True, blank=True
     )
     desired_package_type = models.ForeignKey(
         PackageType,
@@ -491,6 +508,15 @@ class OutboundCalculation(BaseModel):
         related_name="outbound_calculations",
     )
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="CZK")
+    # `currency` above is always the BASE currency (what everything is calculated
+    # in). The document currency is what the customer sees / is invoiced in; the
+    # exchange rate (base per 1 document currency) is frozen when it is set.
+    document_currency = models.CharField(
+        max_length=3, choices=CURRENCY_CHOICES, default="CZK"
+    )
+    exchange_rate = models.DecimalField(
+        max_digits=18, decimal_places=8, default=Decimal("1")
+    )
     state = models.PositiveIntegerField(
         choices=OutboundCalculationState.choices,
         default=OutboundCalculationState.OPEN,
@@ -538,6 +564,14 @@ class OutboundCalculationItem(BaseModel):
     )
     total_price = models.DecimalField(
         max_digits=12, decimal_places=4, default=Decimal("0")
+    )
+    # Exact amounts in the order's document currency (as entered by the sales person),
+    # frozen - never re-derived from the rate. Null = order is in the base currency.
+    document_unit_price = models.DecimalField(
+        max_digits=14, decimal_places=4, null=True, blank=True
+    )
+    document_total_price = models.DecimalField(
+        max_digits=16, decimal_places=4, null=True, blank=True
     )
     desired_package_type = models.ForeignKey(
         PackageType,

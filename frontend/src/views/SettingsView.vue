@@ -51,6 +51,7 @@ import PaymentSettingsTab from '@/components/settings/PaymentSettingsTab.vue'
 import ShippingSettingsTab from '@/components/settings/ShippingSettingsTab.vue'
 import PrintersSettingsTab from '@/components/settings/PrintersSettingsTab.vue'
 import SnapshotSchedulesSettingsTab from '@/components/settings/SnapshotSchedulesSettingsTab.vue'
+import CurrencySettingsTab from '@/components/settings/CurrencySettingsTab.vue'
 import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
 import { computed, ref, shallowRef, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -66,6 +67,7 @@ const selectedTabComponent = shallowRef<Component>()
 
 const validTabs = new Set([
   'app',
+  'currency',
   'location',
   'packaging',
   'products',
@@ -109,6 +111,8 @@ watch(
 
     if (value === 'app') {
       selectedTabComponent.value = AppSettingsTab
+    } else if (value === 'currency') {
+      selectedTabComponent.value = CurrencySettingsTab
     } else if (value === 'packaging') {
       selectedTabComponent.value = PackagingSettingsTab
     } else if (value === 'products') {
@@ -141,6 +145,11 @@ const allItems = [
     key: 'app',
     label: 'Přizpůsobení',
     icon: 'sym_o_settings',
+  },
+  {
+    key: 'currency',
+    label: 'Měnové možnosti',
+    icon: 'sym_o_currency_exchange',
   },
   // {
   //   key: 'location',

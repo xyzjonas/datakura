@@ -125,7 +125,8 @@ class ProductCreateOrUpdateSchema(Schema):
     purchase_price: float = 0
     no_discount: bool = False
     disallow_unpacking: bool = False
-    currency: str = "CZK"
+    # null = the base currency of the app
+    currency: str | None = None
     customs_declaration_group: str | None = Field(None, max_length=255)
     attributes: dict[str, str] = Field(default_factory=dict)
 

@@ -17,6 +17,8 @@ const buildOrder = (overrides: Partial<OutboundOrderSchema> = {}): OutboundOrder
     description: null,
     note: null,
     currency: 'CZK',
+    document_currency: 'CZK',
+    exchange_rate: 1,
     type: 'Outbound',
     supplier: {
       created: '2026-04-01T10:00:00Z',
@@ -117,7 +119,7 @@ describe('outbound invoice helpers', () => {
       ),
     ).toBe('different-customer')
     expect(
-      getOutboundInvoiceSelectionBlockReason(buildOrder({ currency: 'EUR' }), anchorOrder),
+      getOutboundInvoiceSelectionBlockReason(buildOrder({ document_currency: 'EUR' }), anchorOrder),
     ).toBe('different-currency')
     expect(
       canGroupOutboundOrderForInvoice(

@@ -40,6 +40,8 @@
             <SellingPriceEditor
               v-model="unitPrice"
               :currency="currency"
+              :base-currency="baseCurrency"
+              :exchange-rate="exchangeRate"
               :unit="item.product.unit"
               :base-price="pricingContext.basePrice"
               :suggested-price="pricingContext.suggestedUnitPrice"
@@ -59,6 +61,7 @@
               dense
               outlined
               label="Celková cena"
+              :hint="totalHint"
               :debounce="500"
               class="w-full"
             >
@@ -114,6 +117,7 @@ import {
 } from '@/client'
 import { useApi } from '@/composables/use-api'
 import { useOutboundDocumentApi } from '@/composables/use-outbound-document-api'
+import { fromBase, toBase } from '@/utils/currency'
 import { round } from '@/utils/round'
 import { useQuasar } from 'quasar'
 import { computed, ref, watch } from 'vue'
@@ -136,7 +140,11 @@ const { onResponse } = useApi()
 const outboundDocumentApi = useOutboundDocumentApi()
 
 const props = defineProps<{
+  /** Document currency: the prices are entered in it. */
   currency: string
+  baseCurrency: string
+  /** Base currency units per 1 unit of the document currency (frozen on the order). */
+  exchangeRate: number
   orderCode: string
   customerCode?: string
   requiresOwnCodes?: boolean
@@ -145,26 +153,45 @@ const props = defineProps<{
 const show = defineModel<boolean>('show', { default: false })
 const item = defineModel<OutboundOrderItemSchema>('item', { required: true })
 
-const totalPrice = ref(round(item.value.unit_price * item.value.amount))
-const unitPrice = ref(round(item.value.unit_price))
+const foreign = computed(() => props.currency !== props.baseCurrency)
+
+const totalHint = computed(() =>
+  foreign.value
+    ? `≈ ${toBase(totalPrice.value, props.exchangeRate).toFixed(2)} ${props.baseCurrency}`
+    : undefined,
+)
+
+// the form is in the document currency, the amounts as they were entered (never re-derived)
+const totalPrice = ref(round(item.value.document_total_price))
+const unitPrice = ref(round(item.value.document_unit_price))
 const isPersistingOverride = ref(false)
 const showNote = ref(!!item.value.note)
 
 watch(show, (visible) => {
   if (visible) {
-    totalPrice.value = round(item.value.unit_price * item.value.amount)
-    unitPrice.value = round(item.value.unit_price)
+    totalPrice.value = round(item.value.document_total_price)
+    unitPrice.value = round(item.value.document_unit_price)
     showNote.value = !!item.value.note
   }
 })
 
+// prices of the system (pricing details, product) are in the base currency
+const toDocument = (basePrice: number) =>
+  foreign.value ? fromBase(basePrice, props.exchangeRate) : basePrice
+
 const pricingContext = computed(() => {
   const pricing = item.value.pricing_details as OutboundPricingDetails | undefined
-  const basePrice = round(pricing?.base_price ?? item.value.product.base_price ?? unitPrice.value)
-  const avgPurchasePrice = round(
-    pricing?.avg_purchase_price ?? item.value.product.purchase_price ?? 0,
+  const basePrice = round(
+    toDocument(pricing?.base_price ?? item.value.product.base_price ?? item.value.unit_price),
   )
-  const suggestedUnitPrice = round(pricing?.suggested_unit_price ?? basePrice)
+  const avgPurchasePrice = round(
+    toDocument(pricing?.avg_purchase_price ?? item.value.product.purchase_price ?? 0),
+  )
+  const suggestedUnitPrice = round(
+    pricing?.suggested_unit_price !== undefined
+      ? toDocument(pricing.suggested_unit_price)
+      : basePrice,
+  )
   return {
     basePrice,
     avgPurchasePrice,
@@ -197,7 +224,9 @@ const update = async (
     product_code: item.value.product.code,
     product_name: item.value.product.name,
     amount: item.value.amount,
-    total_price: totalPrice.value,
+    // a price in a foreign currency is stored as entered, the base one is derived from it
+    total_price: foreign.value ? null : totalPrice.value,
+    document_total_price: foreign.value ? totalPrice.value : null,
     unit_price: unitPrice.value,
     index: item.value.index,
     desired_package_type_name: item.value.desired_package_type_name,
@@ -210,8 +239,8 @@ const update = async (
   const data = onResponse(res)
   if (data?.data) {
     item.value = data.data
-    totalPrice.value = data.data.total_price
-    unitPrice.value = data.data.unit_price
+    totalPrice.value = data.data.document_total_price
+    unitPrice.value = data.data.document_unit_price
     $q.notify({ type: 'positive', message: 'Položka aktualizována' })
   }
 }
@@ -219,9 +248,11 @@ const update = async (
 const persistOverrideForCustomer = async () => {
   if (!props.customerCode) return
   isPersistingOverride.value = true
+  const baseUnitPrice = Number(toBase(unitPrice.value, props.exchangeRate).toFixed(4))
   const response = await warehouseApiRoutesProductUpsertProductCustomerPriceOverride({
     path: { product_code: item.value.product.code },
-    body: { customer_code: props.customerCode, fixed_price: unitPrice.value },
+    // customer prices are always in the base currency
+    body: { customer_code: props.customerCode, fixed_price: baseUnitPrice },
   })
   isPersistingOverride.value = false
   const data = onResponse(response)
@@ -229,7 +260,7 @@ const persistOverrideForCustomer = async () => {
   item.value.pricing_details = {
     avg_purchase_price:
       item.value.pricing_details?.avg_purchase_price ?? pricingContext.value.avgPurchasePrice,
-    selected_unit_price: unitPrice.value,
+    selected_unit_price: baseUnitPrice,
     margin_amount: item.value.pricing_details?.margin_amount ?? 0,
     margin_percent: item.value.pricing_details?.margin_percent ?? 0,
     base_price: data.data.base_price,

@@ -145,7 +145,7 @@ const form = ref<OutboundInvoiceCreateSchema>(
 
 const customerName = computed(() => props.selectedOrders[0]?.customer.name ?? 'Bez odberatele')
 const supplierName = computed(() => props.selfSupplier?.name ?? '')
-const currencyLabel = computed(() => props.selectedOrders[0]?.currency ?? '-')
+const currencyLabel = computed(() => props.selectedOrders[0]?.document_currency ?? '-')
 const defaultPaymentMethodName = computed(
   () => props.selectedOrders[0]?.customer.default_payment_method?.name ?? '',
 )

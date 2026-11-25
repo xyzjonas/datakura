@@ -19,6 +19,8 @@
         v-model:item="items[index]"
         :readonly="readonly"
         :currency="currency"
+        :base-currency="baseCurrency"
+        :exchange-rate="exchangeRate"
         :order-code="orderCode"
         :customer-code="customerCode"
         :requires-own-codes="requiresOwnCodes"
@@ -40,7 +42,10 @@ const emit = defineEmits<{
 }>()
 
 defineProps<{
+  /** Document currency */
   currency: string
+  baseCurrency: string
+  exchangeRate: number
   readonly?: boolean
   orderCode: string
   customerCode?: string

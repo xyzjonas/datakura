@@ -7,7 +7,7 @@
         <div v-if="invoiceMode && selectedOrders.length" class="mt-3 text-sm text-gray-6">
           Vybráno {{ selectedOrders.length }} objednávek pro odběratele
           <span class="font-semibold text-primary">{{ selectedOrders[0].customer.name }}</span>
-          v měně {{ selectedOrders[0].currency }}.
+          v měně {{ selectedOrders[0].document_currency }}.
         </div>
       </div>
 
