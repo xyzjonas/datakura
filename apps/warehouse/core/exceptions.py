@@ -25,6 +25,8 @@ class ErrorCode(enum.Enum):
 
     DATA_IMPORT_FAILED = ("IMPORT_0001", "Data import failed")
 
+    INVALID_DOCUMENT_LAYOUT = ("TEMPLATE_0001", "Invalid document layout")
+
     @property
     def code(self):
         return self.value[0]
@@ -102,3 +104,10 @@ def raise_by_code(code: ErrorCode, message: str) -> NoReturn:
     exc = ApiBaseException(message)
     exc.code = code
     raise exc
+
+
+class InvalidDocumentLayoutError(ApiBaseException):
+    """A document layout refers to unknown / duplicated / too many attributes."""
+
+    code = ErrorCode.INVALID_DOCUMENT_LAYOUT
+    http_status = 422

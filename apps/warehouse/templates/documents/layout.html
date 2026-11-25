@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8" />
+    <title>{{ code }}</title>
+    <style>
+        @page { size: A4; margin: 16mm 14mm; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            color: #132238;
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 11px;
+            line-height: 1.45;
+            background: #fff;
+        }
+        .page { display: flex; flex-direction: column; gap: 18px; }
+        .muted { color: #64748b; }
+        .logo { display: flex; }
+        .logo.center { justify-content: center; }
+        .logo.right { justify-content: flex-end; }
+        .logo img { max-height: 70px; max-width: 260px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+        .title { margin: 0; font-size: 24px; line-height: 1.1; }
+        .code { margin-top: 6px; font-size: 15px; font-weight: 700; }
+        .barcode { display: block; margin-top: 8px; height: 40px; }
+        dl { margin: 0; white-space: nowrap; flex-shrink: 0; display: grid; grid-template-columns: auto auto; gap: 3px 14px; }
+        dt { color: #64748b; }
+        dd { margin: 0; font-weight: 700; }
+        .parties { display: flex; gap: 16px; }
+        .party { flex: 1; padding: 12px 14px; border: 1px solid #d7dee7; border-radius: 8px; background: #f6f8fb; }
+        .party h2 { margin: 0 0 6px 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
+        .party p { margin: 2px 0; }
+        .party p:first-of-type { font-weight: 700; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 8px 10px; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; border-bottom: 2px solid #d7dee7; }
+        td { padding: 8px 10px; border-bottom: 1px solid #e5eaf0; vertical-align: top; }
+        tr { page-break-inside: avoid; }
+        .right { text-align: right; white-space: nowrap; }
+        .summaries { align-self: flex-end; min-width: 240px; }
+        .summaries div { display: flex; justify-content: space-between; gap: 24px; padding: 4px 0; border-bottom: 1px solid #e5eaf0; }
+        .summaries div:last-child { font-size: 14px; font-weight: 700; border-bottom: 0; }
+        .footer { margin-top: 6px; padding-top: 8px; border-top: 1px solid #d7dee7; color: #64748b; font-size: 9px; white-space: pre-wrap; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="page">
+    {% if logo %}
+    <div class="logo {{ logo.align }}"><img src="{{ logo.image }}" alt="" /></div>
+    {% endif %}
+
+    <section class="header">
+        <div>
+            {% if header.title %}<h1 class="title">{{ header.title }}</h1>{% endif %}
+            <div class="code">{{ code }}</div>
+            {% if header.barcode %}<img class="barcode" src="{{ header.barcode }}" alt="{{ code }}" />{% endif %}
+        </div>
+        {% if header.rows %}
+        <dl>
+            {% for row in header.rows %}
+            {% if row.label %}<dt>{{ row.label }}</dt><dd>{{ row.value }}</dd>{% else %}<dd style="grid-column: 1 / -1;">{{ row.value }}</dd>{% endif %}
+            {% endfor %}
+        </dl>
+        {% endif %}
+    </section>
+
+    {% if parties %}
+    <section class="parties">
+        {% for party in parties %}
+        <div class="party">
+            {% if party.title %}<h2>{{ party.title }}</h2>{% endif %}
+            {% for row in party.rows %}<p>{% if row.label %}<span class="muted">{{ row.label }}</span> {% endif %}{{ row.value }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if items %}
+    <table>
+        <thead>
+            <tr>{% for column in items.columns %}<th{% if column.right %} class="right"{% endif %}>{{ column.label }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+            {% for row in items.rows %}
+            <tr>{% for cell in row %}<td{% if cell.right %} class="right"{% endif %}>{{ cell.value }}</td>{% endfor %}</tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if items.summaries %}
+    <div class="summaries">
+        {% for row in items.summaries %}<div><span>{{ row.label }}</span><span>{{ row.value }}</span></div>{% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if footer %}<div class="footer">{{ footer }}</div>{% endif %}
+</div>
+</body>
+</html>
