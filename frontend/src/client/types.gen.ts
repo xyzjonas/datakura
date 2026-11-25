@@ -6495,6 +6495,291 @@ export type GetCertificationItemsResponse = {
   data: Array<WarehouseItemSchema>
 }
 
+/**
+ * DocumentTarget
+ * Printable document kinds - each has (at most) one customised layout
+ */
+export type DocumentTarget =
+  | 'goods_receipt'
+  | 'issue_note'
+  | 'delivery_note'
+  | 'outbound_invoice'
+  | 'offer'
+
+/**
+ * DocumentTargetSchema
+ */
+export type DocumentTargetSchema = {
+  target: DocumentTarget
+  /**
+   * Label
+   */
+  label: string
+  /**
+   * Is Default
+   */
+  is_default: boolean
+}
+
+/**
+ * GetDocumentTargetsResponse
+ */
+export type GetDocumentTargetsResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  /**
+   * Data
+   */
+  data: Array<DocumentTargetSchema>
+}
+
+/**
+ * CatalogFieldSchema
+ * An attribute the admin may pick, with its default caption.
+ */
+export type CatalogFieldSchema = {
+  /**
+   * Key
+   */
+  key: string
+  /**
+   * Label
+   */
+  label: string
+}
+
+/**
+ * DocumentCatalogSchema
+ * Attributes available per block of one document kind.
+ */
+export type DocumentCatalogSchema = {
+  /**
+   * Header Fields
+   */
+  header_fields: Array<CatalogFieldSchema>
+  /**
+   * Party Fields
+   */
+  party_fields: Array<CatalogFieldSchema>
+  /**
+   * Item Columns
+   */
+  item_columns: Array<CatalogFieldSchema>
+  /**
+   * Summaries
+   */
+  summaries: Array<CatalogFieldSchema>
+}
+
+/**
+ * DocumentLayoutSchema
+ * The customisable parts of a document - the base template places them.
+ */
+export type DocumentLayoutSchema = {
+  logo?: LogoBlockSchema
+  header?: HeaderBlockSchema
+  customer?: PartyBlockSchema
+  supplier?: PartyBlockSchema
+  items?: ItemsBlockSchema
+  footer?: FooterBlockSchema
+}
+
+/**
+ * DocumentTemplateSchema
+ */
+export type DocumentTemplateSchema = {
+  target: DocumentTarget
+  /**
+   * Label
+   */
+  label: string
+  layout: DocumentLayoutSchema
+  /**
+   * Is Default
+   */
+  is_default: boolean
+  catalog: DocumentCatalogSchema
+}
+
+/**
+ * FooterBlockSchema
+ */
+export type FooterBlockSchema = {
+  /**
+   * Enabled
+   */
+  enabled?: boolean
+  /**
+   * Text
+   */
+  text?: string
+}
+
+/**
+ * GetDocumentTemplateResponse
+ */
+export type GetDocumentTemplateResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  data: DocumentTemplateSchema
+}
+
+/**
+ * HeaderBlockSchema
+ */
+export type HeaderBlockSchema = {
+  /**
+   * Title
+   */
+  title?: string
+  /**
+   * Show Barcode
+   */
+  show_barcode?: boolean
+  /**
+   * Fields
+   */
+  fields?: Array<LayoutFieldSchema>
+}
+
+/**
+ * ItemsBlockSchema
+ */
+export type ItemsBlockSchema = {
+  /**
+   * Enabled
+   */
+  enabled?: boolean
+  /**
+   * Columns
+   */
+  columns?: Array<LayoutFieldSchema>
+  /**
+   * Summaries
+   */
+  summaries?: Array<LayoutFieldSchema>
+}
+
+/**
+ * LayoutFieldSchema
+ * One printed attribute: which one (`key`) and its caption (empty = no caption).
+ */
+export type LayoutFieldSchema = {
+  /**
+   * Key
+   */
+  key: string
+  /**
+   * Label
+   */
+  label?: string
+}
+
+/**
+ * LogoBlockSchema
+ */
+export type LogoBlockSchema = {
+  /**
+   * Enabled
+   */
+  enabled?: boolean
+  /**
+   * Image
+   */
+  image?: string | null
+  /**
+   * Align
+   */
+  align?: 'left' | 'center' | 'right'
+}
+
+/**
+ * PartyBlockSchema
+ */
+export type PartyBlockSchema = {
+  /**
+   * Enabled
+   */
+  enabled?: boolean
+  /**
+   * Title
+   */
+  title?: string
+  /**
+   * Fields
+   */
+  fields?: Array<LayoutFieldSchema>
+}
+
+/**
+ * DocumentTemplateUpdateSchema
+ */
+export type DocumentTemplateUpdateSchema = {
+  layout: DocumentLayoutSchema
+}
+
+/**
+ * DocumentRecordSchema
+ */
+export type DocumentRecordSchema = {
+  /**
+   * Code
+   */
+  code: string
+  /**
+   * Label
+   */
+  label: string
+}
+
+/**
+ * GetDocumentRecordsResponse
+ */
+export type GetDocumentRecordsResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  /**
+   * Data
+   */
+  data: Array<DocumentRecordSchema>
+}
+
+/**
+ * GetDocumentPreviewResponse
+ */
+export type GetDocumentPreviewResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  /**
+   * Data
+   */
+  data: string
+}
+
+/**
+ * DocumentRenderSchema
+ * Render request: the (possibly unsaved) layout over a real record.
+ */
+export type DocumentRenderSchema = {
+  /**
+   * Record Code
+   */
+  record_code: string
+  layout?: DocumentLayoutSchema | null
+}
+
 export type WarehouseApiRoutesAuthLoginUserData = {
   body: LoginFormSchema
   path?: never
@@ -11396,3 +11681,160 @@ export type WarehouseApiRoutesCertificationsGetCertificationItemsResponses = {
 
 export type WarehouseApiRoutesCertificationsGetCertificationItemsResponse =
   WarehouseApiRoutesCertificationsGetCertificationItemsResponses[keyof WarehouseApiRoutesCertificationsGetCertificationItemsResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/v1/document-templates'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentTargetsResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponse =
+  WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses[keyof WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateData = {
+  body?: never
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised layout
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentTemplateResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponse =
+  WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponses[keyof WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateData = {
+  body?: never
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised layout
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentTemplateResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponse =
+  WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponses[keyof WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateData = {
+  body: DocumentTemplateUpdateSchema
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised layout
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentTemplateResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponse =
+  WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponses[keyof WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsData = {
+  body?: never
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised layout
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: {
+    /**
+     * Q
+     */
+    q?: string | null
+  }
+  url: '/api/v1/document-templates/{target}/records'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentRecordsResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponse =
+  WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponses[keyof WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesPreviewDocumentData = {
+  body: DocumentRenderSchema
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised layout
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}/preview'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponses = {
+  /**
+   * OK
+   */
+  200: GetDocumentPreviewResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponse =
+  WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponses[keyof WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponses]
+
+export type WarehouseApiRoutesDocumentTemplatesExportDocumentPdfData = {
+  body: DocumentRenderSchema
+  path: {
+    /**
+     * DocumentTarget
+     * Printable document kinds - each has (at most) one customised layout
+     */
+    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+  }
+  query?: never
+  url: '/api/v1/document-templates/{target}/pdf'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesExportDocumentPdfResponses = {
+  /**
+   * OK
+   */
+  200: unknown
+}

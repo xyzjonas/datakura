@@ -53,6 +53,7 @@ import PrintersSettingsTab from '@/components/settings/PrintersSettingsTab.vue'
 import SnapshotSchedulesSettingsTab from '@/components/settings/SnapshotSchedulesSettingsTab.vue'
 import CurrencySettingsTab from '@/components/settings/CurrencySettingsTab.vue'
 import ProductSettingsTab from '@/components/settings/ProductSettingsTab.vue'
+import DocumentTemplatesSettingsTab from '@/components/settings/DocumentTemplatesSettingsTab.vue'
 import { computed, ref, shallowRef, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/use-auth'
@@ -77,12 +78,13 @@ const validTabs = new Set([
   'shipping',
   'printers',
   'snapshots',
+  'documents',
   'import',
   'users',
   'account',
 ])
 
-const superuserTabs = new Set(['users'])
+const superuserTabs = new Set(['users', 'documents'])
 
 const selectedTab = computed<string>({
   get() {
@@ -129,6 +131,8 @@ watch(
       selectedTabComponent.value = PrintersSettingsTab
     } else if (value === 'snapshots') {
       selectedTabComponent.value = SnapshotSchedulesSettingsTab
+    } else if (value === 'documents') {
+      selectedTabComponent.value = DocumentTemplatesSettingsTab
     } else if (value === 'import') {
       selectedTabComponent.value = DataImportSettingsTab
     } else if (value === 'users') {
@@ -195,6 +199,11 @@ const allItems = [
     key: 'snapshots',
     label: 'Stav skladu',
     icon: 'sym_o_inventory_2',
+  },
+  {
+    key: 'documents',
+    label: 'Šablony dokumentů',
+    icon: 'sym_o_description',
   },
   {
     key: 'users',
