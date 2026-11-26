@@ -26,6 +26,7 @@ from apps.warehouse.models.document_template import DocumentTemplate
 from apps.warehouse.models.printer import Printer, UserAppSettings
 from apps.warehouse.models.settings import GlobalSettings
 from apps.warehouse.models.product import (
+    Norm,
     StockProduct,
     UnitOfMeasure,
     ProductType,
@@ -94,6 +95,14 @@ admin.site.register(UnitOfMeasure)
 class PriceGroupAdmin(admin.ModelAdmin):
     search_fields = ("code", "name")
     list_display = ["code", "name", "discount_percent", "is_active"]
+
+
+@admin.register(Norm)
+class NormAdmin(admin.ModelAdmin):
+    list_display = ["type", "code"]
+    list_filter = ["type"]
+    search_fields = ["code"]
+    filter_horizontal = ["equivalents"]
 
 
 @admin.register(StockProductPrice)

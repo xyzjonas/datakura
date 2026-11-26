@@ -8,6 +8,7 @@ from pydantic import Field, StringConstraints, field_serializer, field_validator
 
 from .base import BaseSchema, PaginatedResponse, Response
 from .barcode import BarcodeSchema
+from .norm import NormSchema
 
 
 class DynamicProductPriceCustomerSchema(Schema):
@@ -103,6 +104,7 @@ class ProductSchema(BaseSchema):
     disallow_unpacking: bool
     currency: str
     customs_declaration_group: str | None = None
+    norm: NormSchema | None = None
     attributes: dict[str, str] = Field(default_factory=dict)
     barcodes: list[BarcodeSchema] = Field(default_factory=list)
     primary_barcode: BarcodeSchema | None = None
@@ -128,6 +130,8 @@ class ProductCreateOrUpdateSchema(Schema):
     # null = the base currency of the app
     currency: str | None = None
     customs_declaration_group: str | None = Field(None, max_length=255)
+    # id of a norm from the catalogue (null = none)
+    norm_id: int | None = None
     attributes: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("customs_declaration_group")

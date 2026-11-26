@@ -7,6 +7,8 @@ from factory.django import DjangoModelFactory
 from factory.fuzzy import FuzzyChoice
 
 from apps.warehouse.models.product import (
+    Norm,
+    NormType,
     ProductType,
     ProductGroup,
     PriceGroup,
@@ -35,6 +37,21 @@ class ProductGroupFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"Product Group {n}")
     parent = None  # Can be overridden to create hierarchies
+
+
+class NormFactory(DjangoModelFactory):
+    class Meta:
+        model = Norm
+        django_get_or_create = ("type", "code")
+        skip_postgeneration_save = True
+
+    type = NormType.DIN
+    code = factory.Sequence(lambda n: str(100 + n))
+
+    @factory.post_generation
+    def equivalents(self, create, extracted, **kwargs):
+        if create and extracted:
+            self.equivalents.add(*extracted)  # type: ignore
 
 
 class StockProductFactory(DjangoModelFactory):

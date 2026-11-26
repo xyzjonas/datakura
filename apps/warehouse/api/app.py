@@ -23,6 +23,7 @@ from .routes.manufacturing_orders import routes as manufacturing_orders_routes
 from .routes.printers import routes as printer_routes
 from .routes.snapshot_schedules import routes as snapshot_schedule_routes
 from .routes.data_import import routes as data_import_routes
+from .routes.norms import routes as norm_routes
 from .routes.settings import routes as settings_routes
 from .routes.users import routes as users_routes
 from .routes.certifications import routes as certification_routes
@@ -58,6 +59,7 @@ api.add_router(
     router=snapshot_schedule_routes, prefix="analytics/inventory-snapshot-schedules"
 )
 api.add_router(router=data_import_routes, prefix="data-import")
+api.add_router(router=norm_routes, prefix="norms")
 api.add_router(router=settings_routes, prefix="settings")
 api.add_router(router=users_routes, prefix="users")
 api.add_router(router=certification_routes, prefix="certifications")

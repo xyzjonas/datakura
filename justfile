@@ -119,3 +119,6 @@ import-products-json FILE:
 
 import-customers-json FILE:
     uv run manage.py import_customers --file "{{FILE}}"
+
+backfill-norms:
+    uv run manage.py backfill_norms

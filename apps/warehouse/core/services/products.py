@@ -29,6 +29,7 @@ from apps.warehouse.models.barcode import Barcode, BarcodeType
 from apps.warehouse.models.customer import Customer
 from apps.warehouse.models.packaging import UnitOfMeasure
 from apps.warehouse.models.product import (
+    Norm,
     StockProduct,
     PriceGroup,
     ProductType,
@@ -179,6 +180,15 @@ class StockProductsService:
         )
 
     @staticmethod
+    def _resolve_norm(norm_id: int | None) -> Norm | None:
+        if norm_id is None:
+            return None
+        try:
+            return Norm.objects.get(pk=norm_id)
+        except Norm.DoesNotExist:
+            raise WarehouseGenericError(f"Norm {norm_id} does not exist") from None
+
+    @staticmethod
     def _build_product_defaults(params: ProductCreateOrUpdateSchema):
         product_type, _ = ProductType.objects.get_or_create(name=params.type)
         unit_of_measure, _ = UnitOfMeasure.objects.get_or_create(name=params.unit)
@@ -197,6 +207,7 @@ class StockProductsService:
             "base_price": Decimal(str(params.base_price or 0)),
             "no_discount": params.no_discount,
             "customs_declaration_group": params.customs_declaration_group,
+            "norm": StockProductsService._resolve_norm(params.norm_id),
             "attributes": params.attributes,
         }
 

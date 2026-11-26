@@ -52,14 +52,14 @@ def product_prefetch(lookup: str) -> Prefetch:
     """
     Everything `product_orm_to_schema` reads of the product behind `lookup`
     (e.g. `"stock_product"` or `"items__stock_product"`): type, unit, group,
-    dynamic prices (+customers) and barcodes - a constant number of queries.
+    norm (+equivalents), dynamic prices (+customers) and barcodes - a constant number of queries.
     """
     return Prefetch(
         lookup,
         queryset=StockProduct.objects.select_related(
-            "type", "unit_of_measure__base_uom", "group"
+            "type", "unit_of_measure__base_uom", "group", "norm"
         )
-        .prefetch_related("dynamic_prices__customer")
+        .prefetch_related("dynamic_prices__customer", "norm__equivalents")
         .with_barcodes(),
     )
 
