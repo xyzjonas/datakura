@@ -13,11 +13,11 @@ from apps.warehouse.core.schemas.document_templates import (
     DocumentLayoutSchema,
     LayoutFieldSchema,
     LayoutPartSchema,
-    LogoBlockSchema,
     PageSchema,
     PaginationSchema,
 )
 from apps.warehouse.core.services.document_data import SPECS, Kind
+from apps.warehouse.core.services.document_fonts import FONTS, FONTS_DIR, WEIGHTS
 from apps.warehouse.core.services.document_templates import (
     default_layout,
     document_template_service as service,
@@ -192,7 +192,6 @@ def _with(**changes) -> DocumentLayoutSchema:
         ),  # not on issue note
         (_with(items__summaries=fields("total_amount")), "Unknown attribute"),
         (_with(items__columns=[]), "at least 1 column"),
-        (_with(logo__enabled=True), "no image"),
     ],
 )
 def test_invalid_layouts_are_rejected(layout, message) -> None:
@@ -337,31 +336,177 @@ def test_returned_goods_are_subtracted_in_the_total() -> None:
     assert "70.00 CZK" in html
 
 
-def test_logo_footer_and_titles(records) -> None:
+def _logo_layout(section: str, block: str = "header") -> DocumentLayoutSchema:
+    layout = default_layout(DocumentTarget.OFFER)
+    layout.page.logo = PIXEL
+    logo = [LayoutFieldSchema(key="logo", show_label=False)]
+    if block == "header":
+        setattr(layout.header, section, logo)
+    else:
+        getattr(layout, block).fields = logo
+    return layout
+
+
+@pytest.mark.parametrize(
+    "section, block",
+    [
+        ("left", "header"),
+        ("middle", "header"),
+        ("right", "header"),
+        ("", "supplier"),
+        ("", "customer"),
+    ],
+)
+def test_logo_is_printed_wherever_it_is_placed(records, section, block) -> None:
     target = DocumentTarget.OFFER
-    layout = default_layout(target)
-    layout.logo = LogoBlockSchema(enabled=True, image=PIXEL, align="right")
-    layout.footer.enabled = True
-    layout.footer.text = "Thank <you>"
+    layout = _logo_layout(section, block)
 
     html = service.render_record_html(target, records[target], layout)
 
-    assert f'src="{PIXEL}"' in html
-    assert 'class="logo right"' in html
-    assert "Thank &lt;you&gt;" in html
+    assert html.count(f'src="{PIXEL}"') == 1
+    assert 'class="logo-img"' in html
 
 
-def test_logo_off_and_empty_footer_are_not_printed(records) -> None:
+def test_logo_can_be_placed_twice(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = _logo_layout("left")
+    layout.supplier.fields = [LayoutFieldSchema(key="logo", show_label=False)]
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert html.count(f'src="{PIXEL}"') == 2
+
+
+def test_logo_without_an_uploaded_image_prints_nothing(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = _logo_layout("left")
+    layout.page.logo = None
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert "logo-img" not in html.split("</style>")[1]
+
+
+def test_uploaded_logo_is_not_printed_unless_placed(records) -> None:
     target = DocumentTarget.OFFER
     layout = default_layout(target)
-    layout.logo = LogoBlockSchema(enabled=False, image=PIXEL)
-    layout.footer.enabled = True
-    layout.footer.text = "   "
+    layout.page.logo = PIXEL
 
     html = service.render_record_html(target, records[target], layout)
 
     assert PIXEL not in html
+
+
+def test_logo_is_never_turned_into_a_barcode(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = _logo_layout("left")
+    layout.header.left = [
+        LayoutFieldSchema(key="logo", barcode=True, barcode_text=True)
+    ]
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert f'src="{PIXEL}"' in html
+    assert 'class="barcode"' not in html
+
+
+def test_footer_and_empty_footer(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = default_layout(target)
+    layout.footer.enabled = True
+    layout.footer.text = "Thank <you>"
+
+    html = service.render_record_html(target, records[target], layout)
+    assert "Thank &lt;you&gt;" in html
+
+    layout.footer.text = "   "
+    html = service.render_record_html(target, records[target], layout)
     assert 'class="footer"' not in html
+
+
+def test_parties_are_separated_by_a_divider_not_cards(records) -> None:
+    target = DocumentTarget.OFFER
+
+    html = service.render_record_html(target, records[target])
+
+    assert ".party + .party {" in html
+    assert "border-left: 1px solid" in html
+    assert "border-radius" not in html
+    assert "background: #f6f8fb" not in html
+
+
+@pytest.mark.django_db
+def test_legacy_logo_block_is_migrated_to_an_attribute() -> None:
+    layout = default_layout(DocumentTarget.OFFER).model_dump(mode="json")
+    layout.pop("page")
+    layout["logo"] = {"enabled": True, "image": PIXEL, "align": "right"}
+    DocumentTemplate.objects.create(target=DocumentTarget.OFFER, layout=layout)
+
+    loaded, _ = service.get_layout(DocumentTarget.OFFER)
+
+    assert loaded.page.logo == PIXEL
+    assert loaded.header.right[0].key == "logo"
+
+
+@pytest.mark.django_db
+def test_legacy_disabled_logo_is_not_placed() -> None:
+    layout = default_layout(DocumentTarget.OFFER).model_dump(mode="json")
+    layout["logo"] = {"enabled": False, "image": PIXEL, "align": "left"}
+    DocumentTemplate.objects.create(target=DocumentTarget.OFFER, layout=layout)
+
+    loaded, _ = service.get_layout(DocumentTarget.OFFER)
+
+    assert all(f.key != "logo" for f in loaded.header.left)
+
+
+# --- fonts --------------------------------------------------------------------------
+
+
+def test_default_font_is_the_system_one_without_embedding(records) -> None:
+    target = DocumentTarget.OFFER
+
+    html = service.render_record_html(target, records[target])
+
+    assert 'font-family: "DejaVu Sans", sans-serif;' in html
+    assert "@font-face" not in html
+
+
+@pytest.mark.parametrize("key", [k for k, f in FONTS.items() if f.bundled])
+def test_bundled_font_is_embedded_never_linked(records, key) -> None:
+    target = DocumentTarget.OFFER
+    layout = default_layout(target)
+    layout.page.font = key
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert html.count("@font-face") == 2  # regular + bold
+    assert html.count("data:font/woff2;base64,") == 2
+    assert f"font-family: {FONTS[key].stack};" in html
+    assert "http://" not in html and "https://" not in html
+
+
+@pytest.mark.parametrize("key", list(FONTS))
+def test_pdf_renders_with_every_font(records, key) -> None:
+    target = DocumentTarget.OFFER
+    layout = default_layout(target)
+    layout.page.font = key
+
+    assert service.render_record_pdf(target, records[target], layout).startswith(
+        b"%PDF"
+    )
+
+
+def test_every_bundled_font_has_files_and_a_license() -> None:
+    for font in FONTS.values():
+        if font.bundled:
+            for weight in WEIGHTS:
+                assert (FONTS_DIR / font.key / f"{font.key}-{weight}.woff2").is_file()
+            assert (FONTS_DIR / font.key / "LICENSE").is_file()
+
+
+def test_unknown_font_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        PageSchema(font="comic-sans")
 
 
 def test_code_that_cannot_be_a_barcode_is_still_printed(records) -> None:
@@ -921,7 +1066,7 @@ def test_default_page_margins_and_custom_ones(records) -> None:
     )
     custom = service.render_record_html(target, records[target], layout)
 
-    assert "margin: 60px 53px 60px 53px;" in default
+    assert "margin: 30px 30px 30px 30px;" in default
     assert "margin: 0px 1px 20px 200px;" in custom
 
 

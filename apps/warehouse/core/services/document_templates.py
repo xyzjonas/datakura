@@ -1,7 +1,7 @@
 """Customisable layouts of the printed documents: storage, validation and rendering.
 
 There is a single base template (`templates/documents/layout.html`) with fixed slots -
-logo, header, supplier, customer, items table and footer. A saved layout only chooses
+header, supplier, customer, items table and footer. A saved layout only chooses
 what is printed inside them (which attributes, in which order, with which captions).
 """
 
@@ -31,11 +31,10 @@ from apps.warehouse.core.schemas.document_templates import (
     ItemsBlockSchema,
     LayoutFieldSchema,
     LayoutPartSchema,
-    LogoBlockSchema,
     PaginationSchema,
     PartyBlockSchema,
 )
-from apps.warehouse.core.services import barcode_svg
+from apps.warehouse.core.services import barcode_svg, document_fonts
 from apps.warehouse.core.services.document_data import (
     SPECS,
     DocumentData,
@@ -50,6 +49,7 @@ LAYOUT_TEMPLATE = "documents/layout.html"
 DATE_FORMAT = "d. m. Y"
 DATETIME_FORMAT = "d. m. Y H:i"
 RIGHT_ALIGNED = {Kind.QUANTITY, Kind.MONEY}
+LOGO_KEY = "logo"
 
 
 def _party_fields() -> list[LayoutFieldSchema]:
@@ -138,7 +138,6 @@ def default_layout(target: DocumentTarget) -> DocumentLayoutSchema:
     spec = _spec(target)
     d = _DEFAULTS[spec.target]
     return DocumentLayoutSchema(
-        logo=LogoBlockSchema(),
         header=HeaderBlockSchema(
             title=d["title"],
             left=[
@@ -178,9 +177,29 @@ def _migrate_field(field: dict[str, Any]) -> dict[str, Any]:
     return field
 
 
+_LOGO_ALIGN_SECTION = {"left": "left", "center": "middle", "right": "right"}
+
+
+def _migrate_logo_block(raw: dict[str, Any]) -> dict[str, Any]:
+    """The logo used to be a block above the header, now it is an attribute."""
+    legacy = raw.pop("logo", None)
+    if not isinstance(legacy, dict) or not legacy.get("image"):
+        return raw
+    raw["page"] = {**(raw.get("page") or {}), "logo": legacy["image"]}
+    if legacy.get("enabled"):
+        header = dict(raw.get("header") or {})
+        section = _LOGO_ALIGN_SECTION.get(legacy.get("align", "left"), "left")
+        header[section] = [
+            {"key": LOGO_KEY, "show_label": False},
+            *header.get(section, []),
+        ]
+        raw["header"] = header
+    return raw
+
+
 def _migrate_saved_layout(raw: dict[str, Any]) -> dict[str, Any]:
     """Layouts saved by earlier versions: header without sections, string-part composites."""
-    raw = dict(raw)
+    raw = _migrate_logo_block(dict(raw))
     header = raw.get("header")
     if isinstance(header, dict):
         header = dict(header)
@@ -279,11 +298,15 @@ def _value(
     for leaf in ref.leaves:
         text = _leaf_text(leaf, defs, values, currency)
         if text:
-            # a text that cannot be a barcode is printed as text
-            barcode = barcode_svg.to_data_uri(text) if leaf.barcode else None
+            is_logo = not leaf.text and leaf.key == LOGO_KEY
+            # a text that cannot be a barcode is printed as text (never a logo)
+            barcode = (
+                barcode_svg.to_data_uri(text) if leaf.barcode and not is_logo else None
+            )
             parts.append(
                 {
-                    "text": text,
+                    "text": "" if is_logo else text,
+                    "image": text if is_logo else None,
                     "barcode": barcode,
                     "barcode_text": barcode is not None and leaf.barcode_text,
                     **_style(leaf),
@@ -369,6 +392,10 @@ class DocumentTemplateService:
                 customer_fields=_catalog(list(spec.fields_of("customer").values())),
                 item_columns=_catalog(list(spec.fields_of("items").values())),
                 summaries=_catalog(list(spec.fields_of("summaries").values())),
+                fonts=[
+                    CatalogFieldSchema(key=f.key, label=f.label)
+                    for f in document_fonts.FONTS.values()
+                ],
             ),
         )
 
@@ -423,8 +450,6 @@ class DocumentTemplateService:
                 )
         if layout.items.enabled and not layout.items.columns:
             raise InvalidDocumentLayoutError("The items table needs at least 1 column")
-        if layout.logo.enabled and not layout.logo.image:
-            raise InvalidDocumentLayoutError("Logo is enabled but no image is set")
 
     # -- rendering
 
@@ -436,7 +461,8 @@ class DocumentTemplateService:
         header_defs = spec.fields_of("header")
         item_defs = spec.fields_of("items")
         summary_defs = spec.fields_of("summaries")
-        printed = {"printed_at": timezone.now()}  # evaluated per print
+        # evaluated per print / the same for every block
+        printed = {"printed_at": timezone.now(), LOGO_KEY: layout.page.logo}
         header_values = {**data.header, "code": data.code, **printed}
 
         parties = []
@@ -482,14 +508,13 @@ class DocumentTemplateService:
                 ),
             }
 
-        logo = layout.logo
         header = layout.header
+        font = document_fonts.resolve(layout.page.font)
         return {
             "code": data.code,
             "margin": layout.page,
-            "logo": {"image": logo.image, "align": logo.align}
-            if logo.enabled and logo.image
-            else None,
+            "font_family": font.stack,
+            "font_faces": document_fonts.font_face_css(font.key),
             "header": {
                 "title": header.title,
                 "sections": [

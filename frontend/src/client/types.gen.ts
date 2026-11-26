@@ -6576,6 +6576,10 @@ export type DocumentCatalogSchema = {
    * Summaries
    */
   summaries: Array<CatalogFieldSchema>
+  /**
+   * Fonts
+   */
+  fonts: Array<CatalogFieldSchema>
 }
 
 /**
@@ -6583,7 +6587,6 @@ export type DocumentCatalogSchema = {
  * The customisable parts of a document - the base template places them.
  */
 export type DocumentLayoutSchema = {
-  logo?: LogoBlockSchema
   header?: HeaderBlockSchema
   customer?: PartyBlockSchema
   supplier?: PartyBlockSchema
@@ -6780,26 +6783,10 @@ export type LayoutPartSchema = {
 }
 
 /**
- * LogoBlockSchema
- */
-export type LogoBlockSchema = {
-  /**
-   * Enabled
-   */
-  enabled?: boolean
-  /**
-   * Image
-   */
-  image?: string | null
-  /**
-   * Align
-   */
-  align?: 'left' | 'center' | 'right'
-}
-
-/**
  * PageSchema
- * Page margins in px (0 = no margin).
+ * Page-wide settings: margins in px (0 = no margin), font and the logo image.
+ *
+ * The logo is printed wherever the `logo` attribute is picked (nowhere by default).
  */
 export type PageSchema = {
   /**
@@ -6818,6 +6805,14 @@ export type PageSchema = {
    * Margin Left
    */
   margin_left?: number
+  /**
+   * Font
+   */
+  font?: string
+  /**
+   * Logo
+   */
+  logo?: string | null
 }
 
 /**

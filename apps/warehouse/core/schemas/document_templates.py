@@ -5,6 +5,7 @@ from ninja import Schema
 from pydantic import Field, field_validator, model_validator
 
 from apps.warehouse.core.schemas.base import Response
+from apps.warehouse.core.services.document_fonts import DEFAULT_FONT, FONTS
 from apps.warehouse.models.document_template import DocumentTarget
 
 MAX_LOGO_LENGTH = 700_000  # chars of the base64 data URL
@@ -79,24 +80,6 @@ class LayoutFieldSchema(_FieldBase):
         return self
 
 
-class LogoBlockSchema(Schema):
-    enabled: bool = False
-    # PNG / JPEG / GIF / WebP as a base64 data URL (nothing is fetched while printing)
-    image: str | None = None
-    align: Literal["left", "center", "right"] = "left"
-
-    @field_validator("image")
-    @classmethod
-    def _image_is_small_data_url(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        if len(value) > MAX_LOGO_LENGTH:
-            raise ValueError("Logo is too large")
-        if not _LOGO_RE.match(value):
-            raise ValueError("Logo must be a PNG, JPEG, GIF or WebP image")
-        return value
-
-
 class HeaderBlockSchema(Schema):
     title: Label = ""
     # three sections side by side, each a list of attributes (one per line)
@@ -132,12 +115,36 @@ class ItemsBlockSchema(Schema):
 
 
 class PageSchema(Schema):
-    """Page margins in px (0 = no margin)."""
+    """Page-wide settings: margins in px (0 = no margin), font and the logo image.
 
-    margin_top: Annotated[int, Field(ge=0, le=200)] = 60
-    margin_right: Annotated[int, Field(ge=0, le=200)] = 53
-    margin_bottom: Annotated[int, Field(ge=0, le=200)] = 60
-    margin_left: Annotated[int, Field(ge=0, le=200)] = 53
+    The logo is printed wherever the `logo` attribute is picked (nowhere by default).
+    """
+
+    margin_top: Annotated[int, Field(ge=0, le=200)] = 30
+    margin_right: Annotated[int, Field(ge=0, le=200)] = 30
+    margin_bottom: Annotated[int, Field(ge=0, le=200)] = 30
+    margin_left: Annotated[int, Field(ge=0, le=200)] = 30
+    font: str = DEFAULT_FONT
+    # PNG / JPEG / GIF / WebP as a base64 data URL (nothing is fetched while printing)
+    logo: str | None = None
+
+    @field_validator("font")
+    @classmethod
+    def _known_font(cls, value: str) -> str:
+        if value not in FONTS:
+            raise ValueError(f"Unknown font '{value}'")
+        return value
+
+    @field_validator("logo")
+    @classmethod
+    def _logo_is_small_data_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if len(value) > MAX_LOGO_LENGTH:
+            raise ValueError("Logo is too large")
+        if not _LOGO_RE.match(value):
+            raise ValueError("Logo must be a PNG, JPEG, GIF or WebP image")
+        return value
 
 
 class FooterBlockSchema(Schema):
@@ -148,7 +155,6 @@ class FooterBlockSchema(Schema):
 class DocumentLayoutSchema(Schema):
     """The customisable parts of a document - the base template places them."""
 
-    logo: LogoBlockSchema = Field(default_factory=LogoBlockSchema)
     header: HeaderBlockSchema = Field(default_factory=HeaderBlockSchema)
     customer: PartyBlockSchema = Field(default_factory=PartyBlockSchema)
     supplier: PartyBlockSchema = Field(default_factory=PartyBlockSchema)
@@ -174,6 +180,7 @@ class DocumentCatalogSchema(Schema):
     customer_fields: list[CatalogFieldSchema]
     item_columns: list[CatalogFieldSchema]
     summaries: list[CatalogFieldSchema]
+    fonts: list[CatalogFieldSchema]
 
 
 class DocumentTargetSchema(Schema):

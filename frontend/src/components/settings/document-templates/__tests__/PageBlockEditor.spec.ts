@@ -6,10 +6,12 @@ import PageBlockEditor from '../PageBlockEditor.vue'
 
 const mountEditor = (page: Required<PageSchema>) =>
   mount(PageBlockEditor, {
-    props: { modelValue: page },
+    props: { modelValue: page, fonts: [{ key: 'system', label: 'Systémové' }] },
     global: {
       stubs: {
         LayoutBlock: { template: '<div><slot /></div>' },
+        LogoUpload: true,
+        QSelect: true,
         QInput: {
           props: ['modelValue'],
           emits: ['update:modelValue'],
@@ -21,10 +23,12 @@ const mountEditor = (page: Required<PageSchema>) =>
   })
 
 const page = (): Required<PageSchema> => ({
-  margin_top: 60,
-  margin_right: 53,
-  margin_bottom: 60,
-  margin_left: 53,
+  margin_top: 30,
+  margin_right: 30,
+  margin_bottom: 30,
+  margin_left: 30,
+  font: 'system',
+  logo: null,
 })
 
 describe('PageBlockEditor', () => {
@@ -51,9 +55,11 @@ describe('PageBlockEditor', () => {
 
     expect(wrapper.props('modelValue')).toEqual({
       margin_top: 1,
-      margin_right: 53,
+      margin_right: 30,
       margin_bottom: 2,
-      margin_left: 53,
+      margin_left: 30,
+      font: 'system',
+      logo: null,
     })
   })
 })

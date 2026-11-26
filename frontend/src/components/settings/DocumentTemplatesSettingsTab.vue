@@ -1,9 +1,9 @@
 <template>
   <div class="flex h-full flex-col gap-3">
     <p class="m-0 max-w-3xl text-sm text-muted">
-      Vzhled tištěných dokladů. Základní šablona má pevná místa (logo, hlavička, dodavatel,
-      odběratel, tabulka položek, patička) - zde vyberete, které údaje se v nich vytisknou a v jakém
-      pořadí. Změny se hned promítnou do náhledu, uloží se až tlačítkem.
+      Vzhled tištěných dokladů. Základní šablona má pevná místa (hlavička, dodavatel, odběratel,
+      tabulka položek, patička) - zde vyberete, které údaje se v nich vytisknou a v jakém pořadí.
+      Změny se hned promítnou do náhledu, uloží se až tlačítkem.
     </p>
     <div class="flex flex-wrap items-center gap-3">
       <q-select

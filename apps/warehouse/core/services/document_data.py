@@ -36,6 +36,7 @@ class Kind(StrEnum):
     DATETIME = "datetime"
     QUANTITY = "quantity"  # up to 4 decimals
     MONEY = "money"  # 2 decimals + the currency of the document
+    LOGO = "logo"  # the uploaded logo image (a data URL)
 
 
 @dataclass(frozen=True)
@@ -86,6 +87,8 @@ CONTACT_FIELDS = [
 DOCUMENT_CODE = F("code", "Kód dokladu")
 # evaluated when the document is printed (not stored)
 PRINTED_AT = F("printed_at", "Vytištěno", Kind.DATETIME)
+# the logo image of the layout, placeable anywhere in the header or the parties
+LOGO = F("logo", "Logo", Kind.LOGO)
 
 ITEM_INDEX = F("index", "#")
 PRODUCT_CODE = F("product_code", "Kód")
@@ -121,6 +124,7 @@ class DocumentSpec:
             *PARTY_FIELDS,
             *(CONTACT_FIELDS if self.has_contact else []),
             PRINTED_AT,
+            LOGO,
         ]
 
     def fields_of(self, block: str) -> dict[str, FieldDef]:
@@ -131,9 +135,10 @@ class DocumentSpec:
         if not self._by_block:
             self._by_block.update(
                 header={
-                    f.key: f for f in (DOCUMENT_CODE, PRINTED_AT, *self.header_fields)
+                    f.key: f
+                    for f in (DOCUMENT_CODE, PRINTED_AT, LOGO, *self.header_fields)
                 },
-                supplier={f.key: f for f in (*PARTY_FIELDS, PRINTED_AT)},
+                supplier={f.key: f for f in (*PARTY_FIELDS, PRINTED_AT, LOGO)},
                 customer={f.key: f for f in self.customer_fields},
                 items={f.key: f for f in (*self.item_columns, PRINTED_AT)},
                 summaries={f.key: f for f in (*self.summaries, PRINTED_AT)},

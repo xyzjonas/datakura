@@ -4,24 +4,24 @@
     <meta charset="UTF-8" />
     <title>{{ code }}</title>
     <style>
+        {{ font_faces|safe }}
         @page {
             size: A4; margin: {{ margin.margin_top }}px {{ margin.margin_right }}px {{ margin.margin_bottom }}px {{ margin.margin_left }}px;
-            {% if page_number_box %}@{{ page_number_box }} { content: counter(page) " / " counter(pages); font-family: "DejaVu Sans", sans-serif; font-size: 9px; color: #64748b; }{% endif %}
+            {% if page_number_box %}@{{ page_number_box }} { content: counter(page) " / " counter(pages); font-family: {{ font_family|safe }}; font-size: 9px; color: #64748b; }{% endif %}
         }
         * { box-sizing: border-box; }
         body {
             margin: 0;
             color: #132238;
-            font-family: "DejaVu Sans", sans-serif;
+            font-family: {{ font_family|safe }};
             font-size: 11px;
             line-height: 1.45;
             background: #fff;
         }
         .page { display: flex; flex-direction: column; gap: 18px; }
-        .logo { display: flex; }
-        .logo.center { justify-content: center; }
-        .logo.right { justify-content: flex-end; }
-        .logo img { max-height: 70px; max-width: 260px; }
+        .logo-img { display: block; max-height: 70px; max-width: 260px; }
+        .right .logo-img { margin-left: auto; }
+        .middle .logo-img { margin: 0 auto; }
         .header-sections { display: flex; gap: 20px; align-items: flex-start; }
         .header-sections > div { flex: 1; }
         .header-sections .middle { text-align: center; }
@@ -34,8 +34,10 @@
         .bc-text { display: block; line-height: 1.2; }
         .barcode { display: block; margin: 0 auto; height: 3.6em; }
         td .barcode { height: 2.4em; }
-        .parties { display: flex; gap: 16px; }
-        .party { flex: 1; padding: 12px 14px; border: 1px solid #d7dee7; border-radius: 8px; background: #f6f8fb; }
+        .parties { display: flex; }
+        .party { flex: 1; }
+        .party:not(:last-child) { padding-right: 20px; }
+        .party + .party { padding-left: 20px; border-left: 1px solid #d7dee7; }
         .party h2 { margin: 0 0 6px 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
         .party p { margin: 2px 0; }
         table { width: 100%; border-collapse: collapse; }
@@ -51,10 +53,6 @@
 </head>
 <body>
 <div class="page">
-    {% if logo %}
-    <div class="logo {{ logo.align }}"><img src="{{ logo.image }}" alt="" /></div>
-    {% endif %}
-
     <section class="header">
         {% if header.title %}<h1 class="title">{{ header.title }}</h1>{% endif %}
         <div class="header-sections">

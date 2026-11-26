@@ -1,7 +1,5 @@
 <template>
   <div class="flex flex-col gap-2">
-    <LogoBlockEditor v-model="model.logo" />
-
     <LayoutBlock title="Hlavička">
       <q-input
         v-model="model.header.title"
@@ -50,7 +48,7 @@
       />
     </LayoutBlock>
 
-    <PageBlockEditor v-model="model.page" />
+    <PageBlockEditor v-model="model.page" :fonts="catalog.fonts" />
 
     <LayoutBlock v-model:enabled="model.pagination.enabled" title="Číslování stran" toggleable>
       <q-select
@@ -73,7 +71,6 @@
 import type { DocumentCatalogSchema } from '@/client'
 import FieldListEditor from './FieldListEditor.vue'
 import LayoutBlock from './LayoutBlock.vue'
-import LogoBlockEditor from './LogoBlockEditor.vue'
 import PageBlockEditor from './PageBlockEditor.vue'
 import PartyBlockEditor from './PartyBlockEditor.vue'
 import type { DocumentLayout } from './types'

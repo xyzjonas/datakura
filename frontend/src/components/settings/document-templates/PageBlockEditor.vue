@@ -1,5 +1,20 @@
 <template>
-  <LayoutBlock title="Okraje stránky">
+  <LayoutBlock title="Stránka">
+    <q-select
+      v-model="model.font"
+      :options="fonts"
+      option-value="key"
+      option-label="label"
+      emit-value
+      map-options
+      outlined
+      dense
+      hide-bottom-space
+      label="Písmo dokladu"
+      data-test="page-font"
+    />
+    <LogoUpload v-model="model.logo" />
+    <div class="text-sm font-semibold">Okraje</div>
     <div class="grid grid-cols-2 gap-2">
       <q-input
         v-for="side in sides"
@@ -24,11 +39,13 @@
 </template>
 
 <script setup lang="ts">
-import type { PageSchema } from '@/client'
+import type { CatalogFieldSchema, PageSchema } from '@/client'
 import LayoutBlock from './LayoutBlock.vue'
+import LogoUpload from './LogoUpload.vue'
 
 type Side = 'margin_top' | 'margin_right' | 'margin_bottom' | 'margin_left'
 
+defineProps<{ fonts: CatalogFieldSchema[] }>()
 const model = defineModel<Required<PageSchema>>({ required: true })
 
 const sides: { key: Side; label: string }[] = [

@@ -147,7 +147,7 @@ def test_save_get_and_reset(admin_client) -> None:
         lambda layout: layout["pagination"].update(position="middle"),
         lambda layout: layout["items"].update(columns=[]),
         lambda layout: layout["items"].update(summaries=[{"key": "nope"}]),
-        lambda layout: layout["logo"].update(enabled=True, image=None),
+        lambda layout: layout["page"].update(font="comic-sans"),
     ],
     ids=[
         "unknown-key",
@@ -158,7 +158,7 @@ def test_save_get_and_reset(admin_client) -> None:
         "bad-page-number-position",
         "no-columns",
         "unknown-summary",
-        "logo-no-image",
+        "unknown-font",
     ],
 )
 def test_invalid_layout_is_not_saved(admin_client, mutate) -> None:
@@ -184,7 +184,7 @@ def test_invalid_layout_is_not_saved(admin_client, mutate) -> None:
 )
 def test_logo_must_be_a_small_raster_data_url(admin_client, image) -> None:
     layout = _layout()
-    layout["logo"] = {"enabled": True, "image": image, "align": "left"}
+    layout["page"]["logo"] = image
 
     response = _send(admin_client, "put", f"{URL}/offer", {"layout": layout})
 
@@ -203,12 +203,39 @@ def test_label_length_and_field_count_limits(admin_client) -> None:
 
 def test_save_with_valid_logo(admin_client) -> None:
     layout = _layout()
-    layout["logo"] = {"enabled": True, "image": PIXEL, "align": "center"}
+    layout["page"]["logo"] = PIXEL
+    layout["header"]["right"] = [{"key": "logo", "show_label": False}]
 
     response = _send(admin_client, "put", f"{URL}/offer", {"layout": layout})
 
     assert response.status_code == 200
-    assert response.json()["data"]["layout"]["logo"]["image"] == PIXEL
+    assert response.json()["data"]["layout"]["page"]["logo"] == PIXEL
+
+
+@pytest.mark.parametrize("block", ["header", "supplier", "customer"])
+def test_logo_is_selectable_in_every_party_and_header_block(
+    admin_client, block
+) -> None:
+    template = admin_client.get(f"{URL}/offer").json()["data"]
+
+    assert "logo" in {f["key"] for f in template["catalog"][f"{block}_fields"]}
+
+
+@pytest.mark.parametrize("block", ["item_columns", "summaries"])
+def test_logo_is_not_offered_in_the_items_table(admin_client, block) -> None:
+    template = admin_client.get(f"{URL}/offer").json()["data"]
+
+    assert "logo" not in {f["key"] for f in template["catalog"][block]}
+
+
+def test_catalog_lists_bundled_fonts_and_default_page_is_30px(admin_client) -> None:
+    template = admin_client.get(f"{URL}/offer").json()["data"]
+
+    fonts = {f["key"] for f in template["catalog"]["fonts"]}
+    assert {"system", "roboto", "open-sans", "inter", "lato"} <= fonts
+    page = template["layout"]["page"]
+    assert [page[f"margin_{s}"] for s in ("top", "right", "bottom", "left")] == [30] * 4
+    assert page["font"] == "system"
 
 
 # --- records / preview / pdf -----------------------------------------------------
@@ -357,7 +384,7 @@ def test_styling_static_text_and_margins_round_trip(admin_client, invoice_code) 
         == 200
     )
     loaded = admin_client.get(f"{URL}/outbound_invoice").json()["data"]["layout"]
-    assert loaded["page"] == layout["page"]
+    assert loaded["page"] == {**layout["page"], "font": "system", "logo": None}
     right = loaded["header"]["right"]
     assert right[0]["bold"] and right[0]["muted"]
     assert right[1]["text"] == "Hello" and right[1]["font_size"] == 20

@@ -22,7 +22,7 @@
       maxlength="100"
       data-test="field-label"
     />
-    <FieldOptions :model-value="model" />
+    <FieldOptions :model-value="model" :hide-barcode="model.key === 'logo'" />
   </div>
 </template>
 
