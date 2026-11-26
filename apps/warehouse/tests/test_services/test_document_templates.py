@@ -37,6 +37,7 @@ from apps.warehouse.tests.factories.order import (
     OutboundOrderItemFactory,
 )
 from apps.warehouse.tests.factories.warehouse import (
+    OutboundWarehouseOrderItemFactory,
     InboundWarehouseOrderFactory,
     WarehouseOrderOutFactory,
 )
@@ -1150,6 +1151,7 @@ def test_delivery_code_falls_back_to_the_internal_code(customer_code, expected) 
         DocumentTarget.OUTBOUND_INVOICE,
         DocumentTarget.DELIVERY_NOTE,
         DocumentTarget.OFFER,
+        DocumentTarget.ISSUE_NOTE,
     ],
 )
 def test_delivery_code_is_offered_for_customer_facing_documents(target) -> None:
@@ -1175,6 +1177,35 @@ def test_delivery_note_prints_customer_code_only_when_required(
     layout.items.columns = [LayoutFieldSchema(key="delivery_code", label="Kód")]
 
     html = str(service.render_record_html(target, order.code, layout))
+
+    expected = "THEIRS-42" if requires_own_codes else product.code
+    assert f">{expected}</span>" in html
+    assert ("THEIRS-42" in html) is requires_own_codes
+
+
+@pytest.mark.parametrize("requires_own_codes", [True, False])
+def test_issue_note_takes_the_delivery_code_from_the_parent_order(
+    db, requires_own_codes
+) -> None:
+    from apps.warehouse.tests.factories.product import (
+        CustomerProductCodeFactory,
+        StockProductFactory,
+    )
+
+    customer = CustomerFactory(requires_own_codes=requires_own_codes)
+    product = StockProductFactory()
+    CustomerProductCodeFactory.it(customer=customer, product=product, code="THEIRS-42")
+    order = OutboundOrderFactory.it(customer=customer, currency="CZK")
+    order_item = OutboundOrderItemFactory(order=order, stock_product=product)
+    note = WarehouseOrderOutFactory.it(order=order)
+    OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=note, source_order_item=order_item
+    )
+    target = DocumentTarget.ISSUE_NOTE
+    layout = default_layout(target)
+    layout.items.columns = [LayoutFieldSchema(key="delivery_code", label="Kód")]
+
+    html = str(service.render_record_html(target, note.code, layout))
 
     expected = "THEIRS-42" if requires_own_codes else product.code
     assert f">{expected}</span>" in html

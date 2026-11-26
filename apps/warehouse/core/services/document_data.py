@@ -99,6 +99,7 @@ UNIT_PRICE = F("unit_price", "Cena / MJ", Kind.MONEY)
 TOTAL_PRICE = F("total_price", "Celkem", Kind.MONEY)
 ORIGIN = F("origin_country", "Země původu")
 BATCH = F("batch", "Šarže")
+DELIVERY_CODE = F("delivery_code", "Dodací kód")
 
 ITEMS_COUNT = F("items_count", "Počet položek", Kind.QUANTITY)
 TOTAL_QUANTITY = F("total_quantity", "Celkové množství", Kind.QUANTITY)
@@ -396,12 +397,24 @@ def _warehouse_summaries(items: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _parent_customer_codes(order_code: str) -> dict[str, str]:
+    """Customer's own product codes (by our code) carried by the parent order."""
+    order = outbound_orders_service.get_outbound_order(order_code)
+    return {
+        i.product.code: i.customer_product_code
+        for i in order.items
+        if i.customer_product_code
+    }
+
+
 def _build_issue_note(code: str) -> DocumentData:
     note = warehouse_service.get_outbound_warehouse_order(code)
+    customer_codes = _parent_customer_codes(note.order.code)
     items = [
         _stock_item(
             item,
             position,
+            delivery_code=customer_codes.get(item.product.code) or item.product.code,
             batch=item.desired_batch_code,
             origin_country=item.required_origin_country,
         )
@@ -461,7 +474,7 @@ _PRICED_ITEMS = [
     ITEM_INDEX,
     PRODUCT_CODE,
     PRODUCT_NAME,
-    F("delivery_code", "Dodací kód"),
+    DELIVERY_CODE,
     F("customer_product_code", "Kód zákazníka"),
     AMOUNT,
     UNIT,
@@ -536,6 +549,7 @@ SPECS: dict[DocumentTarget, DocumentSpec] = {
             ITEM_INDEX,
             PRODUCT_CODE,
             PRODUCT_NAME,
+            DELIVERY_CODE,
             AMOUNT,
             UNIT,
             BATCH,
