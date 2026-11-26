@@ -7,6 +7,7 @@ what is printed inside them (which attributes, in which order, with which captio
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -14,6 +15,8 @@ from typing import Any
 from django.template.defaultfilters import floatformat
 from django.template.loader import render_to_string
 from django.utils import dateformat, timezone
+from django.utils.html import escape
+from django.utils.safestring import SafeString, mark_safe
 
 from apps.warehouse.core.exceptions import (
     InvalidDocumentLayoutError,
@@ -23,6 +26,7 @@ from apps.warehouse.core.schemas.document_templates import (
     CatalogFieldSchema,
     DocumentCatalogSchema,
     DocumentLayoutSchema,
+    DocumentPageSettingsSchema,
     DocumentRecordSchema,
     DocumentTargetSchema,
     DocumentTemplateSchema,
@@ -42,13 +46,30 @@ from apps.warehouse.core.services.document_data import (
     FieldDef,
     Kind,
 )
-from apps.warehouse.core.services.pdf import print_html_to_pdf
+from apps.warehouse.core.services.pdf import free_space_below, print_html_to_pdf
 from apps.warehouse.models.document_template import DocumentTarget, DocumentTemplate
 
 LAYOUT_TEMPLATE = "documents/layout.html"
 DATE_FORMAT = "d. m. Y"
 RIGHT_ALIGNED = {Kind.QUANTITY, Kind.MONEY}
 LOGO_KEY = "logo"
+FOOTER_CSS_CLASS = "footer"
+FOOTER_GAP_TOLERANCE = 2  # px kept free so rounding never opens a new page
+
+# basic inline formatting of the footer (the text is escaped first, so no HTML gets in)
+_MARKUP = (
+    (re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*", re.DOTALL), "strong"),
+    (re.compile(r"__(?=\S)(.+?)(?<=\S)__", re.DOTALL), "u"),
+    (re.compile(r"(?<![*\w])\*(?=[^\s*])(.+?)(?<=[^\s*])\*(?![*\w])", re.DOTALL), "em"),
+)
+
+
+def render_inline_markup(text: str) -> SafeString:
+    """**bold**, *italic* and __underline__ -> HTML; anything else is plain escaped text."""
+    html: str = escape(text)
+    for pattern, tag in _MARKUP:
+        html = pattern.sub(rf"<{tag}>\1</{tag}>", html)
+    return mark_safe(html)  # noqa: S308 - escaped above, only our own tags are added
 
 
 def _party_fields() -> list[LayoutFieldSchema]:
@@ -82,6 +103,14 @@ _DEFAULTS: dict[DocumentTarget, dict[str, Any]] = {
             "total_price",
         ],
         "summaries": ["total_amount"],
+        "supplier": "Dodavatel",
+        "customer": "Odběratel",
+    },
+    DocumentTarget.OUTBOUND_ORDER: {
+        "title": "Objednávka",
+        "header": ["created", "requested_delivery_date", "external_code"],
+        "items": ["product_code", "product_name", "amount", "unit"],
+        "summaries": ["items_count"],
         "supplier": "Dodavatel",
         "customer": "Odběratel",
     },
@@ -414,6 +443,20 @@ class DocumentTemplateService:
         return cls.get_template(target)
 
     @classmethod
+    def apply_page_settings_to_all(
+        cls, settings: DocumentPageSettingsSchema
+    ) -> list[DocumentTargetSchema]:
+        """Copies page-wide settings (font, margins, logo, numbering) to every document."""
+        for target in SPECS:
+            layout, _ = cls.get_layout(target)
+            layout.page = settings.page
+            layout.pagination = settings.pagination
+            DocumentTemplate.objects.update_or_create(
+                target=target, defaults={"layout": layout.model_dump(mode="json")}
+            )
+        return cls.list_targets()
+
+    @classmethod
     def list_records(
         cls, target: DocumentTarget, q: str | None = None
     ) -> list[DocumentRecordSchema]:
@@ -529,7 +572,7 @@ class DocumentTemplateService:
             },
             "parties": parties,
             "items": items,
-            "footer": layout.footer.text
+            "footer": render_inline_markup(layout.footer.text.strip())
             if layout.footer.enabled and layout.footer.text.strip()
             else None,
             # "top-left" .. "bottom-right": a CSS @page margin box, only the PDF paginates
@@ -544,15 +587,23 @@ class DocumentTemplateService:
         target: DocumentTarget,
         record_code: str,
         layout: DocumentLayoutSchema | None = None,
+        footer_gap: int = 0,
     ) -> str:
-        """The document over a record; `layout` None => the saved (or default) one."""
+        """The document over a record; `layout` None => the saved (or default) one.
+
+        `footer_gap` (px) pushes the footer down, see `render_record_pdf`.
+        """
         spec = _spec(target)
         if layout is None:
             layout, _ = cls.get_layout(target)
         else:
             cls.validate(target, layout)
         return render_to_string(
-            LAYOUT_TEMPLATE, cls._context(spec, layout, spec.build(record_code))
+            LAYOUT_TEMPLATE,
+            {
+                **cls._context(spec, layout, spec.build(record_code)),
+                "footer_gap": footer_gap,
+            },
         )
 
     @classmethod
@@ -562,9 +613,15 @@ class DocumentTemplateService:
         record_code: str,
         layout: DocumentLayoutSchema | None = None,
     ) -> bytes:
-        return print_html_to_pdf(
-            content_html=cls.render_record_html(target, record_code, layout)
-        )
+        html = cls.render_record_html(target, record_code, layout)
+        # the footer sticks to the bottom of the page it lands on: measure the free
+        # space below it, then print again with that much space above it
+        gap = free_space_below(html, FOOTER_CSS_CLASS)
+        if gap > FOOTER_GAP_TOLERANCE:
+            html = cls.render_record_html(
+                target, record_code, layout, footer_gap=gap - FOOTER_GAP_TOLERANCE
+            )
+        return print_html_to_pdf(content_html=html)
 
 
 document_template_service = DocumentTemplateService()

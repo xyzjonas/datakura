@@ -6502,6 +6502,7 @@ export type GetCertificationItemsResponse = {
 export type DocumentTarget =
   | 'goods_receipt'
   | 'issue_note'
+  | 'outbound_order'
   | 'delivery_note'
   | 'outbound_invoice'
   | 'offer'
@@ -6534,6 +6535,84 @@ export type GetDocumentTargetsResponse = {
    * Data
    */
   data: Array<DocumentTargetSchema>
+}
+
+/**
+ * ApplyPageSettingsResponse
+ */
+export type ApplyPageSettingsResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  /**
+   * Data
+   */
+  data: Array<DocumentTargetSchema>
+}
+
+/**
+ * DocumentPageSettingsSchema
+ * Page-wide settings shared by all the documents (font, margins, logo, numbering).
+ */
+export type DocumentPageSettingsSchema = {
+  page: PageSchema
+  pagination: PaginationSchema
+}
+
+/**
+ * PageSchema
+ * Page-wide settings: margins in px (0 = no margin), font and the logo image.
+ *
+ * The logo is printed wherever the `logo` attribute is picked (nowhere by default).
+ */
+export type PageSchema = {
+  /**
+   * Margin Top
+   */
+  margin_top?: number
+  /**
+   * Margin Right
+   */
+  margin_right?: number
+  /**
+   * Margin Bottom
+   */
+  margin_bottom?: number
+  /**
+   * Margin Left
+   */
+  margin_left?: number
+  /**
+   * Font
+   */
+  font?: string
+  /**
+   * Logo
+   */
+  logo?: string | null
+}
+
+/**
+ * PaginationSchema
+ * Page number printed in a corner of every page of the PDF.
+ */
+export type PaginationSchema = {
+  /**
+   * Enabled
+   */
+  enabled?: boolean
+  /**
+   * Position
+   */
+  position?:
+    | 'top-left'
+    | 'top-center'
+    | 'top-right'
+    | 'bottom-left'
+    | 'bottom-center'
+    | 'bottom-right'
 }
 
 /**
@@ -6615,6 +6694,7 @@ export type DocumentTemplateSchema = {
 
 /**
  * FooterBlockSchema
+ * Footer text with basic formatting: **bold**, *italic*, __underline__.
  */
 export type FooterBlockSchema = {
   /**
@@ -6780,60 +6860,6 @@ export type LayoutPartSchema = {
    * Muted
    */
   muted?: boolean
-}
-
-/**
- * PageSchema
- * Page-wide settings: margins in px (0 = no margin), font and the logo image.
- *
- * The logo is printed wherever the `logo` attribute is picked (nowhere by default).
- */
-export type PageSchema = {
-  /**
-   * Margin Top
-   */
-  margin_top?: number
-  /**
-   * Margin Right
-   */
-  margin_right?: number
-  /**
-   * Margin Bottom
-   */
-  margin_bottom?: number
-  /**
-   * Margin Left
-   */
-  margin_left?: number
-  /**
-   * Font
-   */
-  font?: string
-  /**
-   * Logo
-   */
-  logo?: string | null
-}
-
-/**
- * PaginationSchema
- * Page number printed in a corner of every page of the PDF.
- */
-export type PaginationSchema = {
-  /**
-   * Enabled
-   */
-  enabled?: boolean
-  /**
-   * Position
-   */
-  position?:
-    | 'top-left'
-    | 'top-center'
-    | 'top-right'
-    | 'bottom-left'
-    | 'bottom-center'
-    | 'bottom-right'
 }
 
 /**
@@ -11836,6 +11862,23 @@ export type WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses = {
 export type WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponse =
   WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses[keyof WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses]
 
+export type WarehouseApiRoutesDocumentTemplatesApplyPageSettingsData = {
+  body: DocumentPageSettingsSchema
+  path?: never
+  query?: never
+  url: '/api/v1/document-templates/apply-page'
+}
+
+export type WarehouseApiRoutesDocumentTemplatesApplyPageSettingsResponses = {
+  /**
+   * OK
+   */
+  200: ApplyPageSettingsResponse
+}
+
+export type WarehouseApiRoutesDocumentTemplatesApplyPageSettingsResponse =
+  WarehouseApiRoutesDocumentTemplatesApplyPageSettingsResponses[keyof WarehouseApiRoutesDocumentTemplatesApplyPageSettingsResponses]
+
 export type WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateData = {
   body?: never
   path: {
@@ -11843,7 +11886,13 @@ export type WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateData = {
      * DocumentTarget
      * Printable document kinds - each has (at most) one customised layout
      */
-    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+    target:
+      | 'goods_receipt'
+      | 'issue_note'
+      | 'outbound_order'
+      | 'delivery_note'
+      | 'outbound_invoice'
+      | 'offer'
   }
   query?: never
   url: '/api/v1/document-templates/{target}'
@@ -11866,7 +11915,13 @@ export type WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateData = {
      * DocumentTarget
      * Printable document kinds - each has (at most) one customised layout
      */
-    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+    target:
+      | 'goods_receipt'
+      | 'issue_note'
+      | 'outbound_order'
+      | 'delivery_note'
+      | 'outbound_invoice'
+      | 'offer'
   }
   query?: never
   url: '/api/v1/document-templates/{target}'
@@ -11889,7 +11944,13 @@ export type WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateData = {
      * DocumentTarget
      * Printable document kinds - each has (at most) one customised layout
      */
-    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+    target:
+      | 'goods_receipt'
+      | 'issue_note'
+      | 'outbound_order'
+      | 'delivery_note'
+      | 'outbound_invoice'
+      | 'offer'
   }
   query?: never
   url: '/api/v1/document-templates/{target}'
@@ -11912,7 +11973,13 @@ export type WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsData = {
      * DocumentTarget
      * Printable document kinds - each has (at most) one customised layout
      */
-    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+    target:
+      | 'goods_receipt'
+      | 'issue_note'
+      | 'outbound_order'
+      | 'delivery_note'
+      | 'outbound_invoice'
+      | 'offer'
   }
   query?: {
     /**
@@ -11940,7 +12007,13 @@ export type WarehouseApiRoutesDocumentTemplatesPreviewDocumentData = {
      * DocumentTarget
      * Printable document kinds - each has (at most) one customised layout
      */
-    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+    target:
+      | 'goods_receipt'
+      | 'issue_note'
+      | 'outbound_order'
+      | 'delivery_note'
+      | 'outbound_invoice'
+      | 'offer'
   }
   query?: never
   url: '/api/v1/document-templates/{target}/preview'
@@ -11963,7 +12036,13 @@ export type WarehouseApiRoutesDocumentTemplatesExportDocumentPdfData = {
      * DocumentTarget
      * Printable document kinds - each has (at most) one customised layout
      */
-    target: 'goods_receipt' | 'issue_note' | 'delivery_note' | 'outbound_invoice' | 'offer'
+    target:
+      | 'goods_receipt'
+      | 'issue_note'
+      | 'outbound_order'
+      | 'delivery_note'
+      | 'outbound_invoice'
+      | 'offer'
   }
   query?: never
   url: '/api/v1/document-templates/{target}/pdf'

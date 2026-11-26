@@ -8,6 +8,7 @@ class DocumentTarget(models.TextChoices):
 
     GOODS_RECEIPT = "goods_receipt", "Příjemka"
     ISSUE_NOTE = "issue_note", "Výdejka"
+    OUTBOUND_ORDER = "outbound_order", "Objednávka (OP)"
     DELIVERY_NOTE = "delivery_note", "Dodací list"
     OUTBOUND_INVOICE = "outbound_invoice", "Faktura vydaná"
     OFFER = "offer", "Nabídka"

@@ -60,6 +60,7 @@ def _layout(target: str = "offer") -> dict:
         ("get", "/offer/records"),
         ("post", "/offer/preview"),
         ("post", "/offer/pdf"),
+        ("post", "/apply-page"),
     ],
 )
 def test_anonymous_is_unauthorized(db, method, path) -> None:
@@ -68,7 +69,13 @@ def test_anonymous_is_unauthorized(db, method, path) -> None:
 
 @pytest.mark.parametrize(
     "method, path",
-    [("get", ""), ("put", "/offer"), ("delete", "/offer"), ("post", "/offer/pdf")],
+    [
+        ("get", ""),
+        ("put", "/offer"),
+        ("delete", "/offer"),
+        ("post", "/offer/pdf"),
+        ("post", "/apply-page"),
+    ],
 )
 def test_regular_user_is_forbidden(db, method, path) -> None:
     client = Client()
@@ -99,7 +106,9 @@ def test_get_returns_default_layout_and_catalog(admin_client, target) -> None:
     assert {f["key"] for f in catalog["supplier_fields"]} >= {"name", "identification"}
     assert "code" in {f["key"] for f in catalog["header_fields"]}
     has_contact = "contact_name" in {f["key"] for f in catalog["customer_fields"]}
-    assert has_contact is (target in {"offer", "delivery_note", "issue_note"})
+    assert has_contact is (
+        target in {"offer", "outbound_order", "delivery_note", "issue_note"}
+    )
     assert not any(f["key"].startswith("contact_") for f in catalog["supplier_fields"])
     # the default layout only uses attributes the catalog offers
     offered = {f["key"] for f in catalog["item_columns"]}
@@ -417,3 +426,66 @@ def test_invalid_styling_is_rejected(admin_client, mutate) -> None:
     response = _send(admin_client, "put", f"{URL}/offer", {"layout": layout})
 
     assert response.status_code == 422
+
+
+# --- page settings shared by all documents ---------------------------------------
+
+
+def _page_settings(**page) -> dict:
+    layout = _layout()
+    return {"page": {**layout["page"], **page}, "pagination": layout["pagination"]}
+
+
+def test_apply_page_settings_to_all(admin_client) -> None:
+    body = _page_settings(margin_top=12, font="inter", logo=PIXEL)
+    body["pagination"] = {"enabled": True, "position": "top-left"}
+
+    response = _send(admin_client, "post", f"{URL}/apply-page", body)
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert {t["target"] for t in data} == {t.value for t in DocumentTarget}
+    assert all(t["is_default"] is False for t in data)
+    for target in DocumentTarget:
+        layout = admin_client.get(f"{URL}/{target.value}").json()["data"]["layout"]
+        assert layout["page"]["margin_top"] == 12
+        assert layout["page"]["font"] == "inter"
+        assert layout["page"]["logo"] == PIXEL
+        assert layout["pagination"] == {"enabled": True, "position": "top-left"}
+
+
+@pytest.mark.parametrize(
+    "page",
+    [
+        {"margin_top": -1},
+        {"margin_left": 201},
+        {"font": "comic-sans"},
+        {"logo": "data:image/svg+xml;base64,AAAA"},
+        {"logo": "not a data url"},
+    ],
+)
+def test_apply_page_settings_validates(admin_client, page) -> None:
+    response = _send(admin_client, "post", f"{URL}/apply-page", _page_settings(**page))
+
+    assert response.status_code == 422
+    assert DocumentTemplate.objects.count() == 0
+
+
+def test_apply_page_settings_keeps_the_rest_of_the_layout(admin_client) -> None:
+    layout = _layout("issue_note")
+    layout["header"]["title"] = "Custom"
+    _send(admin_client, "put", f"{URL}/issue_note", {"layout": layout})
+
+    _send(admin_client, "post", f"{URL}/apply-page", _page_settings(margin_top=5))
+
+    saved = admin_client.get(f"{URL}/issue_note").json()["data"]["layout"]
+    assert saved["header"]["title"] == "Custom"
+    assert saved["page"]["margin_top"] == 5
+
+
+def test_outbound_order_target_is_served(admin_client) -> None:
+    data = admin_client.get(f"{URL}/outbound_order").json()["data"]
+
+    assert data["target"] == "outbound_order"
+    assert data["is_default"] is True
+    assert data["label"] == "Objednávka (OP)"

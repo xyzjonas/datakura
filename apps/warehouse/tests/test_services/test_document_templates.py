@@ -11,6 +11,7 @@ from apps.warehouse.core.exceptions import (
 )
 from apps.warehouse.core.schemas.document_templates import (
     DocumentLayoutSchema,
+    DocumentPageSettingsSchema,
     LayoutFieldSchema,
     LayoutPartSchema,
     PageSchema,
@@ -22,6 +23,7 @@ from apps.warehouse.core.services.document_templates import (
     default_layout,
     document_template_service as service,
     format_value,
+    render_inline_markup,
 )
 from apps.warehouse.models.document_template import DocumentTarget, DocumentTemplate
 from apps.warehouse.tests.factories.customer import (
@@ -81,6 +83,7 @@ def records(db) -> dict[DocumentTarget, str]:
             order=InboundOrderFactory.it()
         ).code,
         DocumentTarget.ISSUE_NOTE: WarehouseOrderOutFactory.it(order=order).code,
+        DocumentTarget.OUTBOUND_ORDER: order.code,
         DocumentTarget.DELIVERY_NOTE: order.code,
         DocumentTarget.OUTBOUND_INVOICE: invoice.code,
         DocumentTarget.OFFER: calculation.code,
@@ -1210,3 +1213,178 @@ def test_issue_note_takes_the_delivery_code_from_the_parent_order(
     expected = "THEIRS-42" if requires_own_codes else product.code
     assert f">{expected}</span>" in html
     assert ("THEIRS-42" in html) is requires_own_codes
+
+
+# --- OP has its own template, separate from the delivery note ----------------------
+
+
+def test_outbound_order_and_delivery_note_are_customised_independently(records) -> None:
+    op, note = DocumentTarget.OUTBOUND_ORDER, DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(op)
+    layout.header.title = "Objednávka OP"
+
+    service.save_template(op, layout)
+
+    assert service.get_layout(op)[0].header.title == "Objednávka OP"
+    assert service.get_layout(note) == (default_layout(note), True)
+    assert "Objednávka OP" in service.render_record_html(op, records[op])
+    assert "Objednávka OP" not in service.render_record_html(note, records[note])
+
+
+# --- footer formatting -------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("plain", "plain"),
+        ("**bold**", "<strong>bold</strong>"),
+        ("*italic*", "<em>italic</em>"),
+        ("__under__", "<u>under</u>"),
+        ("**b** and *i*", "<strong>b</strong> and <em>i</em>"),
+        ("**bold** *both*", "<strong>bold</strong> <em>both</em>"),
+        ("** spaced **", "** spaced **"),
+        ("a * b * c", "a * b * c"),  # lone asterisks stay
+        ("2*3*4", "2*3*4"),
+        ("**unclosed", "**unclosed"),
+        ("", ""),
+        ("<script>alert(1)</script>", "&lt;script&gt;alert(1)&lt;/script&gt;"),
+        ("**<b>x</b>**", "<strong>&lt;b&gt;x&lt;/b&gt;</strong>"),
+        ("line 1\nline 2", "line 1\nline 2"),
+        ("**two\nlines**", "<strong>two\nlines</strong>"),
+    ],
+)
+def test_render_inline_markup(text, expected) -> None:
+    assert render_inline_markup(text) == expected
+
+
+def test_footer_is_rendered_with_basic_formatting(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = default_layout(target)
+    layout.footer.enabled = True
+    layout.footer.text = "Thanks **a lot** <i>x</i>"
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert "Thanks <strong>a lot</strong> &lt;i&gt;x&lt;/i&gt;" in html
+
+
+# --- layout CSS: table cells centred, parties centred in their halves ---------------
+
+
+def test_table_cells_and_parties_are_centred(records) -> None:
+    target = DocumentTarget.OFFER
+
+    html = service.render_record_html(target, records[target])
+
+    assert "vertical-align: middle" in html
+    assert re.search(r"\.party \{[^}]*text-align: center", html)
+
+
+# --- footer sticks to the bottom of the (last) page --------------------------------
+
+
+def _footer_layout(target: DocumentTarget) -> DocumentLayoutSchema:
+    layout = default_layout(target)
+    layout.footer.enabled = True
+    layout.footer.text = "Footer"
+    return layout
+
+
+@pytest.mark.parametrize(
+    "free, expected_margin",
+    [(500, "calc(6px + 498px)"), (3, "calc(6px + 1px)"), (2, None), (0, None)],
+)
+def test_pdf_footer_gap_is_measured_and_applied(records, free, expected_margin) -> None:
+    target = DocumentTarget.OFFER
+    printed: list[str] = []
+
+    def fake_print(content_html: str) -> bytes:
+        printed.append(content_html)
+        return b"%PDF"
+
+    with (
+        mock.patch(
+            "apps.warehouse.core.services.document_templates.free_space_below",
+            return_value=free,
+        ),
+        mock.patch(
+            "apps.warehouse.core.services.document_templates.print_html_to_pdf",
+            side_effect=fake_print,
+        ),
+    ):
+        service.render_record_pdf(target, records[target], _footer_layout(target))
+
+    assert len(printed) == 1
+    if expected_margin:
+        assert f'style="margin-top: {expected_margin}"' in printed[0]
+    else:
+        assert 'class="footer" style' not in printed[0]
+
+
+def test_footer_gap_is_applied_inline_only_when_given(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = _footer_layout(target)
+
+    plain = service.render_record_html(target, records[target], layout)
+    pushed = service.render_record_html(target, records[target], layout, footer_gap=321)
+
+    assert 'style="margin-top: calc(6px + 321px)"' in pushed
+    assert 'class="footer" style' not in plain
+
+
+def test_footer_sits_at_the_bottom_of_a_short_document(records) -> None:
+    from apps.warehouse.core.services.pdf import free_space_below
+
+    target = DocumentTarget.OFFER
+    layout = _footer_layout(target)
+    html = service.render_record_html(target, records[target], layout)
+    gap = free_space_below(html, "footer")
+    assert gap > 300  # a short document leaves most of the page free
+
+    pushed = service.render_record_html(
+        target, records[target], layout, footer_gap=gap - 2
+    )
+
+    assert free_space_below(pushed, "footer") <= 4
+    from weasyprint import HTML  # type: ignore[import-untyped]
+
+    assert len(HTML(string=pushed).render().pages) == 1  # no spill-over page
+
+
+def test_footer_gap_without_a_footer_is_zero(records) -> None:
+    from apps.warehouse.core.services.pdf import free_space_below
+
+    html = service.render_record_html(
+        DocumentTarget.OFFER, records[DocumentTarget.OFFER]
+    )
+
+    assert free_space_below(html, "footer") == 0
+
+
+# --- page settings shared by all documents -----------------------------------------
+
+
+def test_apply_page_settings_to_all_documents(records) -> None:
+    settings = DocumentPageSettingsSchema(
+        page=PageSchema(margin_top=10, margin_left=55, font="inter", logo=PIXEL),
+        pagination=PaginationSchema(enabled=True, position="top-center"),
+    )
+    custom = default_layout(DocumentTarget.OFFER)
+    custom.header.title = "Keep me"
+    service.save_template(DocumentTarget.OFFER, custom)
+
+    targets = service.apply_page_settings_to_all(settings)
+
+    assert {t.target for t in targets} == set(DocumentTarget)
+    assert all(not t.is_default for t in targets)
+    for target in DocumentTarget:
+        layout, _ = service.get_layout(target)
+        assert layout.page == settings.page
+        assert layout.pagination == settings.pagination
+    # nothing else is touched
+    assert service.get_layout(DocumentTarget.OFFER)[0].header.title == "Keep me"
+    assert (
+        service.get_layout(DocumentTarget.ISSUE_NOTE)[0].header
+        == default_layout(DocumentTarget.ISSUE_NOTE).header
+    )

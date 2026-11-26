@@ -35,17 +35,7 @@
     </LayoutBlock>
 
     <LayoutBlock v-model:enabled="model.footer.enabled" title="Patička" toggleable>
-      <q-input
-        v-model="model.footer.text"
-        type="textarea"
-        outlined
-        dense
-        autogrow
-        hide-bottom-space
-        label="Text patičky"
-        maxlength="1000"
-        data-test="footer-text"
-      />
+      <FooterTextEditor v-model="model.footer.text" />
     </LayoutBlock>
 
     <PageBlockEditor v-model="model.page" :fonts="catalog.fonts" />
@@ -70,6 +60,7 @@
 <script setup lang="ts">
 import type { DocumentCatalogSchema } from '@/client'
 import FieldListEditor from './FieldListEditor.vue'
+import FooterTextEditor from './FooterTextEditor.vue'
 import LayoutBlock from './LayoutBlock.vue'
 import PageBlockEditor from './PageBlockEditor.vue'
 import PartyBlockEditor from './PartyBlockEditor.vue'

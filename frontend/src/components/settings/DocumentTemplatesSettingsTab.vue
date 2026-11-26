@@ -56,6 +56,16 @@
         @click="confirmReset"
       />
       <q-btn
+        flat
+        dense
+        icon="sym_o_content_copy"
+        label="Stránku na všechny"
+        title="Písmo, okraje, logo a číslování stran zkopírovat do všech ostatních dokladů"
+        :disable="!layout"
+        data-test="apply-page"
+        @click="confirmApplyPage"
+      />
+      <q-btn
         outline
         color="primary"
         icon="sym_o_picture_as_pdf"
@@ -86,6 +96,7 @@
 
 <script setup lang="ts">
 import {
+  warehouseApiRoutesDocumentTemplatesApplyPageSettings,
   warehouseApiRoutesDocumentTemplatesExportDocumentPdf,
   warehouseApiRoutesDocumentTemplatesGetDocumentRecords,
   warehouseApiRoutesDocumentTemplatesGetDocumentTargets,
@@ -221,6 +232,37 @@ const confirmReset = () =>
       cancel: true,
     })
     .onOk(() => void reset())
+
+const applyPage = async () => {
+  if (!layout.value || !template.value) return
+  const { page, pagination } = layout.value
+  const response = onResponse(
+    await warehouseApiRoutesDocumentTemplatesApplyPageSettings({ body: { page, pagination } }),
+  )
+  if (!response?.data) return
+  targets.value = response.data
+  // the other drafted changes of this document stay unsaved, its page part is stored now
+  template.value = {
+    ...template.value,
+    is_default: false,
+    layout: {
+      ...template.value.layout,
+      page: { ...page },
+      pagination: { ...pagination },
+    },
+  }
+  $q.notify({ type: 'positive', message: 'Nastavení stránky bylo použito u všech dokladů.' })
+}
+
+const confirmApplyPage = () =>
+  $q
+    .dialog({
+      title: 'Použít nastavení stránky u všech dokladů',
+      message:
+        'Písmo, okraje, logo a číslování stran se přepíše u všech ostatních dokladů. Ostatní části jejich vzhledu zůstanou.',
+      cancel: true,
+    })
+    .onOk(() => void applyPage())
 
 const exportPdf = async () => {
   if (!target.value || !recordCode.value || !layout.value) return

@@ -19,6 +19,8 @@
             background: #fff;
         }
         .page { display: flex; flex-direction: column; gap: 18px; }
+        /* browser preview: one page high, the footer sticks to its bottom (the PDF measures instead, see pdf.py) */
+        @media screen { .page { min-height: calc(297mm - {{ margin.margin_top|add:margin.margin_bottom }}px - 2px); } .footer { margin-top: auto; } }
         .logo-img { display: block; max-height: 70px; max-width: 260px; }
         .right .logo-img { margin-left: auto; }
         .middle .logo-img { margin: 0 auto; }
@@ -35,20 +37,20 @@
         .barcode { display: block; margin: 0 auto; height: 3.6em; }
         td .barcode { height: 2.4em; }
         .parties { display: flex; }
-        .party { flex: 1; }
+        .party { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
         .party:not(:last-child) { padding-right: 20px; }
         .party + .party { padding-left: 20px; border-left: 1px solid #d7dee7; }
         .party h2 { margin: 0 0 6px 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
         .party p { margin: 2px 0; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 8px 10px; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; border-bottom: 2px solid #d7dee7; }
-        td { padding: 8px 10px; border-bottom: 1px solid #e5eaf0; vertical-align: top; }
+        td { padding: 8px 10px; border-bottom: 1px solid #e5eaf0; vertical-align: middle; }
         tr { page-break-inside: avoid; }
         .right { text-align: right; white-space: nowrap; }
         .summaries { align-self: flex-end; min-width: 240px; }
         .summaries div { display: flex; justify-content: space-between; gap: 24px; padding: 4px 0; border-bottom: 1px solid #e5eaf0; }
         .summaries div:last-child { font-size: 14px; font-weight: 700; border-bottom: 0; }
-        .footer { margin-top: 6px; padding-top: 8px; border-top: 1px solid #d7dee7; color: #64748b; font-size: 9px; white-space: pre-wrap; text-align: center; }
+        .footer { break-inside: avoid; margin-top: 6px; padding-top: 8px; border-top: 1px solid #d7dee7; color: #64748b; font-size: 9px; white-space: pre-wrap; text-align: center; }
     </style>
 </head>
 <body>
@@ -95,7 +97,7 @@
     {% endif %}
     {% endif %}
 
-    {% if footer %}<div class="footer">{{ footer }}</div>{% endif %}
+    {% if footer %}<div class="footer"{% if footer_gap %} style="margin-top: calc(6px + {{ footer_gap }}px)"{% endif %}>{{ footer }}</div>{% endif %}
 </div>
 </body>
 </html>

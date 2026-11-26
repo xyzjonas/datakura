@@ -148,6 +148,8 @@ class PageSchema(Schema):
 
 
 class FooterBlockSchema(Schema):
+    """Footer text with basic formatting: **bold**, *italic*, __underline__."""
+
     enabled: bool = False
     text: Annotated[str, Field(max_length=1000)] = ""
 
@@ -198,6 +200,13 @@ class DocumentTemplateSchema(Schema):
     catalog: DocumentCatalogSchema
 
 
+class DocumentPageSettingsSchema(Schema):
+    """Page-wide settings shared by all the documents (font, margins, logo, numbering)."""
+
+    page: PageSchema
+    pagination: PaginationSchema
+
+
 class DocumentTemplateUpdateSchema(Schema):
     layout: DocumentLayoutSchema
 
@@ -218,6 +227,9 @@ class GetDocumentTargetsResponse(Response[list[DocumentTargetSchema]]): ...
 
 
 class GetDocumentTemplateResponse(Response[DocumentTemplateSchema]): ...
+
+
+class ApplyPageSettingsResponse(Response[list[DocumentTargetSchema]]): ...
 
 
 class GetDocumentRecordsResponse(Response[list[DocumentRecordSchema]]): ...

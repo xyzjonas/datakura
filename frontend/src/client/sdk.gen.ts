@@ -98,6 +98,8 @@ import type {
   WarehouseApiRoutesDataImportGetDataImportJobResponses,
   WarehouseApiRoutesDataImportStartDataImportData,
   WarehouseApiRoutesDataImportStartDataImportResponses,
+  WarehouseApiRoutesDocumentTemplatesApplyPageSettingsData,
+  WarehouseApiRoutesDocumentTemplatesApplyPageSettingsResponses,
   WarehouseApiRoutesDocumentTemplatesExportDocumentPdfData,
   WarehouseApiRoutesDocumentTemplatesExportDocumentPdfResponses,
   WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsData,
@@ -5873,6 +5875,36 @@ export const warehouseApiRoutesDocumentTemplatesGetDocumentTargets = <
     ],
     url: '/api/v1/document-templates',
     ...options,
+  })
+}
+
+/**
+ * Apply Page Settings
+ * Copies font, margins, logo and page numbering to the layouts of all documents.
+ */
+export const warehouseApiRoutesDocumentTemplatesApplyPageSettings = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WarehouseApiRoutesDocumentTemplatesApplyPageSettingsData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<
+    WarehouseApiRoutesDocumentTemplatesApplyPageSettingsResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/document-templates/apply-page',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   })
 }
 

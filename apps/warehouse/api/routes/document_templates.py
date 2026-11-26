@@ -5,6 +5,8 @@ from ninja import Query, Router
 
 from apps.warehouse.core.auth import superuser_auth
 from apps.warehouse.core.schemas.document_templates import (
+    ApplyPageSettingsResponse,
+    DocumentPageSettingsSchema,
     DocumentRenderSchema,
     DocumentTemplateUpdateSchema,
     GetDocumentPreviewResponse,
@@ -22,6 +24,14 @@ routes = Router(tags=["document-templates"], auth=superuser_auth)
 @routes.get("", response={200: GetDocumentTargetsResponse})
 def get_document_targets(request: HttpRequest):
     return GetDocumentTargetsResponse(data=document_template_service.list_targets())
+
+
+@routes.post("/apply-page", response={200: ApplyPageSettingsResponse})
+def apply_page_settings(request: HttpRequest, body: DocumentPageSettingsSchema):
+    """Copies font, margins, logo and page numbering to the layouts of all documents."""
+    return ApplyPageSettingsResponse(
+        data=document_template_service.apply_page_settings_to_all(body)
+    )
 
 
 @routes.get("/{target}", response={200: GetDocumentTemplateResponse})

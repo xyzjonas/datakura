@@ -308,7 +308,7 @@ def _build_invoice(code: str) -> DocumentData:
 # --- outbound order (delivery note) / calculation (offer) --------------------------
 
 
-def _list_delivery_notes(q: str | None) -> list[DocumentRecordSchema]:
+def _list_outbound_orders(q: str | None) -> list[DocumentRecordSchema]:
     qs = outbound_orders_service.get_outbound_orders(search_term=q, include_all=True)
     return [_record(o.code, _customer_name(o)) for o in qs[:MAX_RECORDS]]
 
@@ -350,7 +350,7 @@ def _build_outbound_document(doc: Any, extra_header: dict[str, Any]) -> Document
     )
 
 
-def _build_delivery_note(code: str) -> DocumentData:
+def _build_outbound_order(code: str) -> DocumentData:
     order = outbound_orders_service.get_outbound_order(code)
     return _build_outbound_document(order, {"fulfilled_date": order.fulfilled_date})
 
@@ -525,8 +525,20 @@ SPECS: dict[DocumentTarget, DocumentSpec] = {
         ],
         item_columns=_PRICED_ITEMS,
         summaries=_PRICED_SUMMARIES,
-        list_records=_list_delivery_notes,
-        build=_build_delivery_note,
+        list_records=_list_outbound_orders,
+        build=_build_outbound_order,
+        has_contact=True,
+    ),
+    DocumentTarget.OUTBOUND_ORDER: DocumentSpec(
+        target=DocumentTarget.OUTBOUND_ORDER,
+        header_fields=[
+            *_OUTBOUND_HEADER,
+            F("fulfilled_date", "Vyřízeno", Kind.DATETIME),
+        ],
+        item_columns=_PRICED_ITEMS,
+        summaries=_PRICED_SUMMARIES,
+        list_records=_list_outbound_orders,
+        build=_build_outbound_order,
         has_contact=True,
     ),
     DocumentTarget.OFFER: DocumentSpec(
