@@ -480,6 +480,55 @@ export type GetWarehouseLocationResponse = {
 }
 
 /**
+ * NormRefSchema
+ * A norm without its aliases (what the aliases of a norm are made of)
+ */
+export type NormRefSchema = {
+  /**
+   * Id
+   */
+  id: number
+  /**
+   * Code
+   */
+  code: string
+  /**
+   * Type
+   */
+  type: 'ISO' | 'CSN' | 'DIN'
+  /**
+   * Label
+   */
+  label: string
+}
+
+/**
+ * NormSchema
+ */
+export type NormSchema = {
+  /**
+   * Id
+   */
+  id: number
+  /**
+   * Code
+   */
+  code: string
+  /**
+   * Type
+   */
+  type: 'ISO' | 'CSN' | 'DIN'
+  /**
+   * Label
+   */
+  label: string
+  /**
+   * Equivalents
+   */
+  equivalents: Array<NormRefSchema>
+}
+
+/**
  * PackageSchema
  */
 export type PackageSchema = {
@@ -581,6 +630,7 @@ export type ProductSchema = {
    * Customs Declaration Group
    */
   customs_declaration_group?: string | null
+  norm?: NormSchema | null
   /**
    * Attributes
    */
@@ -1912,6 +1962,10 @@ export type ProductCreateOrUpdateSchema = {
    */
   customs_declaration_group?: string | null
   /**
+   * Norm Id
+   */
+  norm_id?: number | null
+  /**
    * Attributes
    */
   attributes?: {
@@ -2057,6 +2111,10 @@ export type ProductDuplicateSchema = {
    * Customs Declaration Group
    */
   customs_declaration_group?: string | null
+  /**
+   * Norm Id
+   */
+  norm_id?: number | null
   /**
    * Attributes
    */
@@ -6120,6 +6178,203 @@ export type WarehouseImportResultSchema = {
    * Items Created
    */
   items_created: number
+}
+
+/**
+ * GetNormsResponse
+ */
+export type GetNormsResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  /**
+   * Data
+   */
+  data: Array<NormSchema>
+}
+
+/**
+ * GetNormResponse
+ */
+export type GetNormResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  data: NormSchema
+}
+
+/**
+ * NormCreateOrUpdateSchema
+ */
+export type NormCreateOrUpdateSchema = {
+  /**
+   * Code
+   */
+  code: string
+  /**
+   * Type
+   */
+  type: 'ISO' | 'CSN' | 'DIN'
+  /**
+   * Equivalent Ids
+   */
+  equivalent_ids?: Array<number>
+}
+
+/**
+ * NormBackfillJobStartedResponse
+ */
+export type NormBackfillJobStartedResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  data: NormBackfillJobStartedSchema
+}
+
+/**
+ * NormBackfillJobStartedSchema
+ */
+export type NormBackfillJobStartedSchema = {
+  /**
+   * Job Id
+   */
+  job_id: string
+}
+
+/**
+ * NormBackfillIssueSchema
+ */
+export type NormBackfillIssueSchema = {
+  /**
+   * Product Code
+   */
+  product_code: string
+  /**
+   * Key
+   */
+  key: string
+  /**
+   * Value
+   */
+  value: string
+  /**
+   * Reason
+   */
+  reason: string
+}
+
+/**
+ * NormBackfillJobStatusResponse
+ */
+export type NormBackfillJobStatusResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  data: NormBackfillJobStatusSchema
+}
+
+/**
+ * NormBackfillJobStatusSchema
+ */
+export type NormBackfillJobStatusSchema = {
+  /**
+   * Job Id
+   */
+  job_id: string
+  /**
+   * State
+   */
+  state: 'pending' | 'running' | 'succeeded' | 'failed'
+  /**
+   * Phase
+   */
+  phase?: string | null
+  /**
+   * Stage Done
+   */
+  stage_done?: number
+  /**
+   * Stage Total
+   */
+  stage_total?: number
+  /**
+   * Percent
+   */
+  percent?: number
+  result?: NormBackfillResultSchema | null
+  /**
+   * Error
+   */
+  error?: string | null
+}
+
+/**
+ * NormBackfillResultSchema
+ */
+export type NormBackfillResultSchema = {
+  /**
+   * Products Scanned
+   */
+  products_scanned: number
+  /**
+   * Customs Filled
+   */
+  customs_filled: number
+  /**
+   * Norms Linked
+   */
+  norms_linked: number
+  /**
+   * Norms Created
+   */
+  norms_created: number
+  /**
+   * Aliases Linked
+   */
+  aliases_linked: number
+  /**
+   * Norms Kept
+   */
+  norms_kept: number
+  /**
+   * Without Customs
+   */
+  without_customs: number
+  /**
+   * Without Norm
+   */
+  without_norm: number
+  /**
+   * Invalid Count
+   */
+  invalid_count: number
+  /**
+   * Invalid
+   */
+  invalid: Array<NormBackfillIssueSchema>
+}
+
+/**
+ * DeleteNormResponse
+ */
+export type DeleteNormResponse = {
+  /**
+   * Success
+   */
+  success?: boolean
+  error?: ErrorInformation | null
+  /**
+   * Data
+   */
+  data: null
 }
 
 /**
@@ -11544,6 +11799,154 @@ export type WarehouseApiRoutesDataImportGetDataImportJobResponses = {
 
 export type WarehouseApiRoutesDataImportGetDataImportJobResponse =
   WarehouseApiRoutesDataImportGetDataImportJobResponses[keyof WarehouseApiRoutesDataImportGetDataImportJobResponses]
+
+export type WarehouseApiRoutesNormsGetNormsData = {
+  body?: never
+  path?: never
+  query?: {
+    /**
+     * Search Term
+     */
+    search_term?: string | null
+    /**
+     * Type
+     */
+    type?: string | null
+  }
+  url: '/api/v1/norms'
+}
+
+export type WarehouseApiRoutesNormsGetNormsResponses = {
+  /**
+   * OK
+   */
+  200: GetNormsResponse
+}
+
+export type WarehouseApiRoutesNormsGetNormsResponse =
+  WarehouseApiRoutesNormsGetNormsResponses[keyof WarehouseApiRoutesNormsGetNormsResponses]
+
+export type WarehouseApiRoutesNormsCreateNormData = {
+  body: NormCreateOrUpdateSchema
+  path?: never
+  query?: never
+  url: '/api/v1/norms'
+}
+
+export type WarehouseApiRoutesNormsCreateNormResponses = {
+  /**
+   * OK
+   */
+  200: GetNormResponse
+}
+
+export type WarehouseApiRoutesNormsCreateNormResponse =
+  WarehouseApiRoutesNormsCreateNormResponses[keyof WarehouseApiRoutesNormsCreateNormResponses]
+
+export type WarehouseApiRoutesNormsStartNormBackfillData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/v1/norms/backfill'
+}
+
+export type WarehouseApiRoutesNormsStartNormBackfillResponses = {
+  /**
+   * Accepted
+   */
+  202: NormBackfillJobStartedResponse
+}
+
+export type WarehouseApiRoutesNormsStartNormBackfillResponse =
+  WarehouseApiRoutesNormsStartNormBackfillResponses[keyof WarehouseApiRoutesNormsStartNormBackfillResponses]
+
+export type WarehouseApiRoutesNormsGetNormBackfillJobData = {
+  body?: never
+  path: {
+    /**
+     * Job Id
+     */
+    job_id: string
+  }
+  query?: never
+  url: '/api/v1/norms/backfill/jobs/{job_id}'
+}
+
+export type WarehouseApiRoutesNormsGetNormBackfillJobResponses = {
+  /**
+   * OK
+   */
+  200: NormBackfillJobStatusResponse
+}
+
+export type WarehouseApiRoutesNormsGetNormBackfillJobResponse =
+  WarehouseApiRoutesNormsGetNormBackfillJobResponses[keyof WarehouseApiRoutesNormsGetNormBackfillJobResponses]
+
+export type WarehouseApiRoutesNormsDeleteNormData = {
+  body?: never
+  path: {
+    /**
+     * Norm Id
+     */
+    norm_id: number
+  }
+  query?: never
+  url: '/api/v1/norms/{norm_id}'
+}
+
+export type WarehouseApiRoutesNormsDeleteNormResponses = {
+  /**
+   * OK
+   */
+  200: DeleteNormResponse
+}
+
+export type WarehouseApiRoutesNormsDeleteNormResponse =
+  WarehouseApiRoutesNormsDeleteNormResponses[keyof WarehouseApiRoutesNormsDeleteNormResponses]
+
+export type WarehouseApiRoutesNormsGetNormData = {
+  body?: never
+  path: {
+    /**
+     * Norm Id
+     */
+    norm_id: number
+  }
+  query?: never
+  url: '/api/v1/norms/{norm_id}'
+}
+
+export type WarehouseApiRoutesNormsGetNormResponses = {
+  /**
+   * OK
+   */
+  200: GetNormResponse
+}
+
+export type WarehouseApiRoutesNormsGetNormResponse =
+  WarehouseApiRoutesNormsGetNormResponses[keyof WarehouseApiRoutesNormsGetNormResponses]
+
+export type WarehouseApiRoutesNormsUpdateNormData = {
+  body: NormCreateOrUpdateSchema
+  path: {
+    /**
+     * Norm Id
+     */
+    norm_id: number
+  }
+  query?: never
+  url: '/api/v1/norms/{norm_id}'
+}
+
+export type WarehouseApiRoutesNormsUpdateNormResponses = {
+  /**
+   * OK
+   */
+  200: GetNormResponse
+}
+
+export type WarehouseApiRoutesNormsUpdateNormResponse =
+  WarehouseApiRoutesNormsUpdateNormResponses[keyof WarehouseApiRoutesNormsUpdateNormResponses]
 
 export type WarehouseApiRoutesSettingsGetGlobalSettingsData = {
   body?: never

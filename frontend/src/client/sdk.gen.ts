@@ -196,6 +196,20 @@ import type {
   WarehouseApiRoutesManufacturingOrdersUpdateItemInManufacturingOrderResponses,
   WarehouseApiRoutesManufacturingOrdersUpdateManufacturingOrderData,
   WarehouseApiRoutesManufacturingOrdersUpdateManufacturingOrderResponses,
+  WarehouseApiRoutesNormsCreateNormData,
+  WarehouseApiRoutesNormsCreateNormResponses,
+  WarehouseApiRoutesNormsDeleteNormData,
+  WarehouseApiRoutesNormsDeleteNormResponses,
+  WarehouseApiRoutesNormsGetNormBackfillJobData,
+  WarehouseApiRoutesNormsGetNormBackfillJobResponses,
+  WarehouseApiRoutesNormsGetNormData,
+  WarehouseApiRoutesNormsGetNormResponses,
+  WarehouseApiRoutesNormsGetNormsData,
+  WarehouseApiRoutesNormsGetNormsResponses,
+  WarehouseApiRoutesNormsStartNormBackfillData,
+  WarehouseApiRoutesNormsStartNormBackfillResponses,
+  WarehouseApiRoutesNormsUpdateNormData,
+  WarehouseApiRoutesNormsUpdateNormResponses,
   WarehouseApiRoutesOutboundCalculationsAddItemToOutboundCalculationData,
   WarehouseApiRoutesOutboundCalculationsAddItemToOutboundCalculationResponses,
   WarehouseApiRoutesOutboundCalculationsCreateOrderFromOutboundCalculationData,
@@ -5510,6 +5524,178 @@ export const warehouseApiRoutesDataImportGetDataImportJob = <ThrowOnError extend
     ],
     url: '/api/v1/data-import/jobs/{job_id}',
     ...options,
+  })
+}
+
+/**
+ * Get Norms
+ * Catalogue of norms for pickers - best `MAX_LISTED_NORMS` matches
+ */
+export const warehouseApiRoutesNormsGetNorms = <ThrowOnError extends boolean = false>(
+  options?: Options<WarehouseApiRoutesNormsGetNormsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    WarehouseApiRoutesNormsGetNormsResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/norms',
+    ...options,
+  })
+}
+
+/**
+ * Create Norm
+ */
+export const warehouseApiRoutesNormsCreateNorm = <ThrowOnError extends boolean = false>(
+  options: Options<WarehouseApiRoutesNormsCreateNormData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<
+    WarehouseApiRoutesNormsCreateNormResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/norms',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+}
+
+/**
+ * Start Norm Backfill
+ * Queues the backfill of product norms and customs nomenclature from the legacy
+ * product metas. Poll `GET /backfill/jobs/{job_id}` for progress and the report.
+ */
+export const warehouseApiRoutesNormsStartNormBackfill = <ThrowOnError extends boolean = false>(
+  options?: Options<WarehouseApiRoutesNormsStartNormBackfillData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    WarehouseApiRoutesNormsStartNormBackfillResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/norms/backfill',
+    ...options,
+  })
+}
+
+/**
+ * Get Norm Backfill Job
+ */
+export const warehouseApiRoutesNormsGetNormBackfillJob = <ThrowOnError extends boolean = false>(
+  options: Options<WarehouseApiRoutesNormsGetNormBackfillJobData, ThrowOnError>,
+) => {
+  return (options.client ?? client).get<
+    WarehouseApiRoutesNormsGetNormBackfillJobResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/norms/backfill/jobs/{job_id}',
+    ...options,
+  })
+}
+
+/**
+ * Delete Norm
+ */
+export const warehouseApiRoutesNormsDeleteNorm = <ThrowOnError extends boolean = false>(
+  options: Options<WarehouseApiRoutesNormsDeleteNormData, ThrowOnError>,
+) => {
+  return (options.client ?? client).delete<
+    WarehouseApiRoutesNormsDeleteNormResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/norms/{norm_id}',
+    ...options,
+  })
+}
+
+/**
+ * Get Norm
+ */
+export const warehouseApiRoutesNormsGetNorm = <ThrowOnError extends boolean = false>(
+  options: Options<WarehouseApiRoutesNormsGetNormData, ThrowOnError>,
+) => {
+  return (options.client ?? client).get<
+    WarehouseApiRoutesNormsGetNormResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/norms/{norm_id}',
+    ...options,
+  })
+}
+
+/**
+ * Update Norm
+ */
+export const warehouseApiRoutesNormsUpdateNorm = <ThrowOnError extends boolean = false>(
+  options: Options<WarehouseApiRoutesNormsUpdateNormData, ThrowOnError>,
+) => {
+  return (options.client ?? client).put<
+    WarehouseApiRoutesNormsUpdateNormResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/norms/{norm_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   })
 }
 

@@ -48,6 +48,7 @@ const stubs = {
   QBadge: { template: '<span><slot /></span>' },
   QBanner: { template: '<div><slot /></div>' },
   QTooltip: true,
+  QSeparator: true,
   QInput: {
     props: ['modelValue'],
     emits: ['update:modelValue'],
@@ -63,6 +64,7 @@ const stubs = {
     props: ['result'],
     template: '<div data-test="result" />',
   },
+  NormBackfillCard: { template: '<div data-test="norm-backfill" />' },
   JsonFileInput: {
     props: ['modelValue', 'label'],
     emits: ['update:modelValue'],

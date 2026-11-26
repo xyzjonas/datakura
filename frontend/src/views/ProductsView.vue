@@ -65,6 +65,11 @@
           >
         </q-td>
       </template>
+      <template #body-cell-norm="props">
+        <q-td>
+          <NormLabel :norm="props.row.norm" />
+        </q-td>
+      </template>
       <template #body-cell-type="props">
         <q-td auto-width>
           <span class="flex items-center gap-1 flex-nowrap">
@@ -95,6 +100,7 @@ import {
 } from '@/client'
 import ProductUpsertDialog from '@/components/product/ProductUpsertDialog.vue'
 import ProductGridCard from '@/components/product/ProductGridCard.vue'
+import NormLabel from '@/components/norm/NormLabel.vue'
 import ProductTypeIcon from '@/components/product/ProductTypeIcon.vue'
 import ProductTypeSelect from '@/components/selects/ProductTypeSelect.vue'
 import ProductGroupSelect from '@/components/selects/ProductGroupSelect.vue'
@@ -130,6 +136,7 @@ const createDefaultForm = (): ProductCreateOrUpdateSchema => ({
   no_discount: false,
   currency: 'CZK',
   customs_declaration_group: '',
+  norm_id: null,
   attributes: {},
 })
 
@@ -223,6 +230,12 @@ const columns: QTableColumn[] = [
     name: 'group',
     field: 'group',
     label: 'Skupina',
+    align: 'left',
+  },
+  {
+    name: 'norm',
+    field: (item: ProductSchema) => item.norm?.label ?? '',
+    label: 'Norma',
     align: 'left',
   },
   {
