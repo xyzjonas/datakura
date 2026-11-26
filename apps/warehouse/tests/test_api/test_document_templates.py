@@ -136,9 +136,13 @@ def test_save_get_and_reset(admin_client) -> None:
     "mutate",
     [
         lambda layout: layout["header"].update(left=[{"key": "bogus"}]),
-        lambda layout: layout["header"].update(middle=[{"parts": ["name", "bogus"]}]),
+        lambda layout: layout["header"].update(
+            middle=[{"parts": [{"key": "name"}, {"key": "bogus"}]}]
+        ),
         lambda layout: layout["header"].update(right=[{}]),  # key nor parts
-        lambda layout: layout["header"].update(right=[{"key": "a", "parts": ["b"]}]),
+        lambda layout: layout["header"].update(
+            right=[{"key": "a", "parts": [{"key": "b"}]}]
+        ),
         lambda layout: layout["supplier"].update(fields=[{"key": "contact_name"}]),
         lambda layout: layout["pagination"].update(position="middle"),
         lambda layout: layout["items"].update(columns=[]),
@@ -298,7 +302,12 @@ def test_composite_barcode_and_pagination_round_trip_and_render(
 ) -> None:
     layout = _layout("outbound_invoice")
     layout["header"]["middle"] = [
-        {"parts": ["issued_date", "due_date"], "direction": "column", "label": "Dates"}
+        {
+            "parts": [{"key": "issued_date"}, {"key": "due_date", "bold": True}],
+            "direction": "column",
+            "label": "Dates",
+            "show_label": False,
+        }
     ]
     layout["items"]["columns"] = [
         {"key": "product_code", "barcode": True, "show_label": False}
@@ -308,7 +317,11 @@ def test_composite_barcode_and_pagination_round_trip_and_render(
     saved = _send(admin_client, "put", f"{URL}/outbound_invoice", {"layout": layout})
     assert saved.status_code == 200
     loaded = admin_client.get(f"{URL}/outbound_invoice").json()["data"]["layout"]
-    assert loaded["header"]["middle"][0]["parts"] == ["issued_date", "due_date"]
+    assert [p["key"] for p in loaded["header"]["middle"][0]["parts"]] == [
+        "issued_date",
+        "due_date",
+    ]
+    assert loaded["header"]["middle"][0]["parts"][1]["bold"] is True
     assert loaded["header"]["middle"][0]["direction"] == "column"
     assert loaded["items"]["columns"][0]["barcode"] is True
     assert loaded["pagination"] == {"enabled": True, "position": "top-right"}
@@ -321,3 +334,59 @@ def test_composite_barcode_and_pagination_round_trip_and_render(
     ).json()["data"]
     assert "@top-right { content: counter(page)" in html
     assert 'class="barcode"' in html.split("<tbody>")[1]
+
+
+def test_styling_static_text_and_margins_round_trip(admin_client, invoice_code) -> None:
+    layout = _layout("outbound_invoice")
+    layout["header"]["right"] = [
+        {"key": "printed_at", "label": "Vystaveno:", "bold": True, "muted": True},
+        {"text": "Hello", "font_size": 20},
+        {"key": "code", "barcode": True, "barcode_text": True, "font_size": 30},
+    ]
+    layout["page"] = {
+        "margin_top": 0,
+        "margin_right": 0,
+        "margin_bottom": 0,
+        "margin_left": 0,
+    }
+
+    assert (
+        _send(
+            admin_client, "put", f"{URL}/outbound_invoice", {"layout": layout}
+        ).status_code
+        == 200
+    )
+    loaded = admin_client.get(f"{URL}/outbound_invoice").json()["data"]["layout"]
+    assert loaded["page"] == layout["page"]
+    right = loaded["header"]["right"]
+    assert right[0]["bold"] and right[0]["muted"]
+    assert right[1]["text"] == "Hello" and right[1]["font_size"] == 20
+    assert right[2]["barcode_text"] is True
+
+    html = _send(
+        admin_client,
+        "post",
+        f"{URL}/outbound_invoice/preview",
+        {"record_code": invoice_code},
+    ).json()["data"]
+    assert "margin: 0px 0px 0px 0px;" in html
+    assert "Vystaveno:" in html and "Hello" in html and "bc-text" in html
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda layout: layout["page"].update(margin_top=-1),
+        lambda layout: layout["page"].update(margin_left=201),
+        lambda layout: layout["header"].update(right=[{"key": "code", "font_size": 3}]),
+        lambda layout: layout["header"].update(right=[{"text": ""}]),
+    ],
+    ids=["negative-margin", "huge-margin", "tiny-font", "empty-static-text"],
+)
+def test_invalid_styling_is_rejected(admin_client, mutate) -> None:
+    layout = _layout()
+    mutate(layout)
+
+    response = _send(admin_client, "put", f"{URL}/offer", {"layout": layout})
+
+    assert response.status_code == 422

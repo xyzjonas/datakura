@@ -1,5 +1,7 @@
+import re
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from unittest import mock
 
 import pytest
 
@@ -10,7 +12,9 @@ from apps.warehouse.core.exceptions import (
 from apps.warehouse.core.schemas.document_templates import (
     DocumentLayoutSchema,
     LayoutFieldSchema,
+    LayoutPartSchema,
     LogoBlockSchema,
+    PageSchema,
     PaginationSchema,
 )
 from apps.warehouse.core.services.document_data import SPECS, Kind
@@ -41,6 +45,14 @@ PIXEL = (
     "data:image/png;base64,"
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
 )
+
+
+def freeze_time(moment: datetime):
+    return mock.patch("django.utils.timezone.now", return_value=moment)
+
+
+def parts(*keys: str, **options) -> list[LayoutPartSchema]:
+    return [LayoutPartSchema(key=k, show_label=False, **options) for k in keys]
 
 
 def fields(*keys: str) -> list[LayoutFieldSchema]:
@@ -171,7 +183,7 @@ def _with(**changes) -> DocumentLayoutSchema:
     [
         (_with(header__left=fields("nope")), "Unknown attribute"),
         (
-            _with(header__middle=[LayoutFieldSchema(parts=["name", "nope"])]),
+            _with(header__middle=[LayoutFieldSchema(parts=parts("name", "nope"))]),
             "Unknown attribute.*nope",
         ),
         (
@@ -453,7 +465,9 @@ def test_composite_row_chains_values_on_one_line(records) -> None:
     layout = default_layout(target)
     layout.customer.fields = [
         LayoutFieldSchema(
-            parts=["street", "postal_code", "city", "tax_identification"],  # last empty
+            parts=parts(
+                "street", "postal_code", "city", "tax_identification"
+            ),  # last empty
             label="Adresa:",
             separator=" | ",
         )
@@ -462,8 +476,9 @@ def test_composite_row_chains_values_on_one_line(records) -> None:
     html = service.render_record_html(target, records[target], layout)
 
     assert "Adresa:" in html
-    assert "Hlavní 1</span>" not in html
-    assert "Hlavní 1<span> | </span>11000<span> | </span>Praha</p>" in html
+    chained = re.sub(r"<[^>]+>", "", html.split("Adresa:")[1].split("</p>")[0])
+    assert chained.split() == ["Hlavní", "1", "|", "11000", "|", "Praha"]
+    assert "EMPTY" not in chained
 
 
 def test_composite_column_stacks_values(records) -> None:
@@ -471,7 +486,9 @@ def test_composite_column_stacks_values(records) -> None:
     layout = default_layout(target)
     layout.items.columns = [
         LayoutFieldSchema(
-            parts=["product_code", "product_name"], direction="column", show_label=False
+            parts=parts("product_code", "product_name"),
+            direction="column",
+            show_label=False,
         )
     ]
 
@@ -486,7 +503,7 @@ def test_composite_without_filled_values_is_skipped(records) -> None:
     target = DocumentTarget.DELIVERY_NOTE
     layout = default_layout(target)
     layout.customer.fields = [
-        LayoutFieldSchema(parts=["tax_identification"], label="EMPTY-COMPOSITE")
+        LayoutFieldSchema(parts=parts("tax_identification"), label="EMPTY-COMPOSITE")
     ]
 
     html = service.render_record_html(target, records[target], layout)
@@ -498,8 +515,14 @@ def test_composite_without_filled_values_is_skipped(records) -> None:
     "ref",
     [
         {},  # neither key nor parts
-        {"key": "name", "parts": ["name"]},  # both
-        {"parts": ["a"] * 11},  # too many parts
+        {"key": "name", "parts": [{"key": "name"}]},  # both
+        {"key": "name", "text": "x"},  # attribute and static text
+        {"parts": [{"key": "a", "text": "b"}]},  # a part cannot be both
+        {"parts": [{}]},
+        {"key": "name", "font_size": 5},
+        {"key": "name", "font_size": 73},
+        {"parts": [{"key": "a"}], "barcode": True},  # barcode is per part
+        {"parts": [{"key": "a"}] * 11},  # too many parts
         {"key": "name", "direction": "diagonal"},
     ],
 )
@@ -545,7 +568,7 @@ def test_barcode_on_a_composite_encodes_each_part(records) -> None:
     target = DocumentTarget.DELIVERY_NOTE
     layout = _layout_with_header(
         target,
-        left=[LayoutFieldSchema(parts=["code", "external_code"], barcode=True)],
+        left=[LayoutFieldSchema(parts=parts("code", "external_code", barcode=True))],
     )
 
     html = service.render_record_html(target, records[target], layout)
@@ -709,4 +732,240 @@ def test_layout_saved_with_the_old_header_still_loads(show_barcode) -> None:
     assert [f.key for f in loaded.header.right] == ["created"]
     assert [f.barcode for f in loaded.header.left] == [False, True][: 1 + show_barcode]
     assert loaded.header.middle == []
+    service.validate(target, loaded)
+
+
+# --- font size, bold / muted, barcode text, static text, printed, margins -------------
+
+
+def _customer_line(target, records, ref) -> str:
+    layout = default_layout(target)
+    layout.supplier.enabled = False
+    layout.customer.fields = [ref]
+    return service.render_record_html(target, records[target], layout)
+
+
+def test_font_size_bold_and_muted_style_the_value(records) -> None:
+    html = _customer_line(
+        DocumentTarget.DELIVERY_NOTE,
+        records,
+        LayoutFieldSchema(key="identification", font_size=20, bold=True, muted=True),
+    )
+
+    assert '<span class="v bold muted" style="font-size: 20px">12345678</span>' in html
+
+
+def test_unstyled_value_has_no_inline_style(records) -> None:
+    html = _customer_line(
+        DocumentTarget.DELIVERY_NOTE, records, LayoutFieldSchema(key="identification")
+    )
+
+    assert '<span class="v">12345678</span>' in html
+
+
+def test_font_size_scales_the_barcode_too(records) -> None:
+    html = _customer_line(
+        DocumentTarget.DELIVERY_NOTE,
+        records,
+        LayoutFieldSchema(key="identification", barcode=True, font_size=30),
+    )
+
+    # the barcode height is in em, so the size of the wrapper scales it
+    assert 'style="font-size: 30px"><span class="bc"><img class="barcode"' in html
+    assert (
+        "em;" in html
+        and ".barcode { display: block; margin: 0 auto; height: 3.6em" in html
+    )
+
+
+@pytest.mark.parametrize("barcode_text, printed", [(True, True), (False, False)])
+def test_barcode_text_prints_the_value_under_the_barcode(
+    records, barcode_text, printed
+) -> None:
+    html = _customer_line(
+        DocumentTarget.DELIVERY_NOTE,
+        records,
+        LayoutFieldSchema(
+            key="identification", barcode=True, barcode_text=barcode_text
+        ),
+    )
+
+    assert ('<span class="bc-text">12345678</span>' in html) is printed
+
+
+def test_barcode_text_is_ignored_without_a_barcode_or_when_not_encodable(
+    records,
+) -> None:
+    plain = _customer_line(
+        DocumentTarget.DELIVERY_NOTE,
+        records,
+        LayoutFieldSchema(key="identification", barcode_text=True),
+    )
+    assert "bc-text" not in plain.split("</style>")[1]
+
+    unencodable = _customer_line(
+        DocumentTarget.DELIVERY_NOTE,
+        records,
+        LayoutFieldSchema(text="Příliš", barcode=True, barcode_text=True),
+    )
+    assert "bc-text" not in unencodable.split("</style>")[1]
+    assert "Příliš" in unencodable
+
+
+def test_composite_parts_have_their_own_options(records) -> None:
+    ref = LayoutFieldSchema(
+        label="Who",
+        show_label=True,
+        parts=[
+            LayoutPartSchema(key="identification", show_label=False, bold=True),
+            LayoutPartSchema(key="tax_identification", show_label=False),  # empty
+            LayoutPartSchema(key="name", label="Name:", show_label=True, muted=True),
+            LayoutPartSchema(text="STATIC", show_label=False, font_size=9),
+            LayoutPartSchema(key="postal_code", show_label=False, barcode=True),
+        ],
+        separator=" / ",
+    )
+
+    html = _customer_line(DocumentTarget.DELIVERY_NOTE, records, ref)
+
+    assert "Who" in html
+    assert '<span class="v bold">12345678</span>' in html
+    assert '<span class="v muted">' in html
+    assert '<span class="v" style="font-size: 9px">STATIC</span>' in html
+    assert html.count('class="barcode"') >= 1
+
+
+def test_composite_style_applies_to_the_whole_value(records) -> None:
+    ref = LayoutFieldSchema(
+        parts=parts("identification", "city"), bold=True, font_size=12
+    )
+
+    html = _customer_line(DocumentTarget.DELIVERY_NOTE, records, ref)
+
+    assert (
+        '<span class="v bold" style="font-size: 12px"><span class="v">12345678' in html
+    )
+
+
+def test_static_text_is_escaped_and_can_have_a_caption(records) -> None:
+    html = _customer_line(
+        DocumentTarget.DELIVERY_NOTE,
+        records,
+        LayoutFieldSchema(text="Thanks <b>!</b>", label="Note:"),
+    )
+
+    assert "Note:" in html
+    assert "Thanks &lt;b&gt;!&lt;/b&gt;" in html
+
+
+def test_static_text_works_in_a_table_cell(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.items.columns = [LayoutFieldSchema(text="PCS", label="Unit")]
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert "<td>" in html and ">PCS<" in html
+
+
+def test_printed_timestamp_is_evaluated_at_print_time(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = _layout_with_header(
+        target, right=[LayoutFieldSchema(key="printed_at", label="Vystaveno:")]
+    )
+    first = datetime(2030, 1, 2, 3, 4, tzinfo=timezone.utc)
+    later = datetime(2031, 5, 6, 7, 8, tzinfo=timezone.utc)
+
+    with freeze_time(first):
+        one = service.render_record_html(target, records[target], layout)
+    with freeze_time(later):
+        two = service.render_record_html(target, records[target], layout)
+
+    assert "Vystaveno:" in one
+    assert "02. 01. 2030" in one and "02. 01. 2030" not in two
+    assert "06. 05. 2031" in two
+
+
+@pytest.mark.parametrize("target", list(DocumentTarget))
+def test_printed_timestamp_is_offered_in_every_block(target) -> None:
+    catalog = service.get_template(target).catalog
+
+    for block in (
+        catalog.header_fields,
+        catalog.supplier_fields,
+        catalog.customer_fields,
+        catalog.item_columns,
+        catalog.summaries,
+    ):
+        assert "printed_at" in {f.key for f in block}
+
+
+def test_printed_timestamp_in_items_and_summaries(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.items.columns = fields("printed_at")
+    layout.items.summaries = fields("printed_at")
+
+    with freeze_time(datetime(2032, 9, 9, 9, 9, tzinfo=timezone.utc)):
+        html = service.render_record_html(target, records[target], layout)
+
+    assert html.count("09. 09. 2032") == 2
+
+
+def test_default_page_margins_and_custom_ones(records) -> None:
+    target = DocumentTarget.OFFER
+    default = service.render_record_html(target, records[target])
+    layout = default_layout(target)
+    layout.page = PageSchema(
+        margin_top=0, margin_right=1, margin_bottom=20, margin_left=200
+    )
+    custom = service.render_record_html(target, records[target], layout)
+
+    assert "margin: 60px 53px 60px 53px;" in default
+    assert "margin: 0px 1px 20px 200px;" in custom
+
+
+@pytest.mark.parametrize(
+    "field", ["margin_top", "margin_right", "margin_bottom", "margin_left"]
+)
+@pytest.mark.parametrize("value", [-1, 201])
+def test_page_margins_are_bounded(field, value) -> None:
+    with pytest.raises(ValueError):
+        PageSchema(**{field: value})
+
+
+def test_pdf_without_margins_is_rendered(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = default_layout(target)
+    layout.page = PageSchema(
+        margin_top=0, margin_right=0, margin_bottom=0, margin_left=0
+    )
+
+    assert service.render_record_pdf(target, records[target], layout).startswith(
+        b"%PDF"
+    )
+
+
+@pytest.mark.django_db
+def test_layout_saved_with_string_part_composites_still_loads() -> None:
+    target = DocumentTarget.OFFER
+    layout = default_layout(target).model_dump(mode="json")
+    layout["customer"]["fields"] = [
+        {"parts": ["street", "city"], "barcode": True, "separator": " - "}
+    ]
+    layout["header"]["left"] = [{"parts": ["code"], "direction": "column"}]
+    layout["items"]["columns"] = [{"parts": ["product_code"]}]
+    del layout["page"]
+    DocumentTemplate.objects.create(target=target, layout=layout)
+
+    loaded, _ = service.get_layout(target)
+
+    field = loaded.customer.fields[0]
+    assert [(p.key, p.barcode, p.show_label) for p in field.parts] == [
+        ("street", True, False),
+        ("city", True, False),
+    ]
+    assert not field.barcode and field.separator == " - "
+    assert loaded.header.left[0].direction == "column"
+    assert loaded.page == PageSchema()
     service.validate(target, loaded)

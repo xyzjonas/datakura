@@ -5,7 +5,7 @@
     <title>{{ code }}</title>
     <style>
         @page {
-            size: A4; margin: 16mm 14mm;
+            size: A4; margin: {{ margin.margin_top }}px {{ margin.margin_right }}px {{ margin.margin_bottom }}px {{ margin.margin_left }}px;
             {% if page_number_box %}@{{ page_number_box }} { content: counter(page) " / " counter(pages); font-family: "DejaVu Sans", sans-serif; font-size: 9px; color: #64748b; }{% endif %}
         }
         * { box-sizing: border-box; }
@@ -18,7 +18,6 @@
             background: #fff;
         }
         .page { display: flex; flex-direction: column; gap: 18px; }
-        .muted { color: #64748b; }
         .logo { display: flex; }
         .logo.center { justify-content: center; }
         .logo.right { justify-content: flex-end; }
@@ -28,15 +27,17 @@
         .header-sections .middle { text-align: center; }
         .header-sections .right { text-align: right; }
         .title { margin: 0 0 8px 0; font-size: 24px; line-height: 1.1; }
-        .line { margin: 2px 0; font-weight: 700; }
-        .line .muted { font-weight: 400; }
-        .barcode { display: inline-block; vertical-align: top; height: 40px; }
-        td .barcode { height: 26px; }
+        .line { margin: 2px 0; }
+        .bold { font-weight: 700; }
+        .muted { color: #64748b; }
+        .bc { display: inline-block; text-align: center; vertical-align: top; }
+        .bc-text { display: block; line-height: 1.2; }
+        .barcode { display: block; margin: 0 auto; height: 3.6em; }
+        td .barcode { height: 2.4em; }
         .parties { display: flex; gap: 16px; }
         .party { flex: 1; padding: 12px 14px; border: 1px solid #d7dee7; border-radius: 8px; background: #f6f8fb; }
         .party h2 { margin: 0 0 6px 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
         .party p { margin: 2px 0; }
-        .party p:first-of-type { font-weight: 700; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 8px 10px; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; border-bottom: 2px solid #d7dee7; }
         td { padding: 8px 10px; border-bottom: 1px solid #e5eaf0; vertical-align: top; }

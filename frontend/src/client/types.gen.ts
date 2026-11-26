@@ -6590,6 +6590,7 @@ export type DocumentLayoutSchema = {
   items?: ItemsBlockSchema
   footer?: FooterBlockSchema
   pagination?: PaginationSchema
+  page?: PageSchema
 }
 
 /**
@@ -6677,18 +6678,22 @@ export type ItemsBlockSchema = {
 
 /**
  * LayoutFieldSchema
- * One printed attribute, or a composite of several.
+ * One printed line: a single attribute, a static text or a composite.
  *
- * Single attribute: `key` names it. Composite: `key` is empty and `parts` lists the
- * attributes that are chained together (`direction` row = one line joined by
- * `separator`, column = one under another). `label` is the caption, hidden when
- * `show_label` is off (or empty). `barcode` prints the value(s) as a Code 128 barcode.
+ * Composite: `parts` are chained (`direction` row = one line joined by `separator`,
+ * column = one under another); each part has all the options of a single attribute.
+ * The options set on the composite itself are the defaults of its parts (size, bold,
+ * muted) and its caption - the barcode is chosen per part.
  */
 export type LayoutFieldSchema = {
   /**
    * Key
    */
   key?: string
+  /**
+   * Text
+   */
+  text?: string
   /**
    * Label
    */
@@ -6702,9 +6707,25 @@ export type LayoutFieldSchema = {
    */
   barcode?: boolean
   /**
+   * Barcode Text
+   */
+  barcode_text?: boolean
+  /**
+   * Font Size
+   */
+  font_size?: number | null
+  /**
+   * Bold
+   */
+  bold?: boolean
+  /**
+   * Muted
+   */
+  muted?: boolean
+  /**
    * Parts
    */
-  parts?: Array<string>
+  parts?: Array<LayoutPartSchema>
   /**
    * Direction
    */
@@ -6713,6 +6734,49 @@ export type LayoutFieldSchema = {
    * Separator
    */
   separator?: string
+}
+
+/**
+ * LayoutPartSchema
+ * A single attribute or a static text - also the building block of a composite.
+ */
+export type LayoutPartSchema = {
+  /**
+   * Key
+   */
+  key?: string
+  /**
+   * Text
+   */
+  text?: string
+  /**
+   * Label
+   */
+  label?: string
+  /**
+   * Show Label
+   */
+  show_label?: boolean
+  /**
+   * Barcode
+   */
+  barcode?: boolean
+  /**
+   * Barcode Text
+   */
+  barcode_text?: boolean
+  /**
+   * Font Size
+   */
+  font_size?: number | null
+  /**
+   * Bold
+   */
+  bold?: boolean
+  /**
+   * Muted
+   */
+  muted?: boolean
 }
 
 /**
@@ -6731,6 +6795,29 @@ export type LogoBlockSchema = {
    * Align
    */
   align?: 'left' | 'center' | 'right'
+}
+
+/**
+ * PageSchema
+ * Page margins in px (0 = no margin).
+ */
+export type PageSchema = {
+  /**
+   * Margin Top
+   */
+  margin_top?: number
+  /**
+   * Margin Right
+   */
+  margin_right?: number
+  /**
+   * Margin Bottom
+   */
+  margin_bottom?: number
+  /**
+   * Margin Left
+   */
+  margin_left?: number
 }
 
 /**

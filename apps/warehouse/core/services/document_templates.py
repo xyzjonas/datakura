@@ -30,6 +30,7 @@ from apps.warehouse.core.schemas.document_templates import (
     HeaderBlockSchema,
     ItemsBlockSchema,
     LayoutFieldSchema,
+    LayoutPartSchema,
     LogoBlockSchema,
     PaginationSchema,
     PartyBlockSchema,
@@ -53,7 +54,7 @@ RIGHT_ALIGNED = {Kind.QUANTITY, Kind.MONEY}
 
 def _party_fields() -> list[LayoutFieldSchema]:
     return [
-        LayoutFieldSchema(key="name", show_label=False),
+        LayoutFieldSchema(key="name", show_label=False, bold=True, font_size=13),
         LayoutFieldSchema(key="address", show_label=False),
         LayoutFieldSchema(key="identification", label="IČO:"),
         LayoutFieldSchema(key="tax_identification", label="DIČ:"),
@@ -141,10 +142,15 @@ def default_layout(target: DocumentTarget) -> DocumentLayoutSchema:
         header=HeaderBlockSchema(
             title=d["title"],
             left=[
-                LayoutFieldSchema(key="code", show_label=False),
+                LayoutFieldSchema(
+                    key="code", show_label=False, bold=True, font_size=15
+                ),
                 LayoutFieldSchema(key="code", show_label=False, barcode=True),
             ],
-            right=_with_default_labels(spec, "header", d["header"]),
+            right=[
+                ref.model_copy(update={"bold": True})
+                for ref in _with_default_labels(spec, "header", d["header"])
+            ],
         ),
         supplier=PartyBlockSchema(title=d["supplier"], fields=_party_fields()),
         customer=PartyBlockSchema(title=d["customer"], fields=_party_fields()),
@@ -157,27 +163,61 @@ def default_layout(target: DocumentTarget) -> DocumentLayoutSchema:
     )
 
 
+def _migrate_field(field: dict[str, Any]) -> dict[str, Any]:
+    """Composites used to list attribute keys and carry one barcode flag."""
+    parts = field.get("parts")
+    if parts and isinstance(parts[0], str):
+        barcode = field.get("barcode", False)
+        field = {
+            **field,
+            "barcode": False,
+            "parts": [
+                {"key": key, "show_label": False, "barcode": barcode} for key in parts
+            ],
+        }
+    return field
+
+
 def _migrate_saved_layout(raw: dict[str, Any]) -> dict[str, Any]:
-    """Layouts saved before the header had sections: one list + a barcode toggle."""
+    """Layouts saved by earlier versions: header without sections, string-part composites."""
+    raw = dict(raw)
     header = raw.get("header")
-    if not isinstance(header, dict) or "fields" not in header:
-        return raw
-    header = dict(header)
-    legacy = header.pop("fields")
-    show_barcode = header.pop("show_barcode", True)
-    header.setdefault("right", legacy)
-    header.setdefault(
-        "left",
-        [
-            {"key": "code", "show_label": False},
-            *(
-                [{"key": "code", "show_label": False, "barcode": True}]
-                if show_barcode
-                else []
-            ),
-        ],
-    )
-    return {**raw, "header": header}
+    if isinstance(header, dict):
+        header = dict(header)
+        if "fields" in header:
+            legacy = header.pop("fields")
+            show_barcode = header.pop("show_barcode", True)
+            header.setdefault("right", legacy)
+            header.setdefault(
+                "left",
+                [
+                    {"key": "code", "show_label": False},
+                    *(
+                        [{"key": "code", "show_label": False, "barcode": True}]
+                        if show_barcode
+                        else []
+                    ),
+                ],
+            )
+        for section in ("left", "middle", "right"):
+            header[section] = [_migrate_field(f) for f in header.get(section, [])]
+        raw["header"] = header
+    for block in ("supplier", "customer"):
+        if isinstance(raw.get(block), dict):
+            raw[block] = {
+                **raw[block],
+                "fields": [_migrate_field(f) for f in raw[block].get("fields", [])],
+            }
+    items = raw.get("items")
+    if isinstance(items, dict):
+        raw["items"] = {
+            **items,
+            **{
+                name: [_migrate_field(f) for f in items.get(name, [])]
+                for name in ("columns", "summaries")
+            },
+        }
+    return raw
 
 
 def _spec(target: DocumentTarget | str) -> DocumentSpec:
@@ -213,6 +253,21 @@ def format_value(value: Any, kind: Kind, currency: str | None = None) -> str:
     return str(value)
 
 
+def _leaf_text(
+    leaf: LayoutPartSchema,
+    defs: dict[str, FieldDef],
+    values: dict[str, Any],
+    currency: str | None,
+) -> str:
+    if leaf.text:
+        return leaf.text
+    return format_value(values.get(leaf.key), defs[leaf.key].kind, currency)
+
+
+def _style(ref: LayoutPartSchema | LayoutFieldSchema) -> dict[str, Any]:
+    return {"size": ref.font_size, "bold": ref.bold, "muted": ref.muted}
+
+
 def _value(
     ref: LayoutFieldSchema,
     defs: dict[str, FieldDef],
@@ -221,20 +276,34 @@ def _value(
 ) -> dict[str, Any] | None:
     """The printable value of an attribute (or composite); None when all is empty."""
     parts = []
-    for key in ref.keys:
-        text = format_value(values.get(key), defs[key].kind, currency)
+    for leaf in ref.leaves:
+        text = _leaf_text(leaf, defs, values, currency)
         if text:
             # a text that cannot be a barcode is printed as text
-            barcode = barcode_svg.to_data_uri(text) if ref.barcode else None
-            parts.append({"text": text, "barcode": barcode})
+            barcode = barcode_svg.to_data_uri(text) if leaf.barcode else None
+            parts.append(
+                {
+                    "text": text,
+                    "barcode": barcode,
+                    "barcode_text": barcode is not None and leaf.barcode_text,
+                    **_style(leaf),
+                }
+            )
     if not parts:
         return None
     return {
         "parts": parts,
         "direction": ref.direction,
         "separator": ref.separator,
-        "right": all(defs[k].kind in RIGHT_ALIGNED for k in ref.keys),
+        "right": _is_right_aligned(ref, defs),
+        **(_style(ref) if ref.is_composite else {}),
     }
+
+
+def _is_right_aligned(ref: LayoutFieldSchema, defs: dict[str, FieldDef]) -> bool:
+    return all(
+        not leaf.text and defs[leaf.key].kind in RIGHT_ALIGNED for leaf in ref.leaves
+    )
 
 
 def _caption_of(ref: LayoutFieldSchema) -> str:
@@ -298,8 +367,8 @@ class DocumentTemplateService:
                 header_fields=_catalog(list(spec.fields_of("header").values())),
                 supplier_fields=_catalog(list(spec.fields_of("supplier").values())),
                 customer_fields=_catalog(list(spec.fields_of("customer").values())),
-                item_columns=_catalog(spec.item_columns),
-                summaries=_catalog(spec.summaries),
+                item_columns=_catalog(list(spec.fields_of("items").values())),
+                summaries=_catalog(list(spec.fields_of("summaries").values())),
             ),
         )
 
@@ -342,7 +411,12 @@ class DocumentTemplateService:
         }
         for name, (block, refs) in blocks.items():
             known = spec.fields_of(block)
-            unknown = [k for ref in refs for k in ref.keys if k not in known]
+            unknown = [
+                leaf.key
+                for ref in refs
+                for leaf in ref.leaves
+                if leaf.key and leaf.key not in known
+            ]
             if unknown:
                 raise InvalidDocumentLayoutError(
                     f"Unknown attribute(s) in '{name}': {', '.join(unknown)}"
@@ -362,7 +436,8 @@ class DocumentTemplateService:
         header_defs = spec.fields_of("header")
         item_defs = spec.fields_of("items")
         summary_defs = spec.fields_of("summaries")
-        header_values = {**data.header, "code": data.code}
+        printed = {"printed_at": timezone.now()}  # evaluated per print
+        header_values = {**data.header, "code": data.code, **printed}
 
         parties = []
         for block, values, defs in (
@@ -373,7 +448,9 @@ class DocumentTemplateService:
                 parties.append(
                     {
                         "title": block.title,
-                        "rows": _rows(block.fields, defs, values or {}, None),
+                        "rows": _rows(
+                            block.fields, defs, {**(values or {}), **printed}, None
+                        ),
                     }
                 )
 
@@ -382,13 +459,13 @@ class DocumentTemplateService:
             columns = [
                 {
                     "label": _caption_of(c),
-                    "right": all(item_defs[k].kind in RIGHT_ALIGNED for k in c.keys),
+                    "right": _is_right_aligned(c, item_defs),
                 }
                 for c in layout.items.columns
             ]
             rows = [
                 [
-                    _value(c, item_defs, item, currency)
+                    _value(c, item_defs, {**item, **printed}, currency)
                     or {"parts": [], "right": column["right"]}
                     for c, column in zip(layout.items.columns, columns, strict=True)
                 ]
@@ -398,7 +475,10 @@ class DocumentTemplateService:
                 "columns": columns,
                 "rows": rows,
                 "summaries": _rows(
-                    layout.items.summaries, summary_defs, data.summaries, currency
+                    layout.items.summaries,
+                    summary_defs,
+                    {**data.summaries, **printed},
+                    currency,
                 ),
             }
 
@@ -406,6 +486,7 @@ class DocumentTemplateService:
         header = layout.header
         return {
             "code": data.code,
+            "margin": layout.page,
             "logo": {"image": logo.image, "align": logo.align}
             if logo.enabled and logo.image
             else None,

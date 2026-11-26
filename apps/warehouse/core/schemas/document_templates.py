@@ -13,20 +13,49 @@ _LOGO_RE = re.compile(r"^data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$"
 Label = Annotated[str, Field(max_length=100)]
 
 
-class LayoutFieldSchema(Schema):
-    """One printed attribute, or a composite of several.
+FontSize = Annotated[int, Field(ge=6, le=72)]
 
-    Single attribute: `key` names it. Composite: `key` is empty and `parts` lists the
-    attributes that are chained together (`direction` row = one line joined by
-    `separator`, column = one under another). `label` is the caption, hidden when
-    `show_label` is off (or empty). `barcode` prints the value(s) as a Code 128 barcode.
+
+class _FieldBase(Schema):
+    """What can be set on every printed value (single, static text or a composite part).
+
+    `key` names a catalog attribute, `text` is a static text. `label` is the caption,
+    hidden when `show_label` is off (or empty). `barcode` prints the value as a Code 128
+    barcode, `barcode_text` adds the plain value under it. `font_size` (px) scales the
+    text and the barcode alike; empty = the surrounding size.
     """
 
     key: str = ""
+    text: Annotated[str, Field(max_length=200)] = ""
     label: Label = ""
     show_label: bool = True
     barcode: bool = False
-    parts: list[str] = Field(default_factory=list, max_length=10)
+    barcode_text: bool = False
+    font_size: FontSize | None = None
+    bold: bool = False
+    muted: bool = False
+
+
+class LayoutPartSchema(_FieldBase):
+    """A single attribute or a static text - also the building block of a composite."""
+
+    @model_validator(mode="after")
+    def _key_or_text(self) -> "LayoutPartSchema":
+        if bool(self.key) == bool(self.text):
+            raise ValueError("A value is either an attribute (key) or a static text")
+        return self
+
+
+class LayoutFieldSchema(_FieldBase):
+    """One printed line: a single attribute, a static text or a composite.
+
+    Composite: `parts` are chained (`direction` row = one line joined by `separator`,
+    column = one under another); each part has all the options of a single attribute.
+    The options set on the composite itself are the defaults of its parts (size, bold,
+    muted) and its caption - the barcode is chosen per part.
+    """
+
+    parts: list[LayoutPartSchema] = Field(default_factory=list, max_length=10)
     direction: Literal["row", "column"] = "row"
     separator: Annotated[str, Field(max_length=10)] = ", "
 
@@ -35,15 +64,18 @@ class LayoutFieldSchema(Schema):
         return bool(self.parts)
 
     @property
-    def keys(self) -> list[str]:
-        return self.parts if self.parts else [self.key]
+    def leaves(self) -> list[LayoutPartSchema]:
+        if self.parts:
+            return self.parts
+        return [LayoutPartSchema.model_validate(self.model_dump(exclude={"parts"}))]
 
     @model_validator(mode="after")
     def _single_or_composite(self) -> "LayoutFieldSchema":
-        if self.parts and self.key:
-            raise ValueError("An attribute is either single (key) or composite (parts)")
-        if not self.parts and not self.key:
-            raise ValueError("An attribute needs a key or parts")
+        if self.parts:
+            if self.key or self.text or self.barcode or self.barcode_text:
+                raise ValueError("A composite has no key, text or barcode of its own")
+        elif bool(self.key) == bool(self.text):
+            raise ValueError("A value is either an attribute (key) or a static text")
         return self
 
 
@@ -99,6 +131,15 @@ class ItemsBlockSchema(Schema):
     summaries: list[LayoutFieldSchema] = Field(default_factory=list, max_length=10)
 
 
+class PageSchema(Schema):
+    """Page margins in px (0 = no margin)."""
+
+    margin_top: Annotated[int, Field(ge=0, le=200)] = 60
+    margin_right: Annotated[int, Field(ge=0, le=200)] = 53
+    margin_bottom: Annotated[int, Field(ge=0, le=200)] = 60
+    margin_left: Annotated[int, Field(ge=0, le=200)] = 53
+
+
 class FooterBlockSchema(Schema):
     enabled: bool = False
     text: Annotated[str, Field(max_length=1000)] = ""
@@ -114,6 +155,7 @@ class DocumentLayoutSchema(Schema):
     items: ItemsBlockSchema = Field(default_factory=ItemsBlockSchema)
     footer: FooterBlockSchema = Field(default_factory=FooterBlockSchema)
     pagination: PaginationSchema = Field(default_factory=PaginationSchema)
+    page: PageSchema = Field(default_factory=PageSchema)
 
 
 class CatalogFieldSchema(Schema):

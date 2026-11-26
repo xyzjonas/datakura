@@ -50,6 +50,8 @@
       />
     </LayoutBlock>
 
+    <PageBlockEditor v-model="model.page" />
+
     <LayoutBlock v-model:enabled="model.pagination.enabled" title="Číslování stran" toggleable>
       <q-select
         v-model="model.pagination.position"
@@ -72,6 +74,7 @@ import type { DocumentCatalogSchema } from '@/client'
 import FieldListEditor from './FieldListEditor.vue'
 import LayoutBlock from './LayoutBlock.vue'
 import LogoBlockEditor from './LogoBlockEditor.vue'
+import PageBlockEditor from './PageBlockEditor.vue'
 import PartyBlockEditor from './PartyBlockEditor.vue'
 import type { DocumentLayout } from './types'
 

@@ -84,6 +84,8 @@ CONTACT_FIELDS = [
     F("contact_note", "Kontakt - poznámka"),
 ]
 DOCUMENT_CODE = F("code", "Kód dokladu")
+# evaluated when the document is printed (not stored)
+PRINTED_AT = F("printed_at", "Vytištěno", Kind.DATETIME)
 
 ITEM_INDEX = F("index", "#")
 PRODUCT_CODE = F("product_code", "Kód")
@@ -115,7 +117,11 @@ class DocumentSpec:
 
     @property
     def customer_fields(self) -> list[FieldDef]:
-        return [*PARTY_FIELDS, *(CONTACT_FIELDS if self.has_contact else [])]
+        return [
+            *PARTY_FIELDS,
+            *(CONTACT_FIELDS if self.has_contact else []),
+            PRINTED_AT,
+        ]
 
     def fields_of(self, block: str) -> dict[str, FieldDef]:
         """Attributes of a block by key.
@@ -124,11 +130,13 @@ class DocumentSpec:
         """
         if not self._by_block:
             self._by_block.update(
-                header={f.key: f for f in (DOCUMENT_CODE, *self.header_fields)},
-                supplier={f.key: f for f in PARTY_FIELDS},
+                header={
+                    f.key: f for f in (DOCUMENT_CODE, PRINTED_AT, *self.header_fields)
+                },
+                supplier={f.key: f for f in (*PARTY_FIELDS, PRINTED_AT)},
                 customer={f.key: f for f in self.customer_fields},
-                items={f.key: f for f in self.item_columns},
-                summaries={f.key: f for f in self.summaries},
+                items={f.key: f for f in (*self.item_columns, PRINTED_AT)},
+                summaries={f.key: f for f in (*self.summaries, PRINTED_AT)},
             )
         return self._by_block[block]
 
