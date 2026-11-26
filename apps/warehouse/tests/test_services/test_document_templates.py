@@ -115,10 +115,10 @@ def test_format_value(value, kind, currency, expected) -> None:
     assert format_value(value, kind, currency) == expected
 
 
-def test_format_datetime_includes_time() -> None:
+def test_format_datetime_prints_the_date_only() -> None:
     value = datetime(2026, 3, 7, 14, 5, tzinfo=timezone.utc)
 
-    assert format_value(value, Kind.DATETIME).startswith("07. 03. 2026 ")
+    assert format_value(value, Kind.DATETIME) == "07. 03. 2026"
 
 
 # --- defaults / storage ------------------------------------------------------------
@@ -1114,3 +1114,68 @@ def test_layout_saved_with_string_part_composites_still_loads() -> None:
     assert loaded.header.left[0].direction == "column"
     assert loaded.page == PageSchema()
     service.validate(target, loaded)
+
+
+# --- delivery code (customer's code, ours otherwise) --------------------------------
+
+
+@pytest.mark.parametrize(
+    "customer_code, expected",
+    [
+        (None, "OUR-1"),
+        ("", "OUR-1"),
+        ("THEIRS-9", "THEIRS-9"),
+    ],
+)
+def test_delivery_code_falls_back_to_the_internal_code(customer_code, expected) -> None:
+    from apps.warehouse.core.services.document_data import _price_item
+
+    row = _price_item(
+        {
+            "index": 0,
+            "amount": 1,
+            "product": {"code": "OUR-1", "name": "Thing", "unit": "ks"},
+            "customer_product_code": customer_code,
+        },
+        unit_price=1,
+        total_price=1,
+    )
+
+    assert row["delivery_code"] == expected
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        DocumentTarget.OUTBOUND_INVOICE,
+        DocumentTarget.DELIVERY_NOTE,
+        DocumentTarget.OFFER,
+    ],
+)
+def test_delivery_code_is_offered_for_customer_facing_documents(target) -> None:
+    assert "delivery_code" in SPECS[target].fields_of("items")
+
+
+@pytest.mark.parametrize("requires_own_codes", [True, False])
+def test_delivery_note_prints_customer_code_only_when_required(
+    db, requires_own_codes
+) -> None:
+    from apps.warehouse.tests.factories.product import (
+        CustomerProductCodeFactory,
+        StockProductFactory,
+    )
+
+    customer = CustomerFactory(requires_own_codes=requires_own_codes)
+    product = StockProductFactory()
+    CustomerProductCodeFactory.it(customer=customer, product=product, code="THEIRS-42")
+    order = OutboundOrderFactory.it(customer=customer, currency="CZK")
+    OutboundOrderItemFactory(order=order, stock_product=product)
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.items.columns = [LayoutFieldSchema(key="delivery_code", label="Kód")]
+
+    html = str(service.render_record_html(target, order.code, layout))
+
+    expected = "THEIRS-42" if requires_own_codes else product.code
+    assert f">{expected}</span>" in html
+    assert ("THEIRS-42" in html) is requires_own_codes

@@ -47,7 +47,6 @@ from apps.warehouse.models.document_template import DocumentTarget, DocumentTemp
 
 LAYOUT_TEMPLATE = "documents/layout.html"
 DATE_FORMAT = "d. m. Y"
-DATETIME_FORMAT = "d. m. Y H:i"
 RIGHT_ALIGNED = {Kind.QUANTITY, Kind.MONEY}
 LOGO_KEY = "logo"
 
@@ -257,11 +256,10 @@ def format_value(value: Any, kind: Kind, currency: str | None = None) -> str:
     if value is None or value == "":
         return ""
     if kind in (Kind.DATE, Kind.DATETIME) and isinstance(value, (date, datetime)):
+        # dates only - the time of the day is never printed
         if isinstance(value, datetime) and timezone.is_aware(value):
             value = timezone.localtime(value)
-        if kind is Kind.DATE or not isinstance(value, datetime):
-            return dateformat.format(value, DATE_FORMAT)
-        return dateformat.format(value, DATETIME_FORMAT)
+        return dateformat.format(value, DATE_FORMAT)
     if kind is Kind.QUANTITY:
         # no trailing zeros: 3.5000 -> 3.5
         number = Decimal(str(value)).normalize()

@@ -229,6 +229,8 @@ def _price_item(item: dict[str, Any], *, unit_price: Any, total_price: Any) -> d
     return {
         "index": item["index"] + 1 if item.get("index") is not None else None,
         "product_code": product["code"],
+        # the customer's own code when the order carries one, ours otherwise - never empty
+        "delivery_code": item.get("customer_product_code") or product["code"],
         "product_name": product["name"] + (RETURNED_SUFFIX if returned else ""),
         "amount": item["amount"],
         "unit": product.get("unit"),
@@ -459,6 +461,7 @@ _PRICED_ITEMS = [
     ITEM_INDEX,
     PRODUCT_CODE,
     PRODUCT_NAME,
+    F("delivery_code", "Dodací kód"),
     F("customer_product_code", "Kód zákazníka"),
     AMOUNT,
     UNIT,
