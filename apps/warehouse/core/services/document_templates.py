@@ -31,6 +31,7 @@ from apps.warehouse.core.schemas.document_templates import (
     ItemsBlockSchema,
     LayoutFieldSchema,
     LogoBlockSchema,
+    PaginationSchema,
     PartyBlockSchema,
 )
 from apps.warehouse.core.services import barcode_svg
@@ -50,14 +51,10 @@ DATETIME_FORMAT = "d. m. Y H:i"
 RIGHT_ALIGNED = {Kind.QUANTITY, Kind.MONEY}
 
 
-def _fields(*keys: str) -> list[LayoutFieldSchema]:
-    return [LayoutFieldSchema(key=key) for key in keys]
-
-
 def _party_fields() -> list[LayoutFieldSchema]:
     return [
-        LayoutFieldSchema(key="name"),
-        LayoutFieldSchema(key="address"),
+        LayoutFieldSchema(key="name", show_label=False),
+        LayoutFieldSchema(key="address", show_label=False),
         LayoutFieldSchema(key="identification", label="IČO:"),
         LayoutFieldSchema(key="tax_identification", label="DIČ:"),
     ]
@@ -143,8 +140,11 @@ def default_layout(target: DocumentTarget) -> DocumentLayoutSchema:
         logo=LogoBlockSchema(),
         header=HeaderBlockSchema(
             title=d["title"],
-            show_barcode=True,
-            fields=_with_default_labels(spec, "header", d["header"]),
+            left=[
+                LayoutFieldSchema(key="code", show_label=False),
+                LayoutFieldSchema(key="code", show_label=False, barcode=True),
+            ],
+            right=_with_default_labels(spec, "header", d["header"]),
         ),
         supplier=PartyBlockSchema(title=d["supplier"], fields=_party_fields()),
         customer=PartyBlockSchema(title=d["customer"], fields=_party_fields()),
@@ -153,7 +153,31 @@ def default_layout(target: DocumentTarget) -> DocumentLayoutSchema:
             summaries=_with_default_labels(spec, "summaries", d["summaries"]),
         ),
         footer=FooterBlockSchema(),
+        pagination=PaginationSchema(),
     )
+
+
+def _migrate_saved_layout(raw: dict[str, Any]) -> dict[str, Any]:
+    """Layouts saved before the header had sections: one list + a barcode toggle."""
+    header = raw.get("header")
+    if not isinstance(header, dict) or "fields" not in header:
+        return raw
+    header = dict(header)
+    legacy = header.pop("fields")
+    show_barcode = header.pop("show_barcode", True)
+    header.setdefault("right", legacy)
+    header.setdefault(
+        "left",
+        [
+            {"key": "code", "show_label": False},
+            *(
+                [{"key": "code", "show_label": False, "barcode": True}]
+                if show_barcode
+                else []
+            ),
+        ],
+    )
+    return {**raw, "header": header}
 
 
 def _spec(target: DocumentTarget | str) -> DocumentSpec:
@@ -189,18 +213,46 @@ def format_value(value: Any, kind: Kind, currency: str | None = None) -> str:
     return str(value)
 
 
+def _value(
+    ref: LayoutFieldSchema,
+    defs: dict[str, FieldDef],
+    values: dict[str, Any],
+    currency: str | None,
+) -> dict[str, Any] | None:
+    """The printable value of an attribute (or composite); None when all is empty."""
+    parts = []
+    for key in ref.keys:
+        text = format_value(values.get(key), defs[key].kind, currency)
+        if text:
+            # a text that cannot be a barcode is printed as text
+            barcode = barcode_svg.to_data_uri(text) if ref.barcode else None
+            parts.append({"text": text, "barcode": barcode})
+    if not parts:
+        return None
+    return {
+        "parts": parts,
+        "direction": ref.direction,
+        "separator": ref.separator,
+        "right": all(defs[k].kind in RIGHT_ALIGNED for k in ref.keys),
+    }
+
+
+def _caption_of(ref: LayoutFieldSchema) -> str:
+    return ref.label if ref.show_label else ""
+
+
 def _rows(
     refs: list[LayoutFieldSchema],
     defs: dict[str, FieldDef],
     values: dict[str, Any],
     currency: str | None,
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """Captioned values of the attributes that are filled in."""
     rows = []
     for ref in refs:
-        value = format_value(values.get(ref.key), defs[ref.key].kind, currency)
+        value = _value(ref, defs, values, currency)
         if value:
-            rows.append({"label": ref.label, "value": value})
+            rows.append({"label": _caption_of(ref), "value": value})
     return rows
 
 
@@ -217,7 +269,9 @@ class DocumentTemplateService:
         saved = DocumentTemplate.objects.filter(target=target).first()
         if saved is None:
             return default_layout(target), True
-        return DocumentLayoutSchema.model_validate(saved.layout), False
+        return DocumentLayoutSchema.model_validate(
+            _migrate_saved_layout(saved.layout)
+        ), False
 
     @classmethod
     def list_targets(cls) -> list[DocumentTargetSchema]:
@@ -241,8 +295,9 @@ class DocumentTemplateService:
             layout=layout,
             is_default=is_default,
             catalog=DocumentCatalogSchema(
-                header_fields=_catalog(spec.header_fields),
-                party_fields=_catalog(list(spec.fields_of("party").values())),
+                header_fields=_catalog(list(spec.fields_of("header").values())),
+                supplier_fields=_catalog(list(spec.fields_of("supplier").values())),
+                customer_fields=_catalog(list(spec.fields_of("customer").values())),
                 item_columns=_catalog(spec.item_columns),
                 summaries=_catalog(spec.summaries),
             ),
@@ -274,26 +329,23 @@ class DocumentTemplateService:
 
     @staticmethod
     def validate(target: DocumentTarget, layout: DocumentLayoutSchema) -> None:
-        """Every picked attribute must exist for the document and be picked once."""
+        """Every picked attribute (also inside a composite) must exist for the document."""
         spec = _spec(target)
         blocks = {
-            "header": ("header", layout.header.fields),
-            "supplier": ("party", layout.supplier.fields),
-            "customer": ("party", layout.customer.fields),
+            "header (left)": ("header", layout.header.left),
+            "header (middle)": ("header", layout.header.middle),
+            "header (right)": ("header", layout.header.right),
+            "supplier": ("supplier", layout.supplier.fields),
+            "customer": ("customer", layout.customer.fields),
             "items": ("items", layout.items.columns),
             "summaries": ("summaries", layout.items.summaries),
         }
         for name, (block, refs) in blocks.items():
             known = spec.fields_of(block)
-            keys = [ref.key for ref in refs]
-            unknown = [k for k in keys if k not in known]
+            unknown = [k for ref in refs for k in ref.keys if k not in known]
             if unknown:
                 raise InvalidDocumentLayoutError(
                     f"Unknown attribute(s) in '{name}': {', '.join(unknown)}"
-                )
-            if len(set(keys)) != len(keys):
-                raise InvalidDocumentLayoutError(
-                    f"Attribute picked more than once in '{name}'"
                 )
         if layout.items.enabled and not layout.items.columns:
             raise InvalidDocumentLayoutError("The items table needs at least 1 column")
@@ -308,20 +360,20 @@ class DocumentTemplateService:
     ) -> dict[str, Any]:
         currency = data.currency
         header_defs = spec.fields_of("header")
-        party_defs = spec.fields_of("party")
         item_defs = spec.fields_of("items")
         summary_defs = spec.fields_of("summaries")
+        header_values = {**data.header, "code": data.code}
 
         parties = []
-        for block, values in (
-            (layout.supplier, data.supplier),
-            (layout.customer, data.customer),
+        for block, values, defs in (
+            (layout.supplier, data.supplier, spec.fields_of("supplier")),
+            (layout.customer, data.customer, spec.fields_of("customer")),
         ):
             if block.enabled:
                 parties.append(
                     {
                         "title": block.title,
-                        "rows": _rows(block.fields, party_defs, values or {}, None),
+                        "rows": _rows(block.fields, defs, values or {}, None),
                     }
                 )
 
@@ -329,20 +381,16 @@ class DocumentTemplateService:
         if layout.items.enabled:
             columns = [
                 {
-                    "label": c.label,
-                    "right": item_defs[c.key].kind in RIGHT_ALIGNED,
+                    "label": _caption_of(c),
+                    "right": all(item_defs[k].kind in RIGHT_ALIGNED for k in c.keys),
                 }
                 for c in layout.items.columns
             ]
             rows = [
                 [
-                    {
-                        "value": format_value(
-                            item.get(c.key), item_defs[c.key].kind, currency
-                        ),
-                        "right": item_defs[c.key].kind in RIGHT_ALIGNED,
-                    }
-                    for c in layout.items.columns
+                    _value(c, item_defs, item, currency)
+                    or {"parts": [], "right": column["right"]}
+                    for c, column in zip(layout.items.columns, columns, strict=True)
                 ]
                 for item in data.items
             ]
@@ -355,22 +403,34 @@ class DocumentTemplateService:
             }
 
         logo = layout.logo
+        header = layout.header
         return {
             "code": data.code,
             "logo": {"image": logo.image, "align": logo.align}
             if logo.enabled and logo.image
             else None,
             "header": {
-                "title": layout.header.title,
-                "barcode": barcode_svg.to_data_uri(data.code)
-                if layout.header.show_barcode
-                else None,
-                "rows": _rows(layout.header.fields, header_defs, data.header, currency),
+                "title": header.title,
+                "sections": [
+                    {
+                        "name": name,
+                        "rows": _rows(refs, header_defs, header_values, currency),
+                    }
+                    for name, refs in (
+                        ("left", header.left),
+                        ("middle", header.middle),
+                        ("right", header.right),
+                    )
+                ],
             },
             "parties": parties,
             "items": items,
             "footer": layout.footer.text
             if layout.footer.enabled and layout.footer.text.strip()
+            else None,
+            # "top-left" .. "bottom-right": a CSS @page margin box, only the PDF paginates
+            "page_number_box": layout.pagination.position
+            if layout.pagination.enabled
             else None,
         }
 

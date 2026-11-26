@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <title>{{ code }}</title>
     <style>
-        @page { size: A4; margin: 16mm 14mm; }
+        @page {
+            size: A4; margin: 16mm 14mm;
+            {% if page_number_box %}@{{ page_number_box }} { content: counter(page) " / " counter(pages); font-family: "DejaVu Sans", sans-serif; font-size: 9px; color: #64748b; }{% endif %}
+        }
         * { box-sizing: border-box; }
         body {
             margin: 0;
@@ -20,13 +23,15 @@
         .logo.center { justify-content: center; }
         .logo.right { justify-content: flex-end; }
         .logo img { max-height: 70px; max-width: 260px; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-        .title { margin: 0; font-size: 24px; line-height: 1.1; }
-        .code { margin-top: 6px; font-size: 15px; font-weight: 700; }
-        .barcode { display: block; margin-top: 8px; height: 40px; }
-        dl { margin: 0; white-space: nowrap; flex-shrink: 0; display: grid; grid-template-columns: auto auto; gap: 3px 14px; }
-        dt { color: #64748b; }
-        dd { margin: 0; font-weight: 700; }
+        .header-sections { display: flex; gap: 20px; align-items: flex-start; }
+        .header-sections > div { flex: 1; }
+        .header-sections .middle { text-align: center; }
+        .header-sections .right { text-align: right; }
+        .title { margin: 0 0 8px 0; font-size: 24px; line-height: 1.1; }
+        .line { margin: 2px 0; font-weight: 700; }
+        .line .muted { font-weight: 400; }
+        .barcode { display: inline-block; vertical-align: top; height: 40px; }
+        td .barcode { height: 26px; }
         .parties { display: flex; gap: 16px; }
         .party { flex: 1; padding: 12px 14px; border: 1px solid #d7dee7; border-radius: 8px; background: #f6f8fb; }
         .party h2 { margin: 0 0 6px 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
@@ -50,18 +55,16 @@
     {% endif %}
 
     <section class="header">
-        <div>
-            {% if header.title %}<h1 class="title">{{ header.title }}</h1>{% endif %}
-            <div class="code">{{ code }}</div>
-            {% if header.barcode %}<img class="barcode" src="{{ header.barcode }}" alt="{{ code }}" />{% endif %}
-        </div>
-        {% if header.rows %}
-        <dl>
-            {% for row in header.rows %}
-            {% if row.label %}<dt>{{ row.label }}</dt><dd>{{ row.value }}</dd>{% else %}<dd style="grid-column: 1 / -1;">{{ row.value }}</dd>{% endif %}
+        {% if header.title %}<h1 class="title">{{ header.title }}</h1>{% endif %}
+        <div class="header-sections">
+            {% for section in header.sections %}
+            <div class="{{ section.name }}">
+                {% for row in section.rows %}
+                <div class="line">{% if row.label %}<span class="muted">{{ row.label }}</span> {% endif %}{% include "documents/_value.html" with value=row.value %}</div>
+                {% endfor %}
+            </div>
             {% endfor %}
-        </dl>
-        {% endif %}
+        </div>
     </section>
 
     {% if parties %}
@@ -69,7 +72,7 @@
         {% for party in parties %}
         <div class="party">
             {% if party.title %}<h2>{{ party.title }}</h2>{% endif %}
-            {% for row in party.rows %}<p>{% if row.label %}<span class="muted">{{ row.label }}</span> {% endif %}{{ row.value }}</p>{% endfor %}
+            {% for row in party.rows %}<p>{% if row.label %}<span class="muted">{{ row.label }}</span> {% endif %}{% include "documents/_value.html" with value=row.value %}</p>{% endfor %}
         </div>
         {% endfor %}
     </section>
@@ -82,13 +85,13 @@
         </thead>
         <tbody>
             {% for row in items.rows %}
-            <tr>{% for cell in row %}<td{% if cell.right %} class="right"{% endif %}>{{ cell.value }}</td>{% endfor %}</tr>
+            <tr>{% for cell in row %}<td{% if cell.right %} class="right"{% endif %}>{% include "documents/_value.html" with value=cell %}</td>{% endfor %}</tr>
             {% endfor %}
         </tbody>
     </table>
     {% if items.summaries %}
     <div class="summaries">
-        {% for row in items.summaries %}<div><span>{{ row.label }}</span><span>{{ row.value }}</span></div>{% endfor %}
+        {% for row in items.summaries %}<div><span>{{ row.label }}</span><span>{% include "documents/_value.html" with value=row.value %}</span></div>{% endfor %}
     </div>
     {% endif %}
     {% endif %}

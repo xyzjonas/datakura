@@ -96,7 +96,11 @@ def test_get_returns_default_layout_and_catalog(admin_client, target) -> None:
     assert data["is_default"] is True
     assert data["layout"] == _layout(target)
     catalog = data["catalog"]
-    assert {f["key"] for f in catalog["party_fields"]} >= {"name", "identification"}
+    assert {f["key"] for f in catalog["supplier_fields"]} >= {"name", "identification"}
+    assert "code" in {f["key"] for f in catalog["header_fields"]}
+    has_contact = "contact_name" in {f["key"] for f in catalog["customer_fields"]}
+    assert has_contact is (target in {"offer", "delivery_note", "issue_note"})
+    assert not any(f["key"].startswith("contact_") for f in catalog["supplier_fields"])
     # the default layout only uses attributes the catalog offers
     offered = {f["key"] for f in catalog["item_columns"]}
     assert {c["key"] for c in data["layout"]["items"]["columns"]} <= offered
@@ -116,9 +120,8 @@ def test_save_get_and_reset(admin_client) -> None:
     assert saved.json()["data"]["is_default"] is False
 
     loaded = admin_client.get(f"{URL}/offer").json()["data"]
-    assert loaded["layout"]["items"]["columns"] == [
-        {"key": "product_name", "label": "Zboží"}
-    ]
+    assert [c["key"] for c in loaded["layout"]["items"]["columns"]] == ["product_name"]
+    assert loaded["layout"]["items"]["columns"][0]["label"] == "Zboží"
     assert loaded["layout"]["footer"] == {"enabled": True, "text": "Díky"}
     other = admin_client.get(f"{URL}/delivery_note").json()["data"]
     assert other["is_default"] is True
@@ -132,15 +135,27 @@ def test_save_get_and_reset(admin_client) -> None:
 @pytest.mark.parametrize(
     "mutate",
     [
-        lambda layout: layout["header"].update(fields=[{"key": "bogus"}]),
+        lambda layout: layout["header"].update(left=[{"key": "bogus"}]),
+        lambda layout: layout["header"].update(middle=[{"parts": ["name", "bogus"]}]),
+        lambda layout: layout["header"].update(right=[{}]),  # key nor parts
+        lambda layout: layout["header"].update(right=[{"key": "a", "parts": ["b"]}]),
+        lambda layout: layout["supplier"].update(fields=[{"key": "contact_name"}]),
+        lambda layout: layout["pagination"].update(position="middle"),
         lambda layout: layout["items"].update(columns=[]),
-        lambda layout: layout["items"].update(
-            columns=[{"key": "amount"}, {"key": "amount"}]
-        ),
         lambda layout: layout["items"].update(summaries=[{"key": "nope"}]),
         lambda layout: layout["logo"].update(enabled=True, image=None),
     ],
-    ids=["unknown-key", "no-columns", "duplicate", "unknown-summary", "logo-no-image"],
+    ids=[
+        "unknown-key",
+        "unknown-composite-part",
+        "no-key-no-parts",
+        "key-and-parts",
+        "contact-on-supplier",
+        "bad-page-number-position",
+        "no-columns",
+        "unknown-summary",
+        "logo-no-image",
+    ],
 )
 def test_invalid_layout_is_not_saved(admin_client, mutate) -> None:
     layout = _layout()
@@ -276,3 +291,33 @@ def test_invoice_pdf_endpoint_uses_the_saved_layout(admin_client, invoice_code) 
 
     assert html.status_code == 200
     assert "Saved invoice" in html.content.decode()
+
+
+def test_composite_barcode_and_pagination_round_trip_and_render(
+    admin_client, invoice_code
+) -> None:
+    layout = _layout("outbound_invoice")
+    layout["header"]["middle"] = [
+        {"parts": ["issued_date", "due_date"], "direction": "column", "label": "Dates"}
+    ]
+    layout["items"]["columns"] = [
+        {"key": "product_code", "barcode": True, "show_label": False}
+    ]
+    layout["pagination"] = {"enabled": True, "position": "top-right"}
+
+    saved = _send(admin_client, "put", f"{URL}/outbound_invoice", {"layout": layout})
+    assert saved.status_code == 200
+    loaded = admin_client.get(f"{URL}/outbound_invoice").json()["data"]["layout"]
+    assert loaded["header"]["middle"][0]["parts"] == ["issued_date", "due_date"]
+    assert loaded["header"]["middle"][0]["direction"] == "column"
+    assert loaded["items"]["columns"][0]["barcode"] is True
+    assert loaded["pagination"] == {"enabled": True, "position": "top-right"}
+
+    html = _send(
+        admin_client,
+        "post",
+        f"{URL}/outbound_invoice/preview",
+        {"record_code": invoice_code},
+    ).json()["data"]
+    assert "@top-right { content: counter(page)" in html
+    assert 'class="barcode"' in html.split("<tbody>")[1]

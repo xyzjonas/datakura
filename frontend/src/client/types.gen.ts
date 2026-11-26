@@ -6561,9 +6561,13 @@ export type DocumentCatalogSchema = {
    */
   header_fields: Array<CatalogFieldSchema>
   /**
-   * Party Fields
+   * Supplier Fields
    */
-  party_fields: Array<CatalogFieldSchema>
+  supplier_fields: Array<CatalogFieldSchema>
+  /**
+   * Customer Fields
+   */
+  customer_fields: Array<CatalogFieldSchema>
   /**
    * Item Columns
    */
@@ -6585,6 +6589,7 @@ export type DocumentLayoutSchema = {
   supplier?: PartyBlockSchema
   items?: ItemsBlockSchema
   footer?: FooterBlockSchema
+  pagination?: PaginationSchema
 }
 
 /**
@@ -6639,13 +6644,17 @@ export type HeaderBlockSchema = {
    */
   title?: string
   /**
-   * Show Barcode
+   * Left
    */
-  show_barcode?: boolean
+  left?: Array<LayoutFieldSchema>
   /**
-   * Fields
+   * Middle
    */
-  fields?: Array<LayoutFieldSchema>
+  middle?: Array<LayoutFieldSchema>
+  /**
+   * Right
+   */
+  right?: Array<LayoutFieldSchema>
 }
 
 /**
@@ -6668,17 +6677,42 @@ export type ItemsBlockSchema = {
 
 /**
  * LayoutFieldSchema
- * One printed attribute: which one (`key`) and its caption (empty = no caption).
+ * One printed attribute, or a composite of several.
+ *
+ * Single attribute: `key` names it. Composite: `key` is empty and `parts` lists the
+ * attributes that are chained together (`direction` row = one line joined by
+ * `separator`, column = one under another). `label` is the caption, hidden when
+ * `show_label` is off (or empty). `barcode` prints the value(s) as a Code 128 barcode.
  */
 export type LayoutFieldSchema = {
   /**
    * Key
    */
-  key: string
+  key?: string
   /**
    * Label
    */
   label?: string
+  /**
+   * Show Label
+   */
+  show_label?: boolean
+  /**
+   * Barcode
+   */
+  barcode?: boolean
+  /**
+   * Parts
+   */
+  parts?: Array<string>
+  /**
+   * Direction
+   */
+  direction?: 'row' | 'column'
+  /**
+   * Separator
+   */
+  separator?: string
 }
 
 /**
@@ -6697,6 +6731,27 @@ export type LogoBlockSchema = {
    * Align
    */
   align?: 'left' | 'center' | 'right'
+}
+
+/**
+ * PaginationSchema
+ * Page number printed in a corner of every page of the PDF.
+ */
+export type PaginationSchema = {
+  /**
+   * Enabled
+   */
+  enabled?: boolean
+  /**
+   * Position
+   */
+  position?:
+    | 'top-left'
+    | 'top-center'
+    | 'top-right'
+    | 'bottom-left'
+    | 'bottom-center'
+    | 'bottom-right'
 }
 
 /**

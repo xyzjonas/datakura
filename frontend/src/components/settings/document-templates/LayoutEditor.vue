@@ -2,7 +2,7 @@
   <div class="flex flex-col gap-2">
     <LogoBlockEditor v-model="model.logo" />
 
-    <LayoutBlock title="Hlavička (kód a čárový kód)">
+    <LayoutBlock title="Hlavička">
       <q-input
         v-model="model.header.title"
         outlined
@@ -12,19 +12,21 @@
         maxlength="100"
         data-test="header-title"
       />
-      <q-toggle v-model="model.header.show_barcode" label="Čárový kód s kódem dokladu" />
-      <FieldListEditor v-model="model.header.fields" :options="catalog.header_fields" />
+      <div v-for="section in sections" :key="section.key" class="flex flex-col gap-1">
+        <div class="text-sm font-semibold">{{ section.label }}</div>
+        <FieldListEditor v-model="model.header[section.key]" :options="catalog.header_fields" />
+      </div>
     </LayoutBlock>
 
     <PartyBlockEditor
       v-model="model.supplier"
       heading="Dodavatel"
-      :options="catalog.party_fields"
+      :options="catalog.supplier_fields"
     />
     <PartyBlockEditor
       v-model="model.customer"
       heading="Odběratel"
-      :options="catalog.party_fields"
+      :options="catalog.customer_fields"
     />
 
     <LayoutBlock v-model:enabled="model.items.enabled" title="Tabulka položek" toggleable>
@@ -47,6 +49,21 @@
         data-test="footer-text"
       />
     </LayoutBlock>
+
+    <LayoutBlock v-model:enabled="model.pagination.enabled" title="Číslování stran" toggleable>
+      <q-select
+        v-model="model.pagination.position"
+        :options="positions"
+        emit-value
+        map-options
+        outlined
+        dense
+        hide-bottom-space
+        label="Umístění čísla strany"
+        data-test="pagination-position"
+      />
+      <p class="m-0 text-xs text-muted">Číslo strany se tiskne jen do PDF, náhled nestránkuje.</p>
+    </LayoutBlock>
   </div>
 </template>
 
@@ -60,4 +77,19 @@ import type { DocumentLayout } from './types'
 
 defineProps<{ catalog: DocumentCatalogSchema }>()
 const model = defineModel<DocumentLayout>({ required: true })
+
+const sections = [
+  { key: 'left', label: 'Vlevo' },
+  { key: 'middle', label: 'Uprostřed' },
+  { key: 'right', label: 'Vpravo' },
+] as const
+
+const positions = [
+  { value: 'top-left', label: 'Nahoře vlevo' },
+  { value: 'top-center', label: 'Nahoře uprostřed' },
+  { value: 'top-right', label: 'Nahoře vpravo' },
+  { value: 'bottom-left', label: 'Dole vlevo' },
+  { value: 'bottom-center', label: 'Dole uprostřed' },
+  { value: 'bottom-right', label: 'Dole vpravo' },
+]
 </script>

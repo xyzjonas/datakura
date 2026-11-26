@@ -2,7 +2,7 @@ import re
 from typing import Annotated, Literal
 
 from ninja import Schema
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from apps.warehouse.core.schemas.base import Response
 from apps.warehouse.models.document_template import DocumentTarget
@@ -14,10 +14,37 @@ Label = Annotated[str, Field(max_length=100)]
 
 
 class LayoutFieldSchema(Schema):
-    """One printed attribute: which one (`key`) and its caption (empty = no caption)."""
+    """One printed attribute, or a composite of several.
 
-    key: str
+    Single attribute: `key` names it. Composite: `key` is empty and `parts` lists the
+    attributes that are chained together (`direction` row = one line joined by
+    `separator`, column = one under another). `label` is the caption, hidden when
+    `show_label` is off (or empty). `barcode` prints the value(s) as a Code 128 barcode.
+    """
+
+    key: str = ""
     label: Label = ""
+    show_label: bool = True
+    barcode: bool = False
+    parts: list[str] = Field(default_factory=list, max_length=10)
+    direction: Literal["row", "column"] = "row"
+    separator: Annotated[str, Field(max_length=10)] = ", "
+
+    @property
+    def is_composite(self) -> bool:
+        return bool(self.parts)
+
+    @property
+    def keys(self) -> list[str]:
+        return self.parts if self.parts else [self.key]
+
+    @model_validator(mode="after")
+    def _single_or_composite(self) -> "LayoutFieldSchema":
+        if self.parts and self.key:
+            raise ValueError("An attribute is either single (key) or composite (parts)")
+        if not self.parts and not self.key:
+            raise ValueError("An attribute needs a key or parts")
+        return self
 
 
 class LogoBlockSchema(Schema):
@@ -40,9 +67,24 @@ class LogoBlockSchema(Schema):
 
 class HeaderBlockSchema(Schema):
     title: Label = ""
-    # Code 128 barcode of the document code
-    show_barcode: bool = True
-    fields: list[LayoutFieldSchema] = Field(default_factory=list, max_length=20)
+    # three sections side by side, each a list of attributes (one per line)
+    left: list[LayoutFieldSchema] = Field(default_factory=list, max_length=20)
+    middle: list[LayoutFieldSchema] = Field(default_factory=list, max_length=20)
+    right: list[LayoutFieldSchema] = Field(default_factory=list, max_length=20)
+
+
+class PaginationSchema(Schema):
+    """Page number printed in a corner of every page of the PDF."""
+
+    enabled: bool = False
+    position: Literal[
+        "top-left",
+        "top-center",
+        "top-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right",
+    ] = "bottom-right"
 
 
 class PartyBlockSchema(Schema):
@@ -71,6 +113,7 @@ class DocumentLayoutSchema(Schema):
     supplier: PartyBlockSchema = Field(default_factory=PartyBlockSchema)
     items: ItemsBlockSchema = Field(default_factory=ItemsBlockSchema)
     footer: FooterBlockSchema = Field(default_factory=FooterBlockSchema)
+    pagination: PaginationSchema = Field(default_factory=PaginationSchema)
 
 
 class CatalogFieldSchema(Schema):
@@ -84,7 +127,9 @@ class DocumentCatalogSchema(Schema):
     """Attributes available per block of one document kind."""
 
     header_fields: list[CatalogFieldSchema]
-    party_fields: list[CatalogFieldSchema]
+    supplier_fields: list[CatalogFieldSchema]
+    # supplier's + the selected contact person's (only where the document has one)
+    customer_fields: list[CatalogFieldSchema]
     item_columns: list[CatalogFieldSchema]
     summaries: list[CatalogFieldSchema]
 

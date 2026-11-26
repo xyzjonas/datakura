@@ -14,6 +14,7 @@ from enum import StrEnum
 from typing import Any
 
 from django.db.models import Q
+from django.forms.models import model_to_dict
 
 from apps.warehouse.core.schemas.document_templates import DocumentRecordSchema
 from apps.warehouse.core.services.invoices import invoice_service
@@ -22,7 +23,7 @@ from apps.warehouse.core.services.outbound_calculations import (
 )
 from apps.warehouse.core.services.outbound_orders import outbound_orders_service
 from apps.warehouse.core.services.warehouse import warehouse_service
-from apps.warehouse.models.customer import Customer
+from apps.warehouse.models.customer import ContactPerson, Customer
 from apps.warehouse.models.document_template import DocumentTarget
 
 MAX_RECORDS = 50
@@ -70,6 +71,20 @@ PARTY_FIELDS = [
     F("code", "Kód"),
 ]
 
+# the selected contact person of the document (orders, offers, ...)
+CONTACT_FIELDS = [
+    F("contact_name", "Kontakt - jméno"),
+    F("contact_email", "Kontakt - e-mail"),
+    F("contact_phone", "Kontakt - telefon"),
+    F("contact_address", "Kontakt - adresa"),
+    F("contact_street", "Kontakt - ulice"),
+    F("contact_city", "Kontakt - město"),
+    F("contact_postal_code", "Kontakt - PSČ"),
+    F("contact_country", "Kontakt - země"),
+    F("contact_note", "Kontakt - poznámka"),
+]
+DOCUMENT_CODE = F("code", "Kód dokladu")
+
 ITEM_INDEX = F("index", "#")
 PRODUCT_CODE = F("product_code", "Kód")
 PRODUCT_NAME = F("product_name", "Název")
@@ -93,16 +108,25 @@ class DocumentSpec:
     summaries: list[FieldDef]
     list_records: Callable[[str | None], list[DocumentRecordSchema]]
     build: Callable[[str], DocumentData]
+    has_contact: bool = False  # the document has a contact person of the customer
     _by_block: dict[str, dict[str, FieldDef]] = field(
         default_factory=dict, init=False, repr=False, compare=False
     )
 
+    @property
+    def customer_fields(self) -> list[FieldDef]:
+        return [*PARTY_FIELDS, *(CONTACT_FIELDS if self.has_contact else [])]
+
     def fields_of(self, block: str) -> dict[str, FieldDef]:
-        """Attributes of a block ("header" | "party" | "items" | "summaries") by key."""
+        """Attributes of a block by key.
+
+        "header" | "supplier" | "customer" | "items" | "summaries"
+        """
         if not self._by_block:
             self._by_block.update(
-                header={f.key: f for f in self.header_fields},
-                party={f.key: f for f in PARTY_FIELDS},
+                header={f.key: f for f in (DOCUMENT_CODE, *self.header_fields)},
+                supplier={f.key: f for f in PARTY_FIELDS},
+                customer={f.key: f for f in self.customer_fields},
                 items={f.key: f for f in self.item_columns},
                 summaries={f.key: f for f in self.summaries},
             )
@@ -112,14 +136,39 @@ class DocumentSpec:
 # --- helpers -----------------------------------------------------------------------
 
 
-def _party(code: str | None) -> dict[str, Any] | None:
+def _address(street: Any, city: Any, postal_code: Any) -> str:
+    locality = " ".join(p for p in (postal_code, city) if p)
+    return ", ".join(p for p in (street, locality) if p)
+
+
+def _contact_values(contact: dict[str, Any] | None) -> dict[str, Any]:
+    if not contact:
+        return {}
+    return {
+        "contact_name": _contact_name(contact),
+        "contact_email": contact.get("email"),
+        "contact_phone": contact.get("phone"),
+        "contact_address": _address(
+            contact.get("street"), contact.get("city"), contact.get("postal_code")
+        ),
+        "contact_street": contact.get("street"),
+        "contact_city": contact.get("city"),
+        "contact_postal_code": contact.get("postal_code"),
+        "contact_country": contact.get("state"),
+        "contact_note": contact.get("note"),
+    }
+
+
+def _party(
+    code: str | None, contact: dict[str, Any] | None = None
+) -> dict[str, Any] | None:
     customer = Customer.objects.filter(code=code).first() if code else None
     if customer is None:
         return None
-    locality = f"{customer.postal_code} {customer.city}".strip()
     return {
+        **_contact_values(contact),
         "name": customer.name,
-        "address": ", ".join(p for p in (customer.street, locality) if p),
+        "address": _address(customer.street, customer.city, customer.postal_code),
         "street": customer.street,
         "city": customer.city,
         "postal_code": customer.postal_code,
@@ -130,6 +179,12 @@ def _party(code: str | None) -> dict[str, Any] | None:
         "phone": customer.phone,
         "code": customer.code,
     }
+
+
+def _order_contact(order_code: str) -> dict[str, Any] | None:
+    """Contact person of an outbound order (the warehouse order only references it)."""
+    contact = ContactPerson.objects.filter(outbound_orders__code=order_code).first()
+    return model_to_dict(contact) if contact else None
 
 
 def _contact_name(contact: dict[str, Any] | None) -> str | None:
@@ -270,7 +325,9 @@ def _build_outbound_document(doc: Any, extra_header: dict[str, Any]) -> Document
             "note": doc.note,
             **extra_header,
         },
-        customer=_party(doc.customer.code),
+        customer=_party(
+            doc.customer.code, doc.contact.model_dump() if doc.contact else None
+        ),
         supplier=_party(doc.supplier.code),
         items=items,
         summaries=_priced_summaries(items),
@@ -345,7 +402,7 @@ def _build_issue_note(code: str) -> DocumentData:
             "state": note.state,
             "created": note.created,
         },
-        customer=_party(note.order.customer.code),
+        customer=_party(note.order.customer.code, _order_contact(note.order.code)),
         supplier=_party(note.order.supplier.code),
         items=items,
         summaries=_warehouse_summaries(items),
@@ -441,6 +498,7 @@ SPECS: dict[DocumentTarget, DocumentSpec] = {
         summaries=_PRICED_SUMMARIES,
         list_records=_list_delivery_notes,
         build=_build_delivery_note,
+        has_contact=True,
     ),
     DocumentTarget.OFFER: DocumentSpec(
         target=DocumentTarget.OFFER,
@@ -449,6 +507,7 @@ SPECS: dict[DocumentTarget, DocumentSpec] = {
         summaries=_PRICED_SUMMARIES,
         list_records=_list_offers,
         build=_build_offer,
+        has_contact=True,
     ),
     DocumentTarget.ISSUE_NOTE: DocumentSpec(
         target=DocumentTarget.ISSUE_NOTE,
@@ -469,6 +528,7 @@ SPECS: dict[DocumentTarget, DocumentSpec] = {
         summaries=[ITEMS_COUNT, TOTAL_QUANTITY],
         list_records=_list_issue_notes,
         build=_build_issue_note,
+        has_contact=True,
     ),
     DocumentTarget.GOODS_RECEIPT: DocumentSpec(
         target=DocumentTarget.GOODS_RECEIPT,

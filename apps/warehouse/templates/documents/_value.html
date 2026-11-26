@@ -1,0 +1,1 @@
+{% for part in value.parts %}{% if value.direction == "column" %}<div>{% elif not forloop.first %}<span>{{ value.separator }}</span>{% endif %}{% if part.barcode %}<img class="barcode" src="{{ part.barcode }}" alt="{{ part.text }}" />{% else %}{{ part.text }}{% endif %}{% if value.direction == "column" %}</div>{% endif %}{% endfor %}

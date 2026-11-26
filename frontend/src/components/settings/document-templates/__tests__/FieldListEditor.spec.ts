@@ -31,6 +31,7 @@ const mountEditor = (modelValue: LayoutFieldSchema[]) => {
           template:
             '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
+        QTooltip: true,
         QSelect: {
           props: ['options'],
           emits: ['update:modelValue'],
@@ -47,28 +48,60 @@ const keys = (wrapper: ReturnType<typeof mountEditor>) =>
   (wrapper.props('modelValue') as LayoutFieldSchema[]).map((f) => f.key)
 
 describe('FieldListEditor', () => {
-  it('only offers the attributes that are not picked yet', () => {
-    const wrapper = mountEditor([{ key: 'name', label: 'Název' }])
-
-    expect(wrapper.findAll('.option').map((o) => o.text())).toEqual(['address', 'phone'])
-  })
-
-  it('adds an attribute with its default caption to the end', async () => {
+  it('adds an attribute with its default caption to the end, even when already picked', async () => {
     const wrapper = mountEditor([{ key: 'name', label: 'Název' }])
 
     await wrapper.findAll('.option')[0]!.trigger('click')
 
     expect(wrapper.props('modelValue')).toEqual([
       { key: 'name', label: 'Název' },
-      { key: 'address', label: 'Adresa' },
+      { key: 'name', label: 'Název' },
     ])
-    expect(wrapper.findAll('.option').map((o) => o.text())).toEqual(['phone'])
   })
 
-  it('hides the picker when everything is picked', () => {
-    const wrapper = mountEditor(OPTIONS.map((o) => ({ ...o })))
+  it('adds a composite attribute chaining the first catalog attributes', async () => {
+    const wrapper = mountEditor([])
 
-    expect(wrapper.find('[data-test="add-field"]').exists()).toBe(false)
+    await wrapper.find('[data-test="add-composite"]').trigger('click')
+
+    expect(wrapper.props('modelValue')).toEqual([
+      { key: '', parts: ['name', 'address'], label: '', direction: 'row', separator: ', ' },
+    ])
+    expect(wrapper.find('[data-test="parts"]').exists()).toBe(true)
+  })
+
+  it('toggles the direction of a composite and hides the separator in column mode', async () => {
+    const wrapper = mountEditor([
+      { key: '', parts: ['name', 'address'], direction: 'row', separator: ', ' },
+    ])
+    expect(wrapper.find('[data-test="separator"]').exists()).toBe(true)
+
+    await wrapper.find('[data-test="toggle-direction"]').trigger('click')
+
+    expect((wrapper.props('modelValue') as LayoutFieldSchema[])[0]!.direction).toBe('column')
+    expect(wrapper.find('[data-test="separator"]').exists()).toBe(false)
+  })
+
+  it('toggles the caption visibility without losing the caption', async () => {
+    const wrapper = mountEditor([{ key: 'name', label: 'Název' }])
+
+    await wrapper.find('[data-test="toggle-label"]').trigger('click')
+    expect(wrapper.props('modelValue')).toEqual([
+      { key: 'name', label: 'Název', show_label: false },
+    ])
+
+    await wrapper.find('[data-test="toggle-label"]').trigger('click')
+    expect(wrapper.props('modelValue')).toEqual([{ key: 'name', label: 'Název', show_label: true }])
+  })
+
+  it('toggles the barcode modifier', async () => {
+    const wrapper = mountEditor([{ key: 'name', label: 'Název' }])
+
+    await wrapper.find('[data-test="toggle-barcode"]').trigger('click')
+    expect((wrapper.props('modelValue') as LayoutFieldSchema[])[0]!.barcode).toBe(true)
+
+    await wrapper.find('[data-test="toggle-barcode"]').trigger('click')
+    expect((wrapper.props('modelValue') as LayoutFieldSchema[])[0]!.barcode).toBe(false)
   })
 
   it('removes an attribute', async () => {

@@ -3,6 +3,7 @@ import type {
   HeaderBlockSchema,
   ItemsBlockSchema,
   LogoBlockSchema,
+  PaginationSchema,
   PartyBlockSchema,
 } from '@/client'
 
@@ -14,4 +15,5 @@ export interface DocumentLayout {
   customer: Required<PartyBlockSchema>
   items: Required<ItemsBlockSchema>
   footer: Required<FooterBlockSchema>
+  pagination: Required<PaginationSchema>
 }

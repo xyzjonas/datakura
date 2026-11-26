@@ -11,6 +11,7 @@ from apps.warehouse.core.schemas.document_templates import (
     DocumentLayoutSchema,
     LayoutFieldSchema,
     LogoBlockSchema,
+    PaginationSchema,
 )
 from apps.warehouse.core.services.document_data import SPECS, Kind
 from apps.warehouse.core.services.document_templates import (
@@ -19,7 +20,10 @@ from apps.warehouse.core.services.document_templates import (
     format_value,
 )
 from apps.warehouse.models.document_template import DocumentTarget, DocumentTemplate
-from apps.warehouse.tests.factories.customer import CustomerFactory
+from apps.warehouse.tests.factories.customer import (
+    ContactPersonFactory,
+    CustomerFactory,
+)
 from apps.warehouse.tests.factories.order import (
     InboundOrderFactory,
     InvoiceFactory,
@@ -165,8 +169,11 @@ def _with(**changes) -> DocumentLayoutSchema:
 @pytest.mark.parametrize(
     "layout, message",
     [
-        (_with(header__fields=fields("nope")), "Unknown attribute"),
-        (_with(supplier__fields=fields("name", "name")), "more than once"),
+        (_with(header__left=fields("nope")), "Unknown attribute"),
+        (
+            _with(header__middle=[LayoutFieldSchema(parts=["name", "nope"])]),
+            "Unknown attribute.*nope",
+        ),
         (
             _with(items__columns=fields("unit_price")),
             "Unknown attribute",
@@ -188,11 +195,11 @@ def test_empty_items_table_is_fine_when_disabled() -> None:
 
 
 def test_party_fields_are_shared_but_header_fields_are_per_document() -> None:
-    layout = _with(header__fields=fields("issued_date"))  # invoice-only attribute
+    layout = _with(header__right=fields("issued_date"))  # invoice-only attribute
 
     with pytest.raises(InvalidDocumentLayoutError):
         service.validate(DocumentTarget.ISSUE_NOTE, layout)
-    layout.header.fields = fields("order_code")
+    layout.header.right = fields("order_code")
     layout.customer.fields = fields("email", "phone", "country")
     service.validate(DocumentTarget.ISSUE_NOTE, layout)
 
@@ -233,6 +240,15 @@ def test_render_rejects_an_invalid_draft(records) -> None:
         )
 
 
+def test_default_header_prints_code_as_text_and_barcode(records) -> None:
+    target = DocumentTarget.OFFER
+
+    html = service.render_record_html(target, records[target])
+
+    assert html.count(records[target]) >= 2  # title + the barcode alt text
+    assert 'class="barcode"' in html
+
+
 def test_party_attributes_follow_the_layout_order_and_skip_empty(records) -> None:
     target = DocumentTarget.DELIVERY_NOTE
     layout = default_layout(target)
@@ -260,7 +276,8 @@ def test_disabled_blocks_are_not_printed(records) -> None:
     layout.supplier.enabled = False
     layout.customer.enabled = False
     layout.items.enabled = False
-    layout.header.show_barcode = False
+    layout.header.left = []
+    layout.header.right = []
 
     html = service.render_record_html(target, records[target], layout)
 
@@ -357,3 +374,339 @@ def test_pdf_is_rendered(records) -> None:
     pdf = service.render_record_pdf(DocumentTarget.OFFER, records[DocumentTarget.OFFER])
 
     assert pdf.startswith(b"%PDF")
+
+
+# --- header sections, caption toggle, composites, barcode modifier ------------------
+
+
+def _layout_with_header(
+    target=DocumentTarget.OFFER, **sections
+) -> DocumentLayoutSchema:
+    layout = default_layout(target)
+    layout.header.left = layout.header.middle = layout.header.right = []
+    for name, refs in sections.items():
+        setattr(layout.header, name, refs)
+    return layout
+
+
+def test_header_sections_are_placed_left_middle_right(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = _layout_with_header(
+        left=[LayoutFieldSchema(key="external_code", label="L:")],
+        middle=[LayoutFieldSchema(key="state", label="M:")],
+        right=[LayoutFieldSchema(key="currency", label="R:")],
+    )
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert html.index('class="left"') < html.index("L:")
+    assert html.index("L:") < html.index('class="middle"') < html.index("M:")
+    assert html.index("M:") < html.index('class="right"') < html.index("R:")
+
+
+def test_empty_middle_section_keeps_the_right_one_on_the_right(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = _layout_with_header(right=[LayoutFieldSchema(key="currency", label="R:")])
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert 'class="left"' in html and 'class="middle"' in html
+
+
+@pytest.mark.parametrize(
+    "show_label, label, printed",
+    [(True, "Měna:", True), (False, "Měna:", False), (True, "", False)],
+)
+def test_caption_can_be_hidden(records, show_label, label, printed) -> None:
+    target = DocumentTarget.OFFER
+    layout = _layout_with_header(
+        right=[LayoutFieldSchema(key="currency", label=label, show_label=show_label)]
+    )
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert ("Měna:" in html) is printed
+    assert "CZK" in html  # the value stays
+
+
+def test_caption_can_be_hidden_in_every_block(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.customer.fields = [
+        LayoutFieldSchema(key="identification", label="ICO-CAP", show_label=False)
+    ]
+    layout.items.columns = [
+        LayoutFieldSchema(key="product_code", label="COL-CAP", show_label=False)
+    ]
+    layout.items.summaries = [
+        LayoutFieldSchema(key="items_count", label="SUM-CAP", show_label=False)
+    ]
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert "CAP" not in html
+    assert "12345678" in html
+
+
+def test_composite_row_chains_values_on_one_line(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.customer.fields = [
+        LayoutFieldSchema(
+            parts=["street", "postal_code", "city", "tax_identification"],  # last empty
+            label="Adresa:",
+            separator=" | ",
+        )
+    ]
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert "Adresa:" in html
+    assert "Hlavní 1</span>" not in html
+    assert "Hlavní 1<span> | </span>11000<span> | </span>Praha</p>" in html
+
+
+def test_composite_column_stacks_values(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.items.columns = [
+        LayoutFieldSchema(
+            parts=["product_code", "product_name"], direction="column", show_label=False
+        )
+    ]
+
+    html = service.render_record_html(target, records[target], layout)
+
+    row = html.split("<tbody>")[1].split("</tbody>")[0]
+    assert row.count("<div>") == 2
+    assert "<th></th>" in html  # no caption -> empty header cell
+
+
+def test_composite_without_filled_values_is_skipped(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.customer.fields = [
+        LayoutFieldSchema(parts=["tax_identification"], label="EMPTY-COMPOSITE")
+    ]
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert "EMPTY-COMPOSITE" not in html
+
+
+@pytest.mark.parametrize(
+    "ref",
+    [
+        {},  # neither key nor parts
+        {"key": "name", "parts": ["name"]},  # both
+        {"parts": ["a"] * 11},  # too many parts
+        {"key": "name", "direction": "diagonal"},
+    ],
+)
+def test_malformed_field_is_rejected(ref) -> None:
+    with pytest.raises(ValueError):
+        LayoutFieldSchema(**ref)
+
+
+def test_barcode_modifier_works_on_any_attribute_even_in_a_table_cell(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.header.left = layout.header.right = []
+    layout.items.columns = [
+        LayoutFieldSchema(key="product_code", barcode=True),
+        LayoutFieldSchema(key="product_name"),
+    ]
+
+    html = service.render_record_html(target, records[target], layout)
+
+    body = html.split("<tbody>")[1]
+    assert body.count('class="barcode"') == 1  # one row, product_code only
+    assert "data:image/svg+xml;base64," not in html.split("<tbody>")[0]
+
+
+def test_barcode_modifier_on_unencodable_value_falls_back_to_text(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = _layout_with_header(target)
+    customer = CustomerFactory(name="Přílišžluťoučký")
+    layout.customer.fields = [LayoutFieldSchema(key="name", barcode=True)]
+    layout.supplier.enabled = False
+    code = records[target]
+    from apps.warehouse.models.orders import OutboundOrder
+
+    OutboundOrder.objects.filter(code=code).update(customer=customer)
+
+    html = service.render_record_html(target, code, layout)
+
+    assert "Přílišžluťoučký" in html
+    assert 'class="barcode"' not in html
+
+
+def test_barcode_on_a_composite_encodes_each_part(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = _layout_with_header(
+        target,
+        left=[LayoutFieldSchema(parts=["code", "external_code"], barcode=True)],
+    )
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert html.count('class="barcode"') >= 1
+
+
+# --- customer contact person ----------------------------------------------------------
+
+
+@pytest.fixture
+def order_with_contact(db) -> str:
+    customer = CustomerFactory()
+    contact = ContactPersonFactory(
+        customer=customer,
+        title_pre="Ing.",
+        first_name="Jana",
+        middle_name="",
+        last_name="Nováková",
+        title_post="",
+        email="jana@example.com",
+        phone="+420 111 222 333",
+        street="Kontaktní 5",
+        city="Brno",
+        postal_code="60200",
+        state="CZ",
+        note="Ring twice",
+    )
+    return OutboundOrderFactory.it(customer=customer, contact=contact).code
+
+
+@pytest.mark.parametrize(
+    "key, expected",
+    [
+        ("contact_name", "Ing. Jana Nováková"),
+        ("contact_email", "jana@example.com"),
+        ("contact_phone", "+420 111 222 333"),
+        ("contact_address", "Kontaktní 5, 60200 Brno"),
+        ("contact_street", "Kontaktní 5"),
+        ("contact_city", "Brno"),
+        ("contact_postal_code", "60200"),
+        ("contact_country", "CZ"),
+        ("contact_note", "Ring twice"),
+    ],
+)
+def test_customer_block_can_print_the_selected_contact(
+    order_with_contact, key, expected
+) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.customer.fields = [LayoutFieldSchema(key=key)]
+
+    html = service.render_record_html(target, order_with_contact, layout)
+
+    assert expected in html
+
+
+def test_contact_attributes_are_offered_only_for_documents_with_a_contact() -> None:
+    def customer_keys(target):
+        return {f.key for f in service.get_template(target).catalog.customer_fields}
+
+    for target in (
+        DocumentTarget.DELIVERY_NOTE,
+        DocumentTarget.OFFER,
+        DocumentTarget.ISSUE_NOTE,
+    ):
+        assert "contact_name" in customer_keys(target)
+    for target in (DocumentTarget.OUTBOUND_INVOICE, DocumentTarget.GOODS_RECEIPT):
+        assert "contact_name" not in customer_keys(target)
+        layout = default_layout(target)
+        layout.customer.fields = [LayoutFieldSchema(key="contact_name")]
+        with pytest.raises(InvalidDocumentLayoutError):
+            service.validate(target, layout)
+
+
+def test_supplier_block_has_no_contact_attributes() -> None:
+    layout = default_layout(DocumentTarget.DELIVERY_NOTE)
+    layout.supplier.fields = [LayoutFieldSchema(key="contact_name")]
+
+    with pytest.raises(InvalidDocumentLayoutError):
+        service.validate(DocumentTarget.DELIVERY_NOTE, layout)
+
+
+def test_order_without_a_contact_prints_nothing_for_contact_attributes(records) -> None:
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.customer.fields = [LayoutFieldSchema(key="contact_name", label="KONTAKT")]
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert "KONTAKT" not in html
+
+
+# --- pagination -----------------------------------------------------------------------
+
+
+def test_pagination_is_off_by_default(records) -> None:
+    html = service.render_record_html(
+        DocumentTarget.OFFER, records[DocumentTarget.OFFER]
+    )
+
+    assert "counter(page)" not in html
+
+
+@pytest.mark.parametrize(
+    "position",
+    [
+        "top-left",
+        "top-center",
+        "top-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right",
+    ],
+)
+def test_pagination_prints_the_page_number_in_the_chosen_place(
+    records, position
+) -> None:
+    target = DocumentTarget.OFFER
+    layout = default_layout(target)
+    layout.pagination = PaginationSchema(enabled=True, position=position)
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert f"@{position} {{ content: counter(page)" in html
+
+
+def test_pagination_position_is_restricted() -> None:
+    with pytest.raises(ValueError):
+        PaginationSchema(position="center; } body { display: none")  # type: ignore[arg-type]
+
+
+def test_pdf_with_pagination_is_rendered(records) -> None:
+    target = DocumentTarget.OFFER
+    layout = default_layout(target)
+    layout.pagination = PaginationSchema(enabled=True)
+
+    assert service.render_record_pdf(target, records[target], layout).startswith(
+        b"%PDF"
+    )
+
+
+# --- layouts saved before sections / composites existed -------------------------------
+
+
+@pytest.mark.parametrize("show_barcode", [True, False])
+@pytest.mark.django_db
+def test_layout_saved_with_the_old_header_still_loads(show_barcode) -> None:
+    target = DocumentTarget.OFFER
+    layout = default_layout(target).model_dump(mode="json")
+    layout["header"] = {
+        "title": "Nabídka",
+        "show_barcode": show_barcode,
+        "fields": [{"key": "created", "label": "Vytvořeno"}],
+    }
+    DocumentTemplate.objects.create(target=target, layout=layout)
+
+    loaded, is_default = service.get_layout(target)
+
+    assert not is_default
+    assert [f.key for f in loaded.header.right] == ["created"]
+    assert [f.barcode for f in loaded.header.left] == [False, True][: 1 + show_barcode]
+    assert loaded.header.middle == []
+    service.validate(target, loaded)
