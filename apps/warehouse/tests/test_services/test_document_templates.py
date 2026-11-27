@@ -1424,10 +1424,10 @@ def test_centered_header_layout_only_with_a_printed_middle(
     assert ('class="header-sections has-middle"' in html) is expected
 
 
-def test_party_text_is_right_aligned_inside_the_centered_block(records) -> None:
+def test_party_text_is_left_aligned_inside_the_centered_block(records) -> None:
     target = DocumentTarget.OFFER
 
     html = service.render_record_html(target, records[target])
 
-    assert re.search(r"\.party-rows \{[^}]*text-align: right", html)
+    assert re.search(r"\.party-rows \{[^}]*text-align: left", html)
     assert html.count('<div class="party-rows">') == 2
