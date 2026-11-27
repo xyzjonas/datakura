@@ -4,11 +4,17 @@ from datetime import datetime
 from typing import Annotated
 
 from ninja import Schema
-from pydantic import Field, StringConstraints, field_serializer, field_validator
+from pydantic import (
+    Field,
+    StringConstraints,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 from .base import BaseSchema, PaginatedResponse, Response
 from .barcode import BarcodeSchema
-from .norm import NormSchema
+from .norm import NormSchema, NormTypeLiteral
 
 
 class DynamicProductPriceCustomerSchema(Schema):
@@ -130,14 +136,27 @@ class ProductCreateOrUpdateSchema(Schema):
     # null = the base currency of the app
     currency: str | None = None
     customs_declaration_group: str | None = Field(None, max_length=255)
-    # id of a norm from the catalogue (null = none)
-    norm_id: int | None = None
+    # the norm is looked up by (type, code) and created when it is not known yet;
+    # no code = no norm
+    norm_type: NormTypeLiteral | None = None
+    norm_code: str | None = Field(None, max_length=64)
     attributes: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("customs_declaration_group")
     @classmethod
     def _normalize_customs_code(cls, value: str | None) -> str | None:
         return _normalize_customs_code(value)
+
+    @field_validator("norm_code")
+    @classmethod
+    def _normalize_norm_code(cls, value: str | None) -> str | None:
+        return _normalize_customs_code(value)
+
+    @model_validator(mode="after")
+    def _norm_code_needs_type(self):
+        if self.norm_code and not self.norm_type:
+            raise ValueError("norm_type is required when norm_code is set")
+        return self
 
 
 class ProductBasePriceSchema(Schema):

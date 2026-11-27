@@ -99,6 +99,12 @@ class NormsService:
         return NormsService.get(norm.pk)
 
     @staticmethod
+    def get_or_create(norm_type: str, code: str) -> Norm:
+        """The norm of the (type, code) pair - created when the catalogue lacks it"""
+        norm, _ = Norm.objects.get_or_create(type=norm_type, code=code.strip())
+        return norm
+
+    @staticmethod
     @transaction.atomic
     def update(norm_id: int, params: NormCreateOrUpdateSchema) -> Norm:
         norm = NormsService.get(norm_id)

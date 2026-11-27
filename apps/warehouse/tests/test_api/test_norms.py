@@ -219,25 +219,64 @@ def _product_body(**overrides):
 
 def test_create_and_update_product_with_norm(products):
     din = NormFactory()
-    other = NormFactory(type=NormType.ISO, code="1")
 
-    created = products.post("/", json=_product_body(norm_id=din.pk))
+    created = products.post(
+        "/", json=_product_body(norm_type=din.type, norm_code=din.code)
+    )
     assert created.status_code == 200
     assert created.json()["data"]["norm"]["id"] == din.pk
 
-    updated = products.put("/SCR-1", json=_product_body(norm_id=other.pk))
+    updated = products.put("/SCR-1", json=_product_body(norm_type="ISO", norm_code="1"))
     assert updated.json()["data"]["norm"]["label"] == "ISO 1"
 
-    cleared = products.put("/SCR-1", json=_product_body(norm_id=None))
+    cleared = products.put("/SCR-1", json=_product_body())
     assert cleared.json()["data"]["norm"] is None
     assert StockProduct.objects.get(code="SCR-1").norm is None
 
 
-def test_product_with_unknown_norm_is_rejected(products):
-    with pytest.raises(ApiBaseException, match="does not exist"):
-        products.post("/", json=_product_body(norm_id=999999))
+def test_product_with_unknown_norm_creates_it(products):
+    assert not Norm.objects.exists()
 
-    assert not StockProduct.objects.exists()
+    res = products.post("/", json=_product_body(norm_type="EN", norm_code="10025"))
+
+    assert res.json()["data"]["norm"]["label"] == "EN 10025"
+    norm = Norm.objects.get()
+    assert (norm.type, norm.code) == ("EN", "10025")
+
+
+def test_product_norm_is_linked_not_duplicated(products):
+    existing = NormFactory(type=NormType.DIN, code="84")
+
+    res = products.post("/", json=_product_body(norm_type="DIN", norm_code="  84 "))
+
+    assert res.json()["data"]["norm"]["id"] == existing.pk
+    assert Norm.objects.count() == 1
+
+
+@pytest.mark.parametrize(
+    "norm_type, norm_code",
+    [("DIN", None), ("DIN", "  "), (None, None), (None, "")],
+)
+def test_product_without_norm_code_has_no_norm(products, norm_type, norm_code):
+    res = products.post(
+        "/", json=_product_body(norm_type=norm_type, norm_code=norm_code)
+    )
+
+    assert res.json()["data"]["norm"] is None
+    assert not Norm.objects.exists()
+
+
+def test_product_norm_code_without_type_is_rejected(products):
+    res = products.post("/", json=_product_body(norm_code="84"))
+
+    assert res.status_code == 422
+    assert not Norm.objects.exists()
+
+
+def test_product_norm_with_unknown_type_is_rejected(products):
+    res = products.post("/", json=_product_body(norm_type="XYZ", norm_code="84"))
+
+    assert res.status_code == 422
 
 
 # --- backfill job ---------------------------------------------------------------

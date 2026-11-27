@@ -360,7 +360,8 @@ const toFormSchema = (item: ProductSchema): ProductCreateOrUpdateSchema => ({
   disallow_unpacking: item.disallow_unpacking,
   currency: item.currency,
   customs_declaration_group: item.customs_declaration_group ?? '',
-  norm_id: item.norm?.id ?? null,
+  norm_type: item.norm?.type ?? null,
+  norm_code: item.norm?.code ?? null,
   attributes: item.attributes ?? {},
 })
 
@@ -377,7 +378,8 @@ const editForm = ref<ProductCreateOrUpdateSchema>({
   disallow_unpacking: false,
   currency: 'CZK',
   customs_declaration_group: '',
-  norm_id: null,
+  norm_type: null,
+  norm_code: null,
   attributes: {},
 })
 

@@ -51,6 +51,7 @@ class NormType(models.TextChoices):
     ISO = "ISO", "ISO"
     CSN = "CSN", "ČSN"
     DIN = "DIN", "DIN"
+    EN = "EN", "EN"
 
 
 class Norm(BaseModel):

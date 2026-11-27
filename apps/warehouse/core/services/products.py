@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Case, IntegerField, Q, QuerySet, Value, When
 
 from apps.warehouse.core.exceptions import WarehouseGenericError
+from apps.warehouse.core.services.norms import norms_service
 from apps.warehouse.core.schemas.type import ProductTypeCreateOrUpdateSchema
 from apps.warehouse.core.schemas.product import (
     ProductBarcodeCreateSchema,
@@ -180,13 +181,10 @@ class StockProductsService:
         )
 
     @staticmethod
-    def _resolve_norm(norm_id: int | None) -> Norm | None:
-        if norm_id is None:
+    def _resolve_norm(norm_type: str | None, norm_code: str | None) -> Norm | None:
+        if not norm_type or not norm_code:
             return None
-        try:
-            return Norm.objects.get(pk=norm_id)
-        except Norm.DoesNotExist:
-            raise WarehouseGenericError(f"Norm {norm_id} does not exist") from None
+        return norms_service.get_or_create(norm_type, norm_code)
 
     @staticmethod
     def _build_product_defaults(params: ProductCreateOrUpdateSchema):
@@ -207,7 +205,9 @@ class StockProductsService:
             "base_price": Decimal(str(params.base_price or 0)),
             "no_discount": params.no_discount,
             "customs_declaration_group": params.customs_declaration_group,
-            "norm": StockProductsService._resolve_norm(params.norm_id),
+            "norm": StockProductsService._resolve_norm(
+                params.norm_type, params.norm_code
+            ),
             "attributes": params.attributes,
         }
 

@@ -7,7 +7,7 @@ from pydantic import StringConstraints
 
 from .base import Response
 
-NormTypeLiteral = Literal["ISO", "CSN", "DIN"]
+NormTypeLiteral = Literal["ISO", "CSN", "DIN", "EN"]
 
 
 class NormRefSchema(Schema):

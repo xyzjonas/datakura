@@ -495,7 +495,7 @@ export type NormRefSchema = {
   /**
    * Type
    */
-  type: 'ISO' | 'CSN' | 'DIN'
+  type: 'ISO' | 'CSN' | 'DIN' | 'EN'
   /**
    * Label
    */
@@ -517,7 +517,7 @@ export type NormSchema = {
   /**
    * Type
    */
-  type: 'ISO' | 'CSN' | 'DIN'
+  type: 'ISO' | 'CSN' | 'DIN' | 'EN'
   /**
    * Label
    */
@@ -1962,9 +1962,13 @@ export type ProductCreateOrUpdateSchema = {
    */
   customs_declaration_group?: string | null
   /**
-   * Norm Id
+   * Norm Type
    */
-  norm_id?: number | null
+  norm_type?: 'ISO' | 'CSN' | 'DIN' | 'EN' | null
+  /**
+   * Norm Code
+   */
+  norm_code?: string | null
   /**
    * Attributes
    */
@@ -2112,9 +2116,13 @@ export type ProductDuplicateSchema = {
    */
   customs_declaration_group?: string | null
   /**
-   * Norm Id
+   * Norm Type
    */
-  norm_id?: number | null
+  norm_type?: 'ISO' | 'CSN' | 'DIN' | 'EN' | null
+  /**
+   * Norm Code
+   */
+  norm_code?: string | null
   /**
    * Attributes
    */
@@ -6218,7 +6226,7 @@ export type NormCreateOrUpdateSchema = {
   /**
    * Type
    */
-  type: 'ISO' | 'CSN' | 'DIN'
+  type: 'ISO' | 'CSN' | 'DIN' | 'EN'
   /**
    * Equivalent Ids
    */

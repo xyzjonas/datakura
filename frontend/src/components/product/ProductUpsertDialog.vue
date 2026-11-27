@@ -72,7 +72,7 @@
             hint="Kód celní nomenklatury pro tento produkt (např. pro exportní dokumentaci)"
           />
 
-          <NormSelect v-model="form.norm_id" />
+          <NormInput v-model:type="form.norm_type" v-model:code="form.norm_code" />
 
           <div class="mt-ě">
             <div class="mb-1 flex items-center justify-between">
@@ -144,7 +144,7 @@
 <script setup lang="ts">
 import type { ProductCreateOrUpdateSchema } from '@/client'
 import ProductGroupSelect from '@/components/selects/ProductGroupSelect.vue'
-import NormSelect from '@/components/selects/NormSelect.vue'
+import NormInput from '@/components/norm/NormInput.vue'
 import ProductTypeSelect from '@/components/selects/ProductTypeSelect.vue'
 import UnitOfMeasureSelect from '@/components/selects/UnitOfMeasureSelect.vue'
 import { rules } from '@/utils/rules'

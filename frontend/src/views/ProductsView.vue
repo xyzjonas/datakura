@@ -136,7 +136,8 @@ const createDefaultForm = (): ProductCreateOrUpdateSchema => ({
   no_discount: false,
   currency: 'CZK',
   customs_declaration_group: '',
-  norm_id: null,
+  norm_type: null,
+  norm_code: null,
   attributes: {},
 })
 
