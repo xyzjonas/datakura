@@ -4,7 +4,11 @@ from typing import Any
 from celery import shared_task
 from django.utils import timezone
 
-from apps.warehouse.core.services.data_import.progress import ProgressSnapshot
+from apps.warehouse.core.services.data_import.progress import (
+    ImportProgress,
+    ProgressSnapshot,
+)
+from apps.warehouse.core.services.norm_backfill import norm_backfill_service
 from apps.warehouse.core.services.inventory_snapshots import inventory_snapshot_service
 from apps.warehouse.core.services.snapshot_schedules import is_last_day_of_month
 from apps.warehouse.models.warehouse import InventorySnapshotTriggerSource
@@ -38,6 +42,17 @@ def run_data_import(
         self.update_state(state=PROGRESS_STATE, meta=asdict(snapshot))
 
     return run_staged_import(products, customers, warehouses, sink=publish)
+
+
+@shared_task(bind=True, name="norms.backfill", time_limit=60 * 60)
+def run_norm_backfill(self) -> dict[str, Any]:
+    """Fills product norms / customs nomenclature from the legacy metas"""
+
+    def publish(snapshot: ProgressSnapshot) -> None:
+        self.update_state(state=PROGRESS_STATE, meta=asdict(snapshot))
+
+    result = norm_backfill_service.run(ImportProgress(publish))
+    return result.model_dump()
 
 
 @shared_task(name="warehouse.create_scheduled_inventory_snapshot")

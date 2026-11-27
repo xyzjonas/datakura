@@ -84,6 +84,10 @@
         v-if="status?.state === 'succeeded' && status.result"
         :result="status.result"
       />
+
+      <q-separator />
+
+      <NormBackfillCard />
     </div>
   </div>
 </template>
@@ -93,6 +97,7 @@ import { useDataImportJob } from '@/composables/use-data-import-job'
 import { computed, reactive, ref } from 'vue'
 import DataImportProgress from './data-import/DataImportProgress.vue'
 import DataImportResult from './data-import/DataImportResult.vue'
+import NormBackfillCard from './data-import/NormBackfillCard.vue'
 import JsonFileInput from './data-import/JsonFileInput.vue'
 import WarehouseImportRow from './data-import/WarehouseImportRow.vue'
 import {

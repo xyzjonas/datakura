@@ -30,6 +30,10 @@
           <span class="truncate text-right max-w-40">{{ product.group ?? '-' }}</span>
         </div>
         <div class="flex items-center justify-between gap-2">
+          <span class="text-gray-4">Norma</span>
+          <NormLabel :norm="product.norm" />
+        </div>
+        <div class="flex items-center justify-between gap-2">
           <span class="text-gray-4">Nákupní cena</span>
           <span>{{ formatPrice(product.purchase_price) }}</span>
         </div>
@@ -44,6 +48,7 @@
 
 <script setup lang="ts">
 import type { ProductSchema } from '@/client'
+import NormLabel from '../norm/NormLabel.vue'
 import ForegroundPanel from '../ForegroundPanel.vue'
 import ProductTypeIcon from './ProductTypeIcon.vue'
 

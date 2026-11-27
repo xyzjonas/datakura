@@ -1431,3 +1431,67 @@ def test_party_text_is_left_aligned_inside_the_centered_block(records) -> None:
 
     assert re.search(r"\.party-rows \{[^}]*text-align: left", html)
     assert html.count('<div class="party-rows">') == 2
+
+
+# --- norm of the product ------------------------------------------------------------
+
+
+@pytest.mark.parametrize("target", list(DocumentTarget))
+def test_norm_is_offered_as_an_item_column(target) -> None:
+    assert SPECS[target].fields_of("items")["norm"].label == "Norma"
+
+
+@pytest.mark.parametrize(
+    "product, expected",
+    [
+        ({"code": "A", "name": "n", "norm": {"label": "DIN 84"}}, "DIN 84"),
+        ({"code": "A", "name": "n", "norm": None}, None),
+        ({"code": "A", "name": "n"}, None),
+    ],
+)
+def test_priced_item_row_carries_the_norm_label(product, expected) -> None:
+    from apps.warehouse.core.services.document_data import _price_item
+
+    row = _price_item(
+        {"index": 0, "amount": 1, "product": product},
+        unit_price=1,
+        total_price=1,
+    )
+
+    assert row["norm"] == expected
+
+
+@pytest.mark.parametrize("with_norm", [True, False])
+def test_delivery_note_prints_the_product_norm(db, with_norm) -> None:
+    from apps.warehouse.tests.factories.product import NormFactory, StockProductFactory
+
+    product = StockProductFactory(norm=NormFactory(code="84") if with_norm else None)
+    order = OutboundOrderFactory.it(currency="CZK")
+    OutboundOrderItemFactory(order=order, stock_product=product)
+    target = DocumentTarget.DELIVERY_NOTE
+    layout = default_layout(target)
+    layout.items.columns = [LayoutFieldSchema(key="norm", label="Norma")]
+    service.validate(target, layout)
+
+    html = str(service.render_record_html(target, order.code, layout))
+
+    assert ("DIN 84" in html) is with_norm
+
+
+def test_issue_note_prints_the_product_norm(db) -> None:
+    from apps.warehouse.tests.factories.product import NormFactory, StockProductFactory
+
+    product = StockProductFactory(norm=NormFactory(code="933"))
+    order = OutboundOrderFactory.it(currency="CZK")
+    order_item = OutboundOrderItemFactory(order=order, stock_product=product)
+    note = WarehouseOrderOutFactory.it(order=order)
+    OutboundWarehouseOrderItemFactory.it(
+        warehouse_order=note, source_order_item=order_item
+    )
+    target = DocumentTarget.ISSUE_NOTE
+    layout = default_layout(target)
+    layout.items.columns = [LayoutFieldSchema(key="norm", label="Norma")]
+
+    html = str(service.render_record_html(target, note.code, layout))
+
+    assert "DIN 933" in html

@@ -101,9 +101,11 @@ def get_products(
 ):
     qs = cast(
         QuerySet[StockProduct],
-        StockProduct.objects.prefetch_related(
-            "dynamic_prices__customer",
-        ),
+        StockProduct.objects.select_related(
+            "type", "unit_of_measure__base_uom", "group", "norm"
+        )
+        .prefetch_related("dynamic_prices__customer", "norm__equivalents")
+        .with_barcodes(),
     )
     if search_term:
         qs = stock_product_service.search(qs, search_term)

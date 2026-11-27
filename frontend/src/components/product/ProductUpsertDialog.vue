@@ -72,6 +72,8 @@
             hint="Kód celní nomenklatury pro tento produkt (např. pro exportní dokumentaci)"
           />
 
+          <NormInput v-model:type="form.norm_type" v-model:code="form.norm_code" />
+
           <div class="mt-ě">
             <div class="mb-1 flex items-center justify-between">
               <span class="text-sm text-gray-7">Atributy</span>
@@ -142,6 +144,7 @@
 <script setup lang="ts">
 import type { ProductCreateOrUpdateSchema } from '@/client'
 import ProductGroupSelect from '@/components/selects/ProductGroupSelect.vue'
+import NormInput from '@/components/norm/NormInput.vue'
 import ProductTypeSelect from '@/components/selects/ProductTypeSelect.vue'
 import UnitOfMeasureSelect from '@/components/selects/UnitOfMeasureSelect.vue'
 import { rules } from '@/utils/rules'

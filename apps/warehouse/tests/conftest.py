@@ -56,9 +56,10 @@ def celery_inline(settings, tmp_path, monkeypatch):
     settings.CELERY_TASK_STORE_EAGER_RESULT = True
 
     # read once at task registration, so the setting alone is too late
-    from apps.warehouse.tasks import run_data_import
+    from apps.warehouse.tasks import run_data_import, run_norm_backfill
 
-    monkeypatch.setattr(run_data_import, "store_eager_result", True)
+    for task in (run_data_import, run_norm_backfill):
+        monkeypatch.setattr(task, "store_eager_result", True)
 
     def reset_backend():
         app._local.__dict__.pop("backend", None)

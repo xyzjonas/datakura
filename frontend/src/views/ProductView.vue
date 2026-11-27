@@ -100,6 +100,12 @@
             </q-item-section>
           </q-item>
           <q-item>
+            <q-item-section>Norma</q-item-section>
+            <q-item-section avatar>
+              <NormLabel :norm="product.norm" />
+            </q-item-section>
+          </q-item>
+          <q-item>
             <q-item-section>Celní nomenklatura</q-item-section>
             <q-item-section avatar :class="{ 'text-gray-5': true }">{{
               product.customs_declaration_group ?? '-'
@@ -298,6 +304,7 @@ import {
 import BarcodeElement from '@/components/BarcodeElement.vue'
 import CopyToClipBoardButton from '@/components/CopyToClipBoardButton.vue'
 import ForegroundPanel from '@/components/ForegroundPanel.vue'
+import NormLabel from '@/components/norm/NormLabel.vue'
 import PriceChangedHint from '@/components/product/PriceChangedHint.vue'
 import ProductAvailability from '@/components/product/ProductAvailability.vue'
 import ProductCustomerCodesCard from '@/components/product/ProductCustomerCodesCard.vue'
@@ -353,6 +360,8 @@ const toFormSchema = (item: ProductSchema): ProductCreateOrUpdateSchema => ({
   disallow_unpacking: item.disallow_unpacking,
   currency: item.currency,
   customs_declaration_group: item.customs_declaration_group ?? '',
+  norm_type: item.norm?.type ?? null,
+  norm_code: item.norm?.code ?? null,
   attributes: item.attributes ?? {},
 })
 
@@ -369,6 +378,8 @@ const editForm = ref<ProductCreateOrUpdateSchema>({
   disallow_unpacking: false,
   currency: 'CZK',
   customs_declaration_group: '',
+  norm_type: null,
+  norm_code: null,
   attributes: {},
 })
 

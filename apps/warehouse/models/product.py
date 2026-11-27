@@ -45,6 +45,44 @@ class ProductGroup(BaseModel):
         return self.name
 
 
+class NormType(models.TextChoices):
+    """Namespaces (standardization bodies) a norm code lives in"""
+
+    ISO = "ISO", "ISO"
+    CSN = "CSN", "ČSN"
+    DIN = "DIN", "DIN"
+    EN = "EN", "EN"
+
+
+class Norm(BaseModel):
+    """
+    Catalogue of norms (DIN 84, ISO 1207, ...). A code is unique within its type;
+    equal items defined by different norms are linked as `equivalents`.
+    """
+
+    code = models.CharField(max_length=64)
+    type = models.CharField(max_length=8, choices=NormType.choices)
+    equivalents = models.ManyToManyField("self", symmetrical=True, blank=True)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["type", "code"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["type", "code"], name="warehouse_unique_norm_code_per_type"
+            ),
+            models.CheckConstraint(
+                condition=~Q(code=""), name="warehouse_norm_code_not_empty"
+            ),
+        ]
+
+    @property
+    def label(self) -> str:
+        return f"{self.type} {self.code}"
+
+    def __str__(self) -> str:
+        return self.label
+
+
 class StockProduct(BaseModel, BarcodeMixin):
     name = models.CharField(max_length=255, null=False)
     code = models.CharField(max_length=255, null=False, unique=True)
@@ -72,6 +110,13 @@ class StockProduct(BaseModel, BarcodeMixin):
     )
 
     customs_declaration_group = models.CharField(max_length=255, null=True, blank=True)
+    norm = models.ForeignKey(
+        Norm,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="products",
+    )
 
     attributes = models.JSONField(default=dict, blank=True)
 

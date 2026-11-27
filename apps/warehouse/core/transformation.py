@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
+from typing import cast
 
 from django.contrib.contenttypes.models import ContentType
 
@@ -58,6 +59,11 @@ from apps.warehouse.core.schemas.settings import (
     ExchangeRateSchema,
     GlobalSettingsSchema,
 )
+from apps.warehouse.core.schemas.norm import (
+    NormRefSchema,
+    NormSchema,
+    NormTypeLiteral,
+)
 from apps.warehouse.core.schemas.product import (
     ProductSchema,
     DynamicProductPriceSchema,
@@ -112,6 +118,7 @@ from apps.warehouse.models.packaging import PackageType
 from apps.warehouse.models.printer import Printer
 from apps.warehouse.models.shipping import OutboundOrderShipping, ShippingType
 from apps.warehouse.models.product import (
+    Norm,
     CustomerProductCode,
     StockProduct,
     StockProductPrice,
@@ -521,6 +528,25 @@ def customer_group_orm_to_schema(group: CustomerGroup) -> CustomerGroupSchema:
     )
 
 
+def norm_ref_orm_to_schema(norm: Norm) -> NormRefSchema:
+    return NormRefSchema(
+        id=norm.pk,
+        code=norm.code,
+        type=cast(NormTypeLiteral, norm.type),
+        label=norm.label,
+    )
+
+
+def norm_orm_to_schema(norm: Norm) -> NormSchema:
+    return NormSchema(
+        id=norm.pk,
+        code=norm.code,
+        type=cast(NormTypeLiteral, norm.type),
+        label=norm.label,
+        equivalents=[norm_ref_orm_to_schema(n) for n in norm.equivalents.all()],
+    )
+
+
 def product_orm_to_schema(product: StockProduct) -> ProductSchema:
     dynamic_prices = [
         dynamic_product_price_orm_to_schema(
@@ -552,6 +578,7 @@ def product_orm_to_schema(product: StockProduct) -> ProductSchema:
         no_discount=product.no_discount,
         disallow_unpacking=product.disallow_unpacking,
         customs_declaration_group=product.customs_declaration_group,
+        norm=norm_orm_to_schema(product.norm) if product.norm else None,
         attributes=product.attributes,
         barcodes=[b for b in barcodes if b is not None],
         primary_barcode=barcode_orm_to_schema(primary_barcode),
@@ -564,6 +591,7 @@ def get_product_by_code(product_code: str) -> ProductSchema:
         "unit_of_measure",
         "type",
         "group",
+        "norm__equivalents",
         "dynamic_prices__customer",
     ).get(code=product_code)
     return product_orm_to_schema(product)
