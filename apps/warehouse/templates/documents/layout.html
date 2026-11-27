@@ -22,12 +22,15 @@
         /* browser preview: one page high, the footer sticks to its bottom (the PDF measures instead, see pdf.py) */
         @media screen { .page { min-height: calc(297mm - {{ margin.margin_top|add:margin.margin_bottom }}px - 2px); } .footer { margin-top: auto; } }
         .logo-img { display: block; max-height: 70px; max-width: 260px; }
-        .right .logo-img { margin-left: auto; }
-        .middle .logo-img { margin: 0 auto; }
-        .header-sections { display: flex; gap: 20px; align-items: flex-start; }
-        .header-sections > div { flex: 1; }
-        .header-sections .middle { text-align: center; }
-        .header-sections .right { text-align: right; }
+        .sec-right .logo-img { margin-left: auto; }
+        .sec-middle .logo-img { margin: 0 auto; }
+        /* left / right take the room their content needs and sit at the edges; with a
+           middle section the outer two share the rest equally so it stays centered */
+        .header-sections { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+        .header-sections > div { flex: 0 1 auto; min-width: 0; }
+        .header-sections.has-middle > .sec-left, .header-sections.has-middle > .sec-right { flex: 1 1 0; }
+        .header-sections .sec-middle { text-align: center; }
+        .header-sections .sec-right { text-align: right; }
         .title { margin: 0 0 8px 0; font-size: 24px; line-height: 1.1; }
         .line { margin: 2px 0; }
         .bold { font-weight: 700; }
@@ -42,6 +45,7 @@
         .party + .party { padding-left: 20px; border-left: 1px solid #d7dee7; }
         .party h2 { margin: 0 0 6px 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
         .party p { margin: 2px 0; }
+        .party-rows { text-align: right; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 8px 10px; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; border-bottom: 2px solid #d7dee7; }
         td { padding: 8px 10px; border-bottom: 1px solid #e5eaf0; vertical-align: middle; }
@@ -57,9 +61,9 @@
 <div class="page">
     <section class="header">
         {% if header.title %}<h1 class="title">{{ header.title }}</h1>{% endif %}
-        <div class="header-sections">
+        <div class="header-sections{% if header.has_middle %} has-middle{% endif %}">
             {% for section in header.sections %}
-            <div class="{{ section.name }}">
+            <div class="sec-{{ section.name }}">
                 {% for row in section.rows %}
                 <div class="line">{% if row.label %}<span class="muted">{{ row.label }}</span> {% endif %}{% include "documents/_value.html" with value=row.value %}</div>
                 {% endfor %}
@@ -73,7 +77,7 @@
         {% for party in parties %}
         <div class="party">
             {% if party.title %}<h2>{{ party.title }}</h2>{% endif %}
-            {% for row in party.rows %}<p>{% if row.label %}<span class="muted">{{ row.label }}</span> {% endif %}{% include "documents/_value.html" with value=row.value %}</p>{% endfor %}
+            <div class="party-rows">{% for row in party.rows %}<p>{% if row.label %}<span class="muted">{{ row.label }}</span> {% endif %}{% include "documents/_value.html" with value=row.value %}</p>{% endfor %}</div>
         </div>
         {% endfor %}
     </section>

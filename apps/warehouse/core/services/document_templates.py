@@ -550,6 +550,14 @@ class DocumentTemplateService:
             }
 
         header = layout.header
+        header_sections = {
+            name: _rows(refs, header_defs, header_values, currency)
+            for name, refs in (
+                ("left", header.left),
+                ("middle", header.middle),
+                ("right", header.right),
+            )
+        }
         font = document_fonts.resolve(layout.page.font)
         return {
             "code": data.code,
@@ -558,16 +566,10 @@ class DocumentTemplateService:
             "font_faces": document_fonts.font_face_css(font.key),
             "header": {
                 "title": header.title,
+                "has_middle": bool(header_sections["middle"]),
                 "sections": [
-                    {
-                        "name": name,
-                        "rows": _rows(refs, header_defs, header_values, currency),
-                    }
-                    for name, refs in (
-                        ("left", header.left),
-                        ("middle", header.middle),
-                        ("right", header.right),
-                    )
+                    {"name": name, "rows": rows}
+                    for name, rows in header_sections.items()
                 ],
             },
             "parties": parties,

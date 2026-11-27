@@ -560,9 +560,9 @@ def test_header_sections_are_placed_left_middle_right(records) -> None:
 
     html = service.render_record_html(target, records[target], layout)
 
-    assert html.index('class="left"') < html.index("L:")
-    assert html.index("L:") < html.index('class="middle"') < html.index("M:")
-    assert html.index("M:") < html.index('class="right"') < html.index("R:")
+    assert html.index('class="sec-left"') < html.index("L:")
+    assert html.index("L:") < html.index('class="sec-middle"') < html.index("M:")
+    assert html.index("M:") < html.index('class="sec-right"') < html.index("R:")
 
 
 def test_empty_middle_section_keeps_the_right_one_on_the_right(records) -> None:
@@ -571,7 +571,7 @@ def test_empty_middle_section_keeps_the_right_one_on_the_right(records) -> None:
 
     html = service.render_record_html(target, records[target], layout)
 
-    assert 'class="left"' in html and 'class="middle"' in html
+    assert 'class="sec-left"' in html and 'class="sec-middle"' in html
 
 
 @pytest.mark.parametrize(
@@ -1388,3 +1388,46 @@ def test_apply_page_settings_to_all_documents(records) -> None:
         service.get_layout(DocumentTarget.ISSUE_NOTE)[0].header
         == default_layout(DocumentTarget.ISSUE_NOTE).header
     )
+
+
+# --- header sizing, party text alignment ----------------------------------------------
+
+
+def test_header_sections_do_not_inherit_the_nowrap_of_table_cells(records) -> None:
+    target = DocumentTarget.OFFER
+
+    html = service.render_record_html(target, records[target])
+
+    # a class shared with the right-aligned table cells would stop long text from wrapping
+    assert 'class="sec-right"' in html
+    assert not re.search(r'<div class="right"', html)
+    assert ".header-sections > div { flex: 0 1 auto" in html
+
+
+@pytest.mark.parametrize(
+    "middle, expected",
+    [
+        ([LayoutFieldSchema(key="state", label="M:")], True),
+        ([], False),
+    ],
+)
+def test_centered_header_layout_only_with_a_printed_middle(
+    records, middle, expected
+) -> None:
+    target = DocumentTarget.OFFER
+    layout = _layout_with_header(
+        left=[LayoutFieldSchema(key="external_code", label="L:")], middle=middle
+    )
+
+    html = service.render_record_html(target, records[target], layout)
+
+    assert ('class="header-sections has-middle"' in html) is expected
+
+
+def test_party_text_is_right_aligned_inside_the_centered_block(records) -> None:
+    target = DocumentTarget.OFFER
+
+    html = service.render_record_html(target, records[target])
+
+    assert re.search(r"\.party-rows \{[^}]*text-align: right", html)
+    assert html.count('<div class="party-rows">') == 2
