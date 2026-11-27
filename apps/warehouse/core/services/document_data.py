@@ -99,6 +99,7 @@ UNIT_PRICE = F("unit_price", "Cena / MJ", Kind.MONEY)
 TOTAL_PRICE = F("total_price", "Celkem", Kind.MONEY)
 ORIGIN = F("origin_country", "Země původu")
 BATCH = F("batch", "Šarže")
+NORM = F("norm", "Norma")
 DELIVERY_CODE = F("delivery_code", "Dodací kód")
 
 ITEMS_COUNT = F("items_count", "Počet položek", Kind.QUANTITY)
@@ -233,6 +234,7 @@ def _price_item(item: dict[str, Any], *, unit_price: Any, total_price: Any) -> d
         # the customer's own code when the order carries one, ours otherwise - never empty
         "delivery_code": item.get("customer_product_code") or product["code"],
         "product_name": product["name"] + (RETURNED_SUFFIX if returned else ""),
+        "norm": (product.get("norm") or {}).get("label"),
         "amount": item["amount"],
         "unit": product.get("unit"),
         "unit_price": unit_price,
@@ -383,6 +385,7 @@ def _stock_item(item: Any, position: int, **extra: Any) -> dict[str, Any]:
         "index": position,
         "product_code": item.product.code,
         "product_name": item.product.name,
+        "norm": item.product.norm.label if item.product.norm else None,
         "amount": item.amount,
         "unit": item.unit_of_measure,
         **extra,
@@ -474,6 +477,7 @@ _PRICED_ITEMS = [
     ITEM_INDEX,
     PRODUCT_CODE,
     PRODUCT_NAME,
+    NORM,
     DELIVERY_CODE,
     F("customer_product_code", "Kód zákazníka"),
     AMOUNT,
@@ -509,9 +513,9 @@ SPECS: dict[DocumentTarget, DocumentSpec] = {
             F("note", "Poznámka"),
         ],
         item_columns=[
-            *_PRICED_ITEMS[:3],
+            *_PRICED_ITEMS[:4],
             F("order_code", "Objednávka"),
-            *_PRICED_ITEMS[3:],
+            *_PRICED_ITEMS[4:],
         ],
         summaries=_PRICED_SUMMARIES,
         list_records=_list_invoices,
@@ -561,6 +565,7 @@ SPECS: dict[DocumentTarget, DocumentSpec] = {
             ITEM_INDEX,
             PRODUCT_CODE,
             PRODUCT_NAME,
+            NORM,
             DELIVERY_CODE,
             AMOUNT,
             UNIT,
@@ -584,6 +589,7 @@ SPECS: dict[DocumentTarget, DocumentSpec] = {
             ITEM_INDEX,
             PRODUCT_CODE,
             PRODUCT_NAME,
+            NORM,
             AMOUNT,
             UNIT,
             UNIT_PRICE,

@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("warehouse", "0107_multicurrency"),
+        ("warehouse", "0109_document_target_outbound_order"),
     ]
 
     operations = [
