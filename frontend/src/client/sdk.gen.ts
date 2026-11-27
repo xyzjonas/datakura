@@ -98,6 +98,22 @@ import type {
   WarehouseApiRoutesDataImportGetDataImportJobResponses,
   WarehouseApiRoutesDataImportStartDataImportData,
   WarehouseApiRoutesDataImportStartDataImportResponses,
+  WarehouseApiRoutesDocumentTemplatesApplyPageSettingsData,
+  WarehouseApiRoutesDocumentTemplatesApplyPageSettingsResponses,
+  WarehouseApiRoutesDocumentTemplatesExportDocumentPdfData,
+  WarehouseApiRoutesDocumentTemplatesExportDocumentPdfResponses,
+  WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsData,
+  WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponses,
+  WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsData,
+  WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses,
+  WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateData,
+  WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponses,
+  WarehouseApiRoutesDocumentTemplatesPreviewDocumentData,
+  WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponses,
+  WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateData,
+  WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponses,
+  WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateData,
+  WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponses,
   WarehouseApiRoutesGroupCreateGroupData,
   WarehouseApiRoutesGroupCreateGroupResponses,
   WarehouseApiRoutesGroupGetGroupsData,
@@ -5834,5 +5850,224 @@ export const warehouseApiRoutesCertificationsGetCertificationItems = <
     ],
     url: '/api/v1/certifications/{certification_id}/items',
     ...options,
+  })
+}
+
+/**
+ * Get Document Targets
+ */
+export const warehouseApiRoutesDocumentTemplatesGetDocumentTargets = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    WarehouseApiRoutesDocumentTemplatesGetDocumentTargetsResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/document-templates',
+    ...options,
+  })
+}
+
+/**
+ * Apply Page Settings
+ * Copies font, margins, logo and page numbering to the layouts of all documents.
+ */
+export const warehouseApiRoutesDocumentTemplatesApplyPageSettings = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WarehouseApiRoutesDocumentTemplatesApplyPageSettingsData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<
+    WarehouseApiRoutesDocumentTemplatesApplyPageSettingsResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/document-templates/apply-page',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+}
+
+/**
+ * Reset Document Template
+ * Drops the customised layout - the built-in default is used again.
+ */
+export const warehouseApiRoutesDocumentTemplatesResetDocumentTemplate = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateData, ThrowOnError>,
+) => {
+  return (options.client ?? client).delete<
+    WarehouseApiRoutesDocumentTemplatesResetDocumentTemplateResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/document-templates/{target}',
+    ...options,
+  })
+}
+
+/**
+ * Get Document Template
+ */
+export const warehouseApiRoutesDocumentTemplatesGetDocumentTemplate = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateData, ThrowOnError>,
+) => {
+  return (options.client ?? client).get<
+    WarehouseApiRoutesDocumentTemplatesGetDocumentTemplateResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/document-templates/{target}',
+    ...options,
+  })
+}
+
+/**
+ * Update Document Template
+ */
+export const warehouseApiRoutesDocumentTemplatesUpdateDocumentTemplate = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateData, ThrowOnError>,
+) => {
+  return (options.client ?? client).put<
+    WarehouseApiRoutesDocumentTemplatesUpdateDocumentTemplateResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/document-templates/{target}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+}
+
+/**
+ * Get Document Records
+ */
+export const warehouseApiRoutesDocumentTemplatesGetDocumentRecords = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsData, ThrowOnError>,
+) => {
+  return (options.client ?? client).get<
+    WarehouseApiRoutesDocumentTemplatesGetDocumentRecordsResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/document-templates/{target}/records',
+    ...options,
+  })
+}
+
+/**
+ * Preview Document
+ * HTML of a (draft) layout over a real record.
+ */
+export const warehouseApiRoutesDocumentTemplatesPreviewDocument = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WarehouseApiRoutesDocumentTemplatesPreviewDocumentData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<
+    WarehouseApiRoutesDocumentTemplatesPreviewDocumentResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/document-templates/{target}/preview',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+}
+
+/**
+ * Export Document Pdf
+ */
+export const warehouseApiRoutesDocumentTemplatesExportDocumentPdf = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WarehouseApiRoutesDocumentTemplatesExportDocumentPdfData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<
+    WarehouseApiRoutesDocumentTemplatesExportDocumentPdfResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'sessionid',
+        type: 'apiKey',
+      },
+    ],
+    url: '/api/v1/document-templates/{target}/pdf',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   })
 }

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8" />
+    <title>{{ code }}</title>
+    <style>
+        {{ font_faces|safe }}
+        @page {
+            size: A4; margin: {{ margin.margin_top }}px {{ margin.margin_right }}px {{ margin.margin_bottom }}px {{ margin.margin_left }}px;
+            {% if page_number_box %}@{{ page_number_box }} { content: counter(page) " / " counter(pages); font-family: {{ font_family|safe }}; font-size: 9px; color: #64748b; }{% endif %}
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            color: #132238;
+            font-family: {{ font_family|safe }};
+            font-size: 11px;
+            line-height: 1.45;
+            background: #fff;
+        }
+        .page { display: flex; flex-direction: column; gap: 18px; }
+        /* browser preview: one page high, the footer sticks to its bottom (the PDF measures instead, see pdf.py) */
+        @media screen { .page { min-height: calc(297mm - {{ margin.margin_top|add:margin.margin_bottom }}px - 2px); } .footer { margin-top: auto; } }
+        .logo-img { display: block; max-height: 70px; max-width: 260px; }
+        .sec-right .logo-img { margin-left: auto; }
+        .sec-middle .logo-img { margin: 0 auto; }
+        /* left / right take the room their content needs and sit at the edges; with a
+           middle section the outer two share the rest equally so it stays centered */
+        .header-sections { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+        .header-sections > div { flex: 0 1 auto; min-width: 0; }
+        .header-sections.has-middle > .sec-left, .header-sections.has-middle > .sec-right { flex: 1 1 0; }
+        .header-sections .sec-middle { text-align: center; }
+        .header-sections .sec-right { text-align: right; }
+        .title { margin: 0 0 8px 0; font-size: 24px; line-height: 1.1; }
+        .line { margin: 2px 0; }
+        .bold { font-weight: 700; }
+        .muted { color: #64748b; }
+        .bc { display: inline-block; text-align: center; vertical-align: top; }
+        .bc-text { display: block; line-height: 1.2; }
+        .barcode { display: block; margin: 0 auto; height: 3.6em; }
+        td .barcode { height: 2.4em; }
+        .parties { display: flex; }
+        .party { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .party:not(:last-child) { padding-right: 20px; }
+        .party + .party { padding-left: 20px; border-left: 1px solid #d7dee7; }
+        .party h2 { margin: 0 0 6px 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
+        .party p { margin: 2px 0; }
+        .party-rows { text-align: left; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 8px 10px; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; border-bottom: 2px solid #d7dee7; }
+        td { padding: 8px 10px; border-bottom: 1px solid #e5eaf0; vertical-align: middle; }
+        tr { page-break-inside: avoid; }
+        .right { text-align: right; white-space: nowrap; }
+        .summaries { align-self: flex-end; min-width: 240px; }
+        .summaries div { display: flex; justify-content: space-between; gap: 24px; padding: 4px 0; border-bottom: 1px solid #e5eaf0; }
+        .summaries div:last-child { font-size: 14px; font-weight: 700; border-bottom: 0; }
+        .footer { break-inside: avoid; margin-top: 6px; padding-top: 8px; border-top: 1px solid #d7dee7; color: #64748b; font-size: 9px; white-space: pre-wrap; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="header">
+        {% if header.title %}<h1 class="title">{{ header.title }}</h1>{% endif %}
+        <div class="header-sections{% if header.has_middle %} has-middle{% endif %}">
+            {% for section in header.sections %}
+            <div class="sec-{{ section.name }}">
+                {% for row in section.rows %}
+                <div class="line">{% if row.label %}<span class="muted">{{ row.label }}</span> {% endif %}{% include "documents/_value.html" with value=row.value %}</div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if parties %}
+    <section class="parties">
+        {% for party in parties %}
+        <div class="party">
+            {% if party.title %}<h2>{{ party.title }}</h2>{% endif %}
+            <div class="party-rows">{% for row in party.rows %}<p>{% if row.label %}<span class="muted">{{ row.label }}</span> {% endif %}{% include "documents/_value.html" with value=row.value %}</p>{% endfor %}</div>
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if items %}
+    <table>
+        <thead>
+            <tr>{% for column in items.columns %}<th{% if column.right %} class="right"{% endif %}>{{ column.label }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+            {% for row in items.rows %}
+            <tr>{% for cell in row %}<td{% if cell.right %} class="right"{% endif %}>{% include "documents/_value.html" with value=cell %}</td>{% endfor %}</tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if items.summaries %}
+    <div class="summaries">
+        {% for row in items.summaries %}<div><span>{{ row.label }}</span><span>{% include "documents/_value.html" with value=row.value %}</span></div>{% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if footer %}<div class="footer"{% if footer_gap %} style="margin-top: calc(6px + {{ footer_gap }}px)"{% endif %}>{{ footer }}</div>{% endif %}
+</div>
+</body>
+</html>
